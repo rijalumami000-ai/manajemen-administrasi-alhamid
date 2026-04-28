@@ -1,0 +1,323 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SI Internal Pesantren</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <header class="site-header">
+    <div class="header-inner">
+      <button type="button" class="hamburger-menu" id="hamburger-menu" aria-label="Toggle menu">
+        <span></span>
+        <span></span>
+        <span></span>
+      </button>
+      <div class="brand">
+        <div class="brand-logo">SI</div>
+        <div>
+          <h1>SI Internal Pesantren</h1>
+          <p>Dashboard manajemen data santri & guru</p>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <nav class="sidebar" id="sidebar">
+    <div class="sidebar-header">
+      <h2>Menu</h2>
+      <button type="button" class="sidebar-close" id="sidebar-close" aria-label="Close menu">×</button>
+    </div>
+    <ul class="sidebar-menu">
+      <li><button type="button" class="menu-item active" data-target="summary-panel">Dashboard</button></li>
+      <li><button type="button" class="menu-item" data-target="santri-panel">Data Santri</button></li>
+      <li><button type="button" class="menu-item" data-target="kelas-panel">Data Kelas</button></li>
+      <li><button type="button" class="menu-item" data-target="guru-panel">Data Guru</button></li>
+    </ul>
+    <div class="sidebar-footer">
+      <p>© 2026 SI Internal</p>
+    </div>
+  </nav>
+
+  <main class="main-content">
+    <section id="summary-panel" class="panel active">
+      <div class="panel-header">
+        <h2>Ringkasan Data</h2>
+        <p>Jumlah data santri dan guru yang tersimpan di sistem.</p>
+      </div>
+      <div class="summary-grid">
+        <article class="stat-card">
+          <span class="stat-label">Total Santri</span>
+          <strong class="stat-value" id="total-santri">0</strong>
+        </article>
+        <article class="stat-card">
+          <span class="stat-label">Total Guru</span>
+          <strong class="stat-value" id="total-guru">0</strong>
+        </article>
+      </div>
+    </section>
+
+    <section id="santri-panel" class="panel">
+      <div class="panel-header">
+        <h2>Manajemen Data Santri</h2>
+        <p>Kelola data santri lengkap dengan informasi orang tua.</p>
+        <button id="btn-tambah-santri" class="button" style="margin-top: 1rem;">+ Tambah Santri</button>
+      </div>
+
+      <div class="table-card">
+        <h3>Daftar Santri</h3>
+        <div id="santri-message" class="message"></div>
+        <div class="table-scroll">
+          <table>
+            <thead>
+              <tr>
+                <th>NIS</th>
+                <th>NIK</th>
+                <th>Nama</th>
+                <th>Kelas Diniyah</th>
+                <th>Kelas Sekolah</th>
+                <th>Tempat Lahir</th>
+                <th>Nama Ayah</th>
+                <th>Aksi</th>
+              </tr>
+            </thead>
+            <tbody id="santri-table-body"></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <section id="kelas-panel" class="panel">
+      <div class="panel-header panel-header-actions">
+        <div>
+          <h2>Manajemen Data Kelas</h2>
+          <p>Tambah dan kelola daftar kelas Diniyah dan Sekolah secara terpisah.</p>
+        </div>
+        <button type="button" id="btn-tambah-kelas" class="button button-add-class">+ Tambah Kelas</button>
+      </div>
+
+      <div id="kelas-message" class="message"></div>
+      <div id="kelas-cards" class="kelas-cards"></div>
+    </section>
+
+    <div id="modal-kelas" class="modal">
+      <div class="modal-content modal-content-small">
+        <div class="modal-header">
+          <h2>Tambah Kelas</h2>
+          <button type="button" class="modal-close" id="close-modal-kelas">&times;</button>
+        </div>
+        <div id="kelas-form-message" class="message"></div>
+        <form id="kelas-form" class="modal-form">
+          <p class="kelas-modal-note">Setiap entri hanya menyimpan satu kelas. Pilih jenis lalu isi nama kelasnya.</p>
+
+          <div class="field-grid">
+            <label>
+              <span>Jenis Kelas *</span>
+              <select name="jenis" required>
+                <option value="">-- Pilih Jenis --</option>
+                <option value="Diniyah">Diniyah</option>
+                <option value="Sekolah">Sekolah</option>
+              </select>
+            </label>
+            <label class="full-width">
+              <span>Nama Kelas *</span>
+              <input type="text" name="nama" placeholder="Contoh: Ula 1 atau 7A" required />
+            </label>
+          </div>
+
+          <div class="modal-actions">
+            <button type="button" class="button-secondary" id="cancel-modal-kelas">Batal</button>
+            <button type="submit" class="button">Simpan Kelas</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <div id="modal-santri" class="modal">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h2>Tambah Santri</h2>
+          <button type="button" class="modal-close" id="close-modal-santri">&times;</button>
+        </div>
+        <div id="santri-form-message" class="message"></div>
+        <form id="santri-form" class="modal-form">
+          <div class="form-section">
+            <h4>Data Santri</h4>
+            <div class="field-grid">
+              <label><span>NIS *</span><input type="text" name="nis" required /></label>
+              <label><span>NIK</span><input type="text" name="nik" /></label>
+              <label><span>Nama *</span><input type="text" name="nama" required /></label>
+              <label><span>Tempat Lahir</span><input type="text" name="tempat_lahir" /></label>
+              <label><span>Tanggal Lahir</span><input type="date" name="tanggal_lahir" /></label>
+              <label><span>Kelas Diniyah</span><select name="kelas_diniyah_id"></select></label>
+              <label><span>Kelas Sekolah</span><select name="kelas_sekolah_id"></select></label>
+              <label class="full-width"><span>Alamat</span><input type="text" name="alamat" /></label>
+            </div>
+          </div>
+
+          <div class="form-section">
+            <h4>Data Orang Tua</h4>
+            <div class="field-grid">
+              <label><span>Nama Ayah</span><input type="text" name="nama_ayah" /></label>
+              <label><span>Pekerjaan Ayah</span><input type="text" name="pekerjaan_ayah" /></label>
+              <label><span>No. HP Ayah</span><input type="text" name="no_hp_ayah" /></label>
+              <label><span>Nama Ibu</span><input type="text" name="nama_ibu" /></label>
+              <label><span>Pekerjaan Ibu</span><input type="text" name="pekerjaan_ibu" /></label>
+              <label><span>No. HP Ibu</span><input type="text" name="no_hp_ibu" /></label>
+            </div>
+          </div>
+
+          <div class="modal-actions">
+            <button type="button" class="button-secondary" id="cancel-modal-santri">Batal</button>
+            <button type="submit" class="button">Simpan Santri</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <section id="guru-panel" class="panel">
+      <div class="panel-header panel-header-actions">
+        <div>
+          <h2>Manajemen Data Guru</h2>
+          <p>Kelola data guru, mata pelajaran, dan jabatan dari satu tempat.</p>
+        </div>
+        <div class="panel-action-group">
+          <button type="button" id="btn-tambah-guru" class="button">+ Tambah Guru</button>
+          <button type="button" id="btn-tambah-mata-pelajaran" class="button button-secondary">+ Tambah Mata Pelajaran</button>
+          <button type="button" id="btn-tambah-jabatan" class="button button-secondary">+ Tambah Jabatan</button>
+        </div>
+      </div>
+
+      <div class="guru-split-layout">
+        <div class="table-card guru-table-card">
+          <h3>Daftar Guru</h3>
+          <div id="guru-message" class="message"></div>
+          <div class="table-scroll">
+            <table>
+              <thead>
+                <tr>
+                  <th>NIP</th>
+                  <th>Nama</th>
+                  <th>Mapel</th>
+                  <th>Jabatan</th>
+                  <th>No. HP</th>
+                  <th>Alamat</th>
+                  <th>Status</th>
+                </tr>
+              </thead>
+              <tbody id="guru-table-body"></tbody>
+            </table>
+          </div>
+        </div>
+
+        <div class="guru-master-column">
+          <article class="table-card master-card">
+            <div class="master-card-header">
+              <div>
+                <h3>Mata Pelajaran</h3>
+                <p>Hasil data dari tombol Tambah Mata Pelajaran.</p>
+              </div>
+              <span class="master-count" id="mata-pelajaran-count">0</span>
+            </div>
+            <div id="mata-pelajaran-list" class="master-list"></div>
+          </article>
+
+          <article class="table-card master-card">
+            <div class="master-card-header">
+              <div>
+                <h3>Jabatan</h3>
+                <p>Hasil data dari tombol Tambah Jabatan.</p>
+              </div>
+              <span class="master-count" id="jabatan-count">0</span>
+            </div>
+            <div id="jabatan-list" class="master-list"></div>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <div id="modal-guru" class="modal">
+      <div class="modal-content modal-content-wide">
+        <div class="modal-header">
+          <h2>Tambah Guru</h2>
+          <button type="button" class="modal-close" id="close-modal-guru">&times;</button>
+        </div>
+        <div id="guru-form-message" class="message"></div>
+        <form id="guru-form" class="modal-form">
+          <p class="modal-note">Jika mata pelajaran atau jabatan belum tersedia, tambahkan dulu lewat tombol di atas.</p>
+          <div class="field-grid field-grid-two">
+            <label><span>NIP (Opsional)</span><input type="text" name="nip" /></label>
+            <label><span>Nama *</span><input type="text" name="nama" required /></label>
+            <label><span>Mata Pelajaran *</span><select name="mata_pelajaran_id" required><option value="">-- Pilih Mata Pelajaran --</option></select></label>
+            <label><span>Jabatan *</span><select name="jabatan_id" required><option value="">-- Pilih Jabatan --</option></select></label>
+            <label><span>No. HP *</span><input type="text" name="no_hp" required /></label>
+            <label><span>Status *</span>
+              <select name="status" required>
+                <option value="">-- Pilih Status --</option>
+                <option value="Aktif">Aktif</option>
+                <option value="Cuti">Cuti</option>
+                <option value="Pensiun">Pensiun</option>
+              </select>
+            </label>
+            <label class="full-width"><span>Alamat *</span><textarea name="alamat" rows="3" required></textarea></label>
+          </div>
+          <div class="modal-actions">
+            <button type="button" class="button-secondary" id="cancel-modal-guru">Batal</button>
+            <button type="submit" class="button">Simpan Guru</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <div id="modal-mata-pelajaran" class="modal">
+      <div class="modal-content modal-content-small">
+        <div class="modal-header">
+          <h2>Tambah Mata Pelajaran</h2>
+          <button type="button" class="modal-close" id="close-modal-mata-pelajaran">&times;</button>
+        </div>
+        <div id="mata-pelajaran-form-message" class="message"></div>
+        <form id="mata-pelajaran-form" class="modal-form">
+          <div class="field-grid">
+            <label class="full-width"><span>Nama Mata Pelajaran *</span><input type="text" name="nama" placeholder="Contoh: Fiqih" required /></label>
+          </div>
+          <div class="modal-actions">
+            <button type="button" class="button-secondary" id="cancel-modal-mata-pelajaran">Batal</button>
+            <button type="submit" class="button">Simpan</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <div id="modal-jabatan" class="modal">
+      <div class="modal-content modal-content-small">
+        <div class="modal-header">
+          <h2>Tambah Jabatan</h2>
+          <button type="button" class="modal-close" id="close-modal-jabatan">&times;</button>
+        </div>
+        <div id="jabatan-form-message" class="message"></div>
+        <form id="jabatan-form" class="modal-form">
+          <div class="field-grid">
+            <label class="full-width"><span>Nama Jabatan *</span><input type="text" name="nama" placeholder="Contoh: Wali Kelas" required /></label>
+          </div>
+          <div class="modal-actions">
+            <button type="button" class="button-secondary" id="cancel-modal-jabatan">Batal</button>
+            <button type="submit" class="button">Simpan</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </main>
+
+  <footer class="site-footer">
+    <div class="container footer-inner">
+      <p>&copy; <span id="year"></span> SI Internal Pesantren. Semua hak cipta dilindungi.</p>
+    </div>
+  </footer>
+
+  <script src="script.js"></script>
+</body>
+</html>
