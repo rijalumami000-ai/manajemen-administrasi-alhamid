@@ -1,0 +1,582 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Data Alumni - Sistem Informasi Pesantren</title>
+  <link rel="stylesheet" href="styles.css">
+  <style>
+    .search-bar {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 20px;
+      flex-wrap: wrap;
+    }
+    
+    .search-bar input,
+    .search-bar select {
+      padding: 8px 12px;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      font-size: 14px;
+    }
+    
+    .search-bar input {
+      flex: 1;
+      min-width: 200px;
+    }
+    
+    .search-bar select {
+      min-width: 150px;
+    }
+    
+    .alumni-stats {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 15px;
+      margin-bottom: 20px;
+    }
+    
+    .stat-card {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      padding: 20px;
+      border-radius: 8px;
+      text-align: center;
+    }
+    
+    .stat-card h3 {
+      margin: 0 0 10px 0;
+      font-size: 14px;
+      opacity: 0.9;
+    }
+    
+    .stat-card .number {
+      font-size: 32px;
+      font-weight: bold;
+      margin: 0;
+    }
+    
+    .alumni-card {
+      background: white;
+      border: 1px solid #e0e0e0;
+      border-radius: 8px;
+      padding: 20px;
+      margin-bottom: 15px;
+      transition: box-shadow 0.3s;
+    }
+    
+    .alumni-card:hover {
+      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    }
+    
+    .alumni-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: start;
+      margin-bottom: 15px;
+    }
+    
+    .alumni-name {
+      font-size: 18px;
+      font-weight: bold;
+      color: #333;
+      margin: 0 0 5px 0;
+    }
+    
+    .alumni-nis {
+      color: #666;
+      font-size: 14px;
+    }
+    
+    .alumni-year {
+      background: #667eea;
+      color: white;
+      padding: 5px 15px;
+      border-radius: 20px;
+      font-size: 14px;
+      font-weight: bold;
+    }
+    
+    .alumni-details {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+      gap: 10px;
+      margin-bottom: 15px;
+    }
+    
+    .detail-item {
+      display: flex;
+      gap: 8px;
+      font-size: 14px;
+    }
+    
+    .detail-label {
+      font-weight: 600;
+      color: #555;
+      min-width: 100px;
+    }
+    
+    .detail-value {
+      color: #333;
+    }
+    
+    .alumni-actions {
+      display: flex;
+      gap: 10px;
+      justify-content: flex-end;
+      padding-top: 15px;
+      border-top: 1px solid #f0f0f0;
+    }
+    
+    .modal-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 15px;
+    }
+    
+    .modal-grid .full-width {
+      grid-column: 1 / -1;
+    }
+    
+    @media (max-width: 768px) {
+      .modal-grid {
+        grid-template-columns: 1fr;
+      }
+      
+      .alumni-header {
+        flex-direction: column;
+        gap: 10px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>📚 Data Alumni</h1>
+      <nav>
+        <a href="index.html">Beranda</a>
+        <a href="alumni.html" class="active">Alumni</a>
+      </nav>
+    </header>
+
+    <main>
+      <div class="alumni-stats" id="alumniStats">
+        <div class="stat-card">
+          <h3>Total Alumni</h3>
+          <p class="number" id="totalAlumni">0</p>
+        </div>
+        <div class="stat-card">
+          <h3>Tahun Terbaru</h3>
+          <p class="number" id="latestYear">-</p>
+        </div>
+        <div class="stat-card">
+          <h3>Bekerja</h3>
+          <p class="number" id="workingAlumni">0</p>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <h2>Daftar Alumni</h2>
+          <button class="btn btn-primary" onclick="openModal()">+ Tambah Alumni</button>
+        </div>
+
+        <div class="search-bar">
+          <input 
+            type="text" 
+            id="searchInput" 
+            placeholder="Cari nama atau NIS alumni..."
+            onkeyup="searchAlumni()"
+          >
+          <select id="yearFilter" onchange="searchAlumni()">
+            <option value="">Semua Tahun</option>
+          </select>
+          <button class="btn btn-secondary" onclick="resetSearch()">Reset</button>
+        </div>
+
+        <div id="alumniList"></div>
+      </div>
+    </main>
+  </div>
+
+  <!-- Modal Form -->
+  <div id="alumniModal" class="modal">
+    <div class="modal-content" style="max-width: 800px;">
+      <div class="modal-header">
+        <h2 id="modalTitle">Tambah Alumni</h2>
+        <span class="close" onclick="closeModal()">&times;</span>
+      </div>
+      <form id="alumniForm" onsubmit="saveAlumni(event)">
+        <div class="modal-grid">
+          <div class="form-group">
+            <label for="nis">NIS *</label>
+            <input type="text" id="nis" required>
+          </div>
+
+          <div class="form-group">
+            <label for="nik">NIK</label>
+            <input type="text" id="nik">
+          </div>
+
+          <div class="form-group full-width">
+            <label for="nama">Nama Lengkap *</label>
+            <input type="text" id="nama" required>
+          </div>
+
+          <div class="form-group">
+            <label for="tempat_lahir">Tempat Lahir</label>
+            <input type="text" id="tempat_lahir">
+          </div>
+
+          <div class="form-group">
+            <label for="tanggal_lahir">Tanggal Lahir</label>
+            <input type="date" id="tanggal_lahir">
+          </div>
+
+          <div class="form-group">
+            <label for="tahun_masuk">Tahun Masuk</label>
+            <input type="number" id="tahun_masuk" min="1900" max="2100">
+          </div>
+
+          <div class="form-group">
+            <label for="tahun_lulus">Tahun Lulus *</label>
+            <input type="number" id="tahun_lulus" required min="1900" max="2100">
+          </div>
+
+          <div class="form-group full-width">
+            <label for="kelas_terakhir">Kelas Terakhir</label>
+            <input type="text" id="kelas_terakhir" placeholder="Contoh: XII IPA 1">
+          </div>
+
+          <div class="form-group full-width">
+            <label for="alamat">Alamat</label>
+            <textarea id="alamat" rows="2"></textarea>
+          </div>
+
+          <div class="form-group">
+            <label for="no_hp">No. HP</label>
+            <input type="tel" id="no_hp">
+          </div>
+
+          <div class="form-group">
+            <label for="email">Email</label>
+            <input type="email" id="email">
+          </div>
+
+          <div class="form-group">
+            <label for="pekerjaan">Pekerjaan</label>
+            <input type="text" id="pekerjaan">
+          </div>
+
+          <div class="form-group">
+            <label for="instansi">Instansi/Perusahaan</label>
+            <input type="text" id="instansi">
+          </div>
+
+          <div class="form-group full-width">
+            <label for="prestasi_utama">Prestasi Utama</label>
+            <textarea id="prestasi_utama" rows="2" placeholder="Prestasi atau pencapaian selama di pesantren"></textarea>
+          </div>
+
+          <div class="form-group full-width">
+            <label for="keterangan">Keterangan</label>
+            <textarea id="keterangan" rows="2"></textarea>
+          </div>
+        </div>
+
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" onclick="closeModal()">Batal</button>
+          <button type="submit" class="btn btn-primary">Simpan</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script>
+    const API_URL = 'http://localhost:3000/api';
+    let currentAlumniId = null;
+    let allAlumni = [];
+
+    async function loadAlumni() {
+      try {
+        const response = await fetch(`${API_URL}/alumni`);
+        allAlumni = await response.json();
+        displayAlumni(allAlumni);
+        updateStats(allAlumni);
+        populateYearFilter(allAlumni);
+      } catch (error) {
+        console.error('Error:', error);
+        alert('Gagal memuat data alumni');
+      }
+    }
+
+    function displayAlumni(alumni) {
+      const list = document.getElementById('alumniList');
+      
+      if (alumni.length === 0) {
+        list.innerHTML = '<p style="text-align: center; color: #999; padding: 40px;">Tidak ada data alumni</p>';
+        return;
+      }
+
+      list.innerHTML = alumni.map(a => `
+        <div class="alumni-card">
+          <div class="alumni-header">
+            <div>
+              <h3 class="alumni-name">${a.nama}</h3>
+              <p class="alumni-nis">NIS: ${a.nis}</p>
+            </div>
+            <div class="alumni-year">Lulus ${a.tahun_lulus}</div>
+          </div>
+          
+          <div class="alumni-details">
+            ${a.tempat_lahir || a.tanggal_lahir ? `
+              <div class="detail-item">
+                <span class="detail-label">Lahir:</span>
+                <span class="detail-value">${a.tempat_lahir || ''}, ${a.tanggal_lahir ? formatDate(a.tanggal_lahir) : ''}</span>
+              </div>
+            ` : ''}
+            
+            ${a.tahun_masuk ? `
+              <div class="detail-item">
+                <span class="detail-label">Tahun Masuk:</span>
+                <span class="detail-value">${a.tahun_masuk}</span>
+              </div>
+            ` : ''}
+            
+            ${a.kelas_terakhir ? `
+              <div class="detail-item">
+                <span class="detail-label">Kelas Terakhir:</span>
+                <span class="detail-value">${a.kelas_terakhir}</span>
+              </div>
+            ` : ''}
+            
+            ${a.no_hp ? `
+              <div class="detail-item">
+                <span class="detail-label">No. HP:</span>
+                <span class="detail-value">${a.no_hp}</span>
+              </div>
+            ` : ''}
+            
+            ${a.email ? `
+              <div class="detail-item">
+                <span class="detail-label">Email:</span>
+                <span class="detail-value">${a.email}</span>
+              </div>
+            ` : ''}
+            
+            ${a.pekerjaan ? `
+              <div class="detail-item">
+                <span class="detail-label">Pekerjaan:</span>
+                <span class="detail-value">${a.pekerjaan}</span>
+              </div>
+            ` : ''}
+            
+            ${a.instansi ? `
+              <div class="detail-item">
+                <span class="detail-label">Instansi:</span>
+                <span class="detail-value">${a.instansi}</span>
+              </div>
+            ` : ''}
+            
+            ${a.alamat ? `
+              <div class="detail-item full-width">
+                <span class="detail-label">Alamat:</span>
+                <span class="detail-value">${a.alamat}</span>
+              </div>
+            ` : ''}
+            
+            ${a.prestasi_utama ? `
+              <div class="detail-item full-width">
+                <span class="detail-label">Prestasi:</span>
+                <span class="detail-value">${a.prestasi_utama}</span>
+              </div>
+            ` : ''}
+          </div>
+          
+          <div class="alumni-actions">
+            <button class="btn btn-secondary btn-sm" onclick="editAlumni(${a.id})">Edit</button>
+            <button class="btn btn-danger btn-sm" onclick="deleteAlumni(${a.id}, '${a.nama}')">Hapus</button>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    function updateStats(alumni) {
+      document.getElementById('totalAlumni').textContent = alumni.length;
+      
+      if (alumni.length > 0) {
+        const latestYear = Math.max(...alumni.map(a => a.tahun_lulus));
+        document.getElementById('latestYear').textContent = latestYear;
+        
+        const working = alumni.filter(a => a.pekerjaan).length;
+        document.getElementById('workingAlumni').textContent = working;
+      }
+    }
+
+    function populateYearFilter(alumni) {
+      const years = [...new Set(alumni.map(a => a.tahun_lulus))].sort((a, b) => b - a);
+      const select = document.getElementById('yearFilter');
+      
+      select.innerHTML = '<option value="">Semua Tahun</option>' + 
+        years.map(year => `<option value="${year}">${year}</option>`).join('');
+    }
+
+    function searchAlumni() {
+      const searchTerm = document.getElementById('searchInput').value.toLowerCase();
+      const yearFilter = document.getElementById('yearFilter').value;
+      
+      let filtered = allAlumni;
+      
+      if (searchTerm) {
+        filtered = filtered.filter(a => 
+          a.nama.toLowerCase().includes(searchTerm) || 
+          a.nis.toLowerCase().includes(searchTerm)
+        );
+      }
+      
+      if (yearFilter) {
+        filtered = filtered.filter(a => a.tahun_lulus == yearFilter);
+      }
+      
+      displayAlumni(filtered);
+    }
+
+    function resetSearch() {
+      document.getElementById('searchInput').value = '';
+      document.getElementById('yearFilter').value = '';
+      displayAlumni(allAlumni);
+    }
+
+    function openModal() {
+      currentAlumniId = null;
+      document.getElementById('modalTitle').textContent = 'Tambah Alumni';
+      document.getElementById('alumniForm').reset();
+      document.getElementById('alumniModal').style.display = 'block';
+    }
+
+    function closeModal() {
+      document.getElementById('alumniModal').style.display = 'none';
+    }
+
+    async function editAlumni(id) {
+      const alumni = allAlumni.find(a => a.id === id);
+      if (!alumni) return;
+
+      currentAlumniId = id;
+      document.getElementById('modalTitle').textContent = 'Edit Alumni';
+      
+      document.getElementById('nis').value = alumni.nis || '';
+      document.getElementById('nik').value = alumni.nik || '';
+      document.getElementById('nama').value = alumni.nama || '';
+      document.getElementById('tempat_lahir').value = alumni.tempat_lahir || '';
+      document.getElementById('tanggal_lahir').value = alumni.tanggal_lahir || '';
+      document.getElementById('tahun_masuk').value = alumni.tahun_masuk || '';
+      document.getElementById('tahun_lulus').value = alumni.tahun_lulus || '';
+      document.getElementById('kelas_terakhir').value = alumni.kelas_terakhir || '';
+      document.getElementById('alamat').value = alumni.alamat || '';
+      document.getElementById('no_hp').value = alumni.no_hp || '';
+      document.getElementById('email').value = alumni.email || '';
+      document.getElementById('pekerjaan').value = alumni.pekerjaan || '';
+      document.getElementById('instansi').value = alumni.instansi || '';
+      document.getElementById('prestasi_utama').value = alumni.prestasi_utama || '';
+      document.getElementById('keterangan').value = alumni.keterangan || '';
+      
+      document.getElementById('alumniModal').style.display = 'block';
+    }
+
+    async function saveAlumni(event) {
+      event.preventDefault();
+      
+      const data = {
+        nis: document.getElementById('nis').value,
+        nik: document.getElementById('nik').value,
+        nama: document.getElementById('nama').value,
+        tempat_lahir: document.getElementById('tempat_lahir').value,
+        tanggal_lahir: document.getElementById('tanggal_lahir').value,
+        tahun_masuk: document.getElementById('tahun_masuk').value,
+        tahun_lulus: document.getElementById('tahun_lulus').value,
+        kelas_terakhir: document.getElementById('kelas_terakhir').value,
+        alamat: document.getElementById('alamat').value,
+        no_hp: document.getElementById('no_hp').value,
+        email: document.getElementById('email').value,
+        pekerjaan: document.getElementById('pekerjaan').value,
+        instansi: document.getElementById('instansi').value,
+        prestasi_utama: document.getElementById('prestasi_utama').value,
+        keterangan: document.getElementById('keterangan').value
+      };
+
+      try {
+        const url = currentAlumniId 
+          ? `${API_URL}/alumni/${currentAlumniId}`
+          : `${API_URL}/alumni`;
+        
+        const method = currentAlumniId ? 'PUT' : 'POST';
+        
+        const response = await fetch(url, {
+          method,
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(data)
+        });
+
+        if (response.ok) {
+          closeModal();
+          loadAlumni();
+          alert(currentAlumniId ? 'Data alumni berhasil diperbarui' : 'Data alumni berhasil ditambahkan');
+        } else {
+          const error = await response.json();
+          alert(error.error || 'Gagal menyimpan data');
+        }
+      } catch (error) {
+        console.error('Error:', error);
+        alert('Gagal menyimpan data alumni');
+      }
+    }
+
+    async function deleteAlumni(id, nama) {
+      if (!confirm(`Apakah Anda yakin ingin menghapus data alumni ${nama}?`)) {
+        return;
+      }
+
+      try {
+        const response = await fetch(`${API_URL}/alumni/${id}`, {
+          method: 'DELETE'
+        });
+
+        if (response.ok) {
+          loadAlumni();
+          alert('Data alumni berhasil dihapus');
+        } else {
+          const error = await response.json();
+          alert(error.error || 'Gagal menghapus data');
+        }
+      } catch (error) {
+        console.error('Error:', error);
+        alert('Gagal menghapus data alumni');
+      }
+    }
+
+    function formatDate(dateString) {
+      if (!dateString) return '';
+      const date = new Date(dateString);
+      return date.toLocaleDateString('id-ID', { 
+        day: 'numeric', 
+        month: 'long', 
+        year: 'numeric' 
+      });
+    }
+
+    // Close modal when clicking outside
+    window.onclick = function(event) {
+      const modal = document.getElementById('alumniModal');
+      if (event.target === modal) {
+        closeModal();
+      }
+    }
+
+    // Load data on page load
+    loadAlumni();
+  </script>
+</body>
+</html>

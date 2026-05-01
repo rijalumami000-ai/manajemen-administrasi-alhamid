@@ -1,0 +1,611 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Data Alumni - Sistem Informasi Pesantren</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="styles.css">
+  <style>
+    .alumni-stats {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 15px;
+      margin-bottom: 20px;
+    }
+    
+    .stat-card-alumni {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      padding: 20px;
+      border-radius: 8px;
+      text-align: center;
+    }
+    
+    .stat-card-alumni h3 {
+      margin: 0 0 10px 0;
+      font-size: 14px;
+      opacity: 0.9;
+    }
+    
+    .stat-card-alumni .number {
+      font-size: 32px;
+      font-weight: bold;
+      margin: 0;
+    }
+    
+    .mode-selector {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 20px;
+      border-bottom: 2px solid #e0e0e0;
+      padding-bottom: 10px;
+    }
+    
+    .mode-btn {
+      padding: 10px 20px;
+      border: none;
+      background: transparent;
+      cursor: pointer;
+      font-size: 14px;
+      font-weight: 600;
+      color: #666;
+      border-bottom: 3px solid transparent;
+      transition: all 0.3s;
+    }
+    
+    .mode-btn.active {
+      color: #667eea;
+      border-bottom-color: #667eea;
+    }
+    
+    .mode-btn:hover {
+      color: #667eea;
+    }
+    
+    .mode-content {
+      display: none;
+    }
+    
+    .mode-content.active {
+      display: block;
+    }
+    
+    .santri-preview {
+      background: #f8f9fa;
+      padding: 15px;
+      border-radius: 8px;
+      margin: 15px 0;
+      border-left: 4px solid #667eea;
+    }
+    
+    .santri-preview h4 {
+      margin: 0 0 10px 0;
+      color: #333;
+    }
+    
+    .santri-preview-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 10px;
+      font-size: 14px;
+    }
+
+    .autocomplete-field {
+      position: relative;
+      display: block;
+    }
+
+    .autocomplete-list {
+      display: none;
+      position: absolute;
+      z-index: 20;
+      top: calc(100% + 4px);
+      left: 0;
+      right: 0;
+      max-height: 240px;
+      overflow-y: auto;
+      background: white;
+      border: 1px solid #d8dee9;
+      border-radius: 8px;
+      box-shadow: 0 12px 28px rgba(15, 23, 42, 0.12);
+    }
+
+    .autocomplete-list.active {
+      display: block;
+    }
+
+    .autocomplete-option {
+      padding: 11px 12px;
+      cursor: pointer;
+      border-bottom: 1px solid #f1f3f5;
+    }
+
+    .autocomplete-option:hover {
+      background: #eef4ff;
+    }
+
+    .autocomplete-option strong {
+      display: block;
+      color: #333;
+    }
+
+    .autocomplete-option span {
+      color: #666;
+      font-size: 13px;
+    }
+    
+    .search-bar {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 20px;
+      flex-wrap: wrap;
+    }
+    
+    .search-bar input,
+    .search-bar select {
+      padding: 8px 12px;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      font-size: 14px;
+    }
+    
+    .search-bar input {
+      flex: 1;
+      min-width: 200px;
+    }
+    
+    .search-bar select {
+      min-width: 150px;
+    }
+    
+    .alumni-card {
+      background: white;
+      border: 1px solid #e0e0e0;
+      border-radius: 8px;
+      padding: 20px;
+      margin-bottom: 15px;
+      transition: box-shadow 0.3s;
+    }
+    
+    .alumni-card:hover {
+      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    }
+    
+    .alumni-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: start;
+      margin-bottom: 15px;
+    }
+    
+    .alumni-name {
+      font-size: 18px;
+      font-weight: bold;
+      color: #333;
+      margin: 0 0 5px 0;
+    }
+    
+    .alumni-nis {
+      color: #666;
+      font-size: 14px;
+    }
+    
+    .alumni-year {
+      background: #667eea;
+      color: white;
+      padding: 5px 15px;
+      border-radius: 20px;
+      font-size: 14px;
+      font-weight: bold;
+    }
+    
+    .alumni-details {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+      gap: 10px;
+      margin-bottom: 15px;
+    }
+    
+    .detail-item {
+      display: flex;
+      gap: 8px;
+      font-size: 14px;
+    }
+    
+    .detail-label {
+      font-weight: 600;
+      color: #555;
+      min-width: 100px;
+    }
+    
+    .detail-value {
+      color: #333;
+    }
+    
+    .alumni-actions {
+      display: flex;
+      gap: 10px;
+      justify-content: flex-end;
+      padding-top: 15px;
+      border-top: 1px solid #f0f0f0;
+    }
+    
+    .modal-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 15px;
+    }
+    
+    .modal-grid .full-width {
+      grid-column: 1 / -1;
+    }
+    
+    /* Tabs untuk detail modal */
+    .detail-tabs {
+      display: flex;
+      gap: 5px;
+      border-bottom: 2px solid #e0e0e0;
+      margin-bottom: 20px;
+    }
+    
+    .detail-tab {
+      padding: 10px 20px;
+      border: none;
+      background: transparent;
+      cursor: pointer;
+      font-size: 14px;
+      font-weight: 600;
+      color: #666;
+      border-bottom: 3px solid transparent;
+      transition: all 0.3s;
+    }
+    
+    .detail-tab.active {
+      color: #667eea;
+      border-bottom-color: #667eea;
+    }
+    
+    .detail-tab:hover {
+      color: #667eea;
+    }
+    
+    .detail-tab-content {
+      display: none;
+    }
+    
+    .detail-tab-content.active {
+      display: block;
+    }
+    
+    .history-item {
+      background: #f8f9fa;
+      padding: 15px;
+      border-radius: 8px;
+      margin-bottom: 10px;
+      border-left: 4px solid #667eea;
+    }
+    
+    .history-item h5 {
+      margin: 0 0 10px 0;
+      color: #333;
+    }
+    
+    .history-date {
+      color: #666;
+      font-size: 13px;
+      margin-bottom: 5px;
+    }
+    
+    .empty-state {
+      text-align: center;
+      padding: 40px;
+      color: #999;
+    }
+    
+    @media (max-width: 768px) {
+      .modal-grid {
+        grid-template-columns: 1fr;
+      }
+      
+      .alumni-header {
+        flex-direction: column;
+        gap: 10px;
+      }
+      
+      .santri-preview-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <header class="site-header">
+    <div class="header-inner">
+      <button type="button" class="hamburger-menu" id="hamburger-menu" aria-label="Toggle menu">
+        <span></span>
+        <span></span>
+        <span></span>
+      </button>
+      <div class="brand">
+        <div class="brand-logo">SI</div>
+        <div>
+          <h1>Data Alumni</h1>
+          <p>Manajemen data alumni pesantren</p>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <nav class="sidebar" id="sidebar">
+    <div class="sidebar-header">
+      <h2>Menu</h2>
+      <button type="button" class="sidebar-close" id="sidebar-close" aria-label="Close menu">×</button>
+    </div>
+    <ul class="sidebar-menu">
+      <li><a href="index.html" class="menu-item">Dashboard</a></li>
+      <li><a href="index.html" class="menu-item">Data Santri</a></li>
+      <li><a href="index.html" class="menu-item">Data Kelas</a></li>
+      <li><a href="index.html" class="menu-item">Data Kamar</a></li>
+      <li><a href="index.html" class="menu-item">Data Guru</a></li>
+      <li><a href="index.html" class="menu-item">Pelanggaran & Prestasi</a></li>
+      <li><a href="alumni.html" class="menu-item active">Data Alumni</a></li>
+    </ul>
+    <div class="sidebar-footer">
+      <p>© 2026 SI Internal</p>
+    </div>
+  </nav>
+
+  <main class="main-content">
+    <section class="panel active">
+      <div class="panel-header">
+        <h2>📚 Data Alumni</h2>
+        <p>Kelola data alumni pesantren dengan lengkap</p>
+      </div>
+
+      <div class="alumni-stats" id="alumniStats">
+        <div class="stat-card-alumni">
+          <h3>Total Alumni</h3>
+          <p class="number" id="totalAlumni">0</p>
+        </div>
+        <div class="stat-card-alumni">
+          <h3>Tahun Terbaru</h3>
+          <p class="number" id="latestYear">-</p>
+        </div>
+        <div class="stat-card-alumni">
+          <h3>Bekerja</h3>
+          <p class="number" id="workingAlumni">0</p>
+        </div>
+      </div>
+
+      <div class="table-card">
+        <div class="panel-header panel-header-actions">
+          <div>
+            <h3>Daftar Alumni</h3>
+          </div>
+          <button type="button" class="button" onclick="openAddModal()">+ Tambah dari Santri</button>
+        </div>
+
+        <div class="search-bar">
+          <input 
+            type="text" 
+            id="searchInput" 
+            placeholder="Cari nama atau NIS alumni..."
+            onkeyup="searchAlumni()"
+          >
+          <select id="yearFilter" onchange="searchAlumni()">
+            <option value="">Semua Tahun</option>
+          </select>
+          <button class="button-secondary" onclick="resetSearch()">Reset</button>
+        </div>
+
+        <div id="alumniList"></div>
+      </div>
+    </section>
+  </main>
+
+  <!-- Modal Tambah Alumni -->
+  <div id="addModal" class="modal">
+    <div class="modal-content" style="max-width: 800px;">
+      <div class="modal-header">
+        <h2>Tambah Alumni dari Data Santri</h2>
+        <button type="button" class="modal-close" onclick="closeAddModal()">&times;</button>
+      </div>
+      <form id="migrateForm" class="modal-form" onsubmit="migrateSantri(event)">
+        <label class="autocomplete-field">
+          <span>Cari Santri *</span>
+          <input type="text" id="santriSearch" placeholder="Ketik nama atau NIS santri..." autocomplete="off" required>
+          <input type="hidden" id="santriSelect">
+          <div id="santriSuggestions" class="autocomplete-list"></div>
+        </label>
+
+        <div id="santriPreview"></div>
+
+        <div class="modal-grid">
+          <label>
+            <span>Tahun Lulus *</span>
+            <input type="number" id="tahunLulusMigrasi" required min="1900" max="2100">
+          </label>
+          <label class="full-width">
+            <span>Keterangan</span>
+            <textarea id="keteranganMigrasi" rows="3" placeholder="Catatan tambahan (opsional)"></textarea>
+          </label>
+        </div>
+
+        <div class="modal-actions">
+          <button type="button" class="button-secondary" onclick="closeAddModal()">Batal</button>
+          <button type="submit" class="button">Pindahkan ke Alumni</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Modal Edit Alumni -->
+  <div id="editModal" class="modal">
+    <div class="modal-content" style="max-width: 800px;">
+      <div class="modal-header">
+        <h2>Edit Alumni</h2>
+        <button type="button" class="modal-close" onclick="closeEditModal()">&times;</button>
+      </div>
+      <form id="editForm" class="modal-form" onsubmit="updateAlumni(event)">
+        <input type="hidden" id="editAlumniId">
+        <div class="modal-grid">
+          <label>
+            <span>NIS *</span>
+            <input type="text" id="editNis" required>
+          </label>
+          <label>
+            <span>NIK</span>
+            <input type="text" id="editNik">
+          </label>
+          <label class="full-width">
+            <span>Nama Lengkap *</span>
+            <input type="text" id="editNama" required>
+          </label>
+          <label>
+            <span>Tempat Lahir</span>
+            <input type="text" id="editTempatLahir">
+          </label>
+          <label>
+            <span>Tanggal Lahir</span>
+            <input type="date" id="editTanggalLahir">
+          </label>
+          <label>
+            <span>Tahun Masuk</span>
+            <input type="number" id="editTahunMasuk" min="1900" max="2100">
+          </label>
+          <label>
+            <span>Tahun Lulus *</span>
+            <input type="number" id="editTahunLulus" required min="1900" max="2100">
+          </label>
+          <label class="full-width">
+            <span>Kelas Terakhir</span>
+            <input type="text" id="editKelasTerakir">
+          </label>
+          <label class="full-width">
+            <span>Alamat</span>
+            <textarea id="editAlamat" rows="2"></textarea>
+          </label>
+          <label>
+            <span>No. HP</span>
+            <input type="tel" id="editNoHp">
+          </label>
+          <label>
+            <span>Email</span>
+            <input type="email" id="editEmail">
+          </label>
+          <label>
+            <span>Pekerjaan</span>
+            <input type="text" id="editPekerjaan">
+          </label>
+          <label>
+            <span>Status Pernikahan</span>
+            <select id="editStatusPernikahan">
+              <option value="">Belum diisi</option>
+              <option value="Jomblo">Jomblo</option>
+              <option value="Sudah Menikah">Sudah Menikah</option>
+            </select>
+          </label>
+          <label class="full-width">
+            <span>Alamat Sekarang</span>
+            <textarea id="editAlamatSekarang" rows="2"></textarea>
+          </label>
+          <label>
+            <span>Instansi/Perusahaan</span>
+            <input type="text" id="editInstansi">
+          </label>
+          <label class="full-width">
+            <span>Prestasi Utama</span>
+            <textarea id="editPrestasiUtama" rows="2"></textarea>
+          </label>
+          <label class="full-width">
+            <span>Keterangan</span>
+            <textarea id="editKeterangan" rows="2"></textarea>
+          </label>
+        </div>
+        <div class="modal-actions">
+          <button type="button" class="button-secondary" onclick="closeEditModal()">Batal</button>
+          <button type="submit" class="button">Simpan Perubahan</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Modal Informasi Tambahan -->
+  <div id="additionalModal" class="modal">
+    <div class="modal-content" style="max-width: 640px;">
+      <div class="modal-header">
+        <h2>Tambah Informasi Tambahan</h2>
+        <button type="button" class="modal-close" onclick="closeAdditionalModal()">&times;</button>
+      </div>
+      <form id="additionalForm" class="modal-form" onsubmit="saveAdditionalInfo(event)">
+        <input type="hidden" id="additionalAlumniId">
+        <div class="modal-grid">
+          <label>
+            <span>Pekerjaan</span>
+            <input type="text" id="additionalPekerjaan">
+          </label>
+          <label>
+            <span>Nomor HP</span>
+            <input type="tel" id="additionalNoHp">
+          </label>
+          <label>
+            <span>Status Pernikahan</span>
+            <select id="additionalStatusPernikahan">
+              <option value="">Belum diisi</option>
+              <option value="Jomblo">Jomblo</option>
+              <option value="Sudah Menikah">Sudah Menikah</option>
+            </select>
+          </label>
+          <label class="full-width">
+            <span>Alamat Sekarang</span>
+            <textarea id="additionalAlamatSekarang" rows="3"></textarea>
+          </label>
+        </div>
+        <div class="modal-actions">
+          <button type="button" class="button-secondary" onclick="closeAdditionalModal()">Batal</button>
+          <button type="submit" class="button">Simpan Informasi</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Modal Detail Alumni -->
+  <div id="detailModal" class="modal">
+    <div class="modal-content" style="max-width: 900px;">
+      <div class="modal-header">
+        <h2>Detail Alumni</h2>
+        <button type="button" class="modal-close" onclick="closeDetailModal()">&times;</button>
+      </div>
+      
+      <div class="detail-tabs">
+        <button class="detail-tab active" onclick="switchDetailTab('info')">Identitas</button>
+        <button class="detail-tab" onclick="switchDetailTab('kelas')">Riwayat Kelas</button>
+        <button class="detail-tab" onclick="switchDetailTab('kamar')">Riwayat Asrama</button>
+        <button class="detail-tab" onclick="switchDetailTab('prestasi')">Prestasi</button>
+        <button class="detail-tab" onclick="switchDetailTab('pelanggaran')">Pelanggaran</button>
+      </div>
+
+      <div id="detail-info" class="detail-tab-content active"></div>
+      <div id="detail-kelas" class="detail-tab-content"></div>
+      <div id="detail-kamar" class="detail-tab-content"></div>
+      <div id="detail-prestasi" class="detail-tab-content"></div>
+      <div id="detail-pelanggaran" class="detail-tab-content"></div>
+
+      <div class="modal-actions">
+        <button type="button" class="button-secondary" onclick="closeDetailModal()">Tutup</button>
+      </div>
+    </div>
+  </div>
+
+  <footer class="site-footer">
+    <div class="container footer-inner">
+      <p>&copy; <span id="year"></span> SI Internal Pesantren. Semua hak cipta dilindungi.</p>
+    </div>
+  </footer>
+
+  <script src="alumni_script.js"></script>
+</body>
+</html>
