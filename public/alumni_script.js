@@ -30,24 +30,64 @@ function rememberAdditionalInfo(id, data) {
   localStorage.setItem('alumniAdditionalInfo', JSON.stringify(alumniAdditionalInfo));
 }
 
-// Sidebar toggle
-document.getElementById('hamburger-menu').addEventListener('click', function() {
-  document.getElementById('sidebar').classList.add('active');
+const hamburgerMenu = document.getElementById('hamburger-menu');
+const sidebar = document.getElementById('sidebar');
+const sidebarClose = document.getElementById('sidebar-close');
+const menuParentButtons = document.querySelectorAll('.menu-parent');
+const pageBody = document.body;
+
+function setSidebarState(isOpen) {
+  if (!sidebar || !hamburgerMenu) return;
+  hamburgerMenu.classList.toggle('active', isOpen);
+  hamburgerMenu.setAttribute('aria-expanded', String(isOpen));
+  sidebar.classList.toggle('active', isOpen);
+  pageBody.classList.toggle('sidebar-open', isOpen);
+  pageBody.classList.toggle('sidebar-collapsed', !isOpen);
+}
+
+function closeSidebar() {
+  setSidebarState(false);
+}
+
+function setMenuGroupExpanded(button, isExpanded) {
+  const menuGroup = button.closest('.menu-group');
+  button.setAttribute('aria-expanded', String(isExpanded));
+  if (menuGroup) {
+    menuGroup.classList.toggle('collapsed', !isExpanded);
+  }
+}
+
+if (hamburgerMenu) {
+  hamburgerMenu.addEventListener('click', function() {
+    setSidebarState(!sidebar.classList.contains('active'));
+  });
+}
+
+if (sidebarClose) {
+  sidebarClose.addEventListener('click', closeSidebar);
+}
+
+menuParentButtons.forEach((button) => {
+  button.addEventListener('click', () => {
+    const isExpanded = button.getAttribute('aria-expanded') === 'true';
+    setMenuGroupExpanded(button, !isExpanded);
+  });
 });
 
-document.getElementById('sidebar-close').addEventListener('click', function() {
-  document.getElementById('sidebar').classList.remove('active');
-});
-
-// Close sidebar when clicking outside
 document.addEventListener('click', function(event) {
-  const sidebar = document.getElementById('sidebar');
-  const hamburger = document.getElementById('hamburger-menu');
-  
-  if (!sidebar.contains(event.target) && !hamburger.contains(event.target)) {
-    sidebar.classList.remove('active');
+  if (
+    window.innerWidth <= 768 &&
+    sidebar &&
+    hamburgerMenu &&
+    !sidebar.contains(event.target) &&
+    !hamburgerMenu.contains(event.target) &&
+    sidebar.classList.contains('active')
+  ) {
+    closeSidebar();
   }
 });
+
+setSidebarState(window.innerWidth > 768);
 
 // Set current year
 document.getElementById('year').textContent = new Date().getFullYear();

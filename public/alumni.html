@@ -324,7 +324,7 @@
 <body>
   <header class="site-header">
     <div class="header-inner">
-      <button type="button" class="hamburger-menu" id="hamburger-menu" aria-label="Toggle menu">
+      <button type="button" class="hamburger-menu" id="hamburger-menu" aria-label="Toggle menu" aria-expanded="true" aria-controls="sidebar">
         <span></span>
         <span></span>
         <span></span>
@@ -342,19 +342,27 @@
   <nav class="sidebar" id="sidebar">
     <div class="sidebar-header">
       <h2>Menu</h2>
-      <button type="button" class="sidebar-close" id="sidebar-close" aria-label="Close menu">×</button>
+      <button type="button" class="sidebar-close" id="sidebar-close" aria-label="Close menu">&times;</button>
     </div>
     <ul class="sidebar-menu">
-      <li><a href="index.html" class="menu-item">Dashboard</a></li>
-      <li><a href="index.html" class="menu-item">Data Santri</a></li>
-      <li><a href="index.html" class="menu-item">Data Kelas</a></li>
-      <li><a href="index.html" class="menu-item">Data Kamar</a></li>
-      <li><a href="index.html" class="menu-item">Data Guru</a></li>
-      <li><a href="index.html" class="menu-item">Pelanggaran & Prestasi</a></li>
-      <li><a href="alumni.html" class="menu-item active">Data Alumni</a></li>
+      <li><a href="index.html#summary-panel" class="menu-item menu-link">Dashboard</a></li>
+      <li class="menu-group">
+        <button type="button" class="menu-item menu-parent" aria-expanded="true" aria-controls="santri-submenu">
+          <span>Santri</span>
+          <span class="menu-chevron" aria-hidden="true">&#9662;</span>
+        </button>
+        <ul class="submenu" id="santri-submenu">
+          <li><a href="index.html#santri-panel" class="menu-item menu-link submenu-item">Data Santri</a></li>
+          <li><a href="index.html#kelas-panel" class="menu-item menu-link submenu-item">Data Kelas</a></li>
+          <li><a href="index.html#kamar-panel" class="menu-item menu-link submenu-item">Data Kamar</a></li>
+          <li><a href="index.html#pelanggaran-prestasi-panel" class="menu-item menu-link submenu-item">Pelanggaran & Prestasi</a></li>
+        </ul>
+      </li>
+      <li><a href="index.html#guru-panel" class="menu-item menu-link">Guru</a></li>
+      <li><a href="alumni.html" class="menu-item menu-link active">Alumni</a></li>
     </ul>
     <div class="sidebar-footer">
-      <p>© 2026 SI Internal</p>
+      <p>&copy; 2026 SI Internal</p>
     </div>
   </nav>
 

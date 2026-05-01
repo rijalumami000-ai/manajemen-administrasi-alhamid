@@ -1,0 +1,204 @@
+/* ============================================================
+   SI INTERNAL PESANTREN — Modern Enterprise UI
+   ============================================================ */
+
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
+
+:root {
+  /* Palette - MODE TERANG */
+  --bg:              #f8f9fa;
+  --bg-2:            #ffffff;
+  --surface:         #ffffff;
+  --surface-2:       #f1f3f5;
+  --surface-3:       #e9ecef;
+  --border:          #dee2e6;
+  --border-hover:    #adb5bd;
+
+  /* Brand */
+  --primary:         #2563eb;
+  --primary-strong:  #1d4ed8;
+  --primary-glow:    rgba(37,99,235,0.15);
+  --accent:          #7c3aed;
+  --accent-glow:     rgba(124,62,237,0.15);
+  --teal:            #0891b2;
+
+  /* Text */
+  --text:            #212529;
+  --text-2:          #495057;
+  --text-3:          #6c757d;
+  --muted:           #6c757d;
+
+  /* Status */
+  --success:         #10b981;
+  --success-bg:      #d1fae5;
+  --danger:          #ef4444;
+  --danger-bg:       #fee2e2;
+  --warning:         #f59e0b;
+  --warning-bg:      #fef3c7;
+
+  /* Sidebar */
+  --sidebar-width:   260px;
+
+  /* Radius */
+  --r-sm:  8px;
+  --r-md:  14px;
+  --r-lg:  20px;
+  --r-xl:  28px;
+  --r-full: 999px;
+
+  /* Shadows */
+  --shadow-sm:  0 2px 8px rgba(0,0,0,0.08);
+  --shadow-md:  0 8px 32px rgba(0,0,0,0.12);
+  --shadow-lg:  0 20px 60px rgba(0,0,0,0.15);
+  --shadow-glow: 0 0 24px var(--primary-glow);
+
+  /* Transitions */
+  --t-fast:   0.15s cubic-bezier(0.4,0,0.2,1);
+  --t-base:   0.25s cubic-bezier(0.4,0,0.2,1);
+  --t-slow:   0.4s cubic-bezier(0.4,0,0.2,1);
+  --t-spring: 0.35s cubic-bezier(0.34,1.56,0.64,1);
+
+  font-family: 'Plus Jakarta Sans', 'Inter', sans-serif;
+  color-scheme: light;
+}
+
+/* ============================================================
+   RESET & BASE
+   ============================================================ */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+html { scroll-behavior: smooth; }
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'Plus Jakarta Sans', 'Inter', sans-serif;
+  font-size: 15px;
+  line-height: 1.6;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  -webkit-font-smoothing: antialiased;
+  overflow-x: hidden;
+}
+
+/* Scrollbar */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: #f1f3f5; }
+::-webkit-scrollbar-thumb { background: #adb5bd; border-radius: var(--r-full); }
+::-webkit-scrollbar-thumb:hover { background: var(--primary); }
+
+img { max-width: 100%; }
+button, input, textarea, select { font: inherit; }
+a { color: var(--primary); text-decoration: none; }
+
+img {
+  max-width: 100%;
+}
+
+button,
+input,
+textarea,
+select {
+  font: inherit;
+}
+
+/* ============================================================
+   LAYOUT
+   ============================================================ */
+.container {
+  width: min(1200px, calc(100% - 2rem));
+  margin: 0 auto;
+}
+
+/* ============================================================
+   HEADER
+   ============================================================ */
+.site-header {
+  position: sticky;
+  top: 0;
+  z-index: 50;
+  background: rgba(255,255,255,0.85);
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  border-bottom: 1px solid var(--border);
+  padding: 0 1.5rem;
+  transition: background var(--t-base), box-shadow var(--t-base);
+}
+.site-header.scrolled {
+  background: rgba(255,255,255,0.95);
+  box-shadow: 0 4px 24px rgba(0,0,0,0.08);
+}
+
+.header-inner {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 0.85rem 0;
+  max-width: 1400px;
+  margin: 0 auto;
+}
+
+/* ============================================================
+   HAMBURGER
+   ============================================================ */
+.hamburger-menu {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: var(--r-md);
+  cursor: pointer;
+  padding: 0.5rem;
+  width: 42px;
+  height: 42px;
+  justify-content: center;
+  align-items: center;
+  transition: background var(--t-fast), border-color var(--t-fast), transform var(--t-fast);
+}
+.hamburger-menu:hover { background: var(--surface-3); border-color: var(--border-hover); }
+.hamburger-menu:active { transform: scale(0.93); }
+
+.hamburger-menu span {
+  width: 22px;
+  height: 2px;
+  background: var(--text-2);
+  border-radius: var(--r-full);
+  transition: all var(--t-base);
+  transform-origin: center;
+}
+.hamburger-menu.active span:nth-child(1) { transform: rotate(45deg) translate(5px, 5px); background: var(--primary); }
+.hamburger-menu.active span:nth-child(2) { opacity: 0; transform: scaleX(0); }
+.hamburger-menu.active span:nth-child(3) { transform: rotate(-45deg) translate(5px, -5px); background: var(--primary); }
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 0.8rem;
+  flex: 1;
+}
+
+.brand-logo {
+  width: 44px;
+  height: 44px;
+  border-radius: 14px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--primary);
+  color: white;
+  font-weight: 700;
+  font-size: 1.1rem;
+}
+
+.brand h1 {
+  margin: 0;
+  font-size: 1.15rem;
+}
+
+.brand p {
+  margin: 0.15rem 0 0;
+  color: var(--muted);
+  font-size: 0.95rem;
+}

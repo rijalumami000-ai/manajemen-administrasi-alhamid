@@ -1,2 +1,17 @@
 {
+  "explorer.fileNesting.enabled": true,
+  "explorer.fileNesting.expand": false,
+  "explorer.fileNesting.patterns": {
+    "package.json": "package-lock.json",
+    ".env.example": ".env, .env.*",
+    "index.html": "script.js, styles.css",
+    "alumni.html": "alumni_script.js"
+  },
+  "files.exclude": {
+    "**/node_modules": true,
+    "**/tmp": true,
+    "**/.codex": true
+  },
+  "editor.formatOnSave": false,
+  "editor.defaultFormatter": "prettier.prettier-vscode"
 }

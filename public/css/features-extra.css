@@ -1,0 +1,47 @@
+/* ===== KAMAR STYLES ===== */
+.kelas-badge-primary {
+  background: #eff6ff;
+  color: #1d4ed8;
+}
+
+.kelas-badge-accent {
+  background: #f5f3ff;
+  color: #7c3aed;
+}
+
+.status-badge {
+  display: inline-block;
+  padding: 0.25rem 0.6rem;
+  border-radius: 999px;
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+
+.status-success {
+  background: var(--success-bg, rgba(16,185,129,0.12));
+  color: var(--success, #10b981);
+}
+
+.status-danger {
+  background: var(--danger-bg, rgba(244,63,94,0.12));
+  color: var(--danger, #f43f5e);
+}
+
+.status-warning {
+  background: var(--warning-bg, rgba(245,158,11,0.12));
+  color: var(--warning, #f59e0b);
+}
+
+.status-muted {
+  background: #f1f5f9;
+  color: #475569;
+}
+
+/* Autocomplete Suggestions */
+.suggestion-item:hover {
+  background-color: #f0f0f0;
+}
+
+.suggestion-item:active {
+  background-color: #e0e0e0;
+}

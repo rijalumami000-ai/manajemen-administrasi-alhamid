@@ -12,7 +12,7 @@
 <body>
   <header class="site-header">
     <div class="header-inner">
-      <button type="button" class="hamburger-menu" id="hamburger-menu" aria-label="Toggle menu">
+      <button type="button" class="hamburger-menu" id="hamburger-menu" aria-label="Toggle menu" aria-expanded="true" aria-controls="sidebar">
         <span></span>
         <span></span>
         <span></span>
@@ -30,19 +30,27 @@
   <nav class="sidebar" id="sidebar">
     <div class="sidebar-header">
       <h2>Menu</h2>
-      <button type="button" class="sidebar-close" id="sidebar-close" aria-label="Close menu">×</button>
+      <button type="button" class="sidebar-close" id="sidebar-close" aria-label="Close menu">&times;</button>
     </div>
     <ul class="sidebar-menu">
       <li><button type="button" class="menu-item active" data-target="summary-panel">Dashboard</button></li>
-      <li><button type="button" class="menu-item" data-target="santri-panel">Data Santri</button></li>
-      <li><button type="button" class="menu-item" data-target="kelas-panel">Data Kelas</button></li>
-      <li><button type="button" class="menu-item" data-target="kamar-panel">Data Kamar</button></li>
-      <li><button type="button" class="menu-item" data-target="guru-panel">Data Guru</button></li>
-      <li><button type="button" class="menu-item" data-target="pelanggaran-prestasi-panel">Pelanggaran & Prestasi</button></li>
-      <li><a href="alumni.html" class="menu-item" style="display: block; text-decoration: none; color: inherit;">Data Alumni</a></li>
+      <li class="menu-group">
+        <button type="button" class="menu-item menu-parent" aria-expanded="true" aria-controls="santri-submenu">
+          <span>Santri</span>
+          <span class="menu-chevron" aria-hidden="true">&#9662;</span>
+        </button>
+        <ul class="submenu" id="santri-submenu">
+          <li><button type="button" class="menu-item submenu-item" data-target="santri-panel">Data Santri</button></li>
+          <li><button type="button" class="menu-item submenu-item" data-target="kelas-panel">Data Kelas</button></li>
+          <li><button type="button" class="menu-item submenu-item" data-target="kamar-panel">Data Kamar</button></li>
+          <li><button type="button" class="menu-item submenu-item" data-target="pelanggaran-prestasi-panel">Pelanggaran & Prestasi</button></li>
+        </ul>
+      </li>
+      <li><button type="button" class="menu-item" data-target="guru-panel">Guru</button></li>
+      <li><a href="alumni.html" class="menu-item menu-link">Alumni</a></li>
     </ul>
     <div class="sidebar-footer">
-      <p>© 2026 SI Internal</p>
+      <p>&copy; 2026 SI Internal</p>
     </div>
   </nav>
 
@@ -66,15 +74,33 @@
 
     <section id="santri-panel" class="panel">
       <div class="panel-header">
-        <h2>Manajemen Data Santri</h2>
-        <p>Kelola data santri lengkap dengan informasi orang tua.</p>
-        <button id="btn-tambah-santri" class="button" style="margin-top: 1rem;">+ Tambah Santri</button>
+        <div>
+          <h2>Manajemen Data Santri</h2>
+          <p id="santri-active-year-label">Kelola data santri lengkap dengan informasi orang tua.</p>
+        </div>
+        <div class="panel-header-actions">
+          <button id="btn-migrasi-tahun-ajaran" class="button-secondary" type="button">Migrasi Tahun Ajaran</button>
+          <button id="btn-tambah-santri" class="button" type="button">+ Tambah Santri</button>
+        </div>
       </div>
+
+      <section class="tahun-ajaran-board" aria-label="Bank Data Tahun Ajaran">
+        <div class="tahun-ajaran-board-header">
+          <div>
+            <h3>Bank Data Tahun Ajaran</h3>
+            <p>Pilih tahun ajaran untuk membuka Data Santri berjalan atau arsip.</p>
+          </div>
+        </div>
+        <div id="tahun-ajaran-cards" class="tahun-ajaran-cards"></div>
+      </section>
 
       <div class="table-card">
         <h3>Daftar Santri</h3>
         <div id="santri-message" class="message"></div>
         <div class="table-filter-bar">
+          <select id="tahun-ajaran-select">
+            <option value="">Tahun Ajaran Berjalan</option>
+          </select>
           <input type="search" id="santri-search" placeholder="Cari NIS, NIK, nama, atau orang tua...">
           <select id="santri-filter-diniyah">
             <option value="">Semua Kelas Diniyah</option>
@@ -87,6 +113,16 @@
             <option value="Laki-laki">Laki-laki</option>
             <option value="Perempuan">Perempuan</option>
           </select>
+          <select id="santri-filter-status">
+            <option value="">Semua Status</option>
+            <option value="aktif">Aktif</option>
+            <option value="draft">Draft</option>
+            <option value="tidak_naik">Tidak Naik</option>
+            <option value="lulus">Lulus</option>
+            <option value="alumni">Alumni</option>
+            <option value="pindah">Pindah</option>
+            <option value="keluar">Keluar</option>
+          </select>
         </div>
         <div class="table-scroll">
           <table>
@@ -98,6 +134,7 @@
                 <th>Jenis Kelamin</th>
                 <th>Kelas Diniyah</th>
                 <th>Kelas Sekolah</th>
+                <th>Status</th>
                 <th>Tempat Lahir</th>
                 <th>Nama Ayah</th>
                 <th>Aksi</th>
@@ -270,7 +307,20 @@
               <label><span>Kelas Diniyah</span><select name="kelas_diniyah_id"></select></label>
               <label><span>Kelas Sekolah</span><select name="kelas_sekolah_id"></select></label>
               <label><span>Kamar Asrama</span><select name="kamar_id"><option value="">-- Pilih Kamar --</option></select></label>
+              <label>
+                <span>Status Tahun Ajaran</span>
+                <select name="status_tahun_ajaran">
+                  <option value="aktif">Aktif</option>
+                  <option value="draft">Draft</option>
+                  <option value="tidak_naik">Tidak Naik</option>
+                  <option value="lulus">Lulus</option>
+                  <option value="alumni">Alumni</option>
+                  <option value="pindah">Pindah</option>
+                  <option value="keluar">Keluar</option>
+                </select>
+              </label>
               <label class="full-width"><span>Alamat</span><input type="text" name="alamat" /></label>
+              <label class="full-width"><span>Catatan Tahun Ajaran</span><input type="text" name="catatan_tahun_ajaran" /></label>
             </div>
           </div>
 
@@ -596,6 +646,6 @@
     </div>
   </footer>
 
-  <script src="script.js"></script>
+  <script type="module" src="script.js"></script>
 </body>
 </html>
