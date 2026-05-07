@@ -1,0 +1,109 @@
+@import '../../styles/variables.scss';
+@import '../../styles/mixins.scss';
+
+.mobile-menu-drawer {
+  .ant-drawer-content {
+    background: $bg-sidebar !important;
+  }
+  
+  .ant-drawer-header {
+    background: $bg-sidebar !important;
+    border-bottom: 1px solid $border-light !important;
+    
+    .ant-drawer-title {
+      color: $text-primary !important;
+    }
+
+    .ant-drawer-close {
+      color: $text-secondary !important;
+    }
+  }
+
+  .ant-drawer-body {
+    padding: 0 !important;
+    display: flex;
+    flex-direction: column;
+  }
+
+  [data-theme="light"] & {
+    .ant-drawer-content {
+      background: #ffffff !important;
+    }
+    .ant-drawer-header {
+      background: #ffffff !important;
+      border-bottom: 1px solid #e2e8f0 !important;
+      .ant-drawer-title {
+        color: #0f172a !important;
+      }
+    }
+  }
+}
+
+.mobile-menu-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+  @include custom-scrollbar;
+
+  .mobile-menu {
+    background: transparent !important;
+    border-right: none !important;
+    padding: $spacing-md 0;
+
+    .ant-menu-item, .ant-menu-submenu-title {
+      color: $text-secondary !important;
+      margin: 4px 12px !important;
+      width: calc(100% - 24px) !important;
+      border-radius: $radius-md !important;
+
+      &:hover {
+        background: $bg-hover !important;
+        color: $text-primary !important;
+      }
+    }
+
+    .ant-menu-item-selected {
+      background: $bg-active !important;
+      color: $accent-blue !important;
+      font-weight: 600 !important;
+    }
+
+    .ant-menu-item-group-title {
+      color: $text-tertiary !important;
+      font-size: 11px !important;
+      text-transform: uppercase !important;
+      letter-spacing: 1px !important;
+      padding-left: 24px !important;
+      margin-top: 12px !important;
+    }
+  }
+}
+
+.mobile-menu-footer {
+  padding: $spacing-lg;
+  border-top: 1px solid $border-light;
+
+  .logout-btn {
+    width: 100%;
+    @include flex-center;
+    gap: 10px;
+    padding: 12px;
+    background: rgba($accent-red, 0.1);
+    color: $accent-red;
+    border: 1px solid rgba($accent-red, 0.2);
+    border-radius: $radius-lg;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all $transition-fast;
+
+    &:hover {
+      background: $accent-red;
+      color: #fff;
+    }
+  }
+
+  [data-theme="light"] & {
+    border-top-color: #e2e8f0;
+  }
+}

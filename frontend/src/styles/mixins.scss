@@ -1,0 +1,326 @@
+// ============================================
+// SASS MIXINS - PREMIUM DARK MODE
+// ============================================
+
+@import './variables.scss';
+
+// ============================================
+// RESPONSIVE BREAKPOINTS
+// ============================================
+@mixin respond-to($breakpoint) {
+  @if $breakpoint == xs {
+    @media (max-width: $breakpoint-xs) { @content; }
+  }
+  @else if $breakpoint == sm {
+    @media (max-width: $breakpoint-sm) { @content; }
+  }
+  @else if $breakpoint == md {
+    @media (max-width: $breakpoint-md) { @content; }
+  }
+  @else if $breakpoint == lg {
+    @media (max-width: $breakpoint-lg) { @content; }
+  }
+  @else if $breakpoint == xl {
+    @media (max-width: $breakpoint-xl) { @content; }
+  }
+  @else if $breakpoint == 2xl {
+    @media (max-width: $breakpoint-2xl) { @content; }
+  }
+}
+
+@mixin respond-above($breakpoint) {
+  @if $breakpoint == xs {
+    @media (min-width: $breakpoint-xs + 1) { @content; }
+  }
+  @else if $breakpoint == sm {
+    @media (min-width: $breakpoint-sm + 1) { @content; }
+  }
+  @else if $breakpoint == md {
+    @media (min-width: $breakpoint-md + 1) { @content; }
+  }
+  @else if $breakpoint == lg {
+    @media (min-width: $breakpoint-lg + 1) { @content; }
+  }
+  @else if $breakpoint == xl {
+    @media (min-width: $breakpoint-xl + 1) { @content; }
+  }
+}
+
+// ============================================
+// FLEXBOX UTILITIES
+// ============================================
+@mixin flex-center {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+@mixin flex-between {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+@mixin flex-start {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+}
+
+@mixin flex-end {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+}
+
+@mixin flex-column {
+  display: flex;
+  flex-direction: column;
+}
+
+// ============================================
+// TYPOGRAPHY
+// ============================================
+@mixin heading-1 {
+  font-family: $font-family-heading;
+  font-size: $font-size-4xl;
+  font-weight: $font-weight-bold;
+  line-height: $line-height-tight;
+  color: $text-primary;
+}
+
+@mixin heading-2 {
+  font-family: $font-family-heading;
+  font-size: $font-size-3xl;
+  font-weight: $font-weight-bold;
+  line-height: $line-height-tight;
+  color: $text-primary;
+}
+
+@mixin heading-3 {
+  font-family: $font-family-heading;
+  font-size: $font-size-2xl;
+  font-weight: $font-weight-semibold;
+  line-height: $line-height-normal;
+  color: $text-primary;
+}
+
+@mixin heading-4 {
+  font-family: $font-family-heading;
+  font-size: $font-size-xl;
+  font-weight: $font-weight-semibold;
+  line-height: $line-height-normal;
+  color: $text-primary;
+}
+
+@mixin text-truncate {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+// ============================================
+// CARD & CONTAINER
+// ============================================
+@mixin card {
+  background: $bg-card;
+  border-radius: $card-radius;
+  padding: $card-padding;
+  border: 1px solid $border-light;
+  box-shadow: $shadow-md;
+  transition: all $transition-base;
+
+  &:hover {
+    border-color: rgba($accent-blue, 0.3);
+    box-shadow: $shadow-lg;
+    transform: translateY(-2px);
+  }
+
+  // Auto-inject light mode for any element using this mixin
+  [data-theme="light"] & {
+    background: #ffffff !important;
+    border-color: #e2e8f0 !important;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06) !important;
+
+    &:hover {
+      box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05) !important;
+      border-color: #cbd5e1 !important;
+    }
+  }
+}
+
+@mixin container {
+  width: 100%;
+  max-width: $content-max-width;
+  margin: 0 auto;
+  padding: 0 $spacing-lg;
+
+  @include respond-to(md) {
+    padding: 0 $spacing-md;
+  }
+}
+
+// ============================================
+// BUTTONS (Vibrant & Dark)
+// ============================================
+@mixin button-base {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: $spacing-sm;
+  padding: 0 $spacing-lg;
+  border: none;
+  border-radius: $radius-lg;
+  font-size: $font-size-sm;
+  font-weight: $font-weight-semibold;
+  cursor: pointer;
+  transition: all $transition-base;
+  user-select: none;
+
+  &:disabled {
+    cursor: not-allowed;
+    opacity: 0.5;
+  }
+}
+
+@mixin button-primary {
+  @include button-base;
+  background: $primary-500;
+  color: #fff;
+  box-shadow: $shadow-glow-blue;
+
+  &:hover:not(:disabled) {
+    background: lighten($primary-500, 5%);
+    transform: translateY(-1px);
+    box-shadow: 0 0 20px rgba($primary-500, 0.5);
+  }
+  
+  &:active:not(:disabled) {
+    transform: translateY(0);
+  }
+}
+
+@mixin button-secondary {
+  @include button-base;
+  background: transparent;
+  color: $text-primary;
+  border: 1px solid $border-medium;
+
+  &:hover:not(:disabled) {
+    background: $bg-hover;
+    border-color: $text-secondary;
+  }
+}
+
+@mixin button-ghost {
+  @include button-base;
+  background: transparent;
+  color: $text-secondary;
+
+  &:hover:not(:disabled) {
+    background: $bg-hover;
+    color: $text-primary;
+  }
+}
+
+// ============================================
+// FORM ELEMENTS
+// ============================================
+@mixin input-base {
+  width: 100%;
+  padding: 0 $spacing-md;
+  height: $input-height-md;
+  border: 1px solid $border-medium;
+  border-radius: $radius-md;
+  font-size: $font-size-sm;
+  color: $text-primary;
+  background: $bg-main;
+  transition: all $transition-base;
+
+  &::placeholder {
+    color: $text-disabled;
+  }
+
+  &:hover:not(:disabled) {
+    border-color: $text-tertiary;
+  }
+
+  &:focus {
+    outline: none;
+    border-color: $accent-blue;
+    box-shadow: 0 0 0 2px rgba($accent-blue, 0.2);
+  }
+
+  &:disabled {
+    background: $bg-card;
+    cursor: not-allowed;
+    opacity: 0.7;
+  }
+}
+
+// ============================================
+// CUSTOM SCROLLBAR
+// ============================================
+@mixin custom-scrollbar {
+  &::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  &::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  &::-webkit-scrollbar-thumb {
+    background: $border-medium;
+    border-radius: $radius-full;
+
+    &:hover {
+      background: $border-dark;
+    }
+  }
+}
+
+// ============================================
+// UTILITIES
+// ============================================
+@mixin absolute-center {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+}
+
+@mixin visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+// ============================================
+// COMPATIBILITY MIXINS
+// ============================================
+@mixin fade-in {
+  animation: fadeIn $transition-base;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@mixin body-small {
+  font-size: $font-size-xs;
+  color: $text-secondary;
+}
+
+@mixin frosted-glass {
+  background: rgba(255, 255, 255, 0.05);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: 1px solid $border-light;
+}

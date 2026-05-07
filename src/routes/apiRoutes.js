@@ -10,8 +10,21 @@ const registerKamarRoutes = require('./kamarRoutes');
 const registerPelanggaranRoutes = require('./pelanggaranRoutes');
 const registerPrestasiRoutes = require('./prestasiRoutes');
 const registerAlumniRoutes = require('./alumniRoutes');
-
+const registerAuthRoutes = require('./authRoutes');
+const registerUserRoutes = require('./userRoutes');
+const registerProfileRoutes = require('./profileRoutes');
+const registerNilaiRoutes = require('./nilaiRoutes');
 function registerApiRoutes(app) {
+  // Authentication routes (public)
+  registerAuthRoutes(app);
+
+  // Profile routes (authenticated users)
+  registerProfileRoutes(app);
+
+  // User management routes (admin only)
+  registerUserRoutes(app);
+
+  // Other API routes
   registerSummaryRoutes(app);
   registerTahunAjaranRoutes(app);
   registerKelasRoutes(app);
@@ -24,6 +37,7 @@ function registerApiRoutes(app) {
   registerPelanggaranRoutes(app);
   registerPrestasiRoutes(app);
   registerAlumniRoutes(app);
+  registerNilaiRoutes(app);
 }
 
 module.exports = registerApiRoutes;

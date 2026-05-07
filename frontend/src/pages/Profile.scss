@@ -1,0 +1,88 @@
+@import '../styles/variables.scss';
+@import '../styles/mixins.scss';
+
+.profile-page {
+  .profile-card {
+    border-radius: $radius-lg;
+    box-shadow: $shadow-sm;
+
+    .ant-card-body {
+      padding: $spacing-xl;
+
+      @include respond-to(md) {
+        padding: $spacing-lg;
+      }
+    }
+  }
+}
+
+.profile-header {
+  @include flex-start;
+  gap: $spacing-xl;
+  margin-bottom: $spacing-lg;
+
+  @include respond-to(md) {
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    gap: $spacing-lg;
+  }
+
+  .profile-info {
+    flex: 1;
+  }
+}
+
+// Descriptions styling
+.ant-descriptions {
+  .ant-descriptions-title {
+    font-size: $font-size-lg;
+    font-weight: $font-weight-semibold;
+    color: $text-primary;
+    margin-bottom: $spacing-md;
+  }
+
+  .ant-descriptions-item-label {
+    color: $text-secondary;
+    font-weight: $font-weight-medium;
+  }
+
+  .ant-descriptions-item-content {
+    color: $text-primary;
+  }
+}
+
+// Tag styling
+.ant-tag {
+  font-size: $font-size-sm;
+  padding: 2px $spacing-sm;
+  border-radius: $radius-sm;
+}
+
+// Responsive
+@include respond-to(md) {
+  .profile-page {
+    .ant-descriptions {
+      .ant-descriptions-item {
+        padding-bottom: $spacing-md;
+      }
+    }
+  }
+}
+
+// Light Mode Overrides
+[data-theme="light"] {
+  .profile-page {
+    .ant-descriptions {
+      .ant-descriptions-title {
+        color: #0f172a !important;
+      }
+      .ant-descriptions-item-label {
+        color: #475569 !important;
+      }
+      .ant-descriptions-item-content {
+        color: #1e293b !important;
+      }
+    }
+  }
+}

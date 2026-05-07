@@ -1,0 +1,28 @@
+@import '../styles/variables';
+@import '../styles/mixins';
+
+.guru-page {
+  @include container;
+  padding-top: $spacing-lg;
+  padding-bottom: $spacing-lg;
+
+  .guru-content {
+    @include card;
+    padding: $spacing-lg;
+    margin-top: $spacing-lg;
+
+    @include respond-to(md) {
+      padding: $spacing-md;
+    }
+
+    .guru-tab-content {
+      margin-top: $spacing-md;
+
+      .tab-description {
+        color: $text-secondary;
+        margin-bottom: $spacing-lg;
+        font-size: $font-size-sm;
+      }
+    }
+  }
+}

@@ -1,0 +1,121 @@
+@import '../../styles/variables.scss';
+@import '../../styles/mixins.scss';
+
+.stat-card {
+  @include card;
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-md;
+
+  &.skeleton {
+    min-height: 140px;
+    background: linear-gradient(90deg, $bg-card 25%, $bg-hover 50%, $bg-card 75%);
+    background-size: 200% 100%;
+    animation: loadingPulse 1.5s infinite linear;
+  }
+}
+
+@keyframes loadingPulse {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+.stat-card-header {
+  display: flex;
+  align-items: center;
+  gap: $spacing-sm;
+
+  .stat-card-icon {
+    width: 36px;
+    height: 36px;
+    border-radius: $radius-md;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 18px;
+    flex-shrink: 0;
+  }
+
+  .stat-card-title {
+    flex: 1;
+    font-size: $font-size-sm;
+    color: $text-secondary;
+    font-weight: $font-weight-medium;
+  }
+
+  .stat-card-options {
+    color: $text-tertiary;
+    cursor: pointer;
+    padding: 0 $spacing-xs;
+    
+    .dots {
+      letter-spacing: 2px;
+      font-size: 12px;
+    }
+
+    &:hover {
+      color: $text-primary;
+    }
+  }
+}
+
+.stat-card-body {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-sm;
+
+  .stat-card-value {
+    font-size: $font-size-3xl;
+    font-weight: $font-weight-bold;
+    color: $text-primary;
+    line-height: 1.2;
+  }
+
+  .stat-card-trend-wrapper {
+    display: flex;
+    align-items: center;
+    gap: $spacing-sm;
+
+    .stat-card-trend {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      font-size: $font-size-xs;
+      font-weight: $font-weight-bold;
+
+      &.positive {
+        color: $success-500;
+      }
+
+      &.negative {
+        color: $error-500;
+      }
+
+      svg {
+        font-size: 10px;
+      }
+    }
+
+    .stat-card-trend-text {
+      font-size: $font-size-xs;
+      color: $text-tertiary;
+    }
+  }
+}
+
+// ============================================
+// LIGHT MODE OVERRIDES
+// ============================================
+[data-theme="light"] {
+  .stat-card-header {
+    .stat-card-title { color: #475569 !important; }
+    .stat-card-options { 
+      color: #94a3b8 !important; 
+      &:hover { color: #0f172a !important; }
+    }
+  }
+  .stat-card-body {
+    .stat-card-value { color: #0f172a !important; }
+    .stat-card-trend-wrapper .stat-card-trend-text { color: #64748b !important; }
+  }
+}

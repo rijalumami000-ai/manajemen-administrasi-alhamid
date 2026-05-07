@@ -1,0 +1,143 @@
+@import '../../styles/variables.scss';
+@import '../../styles/mixins.scss';
+
+// ============================================
+// RESPONSIVE TABLE STYLES
+// ============================================
+
+// Desktop Table
+.responsive-table-desktop {
+  .ant-table {
+    @include respond-to(lg) {
+      overflow-x: auto;
+    }
+  }
+}
+
+// Mobile Cards
+.responsive-table-mobile {
+  width: 100%;
+
+  .mobile-cards-container {
+    display: flex;
+    flex-direction: column;
+    gap: $spacing-md;
+    margin-bottom: $spacing-lg;
+  }
+
+  .responsive-table-card {
+    border-radius: $radius-lg;
+    box-shadow: $shadow-sm;
+    transition: all $transition-base;
+    animation: fadeInUp $transition-base;
+
+    &:hover {
+      box-shadow: $shadow-md;
+      transform: translateY(-2px);
+    }
+
+    .ant-card-body {
+      padding: $spacing-md;
+    }
+
+    .card-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      padding: $spacing-sm 0;
+      border-bottom: 1px solid $border-light;
+
+      &:last-of-type {
+        border-bottom: none;
+      }
+
+      .card-label {
+        font-weight: $font-weight-medium;
+        color: $text-secondary;
+        font-size: $font-size-sm;
+        flex-shrink: 0;
+        margin-right: $spacing-md;
+        min-width: 100px;
+      }
+
+      .card-value {
+        color: $text-primary;
+        font-size: $font-size-sm;
+        text-align: right;
+        flex: 1;
+        word-break: break-word;
+      }
+    }
+
+    .card-actions {
+      margin-top: $spacing-md;
+      padding-top: $spacing-md;
+      border-top: 1px solid $border-light;
+      display: flex;
+      justify-content: flex-end;
+
+      .ant-btn {
+        padding: 0 $spacing-sm;
+        height: auto;
+        font-size: $font-size-sm;
+      }
+    }
+  }
+
+  .mobile-pagination {
+    padding: $spacing-md;
+    background: $bg-primary;
+    border-radius: $radius-lg;
+    box-shadow: $shadow-sm;
+
+    .pagination-info {
+      text-align: center;
+      color: $text-secondary;
+      font-size: $font-size-sm;
+      margin-bottom: $spacing-sm;
+    }
+
+    .ant-btn {
+      height: 44px; // Touch-friendly
+      font-weight: $font-weight-medium;
+    }
+  }
+}
+
+// ============================================
+// STAGGER ANIMATION
+// ============================================
+
+.mobile-cards-container {
+  .responsive-table-card {
+    animation: fadeInUp $transition-base both;
+
+    @for $i from 1 through 20 {
+      &:nth-child(#{$i}) {
+        animation-delay: #{$i * 50}ms;
+      }
+    }
+  }
+}
+
+// ============================================
+// LOADING STATE
+// ============================================
+
+.responsive-table-mobile {
+  .ant-card-loading {
+    .ant-card-body {
+      padding: $spacing-lg;
+    }
+  }
+}
+
+// ============================================
+// EMPTY STATE
+// ============================================
+
+.responsive-table-mobile {
+  .ant-empty {
+    padding: $spacing-xl 0;
+  }
+}

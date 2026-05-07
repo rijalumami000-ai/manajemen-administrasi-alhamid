@@ -1,0 +1,119 @@
+@import '../../styles/variables.scss';
+@import '../../styles/mixins.scss';
+
+.kamar-card {
+  height: 100%;
+  transition: all $transition-base;
+
+  &:hover {
+    transform: translateY(-4px);
+    box-shadow: $shadow-lg;
+  }
+
+  .ant-card-body {
+    padding: $spacing-lg;
+  }
+
+  .kamar-card-header {
+    @include flex-between;
+    margin-bottom: $spacing-md;
+    gap: $spacing-sm;
+
+    .kamar-info {
+      flex: 1;
+      min-width: 0;
+
+      .kamar-nama {
+        @include heading-4;
+        margin: 0 0 $spacing-xs 0;
+        color: $text-primary;
+        @include flex-start;
+        gap: $spacing-xs;
+
+        .anticon {
+          font-size: 18px;
+          color: $primary-500;
+        }
+      }
+
+      .kamar-jenis-tag {
+        font-weight: $font-weight-medium;
+        font-size: $font-size-xs;
+      }
+    }
+
+    .kamar-status-tag {
+      font-weight: $font-weight-medium;
+      font-size: $font-size-xs;
+    }
+  }
+
+  .kamar-details {
+    .ant-descriptions-item-label {
+      font-weight: $font-weight-medium;
+      color: $text-secondary;
+      font-size: $font-size-xs;
+    }
+
+    .ant-descriptions-item-content {
+      font-size: $font-size-sm;
+      color: $text-primary;
+    }
+
+    .kapasitas-info {
+      @include flex-column;
+      gap: $spacing-xs;
+
+      .kapasitas-text {
+        font-weight: $font-weight-medium;
+        color: $text-primary;
+      }
+
+      .ant-progress {
+        margin: 0;
+      }
+    }
+  }
+
+  .ant-card-actions {
+    background: $bg-secondary;
+
+    > li {
+      margin: 8px 0;
+
+      &:not(:last-child) {
+        border-right: 1px solid $border-light;
+      }
+    }
+
+    .ant-btn-link {
+      font-size: $font-size-sm;
+      font-weight: $font-weight-medium;
+
+      &:hover {
+        transform: scale(1.05);
+      }
+    }
+  }
+
+  // ============================================
+  // LIGHT MODE OVERRIDES
+  // ============================================
+  [data-theme="light"] & {
+    .kamar-card-header .kamar-info .kamar-nama {
+      color: #0f172a !important;
+    }
+
+    .kamar-details {
+      .ant-descriptions-item-label {
+        color: #475569 !important;
+      }
+      .ant-descriptions-item-content {
+        color: #1e293b !important;
+      }
+      .kapasitas-info .kapasitas-text {
+        color: #0f172a !important;
+      }
+    }
+  }
+}

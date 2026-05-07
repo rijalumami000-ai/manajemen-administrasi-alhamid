@@ -1,0 +1,977 @@
+// ============================================
+// PREMIUM COMPONENTS - MODERN UI
+// ============================================
+
+@import './variables.scss';
+@import './mixins.scss';
+
+// ============================================
+// MODERN CARDS
+// ============================================
+
+.card-modern {
+  @include card-premium;
+
+  &.card-hover-lift {
+    @include hover-lift;
+  }
+
+  &.card-glass {
+    @include card-glass;
+  }
+
+  &.card-gradient {
+    @include card-gradient;
+  }
+
+  &.card-neumorphism {
+    @include neumorphism;
+  }
+}
+
+.card-stat {
+  @include card-premium;
+  @include hover-lift;
+  position: relative;
+  overflow: hidden;
+
+  &::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    right: 0;
+    width: 100px;
+    height: 100px;
+    background: $gradient-primary;
+    opacity: 0.1;
+    border-radius: 50%;
+    transform: translate(30%, -30%);
+  }
+
+  .card-stat-icon {
+    width: 48px;
+    height: 48px;
+    border-radius: $radius-xl;
+    @include flex-center;
+    background: $gradient-primary;
+    color: $text-inverse;
+    font-size: 24px;
+    margin-bottom: $spacing-md;
+    box-shadow: $shadow-colored-sm;
+  }
+
+  .card-stat-value {
+    font-size: $font-size-3xl;
+    font-weight: $font-weight-bold;
+    color: $text-primary;
+    margin-bottom: $spacing-xs;
+  }
+
+  .card-stat-label {
+    font-size: $font-size-sm;
+    color: $text-secondary;
+    font-weight: $font-weight-medium;
+  }
+
+  .card-stat-trend {
+    margin-top: $spacing-sm;
+    font-size: $font-size-xs;
+    font-weight: $font-weight-semibold;
+
+    &.trend-up {
+      color: $success-600;
+    }
+
+    &.trend-down {
+      color: $error-600;
+    }
+  }
+}
+
+// ============================================
+// MODERN BUTTONS
+// ============================================
+
+.btn-modern {
+  @include button-primary;
+  height: $button-height-md;
+
+  &.btn-secondary {
+    @include button-secondary;
+  }
+
+  &.btn-ghost {
+    @include button-ghost;
+  }
+
+  &.btn-gradient {
+    @include button-gradient;
+  }
+
+  &.btn-glass {
+    @include button-glass;
+  }
+
+  &.btn-sm {
+    height: $button-height-sm;
+    padding: 0 $spacing-md;
+    font-size: $font-size-xs;
+  }
+
+  &.btn-lg {
+    height: $button-height-lg;
+    padding: 0 $spacing-xl;
+    font-size: $font-size-base;
+  }
+
+  &.btn-icon {
+    width: $button-height-md;
+    padding: 0;
+
+    &.btn-sm {
+      width: $button-height-sm;
+    }
+
+    &.btn-lg {
+      width: $button-height-lg;
+    }
+  }
+
+  &.btn-with-glow {
+    @include glow;
+  }
+
+  &.btn-with-shimmer {
+    @include shimmer;
+  }
+}
+
+// ============================================
+// MODERN INPUTS
+// ============================================
+
+.input-modern {
+  @include input-base;
+
+  &.input-glass {
+    @include input-glass;
+  }
+
+  &.input-gradient-border {
+    @include input-gradient-border;
+  }
+
+  &.input-lg {
+    height: $input-height-lg;
+    font-size: $font-size-base;
+  }
+
+  &.input-sm {
+    height: $input-height-sm;
+    font-size: $font-size-xs;
+  }
+}
+
+.input-group-modern {
+  position: relative;
+
+  .input-icon {
+    position: absolute;
+    left: $spacing-md;
+    top: 50%;
+    transform: translateY(-50%);
+    color: $text-tertiary;
+    pointer-events: none;
+  }
+
+  .input-modern {
+    padding-left: calc($spacing-md * 2 + 20px);
+  }
+
+  &.input-icon-right {
+    .input-icon {
+      left: auto;
+      right: $spacing-md;
+    }
+
+    .input-modern {
+      padding-left: $spacing-md;
+      padding-right: calc($spacing-md * 2 + 20px);
+    }
+  }
+}
+
+// ============================================
+// MODERN MODALS
+// ============================================
+
+.modal-modern {
+  .modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.5);
+    backdrop-filter: blur(4px);
+    z-index: $z-modal-backdrop;
+    @include flex-center;
+    animation: fadeIn $transition-base;
+  }
+
+  .modal-content {
+    @include card-premium;
+    max-width: 600px;
+    width: 90%;
+    max-height: 90vh;
+    overflow-y: auto;
+    animation: slideInUp $transition-base;
+    position: relative;
+
+    &.modal-glass {
+      @include frosted-glass;
+    }
+
+    &.modal-lg {
+      max-width: 900px;
+    }
+
+    &.modal-sm {
+      max-width: 400px;
+    }
+  }
+
+  .modal-header {
+    @include flex-between;
+    margin-bottom: $spacing-lg;
+    padding-bottom: $spacing-md;
+    border-bottom: 2px solid $border-light;
+
+    h3 {
+      margin: 0;
+      @include gradient-text;
+    }
+
+    .modal-close {
+      @include button-ghost;
+      width: 32px;
+      height: 32px;
+      padding: 0;
+      border-radius: $radius-full;
+
+      &:hover {
+        background: $error-50;
+        color: $error-600;
+      }
+    }
+  }
+
+  .modal-body {
+    margin-bottom: $spacing-lg;
+  }
+
+  .modal-footer {
+    @include flex-end;
+    gap: $spacing-md;
+    padding-top: $spacing-md;
+    border-top: 2px solid $border-light;
+  }
+}
+
+// ============================================
+// MODERN SIDEBAR
+// ============================================
+
+.sidebar-modern {
+  width: $sidebar-width;
+  height: 100vh;
+  position: fixed;
+  left: 0;
+  top: 0;
+  background: $bg-primary;
+  border-right: 1px solid $border-light;
+  transition: all $transition-base $transition-smooth;
+  z-index: $z-fixed;
+  display: flex;
+  flex-direction: column;
+  box-shadow: $shadow-lg;
+
+  &.sidebar-glass {
+    @include frosted-glass;
+  }
+
+  &.sidebar-gradient {
+    @include gradient-bg;
+    color: $text-inverse;
+
+    .sidebar-menu-item {
+      color: rgba(255, 255, 255, 0.9);
+
+      &:hover {
+        background: rgba(255, 255, 255, 0.1);
+        color: $text-inverse;
+      }
+
+      &.active {
+        background: rgba(255, 255, 255, 0.2);
+        color: $text-inverse;
+      }
+    }
+  }
+
+  &.collapsed {
+    width: $sidebar-collapsed-width;
+
+    .sidebar-menu-text {
+      display: none;
+    }
+
+    .sidebar-logo-text {
+      display: none;
+    }
+  }
+
+  .sidebar-header {
+    padding: $spacing-lg;
+    border-bottom: 1px solid $border-light;
+    @include flex-between;
+
+    .sidebar-logo {
+      @include flex-start;
+      gap: $spacing-md;
+      font-size: $font-size-xl;
+      font-weight: $font-weight-bold;
+      @include gradient-text;
+    }
+
+    .sidebar-toggle {
+      @include button-ghost;
+      width: 32px;
+      height: 32px;
+      padding: 0;
+      border-radius: $radius-md;
+    }
+  }
+
+  .sidebar-menu {
+    flex: 1;
+    padding: $spacing-md;
+    overflow-y: auto;
+    @include custom-scrollbar;
+
+    .sidebar-menu-item {
+      @include flex-start;
+      gap: $spacing-md;
+      padding: $spacing-md;
+      border-radius: $radius-lg;
+      color: $text-secondary;
+      font-weight: $font-weight-medium;
+      cursor: pointer;
+      transition: all $transition-fast;
+      margin-bottom: $spacing-xs;
+
+      &:hover {
+        background: $primary-50;
+        color: $primary-600;
+        transform: translateX(4px);
+      }
+
+      &.active {
+        background: $gradient-primary;
+        color: $text-inverse;
+        box-shadow: $shadow-colored-sm;
+
+        &:hover {
+          transform: translateX(0);
+          box-shadow: $shadow-colored-md;
+        }
+      }
+
+      .sidebar-menu-icon {
+        font-size: 20px;
+        min-width: 20px;
+      }
+
+      .sidebar-menu-text {
+        flex: 1;
+      }
+
+      .sidebar-menu-badge {
+        background: $error-500;
+        color: $text-inverse;
+        padding: 2px 8px;
+        border-radius: $radius-full;
+        font-size: $font-size-xs;
+        font-weight: $font-weight-semibold;
+      }
+    }
+
+    .sidebar-menu-divider {
+      height: 1px;
+      background: $border-light;
+      margin: $spacing-md 0;
+    }
+
+    .sidebar-menu-label {
+      font-size: $font-size-xs;
+      font-weight: $font-weight-semibold;
+      color: $text-tertiary;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      padding: $spacing-md $spacing-md $spacing-sm;
+    }
+  }
+
+  .sidebar-footer {
+    padding: $spacing-lg;
+    border-top: 1px solid $border-light;
+
+    .sidebar-user {
+      @include flex-start;
+      gap: $spacing-md;
+      padding: $spacing-md;
+      border-radius: $radius-lg;
+      cursor: pointer;
+      transition: all $transition-fast;
+
+      &:hover {
+        background: $primary-50;
+      }
+
+      .sidebar-user-avatar {
+        width: 40px;
+        height: 40px;
+        border-radius: $radius-full;
+        background: $gradient-primary;
+        @include flex-center;
+        color: $text-inverse;
+        font-weight: $font-weight-bold;
+      }
+
+      .sidebar-user-info {
+        flex: 1;
+
+        .sidebar-user-name {
+          font-weight: $font-weight-semibold;
+          color: $text-primary;
+          font-size: $font-size-sm;
+        }
+
+        .sidebar-user-role {
+          font-size: $font-size-xs;
+          color: $text-tertiary;
+        }
+      }
+    }
+  }
+}
+
+// ============================================
+// MODERN HEADER
+// ============================================
+
+.header-modern {
+  height: $header-height;
+  background: $bg-primary;
+  border-bottom: 1px solid $border-light;
+  @include flex-between;
+  padding: 0 $spacing-xl;
+  position: sticky;
+  top: 0;
+  z-index: $z-sticky;
+  box-shadow: $shadow-sm;
+
+  &.header-glass {
+    @include frosted-glass;
+  }
+
+  &.header-gradient {
+    @include gradient-bg;
+    color: $text-inverse;
+    border-bottom: none;
+  }
+
+  .header-left {
+    @include flex-start;
+    gap: $spacing-lg;
+  }
+
+  .header-search {
+    position: relative;
+    width: 400px;
+
+    input {
+      @include input-base;
+      padding-left: calc($spacing-md * 2 + 20px);
+      height: 40px;
+    }
+
+    .search-icon {
+      position: absolute;
+      left: $spacing-md;
+      top: 50%;
+      transform: translateY(-50%);
+      color: $text-tertiary;
+    }
+  }
+
+  .header-right {
+    @include flex-end;
+    gap: $spacing-md;
+
+    .header-icon-btn {
+      @include button-ghost;
+      width: 40px;
+      height: 40px;
+      padding: 0;
+      border-radius: $radius-full;
+      position: relative;
+
+      .badge {
+        position: absolute;
+        top: 4px;
+        right: 4px;
+        width: 8px;
+        height: 8px;
+        background: $error-500;
+        border-radius: $radius-full;
+        border: 2px solid $bg-primary;
+      }
+    }
+
+    .header-avatar {
+      width: 40px;
+      height: 40px;
+      border-radius: $radius-full;
+      background: $gradient-primary;
+      @include flex-center;
+      color: $text-inverse;
+      font-weight: $font-weight-bold;
+      cursor: pointer;
+      transition: all $transition-fast;
+
+      &:hover {
+        transform: scale(1.1);
+        box-shadow: $shadow-colored-md;
+      }
+    }
+  }
+}
+
+// ============================================
+// MODERN TABLES
+// ============================================
+
+.table-modern {
+  width: 100%;
+  background: $bg-primary;
+  border-radius: $card-radius;
+  overflow: hidden;
+  box-shadow: $card-shadow;
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+  }
+
+  thead {
+    background: $gradient-primary;
+    color: $text-inverse;
+
+    th {
+      padding: $spacing-md $spacing-lg;
+      text-align: left;
+      font-weight: $font-weight-semibold;
+      font-size: $font-size-sm;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+  }
+
+  tbody {
+    tr {
+      border-bottom: 1px solid $border-light;
+      transition: all $transition-fast;
+
+      &:hover {
+        background: $primary-50;
+        transform: scale(1.01);
+        box-shadow: $shadow-sm;
+      }
+
+      &:last-child {
+        border-bottom: none;
+      }
+
+      td {
+        padding: $spacing-md $spacing-lg;
+        font-size: $font-size-sm;
+        color: $text-primary;
+      }
+    }
+  }
+
+  &.table-striped {
+    tbody tr:nth-child(even) {
+      background: $neutral-50;
+    }
+  }
+
+  &.table-bordered {
+    border: 2px solid $border-light;
+
+    td, th {
+      border: 1px solid $border-light;
+    }
+  }
+}
+
+// ============================================
+// MODERN BADGES
+// ============================================
+
+.badge-modern {
+  display: inline-flex;
+  align-items: center;
+  gap: $spacing-xs;
+  padding: 4px 12px;
+  border-radius: $radius-full;
+  font-size: $font-size-xs;
+  font-weight: $font-weight-semibold;
+  line-height: 1;
+
+  &.badge-primary {
+    background: $primary-100;
+    color: $primary-700;
+  }
+
+  &.badge-success {
+    background: $success-100;
+    color: $success-700;
+  }
+
+  &.badge-warning {
+    background: $warning-100;
+    color: $warning-700;
+  }
+
+  &.badge-error {
+    background: $error-100;
+    color: $error-700;
+  }
+
+  &.badge-gradient {
+    background: $gradient-primary;
+    color: $text-inverse;
+    box-shadow: $shadow-colored-sm;
+  }
+
+  &.badge-glass {
+    @include glass;
+  }
+
+  &.badge-outline {
+    background: transparent;
+    border: 2px solid currentColor;
+  }
+}
+
+// ============================================
+// MODERN ALERTS
+// ============================================
+
+.alert-modern {
+  @include card;
+  @include flex-start;
+  gap: $spacing-md;
+  border-left: 4px solid;
+
+  &.alert-success {
+    border-left-color: $success-500;
+    background: $success-50;
+
+    .alert-icon {
+      color: $success-600;
+    }
+  }
+
+  &.alert-warning {
+    border-left-color: $warning-500;
+    background: $warning-50;
+
+    .alert-icon {
+      color: $warning-600;
+    }
+  }
+
+  &.alert-error {
+    border-left-color: $error-500;
+    background: $error-50;
+
+    .alert-icon {
+      color: $error-600;
+    }
+  }
+
+  &.alert-info {
+    border-left-color: $info-500;
+    background: $info-50;
+
+    .alert-icon {
+      color: $info-600;
+    }
+  }
+
+  .alert-icon {
+    font-size: 24px;
+  }
+
+  .alert-content {
+    flex: 1;
+
+    .alert-title {
+      font-weight: $font-weight-semibold;
+      margin-bottom: $spacing-xs;
+      color: $text-primary;
+    }
+
+    .alert-message {
+      font-size: $font-size-sm;
+      color: $text-secondary;
+    }
+  }
+
+  .alert-close {
+    @include button-ghost;
+    width: 24px;
+    height: 24px;
+    padding: 0;
+    border-radius: $radius-full;
+  }
+}
+
+// ============================================
+// MODERN TOOLTIPS
+// ============================================
+
+.tooltip-modern {
+  position: relative;
+  display: inline-block;
+
+  .tooltip-content {
+    position: absolute;
+    bottom: calc(100% + 8px);
+    left: 50%;
+    transform: translateX(-50%);
+    padding: $spacing-sm $spacing-md;
+    background: $neutral-900;
+    color: $text-inverse;
+    font-size: $font-size-xs;
+    border-radius: $radius-md;
+    white-space: nowrap;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity $transition-fast;
+    z-index: $z-tooltip;
+
+    &::after {
+      content: '';
+      position: absolute;
+      top: 100%;
+      left: 50%;
+      transform: translateX(-50%);
+      border: 4px solid transparent;
+      border-top-color: $neutral-900;
+    }
+  }
+
+  &:hover .tooltip-content {
+    opacity: 1;
+  }
+}
+
+// ============================================
+// MODERN PROGRESS BARS
+// ============================================
+
+.progress-modern {
+  width: 100%;
+  height: 8px;
+  background: $neutral-200;
+  border-radius: $radius-full;
+  overflow: hidden;
+  position: relative;
+
+  .progress-bar {
+    height: 100%;
+    background: $gradient-primary;
+    border-radius: $radius-full;
+    transition: width $transition-base $transition-smooth;
+    position: relative;
+    overflow: hidden;
+
+    &::after {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: linear-gradient(
+        90deg,
+        transparent,
+        rgba(255, 255, 255, 0.3),
+        transparent
+      );
+      animation: shimmer 2s infinite;
+    }
+  }
+
+  &.progress-lg {
+    height: 12px;
+  }
+
+  &.progress-sm {
+    height: 4px;
+  }
+
+  &.progress-success .progress-bar {
+    background: $success-500;
+  }
+
+  &.progress-warning .progress-bar {
+    background: $warning-500;
+  }
+
+  &.progress-error .progress-bar {
+    background: $error-500;
+  }
+}
+
+// ============================================
+// MODERN LOADING SPINNER
+// ============================================
+
+.spinner-modern {
+  width: 40px;
+  height: 40px;
+  border: 4px solid $neutral-200;
+  border-top-color: $primary-500;
+  border-radius: $radius-full;
+  animation: spin 1s linear infinite;
+
+  &.spinner-gradient {
+    border-top-color: transparent;
+    background: $gradient-primary;
+    -webkit-mask: radial-gradient(farthest-side, transparent calc(100% - 4px), #fff 0);
+    mask: radial-gradient(farthest-side, transparent calc(100% - 4px), #fff 0);
+  }
+
+  &.spinner-sm {
+    width: 24px;
+    height: 24px;
+    border-width: 3px;
+  }
+
+  &.spinner-lg {
+    width: 60px;
+    height: 60px;
+    border-width: 6px;
+  }
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+// ============================================
+// MODERN DIVIDERS
+// ============================================
+
+.divider-modern {
+  height: 1px;
+  background: $border-light;
+  margin: $spacing-lg 0;
+
+  &.divider-gradient {
+    background: $gradient-primary;
+    height: 2px;
+  }
+
+  &.divider-dashed {
+    border-top: 2px dashed $border-medium;
+    background: transparent;
+  }
+
+  &.divider-with-text {
+    display: flex;
+    align-items: center;
+    gap: $spacing-md;
+
+    &::before,
+    &::after {
+      content: '';
+      flex: 1;
+      height: 1px;
+      background: $border-light;
+    }
+
+    span {
+      font-size: $font-size-sm;
+      color: $text-tertiary;
+      font-weight: $font-weight-medium;
+    }
+  }
+}
+
+// ============================================
+// LIGHT MODE OVERRIDES
+// ============================================
+[data-theme="light"] {
+  // Table Modern
+  .table-modern {
+    background: #ffffff !important;
+    border-color: #e2e8f0 !important;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06) !important;
+
+    thead {
+      background: #f8fafc !important;
+      color: #475569 !important;
+    }
+
+    tbody tr {
+      border-bottom-color: #e2e8f0 !important;
+      &:hover { background: #f1f5f9 !important; }
+      td { color: #1e293b !important; }
+    }
+
+    &.table-striped tbody tr:nth-child(even) {
+      background: #f8fafc !important;
+    }
+  }
+
+  // Sidebar Modern
+  .sidebar-modern {
+    background: #ffffff !important;
+    border-right-color: #e2e8f0 !important;
+    .sidebar-header {
+      border-bottom-color: #e2e8f0 !important;
+      .sidebar-logo { color: #0f172a !important; }
+    }
+    .sidebar-menu .sidebar-menu-item {
+      color: #475569 !important;
+      &:hover {
+        background: #f1f5f9 !important;
+        color: #0f172a !important;
+      }
+      &.active {
+        background: #e0f2fe !important;
+        color: #0284c7 !important;
+      }
+    }
+    .sidebar-footer { border-top-color: #e2e8f0 !important; }
+  }
+
+  // Header Modern
+  .header-modern {
+    background: rgba(255, 255, 255, 0.9) !important;
+    border-bottom-color: #e2e8f0 !important;
+  }
+}

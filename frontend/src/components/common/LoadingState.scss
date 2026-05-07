@@ -1,0 +1,25 @@
+@import '../../styles/variables.scss';
+@import '../../styles/mixins.scss';
+
+.loading-state {
+  @include flex-center;
+  padding: $spacing-3xl $spacing-lg;
+  min-height: 300px;
+
+  @include respond-to(md) {
+    padding: $spacing-2xl $spacing-md;
+    min-height: 200px;
+  }
+}
+
+.loading-state-fullscreen {
+  @include flex-center;
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba($bg-primary, 0.9);
+  z-index: $z-modal;
+  backdrop-filter: blur(4px);
+}

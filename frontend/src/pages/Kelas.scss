@@ -1,0 +1,70 @@
+@import '../styles/variables.scss';
+@import '../styles/mixins.scss';
+
+.kelas-page {
+  @include fade-in;
+
+  .kelas-header-actions {
+    @include flex-start;
+    gap: $spacing-md;
+
+    @include respond-to(sm) {
+      flex-direction: column;
+      width: 100%;
+
+      .ant-select {
+        width: 100% !important;
+      }
+
+      .ant-btn {
+        width: 100%;
+      }
+    }
+  }
+
+  .kelas-content {
+    padding: $spacing-lg;
+
+    @include respond-to(md) {
+      padding: $spacing-md;
+    }
+  }
+
+  .kelas-group {
+    margin-bottom: $spacing-2xl;
+
+    &:last-child {
+      margin-bottom: 0;
+    }
+
+    .kelas-group-header {
+      margin-bottom: $spacing-lg;
+
+      .kelas-group-title {
+        @include flex-start;
+        gap: $spacing-sm;
+
+        .anticon {
+          font-size: 24px;
+        }
+
+        h3 {
+          @include heading-3;
+          margin: 0;
+        }
+
+        .kelas-count {
+          @include body-small;
+          color: $text-secondary;
+          background: $neutral-100;
+          padding: 2px 12px;
+          border-radius: $radius-full;
+        }
+      }
+    }
+  }
+
+  .ant-divider {
+    margin: $spacing-2xl 0;
+  }
+}

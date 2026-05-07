@@ -1,0 +1,52 @@
+@import '../styles/variables.scss';
+@import '../styles/mixins.scss';
+
+.kamar-page {
+  @include fade-in;
+
+  .kamar-content {
+    padding: $spacing-lg;
+
+    @include respond-to(md) {
+      padding: $spacing-md;
+    }
+  }
+
+  .kamar-group {
+    margin-bottom: $spacing-2xl;
+
+    &:last-child {
+      margin-bottom: 0;
+    }
+
+    .kamar-group-header {
+      margin-bottom: $spacing-lg;
+
+      .kamar-group-title {
+        @include flex-start;
+        gap: $spacing-sm;
+
+        .anticon {
+          font-size: 24px;
+        }
+
+        h3 {
+          @include heading-3;
+          margin: 0;
+        }
+
+        .kamar-count {
+          @include body-small;
+          color: $text-secondary;
+          background: $neutral-100;
+          padding: 2px 12px;
+          border-radius: $radius-full;
+        }
+      }
+    }
+  }
+
+  .ant-divider {
+    margin: $spacing-2xl 0;
+  }
+}

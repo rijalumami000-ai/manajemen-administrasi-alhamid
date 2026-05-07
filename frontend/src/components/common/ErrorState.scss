@@ -1,0 +1,17 @@
+@import '../../styles/variables.scss';
+@import '../../styles/mixins.scss';
+
+.error-state {
+  @include flex-center;
+  padding: $spacing-3xl $spacing-lg;
+  min-height: 400px;
+
+  @include respond-to(md) {
+    padding: $spacing-2xl $spacing-md;
+    min-height: 300px;
+  }
+
+  .ant-result {
+    padding: $spacing-xl 0;
+  }
+}

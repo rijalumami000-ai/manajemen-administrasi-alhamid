@@ -1,0 +1,56 @@
+@import '../../styles/variables.scss';
+@import '../../styles/mixins.scss';
+
+.kamar-modal {
+  .ant-modal-header {
+    background: linear-gradient(135deg, $primary-500 0%, $primary-600 100%);
+
+    .ant-modal-title {
+      color: $text-inverse;
+      font-weight: $font-weight-semibold;
+    }
+  }
+
+  .ant-alert {
+    border-radius: $radius-md;
+  }
+
+  .ant-form {
+    margin-top: $spacing-md;
+  }
+
+  .form-section {
+    margin-bottom: $spacing-lg;
+    padding-bottom: $spacing-lg;
+    border-bottom: 1px solid $border-light;
+
+    &:last-child {
+      margin-bottom: 0;
+      padding-bottom: 0;
+      border-bottom: none;
+    }
+
+    .form-section-title {
+      @include heading-4;
+      margin-bottom: $spacing-md;
+      color: $primary-600;
+      font-size: $font-size-base;
+    }
+  }
+
+  .ant-form-item-label > label {
+    font-weight: $font-weight-medium;
+    color: $text-primary;
+  }
+
+  .ant-select,
+  .ant-input,
+  .ant-input-number {
+    border-radius: $radius-md;
+  }
+
+  .ant-input-affix-wrapper,
+  .ant-input-number-affix-wrapper {
+    border-radius: $radius-md;
+  }
+}

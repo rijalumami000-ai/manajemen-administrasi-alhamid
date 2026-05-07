@@ -1,0 +1,147 @@
+@import '../../styles/variables.scss';
+@import '../../styles/mixins.scss';
+
+.search-input {
+  .ant-input-wrapper {
+    .ant-input-affix-wrapper {
+      border-radius: $radius-xl;
+      border: 2px solid $border-light;
+      padding: $spacing-sm $spacing-lg;
+      transition: all $transition-base $transition-smooth;
+      background: $bg-primary;
+      box-shadow: $shadow-sm;
+
+      &:hover {
+        border-color: $primary-400;
+        box-shadow: $shadow-md;
+        transform: translateY(-1px);
+      }
+
+      &:focus,
+      &-focused {
+        border-color: $primary-500;
+        box-shadow: 0 0 0 4px rgba($primary-500, 0.1), $shadow-md;
+        transform: translateY(-2px);
+      }
+
+      .ant-input-prefix {
+        color: $primary-500;
+        font-size: 18px;
+        margin-right: $spacing-sm;
+      }
+
+      .ant-input {
+        font-size: $font-size-sm;
+        font-weight: $font-weight-medium;
+
+        &::placeholder {
+          color: $text-disabled;
+          font-weight: $font-weight-normal;
+        }
+      }
+
+      .ant-input-clear-icon {
+        color: $text-tertiary;
+        font-size: 14px;
+        transition: all $transition-fast;
+
+        &:hover {
+          color: $error-500;
+          transform: scale(1.2);
+        }
+      }
+    }
+
+    .ant-input-group-addon {
+      .ant-btn {
+        border-radius: $radius-xl;
+        background: $gradient-primary;
+        border: none;
+        color: $text-inverse;
+        font-weight: $font-weight-semibold;
+        box-shadow: $shadow-colored-sm;
+        transition: all $transition-base $transition-smooth;
+
+        &:hover {
+          box-shadow: $shadow-colored-md;
+          transform: translateY(-2px);
+        }
+
+        &:active {
+          transform: translateY(0);
+        }
+      }
+    }
+  }
+
+  // Size variants
+  &.ant-input-search-large {
+    .ant-input-affix-wrapper {
+      padding: $spacing-md $spacing-xl;
+      font-size: $font-size-base;
+
+      .ant-input-prefix {
+        font-size: 20px;
+      }
+    }
+  }
+
+  &.ant-input-search-small {
+    .ant-input-affix-wrapper {
+      padding: $spacing-xs $spacing-md;
+      font-size: $font-size-xs;
+
+      .ant-input-prefix {
+        font-size: 14px;
+      }
+    }
+  }
+}
+
+// Variant: Glass effect
+.search-input-glass {
+  .ant-input-wrapper {
+    .ant-input-affix-wrapper {
+      @include frosted-glass;
+      border: 1px solid $glass-border;
+
+      &:focus,
+      &-focused {
+        background: rgba(255, 255, 255, 0.9);
+        border-color: $primary-500;
+      }
+    }
+  }
+}
+
+// Variant: Gradient border
+.search-input-gradient {
+  .ant-input-wrapper {
+    .ant-input-affix-wrapper {
+      position: relative;
+      border: none;
+      background: $bg-primary;
+
+      &::before {
+        content: '';
+        position: absolute;
+        inset: -2px;
+        border-radius: inherit;
+        padding: 2px;
+        background: $gradient-primary;
+        -webkit-mask:
+          linear-gradient(#fff 0 0) content-box,
+          linear-gradient(#fff 0 0);
+        -webkit-mask-composite: xor;
+        mask-composite: exclude;
+        opacity: 0;
+        transition: opacity $transition-base;
+      }
+
+      &:focus::before,
+      &-focused::before {
+        opacity: 1;
+      }
+    }
+  }
+}

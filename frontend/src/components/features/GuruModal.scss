@@ -1,0 +1,8 @@
+@import '../../styles/variables';
+@import '../../styles/mixins';
+
+.guru-modal {
+  .ant-form-item {
+    margin-bottom: $spacing-md;
+  }
+}

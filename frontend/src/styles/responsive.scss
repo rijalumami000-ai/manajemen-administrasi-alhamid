@@ -1,0 +1,628 @@
+// ============================================
+// RESPONSIVE UTILITIES & HELPERS
+// Sekolah Info System - Mobile First Approach
+// ============================================
+
+@import './variables.scss';
+@import './mixins.scss';
+
+// ============================================
+// RESPONSIVE BREAKPOINTS
+// ============================================
+
+// Mobile First Breakpoints
+// xs: 0-479px (Mobile Portrait)
+// sm: 480-575px (Mobile Landscape)
+// md: 576-767px (Small Tablet)
+// lg: 768-991px (Tablet)
+// xl: 992-1199px (Desktop)
+// 2xl: 1200px+ (Large Desktop)
+
+// ============================================
+// CONTAINER RESPONSIVE
+// ============================================
+
+.container-responsive {
+  width: 100%;
+  margin: 0 auto;
+  padding: 0 $spacing-md;
+
+  @include respond-above(sm) {
+    padding: 0 $spacing-lg;
+  }
+
+  @include respond-above(lg) {
+    max-width: $content-max-width;
+    padding: 0 $spacing-xl;
+  }
+}
+
+// ============================================
+// RESPONSIVE GRID
+// ============================================
+
+.grid-responsive {
+  display: grid;
+  gap: $spacing-md;
+
+  // Mobile: 1 column
+  grid-template-columns: 1fr;
+
+  // Tablet: 2 columns
+  @include respond-above(md) {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  // Desktop: 3 columns
+  @include respond-above(lg) {
+    grid-template-columns: repeat(3, 1fr);
+  }
+
+  // Large Desktop: 4 columns
+  @include respond-above(xl) {
+    grid-template-columns: repeat(4, 1fr);
+  }
+}
+
+// ============================================
+// RESPONSIVE SPACING
+// ============================================
+
+.spacing-responsive {
+  // Mobile: smaller spacing
+  padding: $spacing-md;
+  margin-bottom: $spacing-md;
+
+  // Tablet: medium spacing
+  @include respond-above(md) {
+    padding: $spacing-lg;
+    margin-bottom: $spacing-lg;
+  }
+
+  // Desktop: larger spacing
+  @include respond-above(lg) {
+    padding: $spacing-xl;
+    margin-bottom: $spacing-xl;
+  }
+}
+
+// ============================================
+// RESPONSIVE TYPOGRAPHY
+// ============================================
+
+.heading-responsive {
+  // Mobile
+  font-size: $font-size-2xl;
+  line-height: $line-height-tight;
+
+  // Tablet
+  @include respond-above(md) {
+    font-size: $font-size-3xl;
+  }
+
+  // Desktop
+  @include respond-above(lg) {
+    font-size: $font-size-4xl;
+  }
+}
+
+.text-responsive {
+  // Mobile
+  font-size: $font-size-sm;
+  line-height: $line-height-normal;
+
+  // Tablet & Desktop
+  @include respond-above(md) {
+    font-size: $font-size-base;
+    line-height: $line-height-relaxed;
+  }
+}
+
+// ============================================
+// MOBILE SPECIFIC UTILITIES
+// ============================================
+
+// Hide on mobile
+.hide-mobile {
+  @include respond-to(md) {
+    display: none !important;
+  }
+}
+
+// Show only on mobile
+.show-mobile {
+  display: block;
+
+  @include respond-above(md) {
+    display: none !important;
+  }
+}
+
+// Hide on tablet
+.hide-tablet {
+  @media (min-width: $breakpoint-md) and (max-width: $breakpoint-lg) {
+    display: none !important;
+  }
+}
+
+// Show only on tablet
+.show-tablet {
+  display: none;
+
+  @media (min-width: $breakpoint-md) and (max-width: $breakpoint-lg) {
+    display: block !important;
+  }
+}
+
+// Hide on desktop
+.hide-desktop {
+  @include respond-above(lg) {
+    display: none !important;
+  }
+}
+
+// Show only on desktop
+.show-desktop {
+  display: none;
+
+  @include respond-above(lg) {
+    display: block !important;
+  }
+}
+
+// ============================================
+// TOUCH FRIENDLY ELEMENTS
+// ============================================
+
+.touch-target {
+  // Minimum 44x44px touch target (iOS guidelines)
+  min-height: 44px;
+  min-width: 44px;
+  padding: $spacing-sm $spacing-md;
+
+  // Larger spacing on mobile
+  @include respond-to(md) {
+    padding: $spacing-md $spacing-lg;
+  }
+}
+
+.touch-button {
+  @extend .touch-target;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: $radius-md;
+  font-weight: $font-weight-medium;
+  transition: all $transition-fast;
+
+  // Active state for touch feedback
+  &:active {
+    transform: scale(0.97);
+    opacity: 0.8;
+  }
+}
+
+// ============================================
+// MOBILE NAVIGATION
+// ============================================
+
+.mobile-nav {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+
+  @include respond-above(lg) {
+    flex-direction: row;
+    width: auto;
+  }
+}
+
+.mobile-nav-item {
+  padding: $spacing-md;
+  border-bottom: 1px solid $border-light;
+
+  @include respond-above(lg) {
+    padding: $spacing-sm $spacing-md;
+    border-bottom: none;
+  }
+
+  &:last-child {
+    border-bottom: none;
+  }
+}
+
+// ============================================
+// MOBILE CARDS
+// ============================================
+
+.card-mobile {
+  // Mobile: full width, smaller padding
+  width: 100%;
+  padding: $spacing-md;
+  margin-bottom: $spacing-md;
+
+  // Tablet: maintain spacing
+  @include respond-above(md) {
+    padding: $spacing-lg;
+    margin-bottom: $spacing-lg;
+  }
+
+  // Desktop: normal card styling
+  @include respond-above(lg) {
+    width: auto;
+  }
+}
+
+// ============================================
+// MOBILE TABLES
+// ============================================
+
+.table-mobile {
+  // Mobile: card-based layout
+  @include respond-to(md) {
+    display: block;
+
+    thead {
+      display: none;
+    }
+
+    tbody {
+      display: block;
+    }
+
+    tr {
+      display: block;
+      margin-bottom: $spacing-md;
+      padding: $spacing-md;
+      border: 1px solid $border-light;
+      border-radius: $radius-md;
+    }
+
+    td {
+      display: flex;
+      justify-content: space-between;
+      padding: $spacing-sm 0;
+      border: none;
+
+      &::before {
+        content: attr(data-label);
+        font-weight: $font-weight-semibold;
+        margin-right: $spacing-md;
+      }
+    }
+  }
+}
+
+// ============================================
+// MOBILE FORMS
+// ============================================
+
+.form-mobile {
+  // Mobile: full width inputs
+  @include respond-to(md) {
+    .ant-form-item {
+      margin-bottom: $spacing-md;
+    }
+
+    .ant-input,
+    .ant-select,
+    .ant-picker {
+      font-size: 16px; // Prevent zoom on iOS
+    }
+
+    .ant-btn {
+      width: 100%;
+      height: 48px; // Larger touch target
+    }
+  }
+}
+
+// ============================================
+// MOBILE MODALS
+// ============================================
+
+.modal-mobile {
+  @include respond-to(md) {
+    .ant-modal {
+      max-width: 100%;
+      margin: 0;
+      padding: 0;
+      top: 0;
+    }
+
+    .ant-modal-content {
+      border-radius: 0;
+      min-height: 100vh;
+    }
+
+    .ant-modal-body {
+      padding: $spacing-lg;
+      max-height: calc(100vh - 120px);
+      overflow-y: auto;
+    }
+  }
+}
+
+// ============================================
+// RESPONSIVE IMAGES
+// ============================================
+
+.img-responsive {
+  max-width: 100%;
+  height: auto;
+  display: block;
+}
+
+.img-cover {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.img-contain {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+// ============================================
+// MOBILE FILTERS
+// ============================================
+
+.filters-mobile {
+  // Mobile: stacked filters
+  @include respond-to(md) {
+    display: flex;
+    flex-direction: column;
+    gap: $spacing-sm;
+
+    .ant-select,
+    .ant-input {
+      width: 100% !important;
+    }
+
+    .ant-space {
+      width: 100%;
+      flex-direction: column;
+
+      .ant-space-item {
+        width: 100%;
+      }
+    }
+  }
+
+  // Desktop: horizontal filters
+  @include respond-above(md) {
+    display: flex;
+    flex-direction: row;
+    gap: $spacing-md;
+    flex-wrap: wrap;
+  }
+}
+
+// ============================================
+// MOBILE STATS
+// ============================================
+
+.stats-mobile {
+  display: grid;
+  gap: $spacing-md;
+
+  // Mobile: 1 column
+  grid-template-columns: 1fr;
+
+  // Small tablet: 2 columns
+  @include respond-above(sm) {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  // Desktop: 4 columns
+  @include respond-above(lg) {
+    grid-template-columns: repeat(4, 1fr);
+  }
+}
+
+// ============================================
+// MOBILE PAGINATION
+// ============================================
+
+.pagination-mobile {
+  @include respond-to(md) {
+    .ant-pagination {
+      text-align: center;
+
+      .ant-pagination-item,
+      .ant-pagination-prev,
+      .ant-pagination-next {
+        min-width: 40px;
+        height: 40px;
+        line-height: 40px;
+      }
+
+      // Hide page numbers on very small screens
+      @include respond-to(sm) {
+        .ant-pagination-item:not(.ant-pagination-item-active) {
+          display: none;
+        }
+      }
+    }
+  }
+}
+
+// ============================================
+// MOBILE TABS
+// ============================================
+
+.tabs-mobile {
+  @include respond-to(md) {
+    .ant-tabs-nav {
+      margin-bottom: $spacing-md;
+    }
+
+    .ant-tabs-tab {
+      padding: $spacing-sm $spacing-md;
+      font-size: $font-size-sm;
+    }
+
+    // Scrollable tabs on mobile
+    .ant-tabs-nav-wrap {
+      overflow-x: auto;
+      overflow-y: hidden;
+      -webkit-overflow-scrolling: touch;
+
+      &::-webkit-scrollbar {
+        display: none;
+      }
+    }
+  }
+}
+
+// ============================================
+// MOBILE DRAWER
+// ============================================
+
+.drawer-mobile {
+  @include respond-to(md) {
+    .ant-drawer-content-wrapper {
+      width: 100% !important;
+      max-width: 100%;
+    }
+
+    .ant-drawer-body {
+      padding: $spacing-lg;
+    }
+  }
+}
+
+// ============================================
+// SAFE AREA INSETS (iOS Notch)
+// ============================================
+
+.safe-area-top {
+  padding-top: env(safe-area-inset-top);
+}
+
+.safe-area-bottom {
+  padding-bottom: env(safe-area-inset-bottom);
+}
+
+.safe-area-left {
+  padding-left: env(safe-area-inset-left);
+}
+
+.safe-area-right {
+  padding-right: env(safe-area-inset-right);
+}
+
+// ============================================
+// LANDSCAPE ORIENTATION
+// ============================================
+
+@media (orientation: landscape) and (max-height: 500px) {
+  .landscape-hide {
+    display: none !important;
+  }
+
+  .landscape-compact {
+    padding: $spacing-sm !important;
+    margin: $spacing-sm 0 !important;
+  }
+}
+
+// ============================================
+// PRINT STYLES
+// ============================================
+
+@media print {
+  .no-print {
+    display: none !important;
+  }
+
+  .print-only {
+    display: block !important;
+  }
+
+  body {
+    background: white;
+    color: black;
+  }
+
+  a {
+    text-decoration: underline;
+  }
+
+  .ant-card,
+  .ant-table {
+    box-shadow: none;
+    border: 1px solid #ddd;
+  }
+}
+
+// ============================================
+// RESPONSIVE UTILITIES
+// ============================================
+
+// Flex direction responsive
+.flex-mobile-column {
+  @include respond-to(md) {
+    flex-direction: column !important;
+  }
+}
+
+.flex-mobile-row {
+  @include respond-to(md) {
+    flex-direction: row !important;
+  }
+}
+
+// Width responsive
+.w-mobile-full {
+  @include respond-to(md) {
+    width: 100% !important;
+  }
+}
+
+// Text align responsive
+.text-mobile-center {
+  @include respond-to(md) {
+    text-align: center !important;
+  }
+}
+
+.text-mobile-left {
+  @include respond-to(md) {
+    text-align: left !important;
+  }
+}
+
+// Padding responsive
+.p-mobile-sm {
+  @include respond-to(md) {
+    padding: $spacing-sm !important;
+  }
+}
+
+.p-mobile-md {
+  @include respond-to(md) {
+    padding: $spacing-md !important;
+  }
+}
+
+// Margin responsive
+.m-mobile-0 {
+  @include respond-to(md) {
+    margin: 0 !important;
+  }
+}
+
+.mb-mobile-sm {
+  @include respond-to(md) {
+    margin-bottom: $spacing-sm !important;
+  }
+}
+
+.mb-mobile-md {
+  @include respond-to(md) {
+    margin-bottom: $spacing-md !important;
+  }
+}

@@ -1,0 +1,138 @@
+@import '../../styles/variables.scss';
+@import '../../styles/mixins.scss';
+
+.app-sidebar {
+  width: $sidebar-width;
+  background: $bg-sidebar;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  transition: width $transition-base;
+  border-right: 1px solid $border-light;
+  flex-shrink: 0;
+  z-index: 100;
+  
+  &.collapsed {
+    width: $sidebar-collapsed-width;
+
+    .logo-text {
+      display: none;
+    }
+  }
+}
+
+.sidebar-header {
+  height: $header-height;
+  display: flex;
+  align-items: center;
+  padding: 0 $spacing-lg;
+  gap: $spacing-md;
+  border-bottom: 1px solid $border-light;
+  
+  .logo-icon {
+    width: 32px;
+    height: 32px;
+    background: $primary-500;
+    color: #fff;
+    border-radius: $radius-md;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+    flex-shrink: 0;
+    box-shadow: $shadow-glow-blue;
+  }
+  
+  .logo-text {
+    font-size: $font-size-lg;
+    font-weight: bold;
+    color: $text-primary;
+    white-space: nowrap;
+    overflow: hidden;
+  }
+}
+
+.sidebar-nav {
+  flex: 1;
+  padding: $spacing-md $spacing-sm;
+  overflow-y: auto;
+  @include custom-scrollbar;
+
+  .custom-antd-menu {
+    background: transparent;
+    border-right: none;
+
+    .ant-menu-item, .ant-menu-submenu-title {
+      color: $text-secondary;
+      border-radius: $radius-md;
+      margin: 4px 8px;
+      width: calc(100% - 16px);
+      
+      .ant-menu-item-icon {
+        font-size: 18px;
+      }
+
+      &:hover {
+        background: $bg-hover;
+        color: $text-primary;
+      }
+    }
+
+    .ant-menu-item-selected {
+      background: $bg-active;
+      color: $accent-blue;
+      font-weight: 500;
+
+      &::before {
+        content: '';
+        position: absolute;
+        left: -8px; 
+        top: 10%;
+        bottom: 10%;
+        width: 3px;
+        background: $accent-blue;
+        border-radius: 0 4px 4px 0;
+      }
+    }
+
+    .ant-menu-submenu-selected > .ant-menu-submenu-title {
+      color: $accent-blue;
+    }
+
+    // Fix inner background for dark mode/light mode
+    &.ant-menu-inline {
+      background: transparent;
+      
+      .ant-menu-sub.ant-menu-inline {
+        background: transparent;
+      }
+    }
+  }
+}
+
+.sidebar-footer {
+  padding: $spacing-md;
+  border-top: 1px solid $border-light;
+  display: flex;
+  justify-content: center;
+
+  .collapse-btn {
+    background: transparent;
+    border: 1px solid $border-medium;
+    color: $text-secondary;
+    width: 32px;
+    height: 32px;
+    border-radius: $radius-md;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all $transition-fast;
+
+    &:hover {
+      background: $bg-hover;
+      color: $text-primary;
+      border-color: $text-primary;
+    }
+  }
+}

@@ -1,0 +1,182 @@
+/* Profile Container */
+.profile-container {
+  max-width: 800px;
+  margin: 0 auto;
+  padding: 20px;
+}
+
+.profile-card {
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  overflow: hidden;
+}
+
+.profile-header {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  padding: 30px;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+}
+
+.profile-avatar {
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 40px;
+  border: 3px solid rgba(255, 255, 255, 0.3);
+}
+
+.profile-header h3 {
+  margin: 0 0 5px 0;
+  font-size: 24px;
+  font-weight: 600;
+}
+
+.profile-role {
+  margin: 0;
+  font-size: 14px;
+  opacity: 0.9;
+}
+
+.profile-details {
+  padding: 30px;
+}
+
+.profile-item {
+  display: flex;
+  padding: 15px 0;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.profile-item:last-child {
+  border-bottom: none;
+}
+
+.profile-label {
+  font-weight: 600;
+  color: #555;
+  min-width: 180px;
+}
+
+.profile-value {
+  color: #333;
+  flex: 1;
+}
+
+/* Modal Note */
+.modal-note {
+  font-size: 13px;
+  color: #666;
+  margin: 10px 0 0 0;
+  padding: 10px;
+  background: #f8f9fa;
+  border-radius: 4px;
+}
+
+/* Badge Styles for User Roles */
+.badge-admin {
+  background: #dc3545;
+  color: white;
+}
+
+.badge-guru {
+  background: #28a745;
+  color: white;
+}
+
+.badge-staff {
+  background: #17a2b8;
+  color: white;
+}
+
+.badge-success {
+  background: #28a745;
+  color: white;
+}
+
+.badge-danger {
+  background: #dc3545;
+  color: white;
+}
+
+/* Button Actions for Users Table */
+.btn-action {
+  padding: 6px 12px;
+  font-size: 13px;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  margin-right: 5px;
+  transition: all 0.2s;
+}
+
+.btn-action:last-child {
+  margin-right: 0;
+}
+
+.btn-edit {
+  background: #007bff;
+  color: white;
+}
+
+.btn-edit:hover {
+  background: #0056b3;
+}
+
+.btn-delete {
+  background: #ffc107;
+  color: #333;
+}
+
+.btn-delete:hover {
+  background: #e0a800;
+}
+
+.btn-success {
+  background: #28a745;
+  color: white;
+}
+
+.btn-success:hover {
+  background: #218838;
+}
+
+.btn-danger {
+  background: #dc3545;
+  color: white;
+}
+
+.btn-danger:hover {
+  background: #c82333;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .profile-header {
+    flex-direction: column;
+    text-align: center;
+  }
+
+  .profile-item {
+    flex-direction: column;
+    gap: 5px;
+  }
+
+  .profile-label {
+    min-width: auto;
+    font-weight: 600;
+  }
+
+  .btn-action {
+    display: block;
+    width: 100%;
+    margin: 5px 0;
+  }
+}

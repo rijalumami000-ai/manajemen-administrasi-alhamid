@@ -1,0 +1,101 @@
+@import '../styles/variables.scss';
+@import '../styles/mixins.scss';
+
+.dashboard-page {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-xl;
+  color: $text-primary;
+
+  .dashboard-header {
+    .page-title {
+      font-size: $font-size-3xl;
+      font-weight: $font-weight-bold;
+      margin-bottom: $spacing-xs;
+      color: $text-primary;
+    }
+
+    .page-subtitle {
+      font-size: $font-size-sm;
+      color: $text-secondary;
+    }
+  }
+
+  .dashboard-content {
+    display: flex;
+    flex-direction: column;
+    gap: $spacing-xl;
+  }
+
+  .stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    gap: $spacing-lg;
+  }
+
+  .welcome-section {
+    .welcome-card {
+      @include card;
+      display: flex;
+      flex-direction: column;
+      gap: $spacing-lg;
+
+      .welcome-header {
+        h2 {
+          font-size: $font-size-2xl;
+          color: $text-primary;
+          margin-bottom: $spacing-xs;
+        }
+        p {
+          color: $text-secondary;
+          font-size: $font-size-sm;
+        }
+      }
+
+      .feature-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+        gap: $spacing-md;
+
+        .feature-card {
+          background: $bg-hover;
+          border-radius: $radius-lg;
+          padding: $spacing-md;
+          display: flex;
+          align-items: center;
+          gap: $spacing-md;
+          transition: all $transition-fast;
+          border: 1px solid $border-light;
+
+          &:hover {
+            background: rgba($accent-blue, 0.05);
+            border-color: rgba($accent-blue, 0.2);
+            transform: translateY(-2px);
+          }
+
+          .feature-icon {
+            font-size: 24px;
+            width: 48px;
+            height: 48px;
+            background: $bg-card;
+            border-radius: $radius-md;
+            @include flex-center;
+            box-shadow: $shadow-sm;
+          }
+
+          .feature-info {
+            h4 {
+              font-size: $font-size-base;
+              color: $text-primary;
+              margin-bottom: 2px;
+            }
+            p {
+              font-size: $font-size-xs;
+              color: $text-tertiary;
+            }
+          }
+        }
+      }
+    }
+  }
+}

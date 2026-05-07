@@ -1,0 +1,25 @@
+@import '../../styles/variables.scss';
+@import '../../styles/mixins.scss';
+
+.empty-state {
+  padding: $spacing-3xl $spacing-lg;
+  text-align: center;
+
+  @include respond-to(md) {
+    padding: $spacing-2xl $spacing-md;
+  }
+
+  .empty-title {
+    font-size: $font-size-lg;
+    color: $text-primary;
+  }
+
+  .empty-description {
+    font-size: $font-size-sm;
+    color: $text-secondary;
+  }
+
+  .ant-empty-image {
+    margin-bottom: $spacing-lg;
+  }
+}

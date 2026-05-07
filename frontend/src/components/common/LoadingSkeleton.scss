@@ -1,0 +1,113 @@
+@import '../../styles/variables.scss';
+@import '../../styles/animations.scss';
+
+// ============================================
+// LOADING SKELETON STYLES
+// ============================================
+
+.skeleton-table-wrapper {
+  padding: $spacing-lg;
+  animation: fadeIn $transition-base;
+}
+
+.skeleton-card-grid {
+  animation: fadeIn $transition-base;
+
+  .ant-card {
+    height: 100%;
+  }
+}
+
+.skeleton-cards {
+  animation: fadeIn $transition-base;
+}
+
+.skeleton-stats {
+  animation: fadeIn $transition-base;
+
+  .ant-card {
+    height: 120px;
+  }
+}
+
+.skeleton-form {
+  padding: $spacing-lg;
+  animation: fadeIn $transition-base;
+}
+
+.skeleton-list {
+  animation: fadeIn $transition-base;
+
+  .skeleton-list-item {
+    padding: $spacing-md;
+    border-bottom: 1px solid $border-light;
+
+    &:last-child {
+      border-bottom: none;
+    }
+  }
+}
+
+.skeleton-profile {
+  padding: $spacing-lg;
+  animation: fadeIn $transition-base;
+
+  .skeleton-profile-header {
+    display: flex;
+    align-items: center;
+    gap: $spacing-lg;
+    margin-bottom: $spacing-xl;
+
+    .skeleton-profile-info {
+      flex: 1;
+    }
+  }
+}
+
+.skeleton-simple {
+  padding: $spacing-lg;
+  animation: fadeIn $transition-base;
+}
+
+// ============================================
+// CUSTOM SKELETON ANIMATIONS
+// ============================================
+
+.ant-skeleton {
+  .ant-skeleton-content {
+    .ant-skeleton-title,
+    .ant-skeleton-paragraph > li {
+      background: linear-gradient(
+        90deg,
+        $neutral-200 25%,
+        $neutral-100 50%,
+        $neutral-200 75%
+      );
+      background-size: 200% 100%;
+      animation: shimmer 1.5s infinite;
+    }
+  }
+
+  .ant-skeleton-avatar {
+    background: linear-gradient(
+      90deg,
+      $neutral-200 25%,
+      $neutral-100 50%,
+      $neutral-200 75%
+    );
+    background-size: 200% 100%;
+    animation: shimmer 1.5s infinite;
+  }
+
+  .ant-skeleton-input,
+  .ant-skeleton-button {
+    background: linear-gradient(
+      90deg,
+      $neutral-200 25%,
+      $neutral-100 50%,
+      $neutral-200 75%
+    );
+    background-size: 200% 100%;
+    animation: shimmer 1.5s infinite;
+  }
+}

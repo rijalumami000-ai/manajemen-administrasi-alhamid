@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Login - Sistem Informasi Sekolah</title>
+  <link rel="stylesheet" href="css/login.css">
+</head>
+<body>
+  <div class="login-container">
+    <div class="login-card">
+      <div class="login-header">
+        <h1>Sistem Informasi Sekolah</h1>
+        <p>Silakan login untuk melanjutkan</p>
+      </div>
+
+      <form id="loginForm" class="login-form">
+        <div class="form-group">
+          <label for="username">Username</label>
+          <input
+            type="text"
+            id="username"
+            name="username"
+            placeholder="Masukkan username"
+            required
+            autocomplete="username"
+          >
+          <span class="error-message" id="usernameError"></span>
+        </div>
+
+        <div class="form-group">
+          <label for="password">Password</label>
+          <div class="password-input-wrapper">
+            <input
+              type="password"
+              id="password"
+              name="password"
+              placeholder="Masukkan password"
+              required
+              autocomplete="current-password"
+            >
+            <button type="button" class="toggle-password" id="togglePassword">
+              <span class="show-icon">👁️</span>
+              <span class="hide-icon" style="display: none;">👁️‍🗨️</span>
+            </button>
+          </div>
+          <span class="error-message" id="passwordError"></span>
+        </div>
+
+        <div class="form-group">
+          <label class="checkbox-label">
+            <input type="checkbox" id="rememberMe" name="rememberMe">
+            <span>Ingat saya</span>
+          </label>
+        </div>
+
+        <div class="form-group">
+          <button type="submit" class="btn-login" id="loginButton">
+            <span class="button-text">Login</span>
+            <span class="button-loading" style="display: none;">
+              <span class="spinner"></span> Memproses...
+            </span>
+          </button>
+        </div>
+
+        <div class="error-alert" id="errorAlert" style="display: none;">
+          <span class="error-icon">⚠️</span>
+          <span class="error-text" id="errorText"></span>
+        </div>
+      </form>
+
+      <div class="login-footer">
+        <p class="help-text">Default credentials:</p>
+        <p class="help-text">Admin: <code>admin</code> / <code>admin123</code></p>
+        <p class="help-text">Guru: <code>guru1</code> / <code>guru123</code></p>
+        <p class="help-text">Staff: <code>staff1</code> / <code>staff123</code></p>
+      </div>
+    </div>
+  </div>
+
+  <script src="js/auth/login.js"></script>
+</body>
+</html>

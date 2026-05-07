@@ -1,7 +1,6 @@
 const db = require('../../db');
-const { getActiveTahunAjaran, syncSantriToActiveTahunAjaran } = require('../services/tahunAjaranService');
 const { isUniqueViolation } = require('../utils/databaseErrors');
-const { normalizeKelasJenis, normalizeText, normalizeYearCode, nullableInt } = require('../utils/normalizers');
+const { normalizeText } = require('../utils/normalizers');
 
 function registerMataPelajaranRoutes(app) {
   // ===== MATA PELAJARAN API =====
@@ -17,6 +16,9 @@ function registerMataPelajaranRoutes(app) {
   
   app.post('/api/mata-pelajaran', async (req, res) => {
     const nama = normalizeText(req.body.nama);
+    const jenis = req.body.jenis || 'Reguler';
+  
+    const nama_arab = req.body.nama_arab ? req.body.nama_arab.trim() : null;
   
     if (!nama) {
       return res.status(400).json({ error: 'Nama mata pelajaran wajib diisi.' });
@@ -24,8 +26,8 @@ function registerMataPelajaranRoutes(app) {
   
     try {
       const result = await db.query(
-        'INSERT INTO mata_pelajaran (nama) VALUES ($1) RETURNING *',
-        [nama]
+        'INSERT INTO mata_pelajaran (nama, jenis, nama_arab) VALUES ($1, $2, $3) RETURNING *',
+        [nama, jenis, nama_arab]
       );
       res.status(201).json(result.rows[0]);
     } catch (error) {
@@ -40,6 +42,9 @@ function registerMataPelajaranRoutes(app) {
   app.put('/api/mata-pelajaran/:id', async (req, res) => {
     const { id } = req.params;
     const nama = normalizeText(req.body.nama);
+    const jenis = req.body.jenis || 'Reguler';
+  
+    const nama_arab = req.body.nama_arab ? req.body.nama_arab.trim() : null;
   
     if (!nama) {
       return res.status(400).json({ error: 'Nama mata pelajaran wajib diisi.' });
@@ -47,8 +52,8 @@ function registerMataPelajaranRoutes(app) {
   
     try {
       const result = await db.query(
-        'UPDATE mata_pelajaran SET nama = $1 WHERE id = $2 RETURNING *',
-        [nama, id]
+        'UPDATE mata_pelajaran SET nama = $1, jenis = $2, nama_arab = $3 WHERE id = $4 RETURNING *',
+        [nama, jenis, nama_arab, id]
       );
   
       if (!result.rows.length) {

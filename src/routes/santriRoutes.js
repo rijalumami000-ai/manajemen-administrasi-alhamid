@@ -1,14 +1,19 @@
 const db = require('../../db');
-const { getActiveTahunAjaran, syncSantriToActiveTahunAjaran } = require('../services/tahunAjaranService');
+const { getActiveTahunAjaran, syncSantriToActiveTahunAjaran, syncSantriToSpecificTahunAjaran } = require('../services/tahunAjaranService');
 const { isUniqueViolation } = require('../utils/databaseErrors');
 const { normalizeKelasJenis, normalizeText, normalizeYearCode, nullableInt } = require('../utils/normalizers');
+const multer = require('multer');
+const santriExcelService = require('../services/santriExcelService');
+
+const upload = multer({ storage: multer.memoryStorage() });
+
 
 function registerSantriRoutes(app) {
   // ===== SANTRI API =====
   app.get('/api/santri', async (req, res) => {
     try {
       const result = await db.query(`
-        SELECT 
+        SELECT
           s.id,
           s.orangtua_id,
           s.created_at,
@@ -58,7 +63,7 @@ function registerSantriRoutes(app) {
       res.status(500).json({ error: 'Gagal memuat data santri.' });
     }
   });
-  
+
   app.post('/api/santri', async (req, res) => {
     const {
       nis,
@@ -79,12 +84,20 @@ function registerSantriRoutes(app) {
       no_hp_ibu,
       status_tahun_ajaran,
       catatan_tahun_ajaran,
+      tahun_ajaran_id, // Support adding to specific year
     } = req.body;
-  
+
+    console.log('📝 POST /api/santri - Received data:', {
+      nis,
+      nama,
+      tahun_ajaran_id,
+      tahun_ajaran_id_type: typeof tahun_ajaran_id
+    });
+
     if (!nis || !nama) {
       return res.status(400).json({ error: 'NIS dan nama santri wajib diisi.' });
     }
-  
+
     try {
       let orangtuaId = null;
       if (nama_ayah || nama_ibu) {
@@ -96,21 +109,35 @@ function registerSantriRoutes(app) {
         );
         orangtuaId = orangtuaResult.rows[0].id;
       }
-  
+
       const result = await db.query(
         `INSERT INTO santri (nis, nik, nama, jenis_kelamin, kelas_diniyah_id, kelas_sekolah_id, kamar_id, tempat_lahir, tanggal_lahir, alamat, orangtua_id)
          VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
          RETURNING *`,
         [nis, nik || null, nama, jenis_kelamin || null, nullableInt(kelas_diniyah_id), nullableInt(kelas_sekolah_id), nullableInt(kamar_id), tempat_lahir || null, tanggal_lahir || null, alamat || null, orangtuaId]
       );
-      await syncSantriToActiveTahunAjaran(result.rows[0].id, { status_tahun_ajaran, catatan_tahun_ajaran });
+
+      const santriId = result.rows[0].id;
+      console.log('✅ Santri created with ID:', santriId);
+
+      // If tahun_ajaran_id is provided, sync to that year, otherwise sync to active year
+      if (tahun_ajaran_id) {
+        console.log(`🔄 Syncing to specific tahun_ajaran_id: ${tahun_ajaran_id}`);
+        await syncSantriToSpecificTahunAjaran(santriId, Number(tahun_ajaran_id), { status_tahun_ajaran, catatan_tahun_ajaran });
+        console.log(`✅ Synced to tahun_ajaran_id: ${tahun_ajaran_id}`);
+      } else {
+        console.log('🔄 Syncing to active tahun ajaran');
+        await syncSantriToActiveTahunAjaran(santriId, { status_tahun_ajaran, catatan_tahun_ajaran });
+        console.log('✅ Synced to active tahun ajaran');
+      }
+
       res.status(201).json(result.rows[0]);
     } catch (error) {
-      console.error(error);
+      console.error('❌ Error in POST /api/santri:', error);
       res.status(500).json({ error: 'Gagal menyimpan data santri.' });
     }
   });
-  
+
   app.put('/api/santri/:id', async (req, res) => {
     const { id } = req.params;
     const {
@@ -133,17 +160,17 @@ function registerSantriRoutes(app) {
       status_tahun_ajaran,
       catatan_tahun_ajaran,
     } = req.body;
-  
+
     if (!nis || !nama) {
       return res.status(400).json({ error: 'NIS dan nama santri wajib diisi.' });
     }
-  
+
     try {
       const existing = await db.query('SELECT orangtua_id FROM santri WHERE id = $1', [id]);
       if (!existing.rows.length) {
         return res.status(404).json({ error: 'Santri tidak ditemukan.' });
       }
-  
+
       let orangtuaId = existing.rows[0].orangtua_id;
       if (orangtuaId) {
         await db.query(
@@ -160,7 +187,7 @@ function registerSantriRoutes(app) {
         );
         orangtuaId = orangtuaResult.rows[0].id;
       }
-  
+
       const result = await db.query(
         `UPDATE santri SET nis = $1, nik = $2, nama = $3, jenis_kelamin = $4, kelas_diniyah_id = $5, kelas_sekolah_id = $6,
            kamar_id = $7, tempat_lahir = $8, tanggal_lahir = $9, alamat = $10, orangtua_id = $11
@@ -168,14 +195,14 @@ function registerSantriRoutes(app) {
         [nis, nik || null, nama, jenis_kelamin || null, nullableInt(kelas_diniyah_id), nullableInt(kelas_sekolah_id), nullableInt(kamar_id), tempat_lahir || null, tanggal_lahir || null, alamat || null, orangtuaId, id]
       );
       await syncSantriToActiveTahunAjaran(id, { status_tahun_ajaran, catatan_tahun_ajaran });
-  
+
       res.json(result.rows[0]);
     } catch (error) {
       console.error(error);
       res.status(500).json({ error: 'Gagal memperbarui data santri.' });
     }
   });
-  
+
   app.delete('/api/santri/:id', async (req, res) => {
     const { id } = req.params;
     try {
@@ -183,17 +210,36 @@ function registerSantriRoutes(app) {
       if (!existing.rows.length) {
         return res.status(404).json({ error: 'Santri tidak ditemukan.' });
       }
-  
+
       const orangtuaId = existing.rows[0].orangtua_id;
       await db.query('DELETE FROM santri WHERE id = $1', [id]);
       if (orangtuaId) {
         await db.query('DELETE FROM orangtua WHERE id = $1', [orangtuaId]);
       }
-  
+
       res.json({ message: 'Data santri berhasil dihapus.' });
     } catch (error) {
       console.error(error);
       res.status(500).json({ error: 'Gagal menghapus data santri.' });
+    }
+  });
+
+  // ===== IMPORT EXCEL =====
+  app.post('/api/santri/import', upload.single('file'), async (req, res) => {
+    try {
+      const { tahun_ajaran_id } = req.body;
+      if (!req.file) {
+        return res.status(400).json({ error: 'File tidak ditemukan.' });
+      }
+      if (!tahun_ajaran_id) {
+        return res.status(400).json({ error: 'Tahun ajaran wajib dipilih.' });
+      }
+
+      const stats = await santriExcelService.importFromExcel(req.file.buffer, Number(tahun_ajaran_id));
+      res.json(stats);
+    } catch (error) {
+      console.error('Import error:', error);
+      res.status(500).json({ error: 'Gagal mengimpor data santri: ' + error.message });
     }
   });
 }

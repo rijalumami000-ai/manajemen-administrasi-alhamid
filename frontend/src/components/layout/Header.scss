@@ -1,0 +1,142 @@
+@import '../../styles/variables.scss';
+@import '../../styles/mixins.scss';
+
+.app-header {
+  @include flex-between;
+  background: $bg-main;
+  padding: 0 $spacing-xl;
+  height: $header-height;
+  position: sticky;
+  top: 0;
+  z-index: $z-sticky;
+  border-bottom: 1px solid $border-light;
+
+  @include respond-to(md) {
+    padding: 0 $spacing-md;
+  }
+}
+
+.header-left {
+  @include flex-start;
+  gap: $spacing-lg;
+
+  .trigger-btn {
+    font-size: 20px;
+    width: 40px;
+    height: 40px;
+    @include flex-center;
+    border-radius: $radius-md;
+    background: transparent;
+    border: none;
+    color: $text-secondary;
+    cursor: pointer;
+    transition: all $transition-fast;
+
+    &:hover {
+      background: $bg-hover;
+      color: $text-primary;
+    }
+  }
+
+  .header-search {
+    .search-input {
+      background: $bg-card;
+      border: 1px solid $border-medium;
+      color: $text-primary;
+      padding: $spacing-sm $spacing-md;
+      border-radius: $radius-md;
+      width: 250px;
+      font-size: $font-size-sm;
+      transition: all $transition-fast;
+
+      &:focus {
+        outline: none;
+        border-color: $accent-blue;
+        box-shadow: 0 0 0 1px $accent-blue;
+      }
+      
+      &::placeholder {
+        color: $text-disabled;
+      }
+    }
+  }
+}
+
+.header-right {
+  @include flex-end;
+  gap: $spacing-lg;
+
+  .action-icons {
+    .icon-btn {
+      background: transparent;
+      border: 1px solid $border-medium;
+      color: $text-secondary;
+      width: 40px;
+      height: 40px;
+      border-radius: $radius-md;
+      cursor: pointer;
+      position: relative;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 18px;
+
+      &:hover {
+        background: $bg-hover;
+        color: $text-primary;
+        border-color: $text-primary;
+      }
+
+      .badge {
+        position: absolute;
+        top: -6px;
+        right: -6px;
+        background: $accent-red;
+        color: #fff;
+        font-size: 10px;
+        font-weight: bold;
+        padding: 2px 6px;
+        border-radius: 10px;
+      }
+    }
+  }
+
+  .user-dropdown {
+    @include flex-start;
+    gap: $spacing-md;
+    padding: $spacing-xs $spacing-sm;
+    border-radius: $radius-md;
+    cursor: pointer;
+    transition: all $transition-fast;
+
+    &:hover {
+      background: $bg-hover;
+    }
+
+    .avatar {
+      width: 36px;
+      height: 36px;
+      background: $bg-card;
+      border: 1px solid $border-medium;
+      color: $text-secondary;
+      border-radius: 50%;
+      @include flex-center;
+    }
+
+    .user-info {
+      @include flex-column;
+      gap: 2px;
+
+      .user-name {
+        font-size: $font-size-sm;
+        font-weight: $font-weight-semibold;
+        color: $text-primary;
+      }
+
+      .user-role {
+        font-size: $font-size-xs;
+        color: $text-tertiary;
+      }
+    }
+  }
+}

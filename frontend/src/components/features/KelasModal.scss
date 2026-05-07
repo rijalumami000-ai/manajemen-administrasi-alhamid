@@ -1,0 +1,35 @@
+@import '../../styles/variables.scss';
+@import '../../styles/mixins.scss';
+
+.kelas-modal {
+  .ant-modal-header {
+    background: linear-gradient(135deg, $primary-500 0%, $primary-600 100%);
+
+    .ant-modal-title {
+      color: $text-inverse;
+      font-weight: $font-weight-semibold;
+    }
+  }
+
+  .ant-alert {
+    border-radius: $radius-md;
+  }
+
+  .ant-form {
+    margin-top: $spacing-md;
+  }
+
+  .ant-form-item-label > label {
+    font-weight: $font-weight-medium;
+    color: $text-primary;
+  }
+
+  .ant-select,
+  .ant-input {
+    border-radius: $radius-md;
+  }
+
+  .ant-input-affix-wrapper {
+    border-radius: $radius-md;
+  }
+}

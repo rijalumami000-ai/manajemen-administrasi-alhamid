@@ -1,0 +1,54 @@
+@import '../../styles/variables.scss';
+@import '../../styles/mixins.scss';
+
+.app-layout {
+  display: flex;
+  min-height: 100vh;
+  background: $bg-main;
+  overflow: hidden;
+}
+
+.app-main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-width: 0; // Fixes flexbox overflow issues
+}
+
+.app-content {
+  flex: 1;
+  margin: 0;
+  padding: 0;
+  background: $bg-main;
+  overflow: auto;
+  @include custom-scrollbar;
+}
+
+.content-wrapper {
+  padding: $spacing-lg;
+  max-width: $content-max-width;
+  margin: 0 auto;
+  transition: padding $transition-base;
+
+  @include respond-to(md) {
+    padding: $spacing-md;
+    padding-bottom: 80px; // Extra space for BottomNav
+  }
+
+  @include respond-to(sm) {
+    padding: $spacing-sm;
+    padding-bottom: 80px;
+  }
+}
+
+// ============================================
+// LIGHT MODE OVERRIDES
+// ============================================
+[data-theme="light"] {
+  .app-layout {
+    background: #f0f2f5 !important;
+  }
+  .app-content {
+    background: #f0f2f5 !important;
+  }
+}

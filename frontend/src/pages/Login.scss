@@ -1,0 +1,147 @@
+@import '../styles/variables.scss';
+@import '../styles/mixins.scss';
+
+.login-container {
+  min-height: 100vh;
+  @include flex-center;
+  background: linear-gradient(135deg, $primary-600 0%, $primary-400 100%);
+  padding: $spacing-lg;
+
+  @include respond-to(md) {
+    padding: $spacing-md;
+  }
+}
+
+.login-content {
+  width: 100%;
+  max-width: 420px;
+  @include fade-in;
+}
+
+.login-card {
+  border-radius: $radius-xl;
+  box-shadow: $shadow-2xl;
+  backdrop-filter: blur(10px);
+
+  .ant-card-body {
+    padding: $spacing-2xl;
+
+    @include respond-to(md) {
+      padding: $spacing-xl;
+    }
+  }
+}
+
+.login-header {
+  text-align: center;
+  margin-bottom: $spacing-lg;
+
+  .brand-logo {
+    width: 80px;
+    height: 80px;
+    @include flex-center;
+    margin: 0 auto $spacing-lg;
+    background: linear-gradient(135deg, $primary-500, $primary-600);
+    color: $text-inverse;
+    font-size: $font-size-4xl;
+    font-weight: $font-weight-bold;
+    border-radius: $radius-xl;
+    box-shadow: $shadow-lg;
+
+    @include respond-to(md) {
+      width: 64px;
+      height: 64px;
+      font-size: $font-size-3xl;
+    }
+  }
+
+  h2 {
+    margin-bottom: $spacing-xs;
+    color: $text-primary;
+  }
+}
+
+.login-footer {
+  text-align: center;
+  padding-top: $spacing-md;
+  border-top: 1px solid $border-light;
+}
+
+// Form styling
+.ant-form {
+  .ant-form-item {
+    margin-bottom: $spacing-lg;
+
+    &:last-child {
+      margin-bottom: 0;
+    }
+  }
+
+  .ant-input-affix-wrapper,
+  .ant-input-password {
+    padding: $spacing-sm $spacing-md;
+    border-radius: $radius-md;
+
+    &:hover {
+      border-color: $primary-400;
+    }
+
+    &:focus,
+    &-focused {
+      border-color: $primary-500;
+      box-shadow: 0 0 0 3px rgba($primary-500, 0.1);
+    }
+  }
+
+  .ant-btn-primary {
+    height: 48px;
+    font-size: $font-size-base;
+    font-weight: $font-weight-medium;
+    border-radius: $radius-md;
+    box-shadow: $shadow-sm;
+
+    &:hover {
+      box-shadow: $shadow-md;
+      transform: translateY(-1px);
+    }
+
+    &:active {
+      transform: translateY(0);
+    }
+  }
+}
+
+// Alert styling
+.ant-alert {
+  border-radius: $radius-md;
+
+  &-error {
+    background: $error-50;
+    border: 1px solid $error-500;
+
+    .ant-alert-message {
+      color: $error-700;
+      font-weight: $font-weight-medium;
+    }
+
+    .ant-alert-description {
+      color: $error-600;
+    }
+  }
+}
+
+// Animations
+@keyframes slideInUp {
+  from {
+    opacity: 0;
+    transform: translateY(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.login-card {
+  animation: slideInUp 0.4s ease-out;
+}

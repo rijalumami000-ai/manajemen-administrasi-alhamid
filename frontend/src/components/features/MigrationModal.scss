@@ -1,0 +1,27 @@
+.migration-modal {
+  .migration-summary {
+    padding: 16px;
+    background: #f5f5f5;
+    border-radius: 8px;
+    text-align: center;
+  }
+
+  .migration-table {
+    .promoted-row {
+      background-color: #f6ffed;
+    }
+
+    .not-promoted-row {
+      background-color: #fff1f0;
+
+      td {
+        opacity: 0.7;
+      }
+    }
+  }
+
+  .ant-modal-body {
+    max-height: 70vh;
+    overflow-y: auto;
+  }
+}

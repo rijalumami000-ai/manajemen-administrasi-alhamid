@@ -1,0 +1,21 @@
+@import '../../styles/variables';
+@import '../../styles/mixins';
+
+.alumni-detail-modal {
+  .ant-tabs {
+    margin-top: $spacing-md;
+  }
+
+  .ant-timeline {
+    margin-top: $spacing-md;
+
+    h4 {
+      color: $text-primary;
+      font-weight: $font-weight-semibold;
+    }
+  }
+
+  .ant-descriptions {
+    margin-top: $spacing-md;
+  }
+}

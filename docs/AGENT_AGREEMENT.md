@@ -1,7 +1,7 @@
 # 🤝 Agent Agreement - Kesepakatan Multi-Agent
 
 **Tanggal:** 2026-05-01  
-**Agent:** Kiro, Codex, GitHub Copilot  
+**Agent:** Kiro, Codex, Cursor, Antigravity, Replit, GitHub Copilot  
 **Status:** ✅ DISEPAKATI  
 **Konsep:** 🔄 **Flexible Full-Stack Multi-Agent**
 
@@ -473,16 +473,55 @@ Kiro: *LOCK Alumni UI*
 
 ## ✍️ Tanda Tangan Digital
 
+ 
+### Codex — pengakuan agent
+
+**Agent:** codex
+**Tanggal:** 2026-05-01
+**Status:** ✅ **SETUJU** — Telah membaca `MULTI_AGENT_WORKFLOW.md`, ringkasan multi-agent, dan kesepakatan ini secara utuh; berkomitmen mengikuti **LOCK/UNLOCK** di `docs/AGENT_NOTES.md`, **no overlap**, prinsip full-stack sesuai dokumen, **pisahkan refactor dan fitur baru**, serta **checklist sebelum commit** (termasuk tes dan update catatan).  
+**Capability:** 🚀 Full-Stack (Backend, Frontend React/`frontend/`, UI, database, testing, dokumentasi) sesuai matrix dalam dokumen ini.
+
+### Kiro — pengakuan agent baru
+
 **Agent:** Kiro  
-**Tanggal:** 2026-05-01  
-**Status:** ✅ SETUJU DAN SIAP KERJA SAMA  
-**Capability:** 🚀 Full-Stack (Backend, Frontend, UI, Database, Testing, Docs)
+**Tanggal:** 2026-05-01
+**Status:** ✅ **SETUJU** — Telah membaca `MULTI_AGENT_WORKFLOW.md`, ringkasan multi-agent, dan kesepakatan ini secara utuh; berkomitmen mengikuti **LOCK/UNLOCK** di `docs/AGENT_NOTES.md`, **no overlap**, prinsip full-stack sesuai dokumen, **pisahkan refactor dan fitur baru**, serta **checklist sebelum commit** (termasuk tes dan update catatan).  
+**Capability:** 🚀 Full-Stack (Backend, Frontend React/`frontend/`, UI, database, testing, dokumentasi) sesuai matrix dalam dokumen ini.
+
+### Auto (Cursor Agent) — pengakuan agent baru
+
+**Agent:** Auto (asisten AI di Cursor; agent router)  
+**Tanggal:** 2026-05-02  
+**Status:** ✅ **SETUJU** — Telah membaca `MULTI_AGENT_WORKFLOW.md`, ringkasan multi-agent, dan kesepakatan ini secara utuh; berkomitmen mengikuti **LOCK/UNLOCK** di `docs/AGENT_NOTES.md`, **no overlap**, prinsip full-stack sesuai dokumen, **pisahkan refactor dan fitur baru**, serta **checklist sebelum commit** (termasuk tes dan update catatan).  
+**Capability:** 🚀 Full-Stack (Backend, Frontend React/`frontend/`, UI, database, testing, dokumentasi) sesuai matrix dalam dokumen ini.
+
+### Antigravity — pengakuan agent baru
+
+**Agent:** Antigravity (Advanced Agentic AI by Google Deepmind)  
+**Tanggal:** 2026-05-02  
+**Status:** ✅ **SETUJU DAN SIAP KERJA SAMA** — Memahami penuh konsep *Flexible Full-Stack Multi-Agent*, akan selalu patuh pada mekanisme **LOCK/UNLOCK** di `AGENT_NOTES.md`, menghindari konflik (*no overlap*), serta melakukan testing dan dokumentasi sebelum mengubah status.  
+**Capability:** 🚀 Full-Stack (Backend Node.js/Express, Frontend React/Vite, UI/UX, Database PostgreSQL, Testing, Documentation)
+
+### Replit Agent — pengakuan agent baru
+
+**Agent:** Replit 
+**Tanggal:** 2026-05-02
+**Status:** ✅ **SETUJU DAN SIAP KERJA SAMA** — Memahami penuh konsep *Flexible Full-Stack Multi-Agent*, akan selalu patuh pada mekanisme **LOCK/UNLOCK** di `AGENT_NOTES.md`, menghindari konflik (*no overlap*), serta melakukan testing dan dokumentasi sebelum mengubah status.  
+**Capability:** 🚀 Full-Stack (Backend Node.js/Express, Frontend React/Vite, UI/UX, Database PostgreSQL, Testing, Documentation)
+
+### Github Copilot — pengakuan agent baru
+
+**Agent:** Github Copilot
+**Tanggal:** 2026-05-02
+**Status:** ✅ **SETUJU DAN SIAP KERJA SAMA** — Memahami penuh konsep *Flexible Full-Stack Multi-Agent*, akan selalu patuh pada mekanisme **LOCK/UNLOCK** di `AGENT_NOTES.md`, menghindari konflik (*no overlap*), serta melakukan testing dan dokumentasi sebelum mengubah status.  
+**Capability:** 🚀 Full-Stack (Backend Node.js/Express, Frontend React/Vite, UI/UX, Database PostgreSQL, Testing, Documentation)
+
+---
 
 **Dokumentasi Referensi:**
 - Dibuat oleh: Codex
 - Direvisi oleh: Kiro (konsep flexible multi-agent)
-- Disetujui oleh: Kiro
-- Menunggu: Codex & GitHub Copilot acknowledgment
+- Disetujui oleh: Kiro, Codex, Antigravity, Replit Agent, dan Github Copilot
 
 ---
 
@@ -495,4 +534,4 @@ Dokumen ini akan di-review jika:
 - User meminta perubahan
 - Ada improvement dari agent lain
 
-**Last Updated:** 2026-05-01 by Kiro (Revisi: Flexible Multi-Agent)
+**Last Updated:** 2026-05-02 by Replit Agent (Tambah tanda tangan)

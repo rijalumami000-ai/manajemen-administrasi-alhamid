@@ -1,0 +1,65 @@
+@import '../../styles/variables';
+@import '../../styles/mixins';
+
+.alumni-card {
+  margin-bottom: $spacing-md;
+
+  .alumni-card-header {
+    @include flex-between;
+    margin-bottom: $spacing-md;
+
+    .alumni-info {
+      flex: 1;
+
+      .alumni-name {
+        @include heading-4;
+        margin: 0 0 $spacing-xs 0;
+        color: $primary-600;
+
+        .anticon {
+          margin-right: $spacing-xs;
+        }
+      }
+
+      .alumni-nis {
+        margin: 0;
+        font-size: $font-size-sm;
+        color: $text-secondary;
+      }
+    }
+
+    .alumni-year-tag {
+      font-size: $font-size-sm;
+      font-weight: $font-weight-medium;
+    }
+  }
+
+  .alumni-details {
+    .ant-descriptions-item-label {
+      font-weight: $font-weight-medium;
+      color: $text-secondary;
+    }
+
+    .ant-descriptions-item-content {
+      color: $text-primary;
+    }
+  }
+
+  &:hover {
+    box-shadow: $shadow-lg;
+  }
+
+  // ============================================
+  // LIGHT MODE OVERRIDES
+  // ============================================
+  [data-theme="light"] & {
+    .alumni-card-header .alumni-info {
+      .alumni-name { color: #0284c7 !important; }
+      .alumni-nis { color: #475569 !important; }
+    }
+    .alumni-details {
+      .ant-descriptions-item-label { color: #475569 !important; }
+      .ant-descriptions-item-content { color: #1e293b !important; }
+    }
+  }
+}

@@ -1,0 +1,47 @@
+@import '../styles/variables.scss';
+@import '../styles/mixins.scss';
+
+.pelanggaran-prestasi-page {
+  @include fade-in;
+
+  .pelanggaran-prestasi-content {
+    padding: $spacing-lg;
+
+    @include respond-to(md) {
+      padding: $spacing-md;
+    }
+  }
+
+  .pelanggaran-prestasi-tabs {
+    .ant-tabs-nav {
+      margin-bottom: $spacing-lg;
+    }
+
+    .ant-tabs-tab {
+      font-weight: $font-weight-medium;
+      font-size: $font-size-base;
+
+      .anticon {
+        margin-right: $spacing-xs;
+      }
+    }
+
+    .ant-tabs-tab-active {
+      .ant-tabs-tab-btn {
+        color: $primary-600;
+        font-weight: $font-weight-semibold;
+      }
+    }
+
+    .ant-tabs-extra-content {
+      @include respond-to(sm) {
+        width: 100%;
+        margin-top: $spacing-md;
+
+        .ant-btn {
+          width: 100%;
+        }
+      }
+    }
+  }
+}

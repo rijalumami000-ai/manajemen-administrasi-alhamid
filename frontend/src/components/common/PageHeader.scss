@@ -1,0 +1,87 @@
+@import '../../styles/variables.scss';
+@import '../../styles/mixins.scss';
+
+.page-header {
+  margin-bottom: $spacing-xl;
+  padding: $spacing-lg 0;
+  
+  .page-breadcrumb {
+    margin-bottom: $spacing-md;
+    font-size: $font-size-sm;
+    color: $text-tertiary;
+
+    .breadcrumb-item {
+      a {
+        color: $text-secondary;
+        text-decoration: none;
+        transition: color $transition-fast;
+
+        &:hover {
+          color: $text-primary;
+        }
+      }
+
+      .separator {
+        margin: 0 $spacing-sm;
+        color: $border-medium;
+      }
+
+      &:last-child {
+        color: $text-primary;
+      }
+    }
+  }
+
+  .page-header-content {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: $spacing-xl;
+
+    @include respond-to(md) {
+      flex-direction: column;
+      align-items: flex-start;
+      gap: $spacing-lg;
+    }
+  }
+
+  .page-header-main {
+    flex: 1;
+
+    .page-title {
+      margin: 0 0 4px 0;
+      font-size: $font-size-3xl;
+      font-weight: $font-weight-bold;
+      color: $text-primary;
+      line-height: 1.2;
+
+      @include respond-to(sm) {
+        font-size: $font-size-2xl;
+      }
+    }
+
+    .page-subtitle {
+      margin: 0;
+      font-size: $font-size-sm;
+      color: $text-secondary;
+      line-height: 1.5;
+    }
+  }
+
+  .page-header-extra {
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+    gap: $spacing-md;
+
+    @include respond-to(md) {
+      width: 100%;
+      justify-content: flex-start;
+      flex-wrap: wrap;
+    }
+  }
+
+  .page-header-footer {
+    margin-top: $spacing-lg;
+  }
+}

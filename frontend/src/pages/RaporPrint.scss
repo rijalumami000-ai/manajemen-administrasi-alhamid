@@ -1,0 +1,175 @@
+.rapor-print-container {
+  background: #f0f2f5;
+  min-height: 100vh;
+  padding: 20px;
+  font-family: "Times New Roman", Times, serif;
+
+  .print-controls {
+    text-align: center;
+    margin-bottom: 20px;
+  }
+
+  .rapor-page {
+    background: white;
+    width: 210mm;
+    min-height: 297mm;
+    margin: 0 auto;
+    padding: 15mm 20mm;
+    box-shadow: 0 0 10px rgba(0,0,0,0.1);
+  }
+
+  .rapor-header {
+    text-align: center;
+    margin-bottom: 15px;
+
+    .kop-surat {
+      h2 {
+        font-size: 16px;
+        font-weight: bold;
+        margin: 0;
+      }
+      h3 {
+        font-size: 18px;
+        font-weight: bold;
+        margin: 5px 0;
+      }
+      p {
+        font-size: 12px;
+        margin: 0;
+      }
+    }
+
+    hr {
+      border: 0;
+      border-top: 2px solid #000;
+      border-bottom: 1px solid #000;
+      height: 3px;
+      margin: 10px 0;
+    }
+
+    .title-rapor {
+      font-size: 14px;
+      font-weight: bold;
+      text-decoration: underline;
+      margin: 15px 0;
+    }
+
+    .info-table {
+      width: 100%;
+      text-align: left;
+      font-size: 12px;
+      margin-bottom: 10px;
+
+      td {
+        padding: 2px 0;
+      }
+    }
+  }
+
+  .nilai-table, .info-table-bordered {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 12px;
+    margin-bottom: 15px;
+
+    th, td {
+      border: 1px solid #000;
+      padding: 5px;
+    }
+
+    th {
+      text-align: center;
+      font-weight: bold;
+      background-color: #f9f9f9;
+    }
+
+    .header-subheader th {
+      background-color: #eaeaea;
+    }
+
+    .text-center { text-align: center; }
+    .text-right { text-align: right; }
+    .text-left { text-align: left; }
+    .pr-2 { padding-right: 10px; }
+
+    .arabic {
+      font-family: 'Amiri', 'Traditional Arabic', serif;
+      font-size: 14px;
+    }
+
+    .kitab-name {
+      font-style: italic;
+    }
+
+    .nilai-merah {
+      color: red;
+      font-weight: bold;
+    }
+  }
+
+  .bottom-section {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 15px;
+
+    .col-half {
+      width: 48%;
+    }
+  }
+
+  .catatan-section {
+    font-size: 12px;
+    margin-bottom: 20px;
+
+    .catatan-box {
+      border: 1px solid #000;
+      min-height: 50px;
+      padding: 5px;
+      margin-top: 5px;
+    }
+  }
+
+  .signature-section {
+    display: flex;
+    justify-content: space-between;
+    text-align: center;
+    font-size: 12px;
+    margin-top: 30px;
+
+    .sig-box {
+      width: 30%;
+    }
+  }
+
+  @media print {
+    body * {
+      visibility: hidden;
+    }
+    .rapor-page, .rapor-page * {
+      visibility: visible;
+    }
+    .rapor-page {
+      position: absolute;
+      left: 0;
+      top: 0;
+      width: 210mm;
+      min-height: 297mm;
+      padding: 10mm;
+      box-shadow: none;
+      margin: 0;
+    }
+    .print-controls {
+      display: none;
+    }
+    .nilai-merah {
+      color: red !important;
+      -webkit-print-color-adjust: exact;
+      print-color-adjust: exact;
+    }
+    th {
+      background-color: #eaeaea !important;
+      -webkit-print-color-adjust: exact;
+      print-color-adjust: exact;
+    }
+  }
+}

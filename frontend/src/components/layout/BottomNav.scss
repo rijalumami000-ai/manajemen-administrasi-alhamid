@@ -1,0 +1,78 @@
+@import '../../styles/variables.scss';
+@import '../../styles/mixins.scss';
+
+.bottom-nav {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 65px;
+  background: $bg-card;
+  display: none; // Hidden by default
+  justify-content: space-around;
+  align-items: center;
+  border-top: 1px solid $border-light;
+  z-index: $z-fixed;
+  padding-bottom: env(safe-area-inset-bottom); // Support for notched phones
+
+  @include respond-to(md) {
+    display: flex;
+  }
+
+  [data-theme="light"] & {
+    background: #ffffff;
+    border-top-color: #e2e8f0;
+    box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.05);
+  }
+}
+
+.bottom-nav-item {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  color: $text-secondary;
+  transition: all $transition-fast;
+  gap: 4px;
+  cursor: pointer;
+
+  .nav-icon {
+    font-size: 20px;
+  }
+
+  .nav-label {
+    font-size: 11px;
+    font-weight: $font-weight-medium;
+  }
+
+  &:active {
+    transform: scale(0.95);
+  }
+
+  &.active {
+    color: $accent-blue;
+    
+    .nav-icon {
+      color: $accent-blue;
+      text-shadow: 0 0 10px rgba($accent-blue, 0.5);
+    }
+
+    .nav-label {
+      font-weight: $font-weight-bold;
+    }
+  }
+
+  [data-theme="light"] & {
+    color: #64748b;
+
+    &.active {
+      color: $primary-500;
+      
+      .nav-icon {
+        color: $primary-500;
+        text-shadow: none;
+      }
+    }
+  }
+}

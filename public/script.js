@@ -3,6 +3,8 @@ import { createKamarFeature } from './js/features/kamarFeature.js';
 import { createKelasFeature } from './js/features/kelasFeature.js';
 import { createPelanggaranPrestasiFeature } from './js/features/pelanggaranPrestasiFeature.js';
 import { createSantriFeature } from './js/features/santriFeature.js';
+import { loadUsers } from './js/features/userFeature.js';
+import { loadProfile } from './js/features/profileFeature.js';
 
 document.addEventListener('DOMContentLoaded', function () {
   const hamburgerMenu = document.getElementById('hamburger-menu');
@@ -260,6 +262,36 @@ document.addEventListener('DOMContentLoaded', function () {
       submitPrestasiButton,
     },
   });
+
+  // Initialize User Management (Admin only)
+  if (window.authState && window.authState.isAdmin()) {
+    const usersPanel = document.getElementById('users-panel');
+    if (usersPanel) {
+      // Load users when panel becomes active
+      const observer = new MutationObserver((mutations) => {
+        mutations.forEach((mutation) => {
+          if (mutation.attributeName === 'class' && usersPanel.classList.contains('active')) {
+            loadUsers();
+          }
+        });
+      });
+      observer.observe(usersPanel, { attributes: true });
+    }
+  }
+
+  // Initialize Profile
+  const profilePanel = document.getElementById('profile-panel');
+  if (profilePanel) {
+    // Load profile when panel becomes active
+    const observer = new MutationObserver((mutations) => {
+      mutations.forEach((mutation) => {
+        if (mutation.attributeName === 'class' && profilePanel.classList.contains('active')) {
+          loadProfile();
+        }
+      });
+    });
+    observer.observe(profilePanel, { attributes: true });
+  }
 
   yearEl.textContent = new Date().getFullYear();
 

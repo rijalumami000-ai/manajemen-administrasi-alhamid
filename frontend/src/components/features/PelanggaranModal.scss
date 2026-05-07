@@ -1,0 +1,39 @@
+@import '../../styles/variables.scss';
+@import '../../styles/mixins.scss';
+
+.pelanggaran-modal {
+  .ant-modal-header {
+    background: linear-gradient(135deg, #f44336 0%, #d32f2f 100%);
+
+    .ant-modal-title {
+      color: $text-inverse;
+      font-weight: $font-weight-semibold;
+
+      .anticon {
+        margin-right: $spacing-xs;
+      }
+    }
+  }
+
+  .ant-alert {
+    border-radius: $radius-md;
+  }
+
+  .ant-form {
+    margin-top: $spacing-md;
+  }
+
+  .ant-form-item-label > label {
+    font-weight: $font-weight-medium;
+    color: $text-primary;
+  }
+
+  .ant-input,
+  .ant-picker {
+    border-radius: $radius-md;
+  }
+
+  .ant-input-affix-wrapper {
+    border-radius: $radius-md;
+  }
+}

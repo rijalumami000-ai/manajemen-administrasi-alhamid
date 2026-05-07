@@ -1,0 +1,166 @@
+@import '../../styles/variables.scss';
+@import '../../styles/mixins.scss';
+
+.kelas-card {
+  height: 100%;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+  background: $bg-card !important;
+  border: 1px solid $border-light !important;
+  border-radius: $radius-xl !important;
+  overflow: hidden;
+  position: relative;
+  
+  // Neon Top Border Override
+  &::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 3px;
+    background: $gradient-primary !important;
+    opacity: 0.8;
+    transition: all $transition-base;
+    z-index: 1;
+  }
+
+  &:hover {
+    transform: translateY(-5px) !important;
+    border-color: rgba($primary-500, 0.4) !important;
+    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.5), 0 0 20px rgba($primary-500, 0.15) !important;
+
+    &::before {
+      height: 4px;
+      opacity: 1;
+      box-shadow: 0 0 15px rgba($primary-500, 0.6);
+    }
+
+    .kelas-icon {
+      transform: scale(1.1);
+      text-shadow: 0 0 15px rgba($primary-500, 0.5);
+    }
+  }
+
+  .ant-card-body {
+    padding: $spacing-lg !important;
+    position: relative;
+    z-index: 2;
+    background: transparent !important;
+  }
+
+  .kelas-card-content {
+    @include flex-column;
+    gap: $spacing-lg;
+    min-height: 90px;
+
+    .kelas-jenis-tag {
+      align-self: flex-start;
+      font-weight: 700;
+      font-size: $font-size-xs;
+      padding: 4px 14px;
+      border-radius: $radius-full;
+      border: none;
+      background: rgba($primary-500, 0.1);
+      color: $primary-400;
+      letter-spacing: 0.5px;
+      text-transform: uppercase;
+      box-shadow: inset 0 0 0 1px rgba($primary-500, 0.2);
+    }
+
+    .kelas-nama {
+      @include flex-start;
+      gap: $spacing-md;
+      flex: 1;
+      align-items: center;
+
+      .kelas-icon {
+        font-size: 24px;
+        color: $primary-500;
+        transition: all $transition-base;
+        background: rgba($primary-500, 0.1);
+        padding: 10px;
+        border-radius: $radius-md;
+      }
+
+      h4 {
+        margin: 0;
+        color: $text-primary;
+        font-size: $font-size-xl;
+        font-weight: 700;
+        letter-spacing: -0.5px;
+      }
+    }
+  }
+
+  .ant-card-actions {
+    background: rgba($bg-main, 0.6) !important;
+    border-top: 1px solid rgba(255, 255, 255, 0.05) !important;
+    position: relative;
+    z-index: 2;
+
+    > li {
+      margin: 12px 0 !important;
+      
+      &:not(:last-child) {
+        border-right: 1px solid rgba(255, 255, 255, 0.05) !important;
+      }
+    }
+
+    .ant-btn-link {
+      font-size: $font-size-sm;
+      font-weight: 600;
+      color: $text-secondary;
+      transition: all $transition-fast;
+
+      &:hover {
+        transform: scale(1.05);
+        color: $primary-400;
+      }
+      
+      &.ant-btn-dangerous {
+        &:hover {
+          color: $error-400;
+          text-shadow: 0 0 10px rgba($error-500, 0.3);
+        }
+      }
+    }
+  }
+
+  // ============================================
+  // LIGHT MODE OVERRIDES
+  // ============================================
+  [data-theme="light"] & {
+    background: #ffffff !important;
+    border-color: #e2e8f0 !important;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06) !important;
+
+    &:hover {
+      box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05) !important;
+      border-color: #cbd5e1 !important;
+    }
+
+    .kelas-card-content {
+      .kelas-nama h4 {
+        color: #0f172a !important;
+      }
+    }
+
+    .ant-card-actions {
+      background: #f8fafc !important;
+      border-top: 1px solid #e2e8f0 !important;
+
+      > li {
+        border-right: 1px solid #e2e8f0 !important;
+      }
+
+      .ant-btn-link {
+        color: #475569 !important;
+        &:hover { color: #0284c7 !important; }
+        &.ant-btn-dangerous:hover {
+          color: #dc2626 !important;
+          text-shadow: none !important;
+        }
+      }
+    }
+  }
+}

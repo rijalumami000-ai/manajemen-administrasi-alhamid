@@ -1,0 +1,416 @@
+// ============================================
+// GLOBAL STYLES - SEKOLAH INFO SYSTEM
+// ============================================
+
+@import './variables.scss';
+@import './mixins.scss';
+@import './animations.scss';
+@import './responsive.scss';
+
+// ============================================
+// RESET & BASE STYLES
+// ============================================
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html {
+  font-size: 16px;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+}
+
+body {
+  font-family: $font-family-base;
+  font-size: $font-size-base;
+  line-height: $line-height-normal;
+  color: $text-primary;
+  background: $bg-main;
+  min-height: 100vh;
+  @include custom-scrollbar;
+}
+
+// ============================================
+// TYPOGRAPHY
+// ============================================
+
+h1, h2, h3, h4, h5, h6 {
+  font-family: $font-family-heading;
+  font-weight: $font-weight-semibold;
+  line-height: $line-height-tight;
+  color: $text-primary;
+  margin-bottom: $spacing-md;
+}
+
+h1 { font-size: $font-size-4xl; }
+h2 { font-size: $font-size-3xl; }
+h3 { font-size: $font-size-2xl; }
+h4 { font-size: $font-size-xl; }
+h5 { font-size: $font-size-lg; }
+h6 { font-size: $font-size-base; }
+
+p {
+  margin-bottom: $spacing-md;
+  color: $text-secondary;
+}
+
+a {
+  color: $primary-500;
+  text-decoration: none;
+  transition: color $transition-fast;
+
+  &:hover {
+    color: $primary-600;
+  }
+
+  &:active {
+    color: $primary-700;
+  }
+}
+
+strong, b {
+  font-weight: $font-weight-semibold;
+}
+
+code {
+  font-family: $font-family-mono;
+  font-size: 0.875em;
+  padding: 2px 6px;
+  background: $neutral-100;
+  border-radius: $radius-sm;
+  color: $error-600;
+}
+
+pre {
+  font-family: $font-family-mono;
+  font-size: $font-size-sm;
+  padding: $spacing-md;
+  background: $neutral-900;
+  color: $neutral-100;
+  border-radius: $radius-md;
+  overflow-x: auto;
+  margin-bottom: $spacing-md;
+
+  code {
+    background: transparent;
+    color: inherit;
+    padding: 0;
+  }
+}
+
+// ============================================
+// SCROLLBAR
+// ============================================
+
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+::-webkit-scrollbar-track {
+  background: $neutral-100;
+}
+
+::-webkit-scrollbar-thumb {
+  background: $neutral-400;
+  border-radius: $radius-full;
+
+  &:hover {
+    background: $neutral-500;
+  }
+}
+
+// ============================================
+// UTILITY CLASSES
+// ============================================
+
+// Display
+.d-none { display: none !important; }
+.d-block { display: block !important; }
+.d-flex { display: flex !important; }
+.d-inline-flex { display: inline-flex !important; }
+.d-grid { display: grid !important; }
+
+// Flex utilities
+.flex-center { @include flex-center; }
+.flex-between { @include flex-between; }
+.flex-start { @include flex-start; }
+.flex-end { @include flex-end; }
+.flex-column { @include flex-column; }
+.flex-wrap { flex-wrap: wrap; }
+.flex-1 { flex: 1; }
+
+// Spacing utilities
+.m-0 { margin: 0 !important; }
+.mt-1 { margin-top: $spacing-sm !important; }
+.mt-2 { margin-top: $spacing-md !important; }
+.mt-3 { margin-top: $spacing-lg !important; }
+.mb-1 { margin-bottom: $spacing-sm !important; }
+.mb-2 { margin-bottom: $spacing-md !important; }
+.mb-3 { margin-bottom: $spacing-lg !important; }
+.ml-1 { margin-left: $spacing-sm !important; }
+.ml-2 { margin-left: $spacing-md !important; }
+.mr-1 { margin-right: $spacing-sm !important; }
+.mr-2 { margin-right: $spacing-md !important; }
+
+.p-0 { padding: 0 !important; }
+.p-1 { padding: $spacing-sm !important; }
+.p-2 { padding: $spacing-md !important; }
+.p-3 { padding: $spacing-lg !important; }
+
+// Text utilities
+.text-left { text-align: left !important; }
+.text-center { text-align: center !important; }
+.text-right { text-align: right !important; }
+.text-truncate { @include text-truncate; }
+
+.text-primary { color: $text-primary !important; }
+.text-secondary { color: $text-secondary !important; }
+.text-success { color: $success-500 !important; }
+.text-warning { color: $warning-500 !important; }
+.text-error { color: $error-500 !important; }
+.text-info { color: $info-500 !important; }
+
+.font-bold { font-weight: $font-weight-bold !important; }
+.font-semibold { font-weight: $font-weight-semibold !important; }
+.font-medium { font-weight: $font-weight-medium !important; }
+.font-normal { font-weight: $font-weight-normal !important; }
+
+// Background utilities
+.bg-primary { background: $bg-primary !important; }
+.bg-secondary { background: $bg-secondary !important; }
+.bg-success { background: $success-50 !important; }
+.bg-warning { background: $warning-50 !important; }
+.bg-error { background: $error-50 !important; }
+
+// Border utilities
+.border { border: 1px solid $border-light !important; }
+.border-top { border-top: 1px solid $border-light !important; }
+.border-bottom { border-bottom: 1px solid $border-light !important; }
+.border-left { border-left: 1px solid $border-light !important; }
+.border-right { border-right: 1px solid $border-light !important; }
+.border-none { border: none !important; }
+
+.rounded { border-radius: $radius-md !important; }
+.rounded-sm { border-radius: $radius-sm !important; }
+.rounded-lg { border-radius: $radius-lg !important; }
+.rounded-full { border-radius: $radius-full !important; }
+
+// Shadow utilities
+.shadow-sm { box-shadow: $shadow-sm !important; }
+.shadow-md { box-shadow: $shadow-md !important; }
+.shadow-lg { box-shadow: $shadow-lg !important; }
+.shadow-none { box-shadow: none !important; }
+
+// Width utilities
+.w-full { width: 100% !important; }
+.w-auto { width: auto !important; }
+
+// Height utilities
+.h-full { height: 100% !important; }
+.h-auto { height: auto !important; }
+
+// Overflow utilities
+.overflow-hidden { overflow: hidden !important; }
+.overflow-auto { overflow: auto !important; }
+.overflow-scroll { overflow: scroll !important; }
+
+// Position utilities
+.relative { position: relative !important; }
+.absolute { position: absolute !important; }
+.fixed { position: fixed !important; }
+.sticky { position: sticky !important; }
+
+// Cursor utilities
+.cursor-pointer { cursor: pointer !important; }
+.cursor-not-allowed { cursor: not-allowed !important; }
+
+// ============================================
+// ANIMATIONS
+// ============================================
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes slideInUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes slideInDown {
+  from {
+    opacity: 0;
+    transform: translateY(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes slideInLeft {
+  from {
+    opacity: 0;
+    transform: translateX(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes slideInRight {
+  from {
+    opacity: 0;
+    transform: translateX(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+
+.animate-fade-in {
+  animation: fadeIn $transition-base ease-in-out;
+}
+
+.animate-slide-in-up {
+  animation: slideInUp $transition-base ease-out;
+}
+
+.animate-slide-in-down {
+  animation: slideInDown $transition-base ease-out;
+}
+
+.animate-spin {
+  animation: spin 1s linear infinite;
+}
+
+.animate-pulse {
+  animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+// ============================================
+// RESPONSIVE UTILITIES
+// ============================================
+
+@include respond-to(md) {
+  .hide-mobile { display: none !important; }
+}
+
+@include respond-above(md) {
+  .hide-desktop { display: none !important; }
+}
+
+// ============================================
+// ACCESSIBILITY
+// ============================================
+
+.sr-only {
+  @include visually-hidden;
+}
+
+// Focus visible for keyboard navigation
+*:focus-visible {
+  outline: 2px solid $primary-500;
+  outline-offset: 2px;
+}
+
+// Reduce motion for users who prefer it
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+// ============================================
+// LIGHT MODE OVERRIDES
+// ============================================
+
+[data-theme="light"] {
+  // Base overrides
+  body {
+    background: #f0f2f5 !important;
+    color: #1e293b !important;
+  }
+
+  // Typography
+  h1, h2, h3, h4, h5, h6 {
+    color: #0f172a !important;
+  }
+
+  p {
+    color: #475569 !important;
+  }
+
+  // Utilities
+  .text-primary { color: #0f172a !important; }
+  .text-secondary { color: #475569 !important; }
+  
+  .bg-primary { background: #f8fafc !important; }
+  .bg-secondary { background: #ffffff !important; }
+  
+  .border { border-color: #e2e8f0 !important; }
+  .border-top { border-color: #e2e8f0 !important; }
+  .border-bottom { border-color: #e2e8f0 !important; }
+  .border-left { border-color: #e2e8f0 !important; }
+  .border-right { border-color: #e2e8f0 !important; }
+
+  // App Layout components
+  .app-header {
+    background: rgba(255, 255, 255, 0.9) !important;
+    border-bottom: 1px solid #e2e8f0 !important;
+    .icon-btn { color: #475569 !important; }
+    .user-name { color: #0f172a !important; }
+    .user-role { color: #64748b !important; }
+    .search-input { 
+      background: #f1f5f9 !important;
+      color: #1e293b !important;
+      border-color: #e2e8f0 !important;
+      &::placeholder { color: #94a3b8 !important; }
+    }
+  }
+
+  .sidebar {
+    background: #ffffff !important;
+    border-right: 1px solid #e2e8f0 !important;
+    .brand-title { color: #0f172a !important; }
+    .nav-item {
+      color: #475569 !important;
+      &:hover {
+        background: #f1f5f9 !important;
+        color: #0f172a !important;
+      }
+      &.active {
+        background: #e0f2fe !important;
+        color: #0284c7 !important;
+      }
+    }
+  }
+}

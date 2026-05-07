@@ -4,6 +4,8 @@ Dokumen ini adalah aturan kerja bersama saat proyek dikerjakan bergantian oleh b
 
 Tujuannya sederhana: setiap Agent boleh membantu, tetapi arah perubahan tetap satu, tidak saling menimpa, dan tidak membuat struktur proyek bercabang tanpa sadar.
 
+**Last Updated:** 2026-05-03 | **Version:** 3.0.0 (React + Premium UI)
+
 ## Prinsip Utama
 
 1. Satu Agent mengerjakan satu tugas yang jelas.
@@ -11,15 +13,24 @@ Tujuannya sederhana: setiap Agent boleh membantu, tetapi arah perubahan tetap sa
 3. Setiap Agent wajib membaca dokumentasi utama sebelum mengubah kode.
 4. Setelah satu tahap stabil, buat commit sebelum pindah ke Agent lain.
 5. Jika ada perubahan besar pada struktur, update dokumentasi.
+6. **NEW:** Untuk perubahan UI/styling, koordinasi dengan design system yang ada.
 
 ## Dokumen Yang Wajib Dibaca
 
 Sebelum Agent mulai bekerja, baca dokumen berikut:
 
-- `docs/DEVELOPMENT_GUIDE.md`
-- `docs/PROJECT_STRUCTURE.md`
-- `docs/ROADMAP.md`
-- `docs/AGENT_NOTES.md`
+### Core Documentation
+- `docs/DEVELOPMENT_GUIDE.md` - Development guidelines
+- `docs/PROJECT_STRUCTURE.md` - Project structure
+- `docs/ROADMAP.md` - Roadmap & priorities
+- `docs/AGENT_NOTES.md` - Activity log
+- `docs/PROJECT_STATUS.md` - Current status
+
+### UI/UX Documentation (NEW!)
+- `CARA_TESTING_UI_BARU.md` - UI testing guide
+- `UI_UPGRADE_MODERN_SUMMARY.md` - UI upgrade details
+- `docs/frontend/DESIGN_SYSTEM.md` - Design tokens
+- `docs/frontend/STYLING_GUIDE.md` - SCSS best practices
 
 ## Pembagian Area Aman
 
@@ -35,57 +46,94 @@ db.js
 src/database/
 src/routes/
 src/services/
+src/middleware/
 src/utils/
-sql/
+database/
 tests/api/
 ```
 
 Cocok untuk:
 
 - API endpoint
-- query database
-- validasi data backend
-- migrasi database
-- test API
+- Query database
+- Validasi data backend
+- Migrasi database
+- Test API
+- Business logic
 
-### Frontend Feature Logic
-
-Area:
-
-```text
-public/script.js
-public/js/features/
-public/js/utils/
-public/js/config/
-tests/frontend/
-```
-
-Cocok untuk:
-
-- event handler
-- fetch API
-- render tabel/kartu
-- form submit
-- filter, search, pagination
-
-### UI, HTML, dan Styling
+### Frontend Components (React)
 
 Area:
 
 ```text
-public/index.html
-public/alumni.html
-public/styles.css
-public/css/
+frontend/src/components/
+  ├── common/      # Reusable components
+  ├── features/    # Feature-specific components
+  └── layout/      # Layout components
+frontend/src/pages/
+frontend/src/hooks/
+frontend/src/context/
+frontend/src/services/
+frontend/src/utils/
 ```
 
 Cocok untuk:
 
-- layout
-- modal
-- responsive design
-- visual polish
-- perbaikan CSS
+- React components
+- Custom hooks
+- Context providers
+- API services
+- Utility functions
+- Component logic
+
+### UI Styling & Design (NEW!)
+
+Area:
+
+```text
+frontend/src/styles/
+  ├── variables.scss          # Design tokens
+  ├── mixins.scss             # Reusable patterns
+  ├── global.scss             # Global styles
+  ├── animations.scss         # Animation library
+  ├── responsive.scss         # Responsive utilities
+  ├── antd-theme.scss         # Ant Design customization
+  └── premium-components.scss # Premium components
+frontend/src/components/**/*.scss  # Component styles
+frontend/src/pages/**/*.scss       # Page styles
+```
+
+Cocok untuk:
+
+- SCSS styling
+- Design system updates
+- Component styling
+- Responsive design
+- Animations & transitions
+- Theme customization
+
+**⚠️ IMPORTANT:** 
+- Always use existing design tokens from `variables.scss`
+- Follow mixins from `mixins.scss`
+- Don't create inline styles
+- Maintain consistency with design system
+
+### HTML & Static Assets
+
+Area:
+
+```text
+frontend/index.html
+frontend/public/
+public/ (legacy - archived)
+```
+
+Cocok untuk:
+
+- HTML templates
+- Static assets (images, icons)
+- Favicon
+- Meta tags
 
 ### Dokumentasi
 
@@ -93,7 +141,12 @@ Area:
 
 ```text
 README.md
+CHANGELOG.md
 docs/
+  ├── guides/
+  ├── reports/
+  ├── frontend/
+  └── alumni/
 ```
 
 Cocok untuk:

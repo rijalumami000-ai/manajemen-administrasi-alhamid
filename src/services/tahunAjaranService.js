@@ -12,8 +12,20 @@ async function syncSantriToActiveTahunAjaran(santriId, options = {}, client = db
     return null;
   }
 
+  return await syncSantriToSpecificTahunAjaran(santriId, activeYear.id, options, client);
+}
+
+async function syncSantriToSpecificTahunAjaran(santriId, tahunAjaranId, options = {}, client = db) {
   const status = normalizeSantriStatus(options.status_tahun_ajaran);
   const catatan = normalizeText(options.catatan_tahun_ajaran);
+
+  console.log(`📌 syncSantriToSpecificTahunAjaran called:`, {
+    santriId,
+    tahunAjaranId,
+    tahunAjaranId_type: typeof tahunAjaranId,
+    status,
+    catatan
+  });
 
   const result = await client.query(`
     INSERT INTO santri_tahun_ajaran (
@@ -49,7 +61,9 @@ async function syncSantriToActiveTahunAjaran(santriId, options = {}, client = db
       no_hp_ibu = EXCLUDED.no_hp_ibu,
       updated_at = NOW()
     RETURNING *
-  `, [activeYear.id, santriId, status, catatan]);
+  `, [tahunAjaranId, santriId, status, catatan]);
+
+  console.log(`✅ Inserted/Updated santri_tahun_ajaran:`, result.rows[0]);
 
   return result.rows[0] || null;
 }
@@ -57,4 +71,5 @@ async function syncSantriToActiveTahunAjaran(santriId, options = {}, client = db
 module.exports = {
   getActiveTahunAjaran,
   syncSantriToActiveTahunAjaran,
+  syncSantriToSpecificTahunAjaran,
 };
