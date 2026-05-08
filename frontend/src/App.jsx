@@ -24,6 +24,7 @@ const Profile = lazy(() => import('./pages/Profile').then(m => ({ default: m.Pro
 const ManajemenNilai = lazy(() => import('./pages/ManajemenNilai').then(m => ({ default: m.ManajemenNilai })));
 
 const RaporPrint = lazy(() => import('./pages/RaporPrint').then(m => ({ default: m.RaporPrint })));
+const LaporanMuhafadzoh = lazy(() => import('./pages/LaporanMuhafadzoh').then(m => ({ default: m.LaporanMuhafadzoh })));
 
 function App() {
   const { isDarkMode } = useTheme();
@@ -50,6 +51,14 @@ function App() {
                       </ProtectedRoute>
                     } 
                   />
+                  <Route 
+                    path="/pub/laporan-muhafadzoh" 
+                    element={
+                      <ProtectedRoute>
+                        <LaporanMuhafadzoh />
+                      </ProtectedRoute>
+                    } 
+                  />
 
                   <Route path="/" element={
                     <ProtectedRoute>
@@ -64,10 +73,11 @@ function App() {
                     <Route path="kamar" element={<Kamar />} />
                     <Route path="pelanggaran-prestasi" element={<PelanggaranPrestasi />} />
                     <Route path="users" element={<Users />} />
-                    <Route path="profile" element={<Profile />} />
+                     <Route path="profile" element={<Profile />} />
                     <Route path="nilai" element={<ManajemenNilai mode="input" key="input" />} />
                     <Route path="nilai-pengaturan" element={<ManajemenNilai mode="config" key="config" />} />
                     <Route path="nilai-rekap" element={<ManajemenNilai mode="rekap" key="rekap" />} />
+                    <Route path="laporan-muhafadzoh" element={<LaporanMuhafadzoh />} />
                   </Route>
 
                   <Route path="*" element={<Navigate to="/" replace />} />

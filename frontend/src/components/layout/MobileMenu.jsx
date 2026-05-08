@@ -43,6 +43,7 @@ const MobileMenu = ({ open, onClose, onLogout }) => {
         { key: '/guru', icon: <UserOutlined />, label: 'Data Guru' },
         { key: '/nilai', icon: <EditOutlined />, label: 'Input Penilaian' },
         { key: '/nilai-rekap', icon: <BookOutlined />, label: 'Rekap & Rapot' },
+        { key: '/laporan-muhafadzoh', icon: <BookOutlined />, label: 'Laporan Muhafadzoh' },
         { key: '/nilai-pengaturan', icon: <SettingOutlined />, label: 'Pengaturan' },
       ],
     },

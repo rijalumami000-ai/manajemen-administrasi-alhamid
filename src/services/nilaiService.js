@@ -141,6 +141,24 @@ class NilaiService {
     }
   }
 
+  // Get all santri with their class for report search
+  async getSantriForReport(tahunAjaranId) {
+    try {
+      const query = `
+        SELECT s.id as santri_id, s.nama, k.id as kelas_id, k.nama as nama_kelas, k.tingkat
+        FROM santri_tahun_ajaran sta
+        JOIN santri s ON sta.santri_id = s.id
+        JOIN kelas k ON sta.kelas_diniyah_id = k.id
+        WHERE sta.tahun_ajaran_id = $1 AND sta.status = 'aktif'
+        ORDER BY s.nama ASC
+      `;
+      const result = await db.query(query, [tahunAjaranId]);
+      return result.rows;
+    } catch (error) {
+      handleDatabaseError(error);
+    }
+  }
+
   // Rekap Nilai
   async getRekapNilai(tahunAjaranId, kelasId, kategoriId) {
     try {

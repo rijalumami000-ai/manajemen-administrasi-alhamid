@@ -52,12 +52,22 @@ function registerNilaiRoutes(app) {
     }
   });
 
-  // Nilai Santri
   router.get('/santri', async (req, res, next) => {
     try {
       // expected query: tahun_ajaran_id, kelas_id, mapel_id, kategori_id (optional for khusus)
       const { tahun_ajaran_id, kelas_id, mapel_id, kategori_id } = req.query;
       const data = await NilaiService.getNilaiSantri(tahun_ajaran_id, kelas_id, mapel_id, kategori_id);
+      res.json(data);
+    } catch (error) {
+      next(error);
+    }
+  });
+  
+  // Get all santri with class for search
+  router.get('/santri-report', async (req, res, next) => {
+    try {
+      const { tahun_ajaran_id } = req.query;
+      const data = await NilaiService.getSantriForReport(tahun_ajaran_id);
       res.json(data);
     } catch (error) {
       next(error);

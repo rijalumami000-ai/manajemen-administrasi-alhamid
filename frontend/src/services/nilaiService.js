@@ -63,5 +63,9 @@ export const nilaiService = {
 
   fetchTahunAjaran: async () => {
     return apiGet('/tahun-ajaran');
+  },
+
+  fetchSantriReport: async (tahunAjaranId) => {
+    return apiGet(`/nilai/santri-report?tahun_ajaran_id=${tahunAjaranId}`);
   }
 };

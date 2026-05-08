@@ -69,6 +69,7 @@ export function Sidebar({ collapsed, onCollapse }) {
         { key: '/nilai-pengaturan', icon: <SettingOutlined />, label: 'Pengaturan & Jadwal' },
         { key: '/nilai', icon: <EditOutlined />, label: 'Input Penilaian' },
         { key: '/nilai-rekap', icon: <BookOutlined />, label: 'Rekap & Rapot' },
+        { key: '/laporan-muhafadzoh', icon: <BookOutlined />, label: 'Laporan Muhafadzoh' },
       ],
     },
     { key: '/alumni', icon: <UsergroupAddOutlined />, label: 'Alumni' },
