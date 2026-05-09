@@ -159,6 +159,38 @@ class NilaiService {
     }
   }
 
+  // Get accumulation for all classes
+  async getAkumulasiSemuaKelas(tahunAjaranId, mapelId, kategoriId) {
+    try {
+      const query = `
+        SELECT 
+          k.id as kelas_id, k.nama as nama_kelas, k.tingkat,
+          COUNT(s.id) as jumlah_siswa,
+          COUNT(CASE WHEN n.predikat = 'Mumtaz' THEN 1 END) as mumtaz,
+          COUNT(CASE WHEN n.predikat = 'Jayyid' THEN 1 END) as jayyid,
+          COUNT(CASE WHEN n.predikat = 'Mutawassith' THEN 1 END) as mutawassith,
+          COUNT(CASE WHEN n.predikat = 'Rodi''' THEN 1 END) as rodi,
+          COUNT(CASE WHEN n.predikat IN ('Mumtaz', 'Jayyid', 'Mutawassith') THEN 1 END) as lulus,
+          COUNT(CASE WHEN n.predikat = 'Rodi''' THEN 1 END) as tidak,
+          COUNT(CASE WHEN n.id IS NULL THEN 1 END) as ghoib
+        FROM santri_tahun_ajaran sta
+        JOIN santri s ON sta.santri_id = s.id
+        JOIN kelas k ON sta.kelas_diniyah_id = k.id
+        LEFT JOIN nilai_santri n ON s.id = n.santri_id 
+             AND n.mata_pelajaran_id = $2 
+             AND n.tahun_ajaran_id = $1
+             AND n.kategori_evaluasi_id = $3
+        WHERE sta.tahun_ajaran_id = $1 AND sta.status = 'aktif'
+        GROUP BY k.id, k.nama, k.tingkat
+        ORDER BY k.tingkat ASC, k.nama ASC
+      `;
+      const result = await db.query(query, [tahunAjaranId, mapelId, kategoriId]);
+      return result.rows;
+    } catch (error) {
+      handleDatabaseError(error);
+    }
+  }
+
   // Rekap Nilai
   async getRekapNilai(tahunAjaranId, kelasId, kategoriId) {
     try {

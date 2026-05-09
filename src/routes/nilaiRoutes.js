@@ -74,6 +74,17 @@ function registerNilaiRoutes(app) {
     }
   });
 
+  // Get accumulation for all classes
+  router.get('/akumulasi-kelas', async (req, res, next) => {
+    try {
+      const { tahun_ajaran_id, mapel_id, kategori_id } = req.query;
+      const data = await NilaiService.getAkumulasiSemuaKelas(tahun_ajaran_id, mapel_id, kategori_id);
+      res.json(data);
+    } catch (error) {
+      next(error);
+    }
+  });
+
   router.post('/santri/bulk', async (req, res, next) => {
     try {
       const { tahun_ajaran_id, mata_pelajaran_id, kategori_evaluasi_id, data } = req.body;

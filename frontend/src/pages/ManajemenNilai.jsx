@@ -25,6 +25,7 @@ export const ManajemenNilai = ({ mode = 'input' }) => {
   const [mataPelajaran, setMataPelajaran] = useState([]);
   const [kategori, setKategori] = useState([]);
   const [tahunAjaran, setTahunAjaran] = useState(null);
+  const [tahunAjaranList, setTahunAjaranList] = useState([]);
   const [mapelTingkat, setMapelTingkat] = useState([]);
   
   // State Filter & Selection
@@ -119,10 +120,20 @@ export const ManajemenNilai = ({ mode = 'input' }) => {
       setMataPelajaran(Array.isArray(mapelData) ? mapelData : []);
       setKategori(Array.isArray(katData) ? katData : []);
       
-      if (Array.isArray(taData)) {
-        const activeTA = taData.find(ta => ta.is_active);
-        setTahunAjaran(activeTA);
+      setTahunAjaranList(Array.isArray(taData) ? taData : []);
+
+      const savedTA = localStorage.getItem('sekolah_info_selected_tahun_ajaran');
+      let activeTA = null;
+      
+      if (savedTA && Array.isArray(taData) && taData.some(ta => ta.id === Number(savedTA))) {
+        activeTA = taData.find(ta => ta.id === Number(savedTA));
+      } else if (Array.isArray(taData)) {
+        activeTA = taData.find(ta => ta.is_active);
+        if (activeTA) {
+          localStorage.setItem('sekolah_info_selected_tahun_ajaran', activeTA.id);
+        }
       }
+      setTahunAjaran(activeTA);
       
       setMapelTingkat(Array.isArray(mtData) ? mtData : []);
 
@@ -144,6 +155,12 @@ export const ManajemenNilai = ({ mode = 'input' }) => {
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleTahunAjaranChange = (val) => {
+    const selected = tahunAjaranList.find(ta => ta.id === val);
+    setTahunAjaran(selected);
+    localStorage.setItem('sekolah_info_selected_tahun_ajaran', val);
   };
 
   const mapelCategories = useMemo(() => {
@@ -1364,7 +1381,14 @@ export const ManajemenNilai = ({ mode = 'input' }) => {
             size="large"
             style={{ marginRight: 16 }}
           />,
-          <Tag color="gold" key="ta" icon={<InfoCircleOutlined />} style={{ alignSelf: 'center', padding: '4px 12px', fontSize: '14px' }}>TA: {tahunAjaran?.kode || '...'}</Tag>
+          <Select
+            key="ta"
+            style={{ width: 150, alignSelf: 'center', marginRight: 16 }}
+            value={tahunAjaran?.id}
+            onChange={handleTahunAjaranChange}
+            options={tahunAjaranList.map(ta => ({ value: ta.id, label: ta.kode }))}
+            size="large"
+          />
         ]}
       />
       {isMobile && mobileViewMode === 'dashboard' ? (
