@@ -2,10 +2,9 @@ const db = require('../db');
 async function run() {
   try {
     const result = await db.query(`
-      SELECT conname, pg_get_constraintdef(c.oid) 
-      FROM pg_constraint c 
-      JOIN pg_namespace n ON n.oid = c.connamespace 
-      WHERE contype IN ('u', 'p') AND conrelid = 'mapel_tingkat'::regclass;
+      SELECT table_name 
+      FROM information_schema.tables 
+      WHERE table_schema = 'public' AND (table_name LIKE '%setting%' OR table_name LIKE '%konfig%');
     `);
     console.log(result.rows);
     process.exit(0);

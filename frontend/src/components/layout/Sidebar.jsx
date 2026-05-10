@@ -18,11 +18,28 @@ import {
   EditOutlined
 } from '@ant-design/icons';
 import './Sidebar.scss';
+import { settingsService } from '../../services/settingsService';
 
 export function Sidebar({ collapsed, onCollapse }) {
   const navigate = useNavigate();
   const location = useLocation();
   const { isAdmin } = useAuth();
+  
+  const [appName, setAppName] = useState('Sekolah Info');
+  const [appLogo, setAppLogo] = useState(null);
+
+  useEffect(() => {
+    const loadSettings = async () => {
+      try {
+        const settings = await settingsService.fetchSettings();
+        if (settings.app_name) setAppName(settings.app_name);
+        if (settings.app_logo) setAppLogo(settings.app_logo);
+      } catch (err) {
+        console.error('Failed to load settings:', err);
+      }
+    };
+    loadSettings();
+  }, []);
   
   // State for open submenus (so they don't auto-close when navigating)
   const [openKeys, setOpenKeys] = useState(['sub-pesantren', 'sub-diniyah']);
@@ -87,8 +104,8 @@ export function Sidebar({ collapsed, onCollapse }) {
   return (
     <aside className={`app-sidebar ${collapsed ? 'collapsed' : ''}`}>
       <div className="sidebar-header">
-        <div className="logo-icon">SI</div>
-        {!collapsed && <span className="logo-text">Sekolah Info</span>}
+        <div className="logo-icon">{appLogo ? <img src={appLogo} alt="logo" style={{ width: '100%', height: '100%', borderRadius: '4px' }} /> : 'SI'}</div>
+        {!collapsed && <span className="logo-text">{appName}</span>}
       </div>
 
       <nav className="sidebar-nav">

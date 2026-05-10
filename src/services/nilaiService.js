@@ -13,29 +13,44 @@ class NilaiService {
   }
 
   // Mapel Tingkat (Jadwal Pelajaran)
-  async getMapelTingkat() {
+  async getMapelTingkat(tahun_ajaran_id = null, kategori_evaluasi_id = null) {
     try {
-      const result = await db.query('SELECT * FROM mapel_tingkat');
+      const result = await db.query(
+        `SELECT * FROM mapel_tingkat 
+         WHERE (tahun_ajaran_id = $1 OR tahun_ajaran_id IS NULL) 
+           AND (kategori_evaluasi_id = $2 OR kategori_evaluasi_id IS NULL)`,
+        [tahun_ajaran_id, kategori_evaluasi_id]
+      );
       return result.rows;
     } catch (error) {
       handleDatabaseError(error);
     }
   }
 
-  async saveMapelTingkat(tingkat, mapelIds) {
+  async saveMapelTingkat(tingkat, mapelIds, tahun_ajaran_id = null, kategori_evaluasi_id = null) {
     const client = await db.pool.connect();
     try {
       await client.query('BEGIN');
-      await client.query('DELETE FROM mapel_tingkat WHERE tingkat = $1', [tingkat]);
+      await client.query(
+        `DELETE FROM mapel_tingkat 
+         WHERE tingkat = $1 
+           AND tahun_ajaran_id IS NOT DISTINCT FROM $2 
+           AND kategori_evaluasi_id IS NOT DISTINCT FROM $3`, 
+        [tingkat, tahun_ajaran_id, kategori_evaluasi_id]
+      );
       
       for (const mapelId of mapelIds) {
-        await client.query('INSERT INTO mapel_tingkat (tingkat, mata_pelajaran_id) VALUES ($1, $2)', [tingkat, mapelId]);
+        await client.query(
+          'INSERT INTO mapel_tingkat (tingkat, mata_pelajaran_id, tahun_ajaran_id, kategori_evaluasi_id) VALUES ($1, $2, $3, $4)', 
+          [tingkat, mapelId, tahun_ajaran_id, kategori_evaluasi_id]
+        );
       }
       
       await client.query('COMMIT');
       return { success: true };
     } catch (error) {
       await client.query('ROLLBACK');
+      console.error('Error in saveMapelTingkat:', error);
       handleDatabaseError(error);
     } finally {
       client.release();
@@ -43,23 +58,25 @@ class NilaiService {
   }
 
   // Setting Kriteria
-  async getKriteriaNilai(tingkat, mapelId) {
+  async getKriteriaNilai(tingkat, mapelId, tahun_ajaran_id = null, kategori_evaluasi_id = null) {
     try {
       // 1. Dapatkan info jenis mapel
       const mapelResult = await db.query('SELECT jenis FROM mata_pelajaran WHERE id = $1', [mapelId]);
       const jenisMapel = mapelResult.rows[0]?.jenis;
 
       // 2. Cari kriteria dengan prioritas:
-      // a. Spesifik Tingkat + Mapel
-      // b. Spesifik Tingkat + Jenis Mapel (Misal semua Muhafadzoh di Tingkat 1)
+      // a. Spesifik Tingkat + Mapel + TA + Semester
+      // b. Fallback ke global
       const query = `
         SELECT * FROM setting_kriteria_nilai
-        WHERE (tingkat = $1 AND mata_pelajaran_id = $2)
-           OR (tingkat = $1 AND jenis_mapel = $3)
-        ORDER BY mata_pelajaran_id NULLS LAST
+        WHERE ((tingkat = $1 AND mata_pelajaran_id = $2)
+           OR (tingkat = $1 AND jenis_mapel = $3))
+          AND (tahun_ajaran_id = $4 OR tahun_ajaran_id IS NULL)
+          AND (kategori_evaluasi_id = $5 OR kategori_evaluasi_id IS NULL)
+        ORDER BY tahun_ajaran_id DESC NULLS LAST, kategori_evaluasi_id DESC NULLS LAST, mata_pelajaran_id NULLS LAST
         LIMIT 1
       `;
-      const result = await db.query(query, [tingkat, mapelId, jenisMapel]);
+      const result = await db.query(query, [tingkat, mapelId, jenisMapel, tahun_ajaran_id, kategori_evaluasi_id]);
       return result.rows[0] || null;
     } catch (error) {
       handleDatabaseError(error);
@@ -67,31 +84,39 @@ class NilaiService {
   }
 
   async saveKriteriaNilai(data) {
-    const { kelas_id, mata_pelajaran_id, tingkat, jenis_mapel, tipe_input, konfigurasi } = data;
+    const { kelas_id, mata_pelajaran_id, tingkat, jenis_mapel, tipe_input, konfigurasi, tahun_ajaran_id, kategori_evaluasi_id } = data;
     
     try {
-      console.log('Saving kriteria with payload:', { tingkat, mata_pelajaran_id, jenis_mapel, tipe_input });
+      console.log('Saving kriteria with payload:', { tingkat, mata_pelajaran_id, jenis_mapel, tipe_input, tahun_ajaran_id, kategori_evaluasi_id });
 
-      // Prioritize exact match for deletion to avoid deleting other mapels of same type
       let deleteQuery = '';
       let deleteParams = [];
 
       if (kelas_id && mata_pelajaran_id) {
-        deleteQuery = 'DELETE FROM setting_kriteria_nilai WHERE kelas_id = $1 AND mata_pelajaran_id = $2';
-        deleteParams = [kelas_id, mata_pelajaran_id];
+        deleteQuery = `DELETE FROM setting_kriteria_nilai 
+                       WHERE kelas_id = $1 AND mata_pelajaran_id = $2 
+                         AND tahun_ajaran_id IS NOT DISTINCT FROM $3 
+                         AND kategori_evaluasi_id IS NOT DISTINCT FROM $4`;
+        deleteParams = [kelas_id, mata_pelajaran_id, tahun_ajaran_id, kategori_evaluasi_id];
       } else if (tingkat !== undefined && mata_pelajaran_id) {
-        deleteQuery = 'DELETE FROM setting_kriteria_nilai WHERE tingkat = $1 AND mata_pelajaran_id = $2';
-        deleteParams = [tingkat, mata_pelajaran_id];
+        deleteQuery = `DELETE FROM setting_kriteria_nilai 
+                       WHERE tingkat = $1 AND mata_pelajaran_id = $2 
+                         AND tahun_ajaran_id IS NOT DISTINCT FROM $3 
+                         AND kategori_evaluasi_id IS NOT DISTINCT FROM $4`;
+        deleteParams = [tingkat, mata_pelajaran_id, tahun_ajaran_id, kategori_evaluasi_id];
       } else if (tingkat !== undefined && jenis_mapel) {
-        deleteQuery = 'DELETE FROM setting_kriteria_nilai WHERE tingkat = $1 AND jenis_mapel = $2';
-        deleteParams = [tingkat, jenis_mapel];
+        deleteQuery = `DELETE FROM setting_kriteria_nilai 
+                       WHERE tingkat = $1 AND jenis_mapel = $2 
+                         AND tahun_ajaran_id IS NOT DISTINCT FROM $3 
+                         AND kategori_evaluasi_id IS NOT DISTINCT FROM $4`;
+        deleteParams = [tingkat, jenis_mapel, tahun_ajaran_id, kategori_evaluasi_id];
       }
 
       if (deleteQuery) await db.query(deleteQuery, deleteParams);
 
       const result = await db.query(
-        `INSERT INTO setting_kriteria_nilai (kelas_id, mata_pelajaran_id, tingkat, jenis_mapel, tipe_input, konfigurasi)
-         VALUES ($1, $2, $3, $4, $5, $6)
+        `INSERT INTO setting_kriteria_nilai (kelas_id, mata_pelajaran_id, tingkat, jenis_mapel, tipe_input, konfigurasi, tahun_ajaran_id, kategori_evaluasi_id)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
          RETURNING *`,
         [
           kelas_id ?? null, 
@@ -99,7 +124,9 @@ class NilaiService {
           tingkat ?? null, 
           jenis_mapel ?? null, 
           tipe_input, 
-          JSON.stringify(konfigurasi)
+          JSON.stringify(konfigurasi),
+          tahun_ajaran_id ?? null,
+          kategori_evaluasi_id ?? null
         ]
       );
       return result.rows[0];

@@ -18,7 +18,8 @@ function registerNilaiRoutes(app) {
   router.get('/kriteria/:tingkat/:mapelId', async (req, res, next) => {
     try {
       const { tingkat, mapelId } = req.params;
-      const data = await NilaiService.getKriteriaNilai(tingkat, mapelId);
+      const { tahun_ajaran_id, kategori_evaluasi_id } = req.query;
+      const data = await NilaiService.getKriteriaNilai(tingkat, mapelId, tahun_ajaran_id, kategori_evaluasi_id);
       res.json(data);
     } catch (error) {
       next(error);
@@ -98,7 +99,8 @@ function registerNilaiRoutes(app) {
   // Mapel Tingkat (Jadwal Pelajaran)
   router.get('/mapel-tingkat', async (req, res, next) => {
     try {
-      const data = await NilaiService.getMapelTingkat();
+      const { tahun_ajaran_id, kategori_evaluasi_id } = req.query;
+      const data = await NilaiService.getMapelTingkat(tahun_ajaran_id, kategori_evaluasi_id);
       res.json(data);
     } catch (error) {
       next(error);
@@ -107,8 +109,8 @@ function registerNilaiRoutes(app) {
 
   router.post('/mapel-tingkat', async (req, res, next) => {
     try {
-      const { tingkat, mapelIds } = req.body;
-      const data = await NilaiService.saveMapelTingkat(tingkat, mapelIds);
+      const { tingkat, mapelIds, tahun_ajaran_id, kategori_evaluasi_id } = req.body;
+      const data = await NilaiService.saveMapelTingkat(tingkat, mapelIds, tahun_ajaran_id, kategori_evaluasi_id);
       res.json(data);
     } catch (error) {
       next(error);

@@ -9,7 +9,10 @@ import {
   Typography,
   Tag,
   Divider,
-  message
+  message,
+  Upload,
+  Form,
+  Input
 } from 'antd';
 import {
   UserOutlined,
@@ -18,7 +21,8 @@ import {
   MailOutlined,
   PhoneOutlined,
   ClockCircleOutlined,
-  CalendarOutlined
+  CalendarOutlined,
+  PlusOutlined
 } from '@ant-design/icons';
 import { profileService } from '../services/profileService';
 import { EditProfileModal } from '../components/features/EditProfileModal';
@@ -26,12 +30,13 @@ import { ChangePasswordModal } from '../components/features/ChangePasswordModal'
 import { PageHeader, LoadingState, ErrorState } from '../components/common';
 import { useAuth } from '../context/AuthContext';
 import './Profile.scss';
+import { settingsService } from '../services/settingsService';
 
 const { Title, Text } = Typography;
 
 export function Profile() {
   const navigate = useNavigate();
-  const { logout, updateUser } = useAuth();
+  const { logout, updateUser, isAdmin } = useAuth();
 
   // State
   const [profile, setProfile] = useState(null);
@@ -44,6 +49,103 @@ export function Profile() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [editModalError, setEditModalError] = useState('');
   const [passwordModalError, setPasswordModalError] = useState('');
+  
+  // Settings State
+  const [appNameState, setAppNameState] = useState('Alhamid Cintamulya');
+  const [fileList, setFileList] = useState([]);
+  const [settingsLoading, setSettingsLoading] = useState(false);
+
+  useEffect(() => {
+    if (isAdmin()) {
+      loadSettings();
+    }
+  }, []);
+
+  const loadSettings = async () => {
+    try {
+      setSettingsLoading(true);
+      const settings = await settingsService.fetchSettings();
+      if (settings.app_name) setAppNameState(settings.app_name);
+      if (settings.app_logo) {
+        setFileList([{
+          uid: '-1',
+          name: 'logo.png',
+          status: 'done',
+          url: settings.app_logo,
+        }]);
+      }
+    } catch (err) {
+      console.error('Failed to load settings:', err);
+    } finally {
+      setSettingsLoading(false);
+    }
+  };
+
+  const handleLogoFileChange = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.readAsDataURL(file);
+      reader.onload = () => {
+        const base64 = reader.result;
+        setFileList([{
+          uid: '-1',
+          name: file.name,
+          status: 'done',
+          url: base64,
+          originFileObj: file
+        }]);
+      };
+    }
+  };
+
+  const handleSaveSettings = async (values) => {
+    try {
+      setSettingsLoading(true);
+      await settingsService.updateSetting('app_name', values.app_name);
+      
+      if (fileList.length > 0 && fileList[0].originFileObj) {
+        const base64 = await new Promise((resolve, reject) => {
+          const reader = new FileReader();
+          reader.readAsDataURL(fileList[0].originFileObj);
+          reader.onload = () => resolve(reader.result);
+          reader.onerror = (error) => reject(error);
+        });
+        await settingsService.updateSetting('app_logo', base64);
+        message.success('Pengaturan berhasil disimpan! Refresh halaman untuk melihat perubahan.');
+      } else if (fileList.length === 0) {
+        // Remove logo
+        await settingsService.updateSetting('app_logo', null);
+        message.success('Pengaturan berhasil disimpan! Refresh halaman untuk melihat perubahan.');
+      } else {
+        // Logo not changed
+        message.success('Pengaturan berhasil disimpan!');
+      }
+    } catch (err) {
+      console.error('Failed to save settings:', err);
+      message.error('Gagal menyimpan pengaturan');
+    } finally {
+      setSettingsLoading(false);
+    }
+  };
+
+  const handleAvatarFileChange = async (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.readAsDataURL(file);
+      reader.onload = async () => {
+        const base64 = reader.result;
+        try {
+          await profileService.updateProfile({ photo_url: base64 });
+          message.success('Foto profil berhasil diperbarui!');
+          loadProfile(); // Reload
+        } catch (err) {
+          message.error('Gagal memperbarui foto profil');
+        }
+      };
+    }
+  };
 
   // Load profile on mount
   useEffect(() => {
@@ -202,14 +304,24 @@ export function Profile() {
 
       <Card className="profile-card">
         <div className="profile-header">
-          <Avatar
-            size={100}
-            icon={<UserOutlined />}
-            style={{
-              backgroundColor: '#2196f3',
-              fontSize: '48px'
-            }}
-          />
+          <div style={{ cursor: 'pointer', position: 'relative' }} onClick={() => document.getElementById('avatar-input').click()}>
+            <Avatar
+              size={100}
+              icon={<UserOutlined />}
+              src={profile.photo_url}
+              style={{
+                backgroundColor: '#2196f3',
+                fontSize: '48px'
+              }}
+            />
+            <input
+              id="avatar-input"
+              type="file"
+              style={{ display: 'none' }}
+              onChange={handleAvatarFileChange}
+              accept="image/*"
+            />
+          </div>
           <div className="profile-info">
             <Space direction="vertical" size={4}>
               <Title level={3} style={{ margin: 0 }}>
@@ -289,6 +401,54 @@ export function Profile() {
           </Descriptions.Item>
         </Descriptions>
       </Card>
+
+      {isAdmin() && (
+        <Card className="profile-card" title="Pengaturan Sistem" style={{ marginTop: 16 }}>
+          <Form 
+            key={appNameState}
+            layout="vertical" 
+            onFinish={handleSaveSettings}
+            initialValues={{ app_name: appNameState }}
+          >
+            <Form.Item 
+              label="Nama Aplikasi" 
+              name="app_name"
+              rules={[{ required: true, message: 'Nama aplikasi wajib diisi!' }]}
+            >
+              <Input placeholder="Masukkan nama aplikasi" />
+            </Form.Item>
+            <Form.Item label="Logo Aplikasi">
+              <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+                {fileList.length > 0 && fileList[0].url && (
+                  <div style={{ width: 100, height: 100, border: '1px solid #d9d9d9', borderRadius: 8, padding: 4, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <img src={fileList[0].url} alt="logo" style={{ maxWidth: '100%', maxHeight: '100%' }} />
+                  </div>
+                )}
+                <Button onClick={() => document.getElementById('logo-input').click()}>
+                  Pilih Logo
+                </Button>
+                <input
+                  id="logo-input"
+                  type="file"
+                  style={{ display: 'none' }}
+                  onChange={handleLogoFileChange}
+                  accept="image/*"
+                />
+                {fileList.length > 0 && (
+                  <Button danger onClick={() => setFileList([])}>
+                    Hapus
+                  </Button>
+                )}
+              </div>
+            </Form.Item>
+            <Form.Item style={{ marginBottom: 0 }}>
+              <Button type="primary" htmlType="submit" loading={settingsLoading}>
+                Simpan Pengaturan
+              </Button>
+            </Form.Item>
+          </Form>
+        </Card>
+      )}
 
       {/* Modals */}
       <EditProfileModal

@@ -5,6 +5,7 @@ import { UserOutlined, LockOutlined, LoginOutlined } from '@ant-design/icons';
 import { useAuth } from '../context/AuthContext';
 import { LoadingState } from '../components/common';
 import './Login.scss';
+import { settingsService } from '../services/settingsService';
 
 const { Title, Text } = Typography;
 
@@ -40,19 +41,38 @@ export function Login() {
 
   return (
     <div className="login-container">
-      <div className="login-content">
-        <Card className="login-card" bordered={false}>
-          <Space direction="vertical" size="large" style={{ width: '100%' }}>
-            {/* Header */}
-            <div className="login-header">
-              <div className="brand-logo">SI</div>
-              <Title level={2} style={{ marginBottom: 8 }}>
-                SI Internal Pesantren
-              </Title>
-              <Text type="secondary">Sistem Informasi Internal</Text>
+      {/* Background effects */}
+      <div className="gradient-bg">
+        <div className="glow-1"></div>
+        <div className="glow-2"></div>
+        <div className="glow-3"></div>
+      </div>
+
+      <div className="login-split-wrapper">
+        {/* Left Side: Hero */}
+        <div className="login-left">
+          <div className="brand-logo-large">SI</div>
+          <div className="hero-text">
+            <h1 className="hero-title">Sign in to</h1>
+            <h2 className="hero-subtitle">Alhamid Cintamulya</h2>
+            <p className="hero-description">
+              Sistem Informasi Manajemen Madrasah & Pondok Pesantren yang modern, cepat, dan terintegrasi.
+            </p>
+          </div>
+          <div className="live-status">
+            <span className="pulse-dot"></span>
+            <span className="live-text">System Operational</span>
+          </div>
+        </div>
+
+        {/* Right Side: Form */}
+        <div className="login-right">
+          <div className="form-container">
+            <div className="login-header-right">
+              <Title level={2} style={{ color: '#fff', marginBottom: 8 }}>Sign in</Title>
+              <Text style={{ color: 'rgba(255,255,255,0.6)' }}>Welcome back! Please enter your details.</Text>
             </div>
 
-            {/* Error Alert */}
             {error && (
               <Alert
                 message="Login Gagal"
@@ -61,10 +81,10 @@ export function Login() {
                 showIcon
                 closable
                 onClose={() => setError('')}
+                style={{ marginBottom: 24 }}
               />
             )}
 
-            {/* Login Form */}
             <Form
               form={form}
               name="login"
@@ -81,7 +101,7 @@ export function Login() {
                 ]}
               >
                 <Input
-                  prefix={<UserOutlined />}
+                  prefix={<UserOutlined style={{ color: 'rgba(255,255,255,0.4)' }} />}
                   placeholder="Username"
                   autoFocus
                   disabled={isSubmitting}
@@ -96,7 +116,7 @@ export function Login() {
                 ]}
               >
                 <Input.Password
-                  prefix={<LockOutlined />}
+                  prefix={<LockOutlined style={{ color: 'rgba(255,255,255,0.4)' }} />}
                   placeholder="Password"
                   disabled={isSubmitting}
                 />
@@ -110,20 +130,20 @@ export function Login() {
                   loading={isSubmitting}
                   block
                   size="large"
+                  className="glow-btn"
                 >
                   {isSubmitting ? 'Memproses...' : 'Login'}
                 </Button>
               </Form.Item>
             </Form>
 
-            {/* Footer */}
-            <div className="login-footer">
-              <Text type="secondary" style={{ fontSize: 12 }}>
-                &copy; 2026 SI Internal Pesantren
+            <div className="login-footer-right">
+              <Text style={{ color: 'rgba(255,255,255,0.4)', fontSize: 12 }}>
+                &copy; 2026 Alhamid Cintamulya
               </Text>
             </div>
-          </Space>
-        </Card>
+          </div>
+        </div>
       </div>
     </div>
   );

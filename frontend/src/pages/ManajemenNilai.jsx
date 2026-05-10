@@ -101,12 +101,11 @@ export const ManajemenNilai = ({ mode = 'input' }) => {
   const loadInitialData = async () => {
     try {
       setLoading(true);
-      const [kelasData, mapelData, katData, taData, mtData] = await Promise.all([
+      const [kelasData, mapelData, katData, taData] = await Promise.all([
         nilaiService.fetchKelas(),
         nilaiService.fetchMataPelajaran(),
         nilaiService.fetchKategori(),
-        nilaiService.fetchTahunAjaran(),
-        nilaiService.fetchMapelTingkat()
+        nilaiService.fetchTahunAjaran()
       ]);
       
       const diniyahKelas = Array.isArray(kelasData) ? kelasData.filter(k => k.jenis === 'Diniyah').map(k => {
@@ -135,8 +134,6 @@ export const ManajemenNilai = ({ mode = 'input' }) => {
       }
       setTahunAjaran(activeTA);
       
-      setMapelTingkat(Array.isArray(mtData) ? mtData : []);
-
       if (Array.isArray(katData)) {
         const savedKategori = localStorage.getItem('sekolah_info_selected_kategori');
         if (savedKategori && katData.some(k => k.id === Number(savedKategori))) {
@@ -156,6 +153,21 @@ export const ManajemenNilai = ({ mode = 'input' }) => {
       setLoading(false);
     }
   };
+
+  const loadMapelTingkatData = async () => {
+    try {
+      const data = await nilaiService.fetchMapelTingkat(tahunAjaran?.id, selectedKategori);
+      setMapelTingkat(Array.isArray(data) ? data : []);
+    } catch (err) {
+      console.error('Gagal memuat mapel tingkat:', err);
+    }
+  };
+
+  useEffect(() => {
+    if (tahunAjaran && selectedKategori) {
+      loadMapelTingkatData();
+    }
+  }, [tahunAjaran, selectedKategori]);
 
   const handleTahunAjaranChange = (val) => {
     const selected = tahunAjaranList.find(ta => ta.id === val);
@@ -214,12 +226,12 @@ export const ManajemenNilai = ({ mode = 'input' }) => {
     }
   }, [selectedTingkat, mapelTingkat]);
 
-  // Load Kriteria when level or mapel changes
+  // Load Kriteria when level, mapel, year, or semester changes
   useEffect(() => {
     if (selectedTingkat !== null && selectedMapel) {
       loadKriteria();
     }
-  }, [selectedTingkat, selectedMapel]);
+  }, [selectedTingkat, selectedMapel, tahunAjaran, selectedKategori]);
 
   // Load Rekap Nilai when tab is active and selections are made
   useEffect(() => {
@@ -378,7 +390,7 @@ export const ManajemenNilai = ({ mode = 'input' }) => {
 
   const loadKriteria = async () => {
     try {
-      const config = await nilaiService.fetchKriteria(selectedTingkat, selectedMapel);
+      const config = await nilaiService.fetchKriteria(selectedTingkat, selectedMapel, tahunAjaran?.id, selectedKategori);
       
       if (config) {
         setKriteriaConfig(config);
@@ -393,7 +405,7 @@ export const ManajemenNilai = ({ mode = 'input' }) => {
         }
         
         if (config.tipe_input === 'Angka') setConfigAngka(config.konfigurasi);
-        else setConfigTeks(config.konfigurasi);
+        else setConfigTeks(Array.isArray(config.konfigurasi) ? config.konfigurasi : []);
       } else {
         setKriteriaConfig(null);
         if (selectedTingkat === 2 || selectedTingkat === 99) setKriteriaType('Teks');
@@ -678,7 +690,9 @@ export const ManajemenNilai = ({ mode = 'input' }) => {
         mata_pelajaran_id: selectedMapel,
         jenis_mapel: mapel?.jenis || 'Muhafadzoh',
         tipe_input: kriteriaType,
-        konfigurasi: kriteriaType === 'Angka' ? configAngka : configTeks
+        konfigurasi: kriteriaType === 'Angka' ? configAngka : configTeks,
+        tahun_ajaran_id: tahunAjaran?.id,
+        kategori_evaluasi_id: selectedKategori
       };
       await nilaiService.saveKriteria(payload);
       message.success(`Pengaturan kriteria ${mapel?.nama || ''} berhasil disimpan!`);
@@ -699,12 +713,14 @@ export const ManajemenNilai = ({ mode = 'input' }) => {
     }
     try {
       setSaveLoading(true);
-      await nilaiService.saveMapelTingkat(selectedTingkat, jadwalMapelIds);
+      await nilaiService.saveMapelTingkat(selectedTingkat, jadwalMapelIds, tahunAjaran?.id, selectedKategori);
       message.success('Jadwal pelajaran berhasil disimpan!');
-      const newMtData = await nilaiService.fetchMapelTingkat();
+      const newMtData = await nilaiService.fetchMapelTingkat(tahunAjaran?.id, selectedKategori);
       setMapelTingkat(Array.isArray(newMtData) ? newMtData : []);
     } catch (err) {
-      message.error('Gagal menyimpan jadwal pelajaran');
+      console.error('Save jadwal failed:', err);
+      const errorMsg = err.response?.data?.error || err.message || 'Gagal menyimpan jadwal pelajaran';
+      message.error(errorMsg);
     } finally {
       setSaveLoading(false);
     }
@@ -916,6 +932,7 @@ export const ManajemenNilai = ({ mode = 'input' }) => {
               dataSource={configTeks} 
               pagination={false} 
               size="small" 
+              rowKey={(record, idx) => idx}
               columns={[
                 { 
                   title: 'Daftar Bab / Capaian', 

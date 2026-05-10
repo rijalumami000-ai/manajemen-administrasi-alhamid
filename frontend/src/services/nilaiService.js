@@ -7,20 +7,30 @@ export const nilaiService = {
   },
 
   // Kriteria Nilai
-  fetchKriteria: async (tingkat, mapelId) => {
-    return apiGet(`/nilai/kriteria/${tingkat}/${mapelId}`);
+  fetchKriteria: async (tingkat, mapelId, tahunAjaranId = null, kategoriId = null) => {
+    let url = `/nilai/kriteria/${tingkat}/${mapelId}`;
+    const params = [];
+    if (tahunAjaranId) params.push(`tahun_ajaran_id=${tahunAjaranId}`);
+    if (kategoriId) params.push(`kategori_evaluasi_id=${kategoriId}`);
+    if (params.length > 0) url += `?${params.join('&')}`;
+    return apiGet(url);
   },
 
   saveKriteria: async (data) => {
     return apiPost('/nilai/kriteria', data);
   },
 
-  fetchMapelTingkat: async () => {
-    return apiGet('/nilai/mapel-tingkat');
+  fetchMapelTingkat: async (tahunAjaranId = null, kategoriId = null) => {
+    let url = '/nilai/mapel-tingkat';
+    const params = [];
+    if (tahunAjaranId) params.push(`tahun_ajaran_id=${tahunAjaranId}`);
+    if (kategoriId) params.push(`kategori_evaluasi_id=${kategoriId}`);
+    if (params.length > 0) url += `?${params.join('&')}`;
+    return apiGet(url);
   },
 
-  saveMapelTingkat: async (tingkat, mapelIds) => {
-    return apiPost('/nilai/mapel-tingkat', { tingkat, mapelIds });
+  saveMapelTingkat: async (tingkat, mapelIds, tahunAjaranId = null, kategoriId = null) => {
+    return apiPost('/nilai/mapel-tingkat', { tingkat, mapelIds, tahun_ajaran_id: tahunAjaranId, kategori_evaluasi_id: kategoriId });
   },
 
   // Nilai Santri
