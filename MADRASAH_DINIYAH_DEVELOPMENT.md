@@ -55,6 +55,10 @@ Logika penilaian telah disesuaikan dengan standar akademik Madrasah Diniyah.
 *   **Styling Kondisional**: 
     *   **Tingkat 2 & SP**: Menggunakan font khusus (Arabic) pada daftar capaian untuk mendukung penulisan materi kitab.
     *   **Tingkat Sifir & Lainnya**: Menggunakan font standar untuk kemudahan pembacaan materi non-Arab.
+*   **Aturan Khusus Kelas Sifir**: Untuk menyederhanakan penggunaan dan mencegah bentrok data, Kelas Sifir memiliki aturan tetap:
+    *   **Semester Ganjil**: Otomatis dipaksa menggunakan mode **Teks / Capaian**.
+    *   **Semester Genap**: Otomatis dipaksa menggunakan mode **Skala Angka**.
+*   **Pemisahan Semester yang Ketat**: Sistem kini mengisolasi konfigurasi kriteria per semester secara mutlak. Data tidak akan lagi bocor atau menimpa antar semester.
 *   **Fleksibilitas Konfigurasi**: Tab pengaturan kini mendukung konfigurasi untuk Muhafadzoh, Qiroah, dan Taftisy dalam satu tempat.
 
 ### B. Rekap Nilai

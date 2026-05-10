@@ -72,7 +72,7 @@ class NilaiService {
         WHERE ((tingkat = $1 AND mata_pelajaran_id = $2)
            OR (tingkat = $1 AND jenis_mapel = $3))
           AND (tahun_ajaran_id = $4 OR tahun_ajaran_id IS NULL)
-          AND (kategori_evaluasi_id = $5 OR kategori_evaluasi_id IS NULL)
+          AND kategori_evaluasi_id = $5
         ORDER BY tahun_ajaran_id DESC NULLS LAST, kategori_evaluasi_id DESC NULLS LAST, mata_pelajaran_id NULLS LAST
         LIMIT 1
       `;
@@ -113,6 +113,14 @@ class NilaiService {
       }
 
       if (deleteQuery) await db.query(deleteQuery, deleteParams);
+
+      // Check if configuration is empty
+      const isEmpty = (tipe_input === 'Teks' && (!konfigurasi || konfigurasi.length === 0)) ||
+                      (tipe_input === 'Angka' && Object.values(konfigurasi).every(v => v.min === null && v.max === null));
+
+      if (isEmpty) {
+        return { success: true, message: 'Kriteria dihapus karena kosong.' };
+      }
 
       const result = await db.query(
         `INSERT INTO setting_kriteria_nilai (kelas_id, mata_pelajaran_id, tingkat, jenis_mapel, tipe_input, konfigurasi, tahun_ajaran_id, kategori_evaluasi_id)

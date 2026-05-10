@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { 
   Tabs, Card, Select, Input, InputNumber, Button, Table, 
   Space, Tag, Typography, Divider, Empty, message, Popconfirm, Tooltip,
-  Row, Col, Badge, Segmented, Alert, Checkbox, Spin, Collapse
+  Row, Col, Badge, Segmented, Alert, Checkbox, Spin, Collapse, Radio
 } from 'antd';
 import { 
   SaveOutlined, ReloadOutlined, SettingOutlined, EditOutlined,
@@ -405,11 +405,14 @@ export const ManajemenNilai = ({ mode = 'input' }) => {
         setKriteriaConfig(config);
         
         // Prioritize config if available, else use defaults
-        if (config.tipe_input) {
+        if (selectedTingkat === 0) {
+          const kat = kategori.find(k => k.id === selectedKategori);
+          const isGanjil = kat && kat.nama.toLowerCase().includes('ganjil');
+          setKriteriaType(isGanjil ? 'Teks' : 'Angka');
+        } else if (config.tipe_input) {
           setKriteriaType(config.tipe_input);
         } else {
           if (selectedTingkat === 2 || selectedTingkat === 99) setKriteriaType('Teks');
-          else if (selectedTingkat !== 0) setKriteriaType('Angka');
           else setKriteriaType('Angka');
         }
         
@@ -427,8 +430,15 @@ export const ManajemenNilai = ({ mode = 'input' }) => {
         }
       } else {
         setKriteriaConfig(null);
-        if (selectedTingkat === 2 || selectedTingkat === 99) setKriteriaType('Teks');
-        else setKriteriaType('Angka');
+        if (selectedTingkat === 0) {
+          const kat = kategori.find(k => k.id === selectedKategori);
+          const isGanjil = kat && kat.nama.toLowerCase().includes('ganjil');
+          setKriteriaType(isGanjil ? 'Teks' : 'Angka');
+        } else if (selectedTingkat === 2 || selectedTingkat === 99) {
+          setKriteriaType('Teks');
+        } else {
+          setKriteriaType('Angka');
+        }
         
         setConfigAngka({
           'Mumtaz': { min: 95, max: 2000 },
@@ -927,29 +937,35 @@ export const ManajemenNilai = ({ mode = 'input' }) => {
     );
   };
 
-  const getSettingsTabs = () => {
-    const tabs = [];
-    if (selectedTingkat !== 2 && selectedTingkat !== 99) {
-      tabs.push({
-        key: 'Angka',
-        label: 'Skala Angka (Max 2000)',
-        disabled: kriteriaConfig && kriteriaConfig.tipe_input === 'Teks',
-        children: (
+  const renderKriteriaConfig = () => {
+    const showAngka = selectedTingkat !== 2 && selectedTingkat !== 99;
+    const showTeks = selectedTingkat === 0 || selectedTingkat === 2 || selectedTingkat === 99;
+
+    const isAngkaDisabled = kriteriaConfig && kriteriaConfig.tipe_input === 'Teks' && configTeks && configTeks.length > 0;
+    const isTeksDisabled = kriteriaConfig && kriteriaConfig.tipe_input === 'Angka' && Object.values(configAngka).some(v => typeof v.min === 'number' || typeof v.max === 'number');
+
+    return (
+      <>
+        <div style={{ marginBottom: 16 }}>
+          <Radio.Group 
+            value={kriteriaType} 
+            onChange={e => setKriteriaType(e.target.value)}
+            size="large"
+          >
+            {showAngka && <Radio.Button value="Angka" disabled={isAngkaDisabled || selectedTingkat === 0}>Skala Angka</Radio.Button>}
+            {showTeks && <Radio.Button value="Teks" disabled={isTeksDisabled || selectedTingkat === 0}>Teks / Capaian</Radio.Button>}
+          </Radio.Group>
+        </div>
+
+        {kriteriaType === 'Angka' && showAngka && (
           <Table dataSource={['Mumtaz', 'Jayyid', 'Mutawassith', 'Rodi\''].map(pred => ({ predikat: pred, ...(configAngka[pred] || {min: null, max: null}) }))} pagination={false} size="small" columns={[
             { title: 'Predikat', dataIndex: 'predikat', render: text => <Text strong>{text}</Text> },
             { title: 'Min', dataIndex: 'min', render: (val, record) => <InputNumber min={0} max={2000} value={record.predikat === 'Mumtaz' ? null : val} disabled={record.predikat === 'Mumtaz'} placeholder={record.predikat === 'Mumtaz' ? 'Otomatis' : ''} onChange={v => setConfigAngka(prev => ({...prev, [record.predikat]: {...prev[record.predikat], min: v}}))} /> },
             { title: 'Max', dataIndex: 'max', render: (val, record) => <InputNumber min={0} max={2000} value={val} onChange={v => setConfigAngka(prev => ({...prev, [record.predikat]: {...prev[record.predikat], max: v}}))} /> }
           ]} />
-        )
-      });
-    }
+        )}
 
-    if (selectedTingkat === 0 || selectedTingkat === 2 || selectedTingkat === 99) {
-      tabs.push({
-        key: 'Teks',
-        label: 'Daftar Bab/Capaian (Teks)',
-        disabled: kriteriaConfig && kriteriaConfig.tipe_input === 'Angka',
-        children: (
+        {kriteriaType === 'Teks' && showTeks && (
           <>
             <Table 
               dataSource={configTeks} 
@@ -1018,12 +1034,10 @@ export const ManajemenNilai = ({ mode = 'input' }) => {
               </Button>
             </div>
           </>
-        )
-      });
-    }
-
-    return tabs;
-  };
+        )}
+      </>
+    );
+  }
 
   const allTabs = [
     {
@@ -1284,7 +1298,7 @@ export const ManajemenNilai = ({ mode = 'input' }) => {
           <Col xs={24} lg={16}>
             <Card title="Konfigurasi Kriteria" extra={<Button type="primary" icon={<SaveOutlined />} onClick={saveKriteria} loading={saveLoading}>Simpan Kriteria</Button>}>
               {selectedMapel && mataPelajaran.find(m => m.id === selectedMapel)?.jenis === 'Muhafadzoh' ? (
-                <Tabs items={getSettingsTabs()} activeKey={kriteriaType} onChange={setKriteriaType} />
+                renderKriteriaConfig()
               ) : <Empty description="Pilih Kategori Muhafadzoh untuk mengatur kriteria" />}
             </Card>
           </Col>
