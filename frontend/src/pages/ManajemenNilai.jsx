@@ -94,6 +94,15 @@ export const ManajemenNilai = ({ mode = 'input' }) => {
   });
   const [configTeks, setConfigTeks] = useState([]);
 
+  const effectiveKriteriaType = useMemo(() => {
+    if (kriteriaConfig && kriteriaConfig.tipe_input) {
+      return kriteriaConfig.tipe_input;
+    }
+    if (selectedTingkat === 2 || selectedTingkat === 99) return 'Teks';
+    if (selectedTingkat !== 0) return 'Angka';
+    return kriteriaType; // Fallback for Sifir
+  }, [kriteriaConfig, selectedTingkat, kriteriaType]);
+
   useEffect(() => {
     loadInitialData();
   }, []);
@@ -404,8 +413,18 @@ export const ManajemenNilai = ({ mode = 'input' }) => {
           else setKriteriaType('Angka');
         }
         
-        if (config.tipe_input === 'Angka') setConfigAngka(config.konfigurasi);
-        else setConfigTeks(Array.isArray(config.konfigurasi) ? config.konfigurasi : []);
+        if (config.tipe_input === 'Angka') {
+          setConfigAngka(config.konfigurasi);
+          setConfigTeks([]); // Reset Teks
+        } else {
+          setConfigTeks(Array.isArray(config.konfigurasi) ? config.konfigurasi : []);
+          setConfigAngka({ // Reset Angka to default
+            'Mumtaz': { min: 95, max: 2000 },
+            'Jayyid': { min: 85, max: 94 },
+            'Mutawassith': { min: 75, max: 84 },
+            'Rodi\'': { min: 0, max: 74 }
+          });
+        }
       } else {
         setKriteriaConfig(null);
         if (selectedTingkat === 2 || selectedTingkat === 99) setKriteriaType('Teks');
@@ -551,7 +570,7 @@ export const ManajemenNilai = ({ mode = 'input' }) => {
 
   const getPredikat = (nilai) => {
     if (nilai === null || nilai === undefined) return '';
-    const scale = (kriteriaType === 'Angka' && kriteriaConfig?.konfigurasi) ? kriteriaConfig.konfigurasi : {
+    const scale = (effectiveKriteriaType === 'Angka' && kriteriaConfig?.konfigurasi) ? kriteriaConfig.konfigurasi : {
       'Mumtaz': { min: 95, max: 2000 },
       'Jayyid': { min: 85, max: 94 },
       'Mutawassith': { min: 75, max: 84 },
@@ -620,7 +639,7 @@ export const ManajemenNilai = ({ mode = 'input' }) => {
           }
         }
         
-        if (field === 'capaian' && kriteriaType === 'Teks') {
+        if (field === 'capaian' && effectiveKriteriaType === 'Teks') {
           const matched = configTeks.find(c => c.bab === value);
           if (matched && !isTaftisy) newData.predikat = matched.predikat;
         }
@@ -767,14 +786,16 @@ export const ManajemenNilai = ({ mode = 'input' }) => {
         }
         
         if (isMuhafadzoh) {
-          // If kriteria type is explicitly Teks/Capaian, use that
-          if (kriteriaType === 'Teks') {
+          // Use effective kriteria type
+          if (effectiveKriteriaType === 'Teks') {
             useAngka = false;
+          } else if (effectiveKriteriaType === 'Angka') {
+            useAngka = true;
           } else {
             // Default logic if not configured
             if (selectedTingkat === 2 || selectedTingkat === 99) useAngka = false;
             else if (selectedTingkat !== 0) useAngka = true;
-            else useAngka = (kriteriaType === 'Angka');
+            else useAngka = true;
           }
         }
 
@@ -912,6 +933,7 @@ export const ManajemenNilai = ({ mode = 'input' }) => {
       tabs.push({
         key: 'Angka',
         label: 'Skala Angka (Max 2000)',
+        disabled: kriteriaConfig && kriteriaConfig.tipe_input === 'Teks',
         children: (
           <Table dataSource={['Mumtaz', 'Jayyid', 'Mutawassith', 'Rodi\''].map(pred => ({ predikat: pred, ...(configAngka[pred] || {min: null, max: null}) }))} pagination={false} size="small" columns={[
             { title: 'Predikat', dataIndex: 'predikat', render: text => <Text strong>{text}</Text> },
@@ -926,6 +948,7 @@ export const ManajemenNilai = ({ mode = 'input' }) => {
       tabs.push({
         key: 'Teks',
         label: 'Daftar Bab/Capaian (Teks)',
+        disabled: kriteriaConfig && kriteriaConfig.tipe_input === 'Angka',
         children: (
           <>
             <Table 
@@ -1246,7 +1269,9 @@ export const ManajemenNilai = ({ mode = 'input' }) => {
         <Row gutter={[16, 16]}>
           <Col xs={24} lg={8}>
             <Card title="Cakupan Pengaturan (Khusus Muhafadzoh)">
-              <Paragraph type="secondary">Pengaturan ini akan berlaku untuk seluruh kelas dalam tingkatan yang dipilih.</Paragraph>
+              <Paragraph type="secondary">
+                Pengaturan ini akan berlaku untuk seluruh kelas dalam tingkatan yang dipilih pada <strong>{kategori.find(k => k.id === selectedKategori)?.nama || 'Semester Aktif'}</strong>.
+              </Paragraph>
               <Space direction="vertical" style={{ width: '100%' }}>
                 {renderTingkatSelection(true)}
                 <Select placeholder="Pilih Mata Pelajaran" style={{ width: '100%' }} value={selectedMapel} onChange={setSelectedMapel}>
@@ -1531,9 +1556,9 @@ export const ManajemenNilai = ({ mode = 'input' }) => {
                   <div className="student-name">
                     {loading ? 'Memuat...' : (santriList.find(s => s.santri_id === activeSantriId)?.nama || (santriList.length > 0 ? 'Pilih Santri' : 'Data Kosong'))}
                   </div>
-                  <div className={`score-preview ${kriteriaType === 'Teks' ? 'text-mode' : ''}`}>
+                  <div className={`score-preview ${effectiveKriteriaType === 'Teks' ? 'text-mode' : ''}`}>
                     {loading ? '...' : (
-                      kriteriaType === 'Angka' 
+                      effectiveKriteriaType === 'Angka' 
                         ? (Math.floor(santriList.find(s => s.santri_id === activeSantriId)?.nilai_angka ?? 0) || '-')
                         : (santriList.find(s => s.santri_id === activeSantriId)?.capaian || '-')
                     )}
@@ -1557,7 +1582,7 @@ export const ManajemenNilai = ({ mode = 'input' }) => {
             <div className="console-scrollable-body">
               {/* 3. Dynamic Input Area (Keypad vs Achievement Pills) */}
               <div className="console-input-area">
-                {kriteriaType === 'Angka' ? (
+                {effectiveKriteriaType === 'Angka' ? (
                   /* Numeric Keypad Mode */
                   <div className="keypad-grid">
                     {[1, 2, 3, 4, 5, 6, 7, 8, 9].map(num => (
