@@ -10,6 +10,7 @@ export function ImportSantriModal({ isOpen, onClose, onSuccess, tahunAjaranId, t
   const [file, setFile] = useState(null);
   const [isUploading, setIsUploading] = useState(false);
   const [result, setResult] = useState(null);
+  const [isDragging, setIsDragging] = useState(false);
 
   const handleUpload = async () => {
     if (!file) {
@@ -45,20 +46,32 @@ export function ImportSantriModal({ isOpen, onClose, onSuccess, tahunAjaranId, t
     onClose();
   };
 
-  const uploadProps = {
-    onRemove: () => {
-      setFile(null);
-    },
-    beforeUpload: (file) => {
-      const isExcel = file.type === 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' || file.type === 'application/vnd.ms-excel';
-      if (!isExcel) {
-        antMessage.error(`${file.name} bukan file Excel.`);
-        return Upload.LIST_IGNORE;
-      }
-      setFile(file);
-      return false; // Prevent auto-upload
-    },
-    fileList: file ? [file] : [],
+  const handleDragOver = (e) => {
+    e.preventDefault();
+    setIsDragging(true);
+  };
+
+  const handleDragLeave = (e) => {
+    e.preventDefault();
+    setIsDragging(false);
+  };
+
+  const handleDrop = (e) => {
+    e.preventDefault();
+    setIsDragging(false);
+    const files = e.dataTransfer.files;
+    if (files.length > 0) {
+      handleFile(files[0]);
+    }
+  };
+
+  const handleFile = (file) => {
+    const isExcel = file.type === 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' || file.type === 'application/vnd.ms-excel' || file.name.endsWith('.xlsx') || file.name.endsWith('.xls');
+    if (!isExcel) {
+      antMessage.error(`${file.name} bukan file Excel.`);
+      return;
+    }
+    setFile(file);
   };
 
   return (
@@ -109,15 +122,40 @@ export function ImportSantriModal({ isOpen, onClose, onSuccess, tahunAjaranId, t
             </Button>
           </div>
 
-          <Dragger {...uploadProps}>
-            <p className="ant-upload-drag-icon">
-              <InboxOutlined />
-            </p>
-            <p className="ant-upload-text">Klik atau seret file ke area ini untuk mengunggah</p>
-            <p className="ant-upload-hint">
-              Hanya mendukung file .xlsx atau .xls
-            </p>
-          </Dragger>
+          <div 
+            style={{ 
+              border: isDragging ? '2px dashed #1890ff' : '2px dashed #d9d9d9', 
+              borderRadius: 8, 
+              padding: '30px 20px', 
+              textAlign: 'center', 
+              backgroundColor: isDragging ? '#e6f7ff' : '#fafafa',
+              cursor: 'pointer'
+            }}
+            onDragOver={handleDragOver}
+            onDragLeave={handleDragLeave}
+            onDrop={handleDrop}
+            onClick={() => document.getElementById('excel-input').click()}
+          >
+            <p style={{ fontSize: 40, color: '#1890ff', marginBottom: 8 }}><InboxOutlined /></p>
+            <p style={{ margin: '0 0 4px 0' }}>Klik atau seret file ke area ini untuk mengunggah</p>
+            <p style={{ margin: 0, color: 'rgba(0,0,0,0.45)', fontSize: 12 }}>Hanya mendukung file .xlsx atau .xls</p>
+            <input
+              id="excel-input"
+              type="file"
+              style={{ display: 'none' }}
+              onChange={(e) => { if (e.target.files[0]) handleFile(e.target.files[0]); }}
+              accept=".xlsx, .xls"
+            />
+          </div>
+
+          {file && (
+            <div style={{ marginTop: 8, textAlign: 'center' }}>
+              <span style={{ color: '#1890ff' }}>File terpilih: <strong>{file.name}</strong></span>
+              <Button type="link" danger onClick={() => setFile(null)}>
+                Hapus
+              </Button>
+            </div>
+          )}
         </Space>
       ) : (
         <Space direction="vertical" style={{ width: '100%' }} size="middle">
