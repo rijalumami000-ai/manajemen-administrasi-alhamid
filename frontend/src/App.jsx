@@ -53,11 +53,7 @@ function App() {
                   />
                   <Route 
                     path="/pub/laporan-muhafadzoh" 
-                    element={
-                      <ProtectedRoute>
-                        <LaporanMuhafadzoh />
-                      </ProtectedRoute>
-                    } 
+                    element={<LaporanMuhafadzoh />} 
                   />
 
                   <Route path="/" element={

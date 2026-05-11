@@ -1,4 +1,4 @@
-import { apiGet, apiPost, apiPut, apiDelete } from './apiClient';
+import { apiGet, apiPost, apiPut, apiDelete, apiPatch } from './apiClient';
 
 export const santriService = {
   // Fetch all santri or by tahun ajaran
@@ -17,6 +17,11 @@ export const santriService = {
   // Update santri
   async updateSantri(id, data) {
     return apiPut(`/santri/${id}`, data);
+  },
+
+  // Update semester status
+  async updateSemesterStatus(id, data) {
+    return apiPatch(`/santri/${id}/semester-status`, data);
   },
 
   // Delete santri

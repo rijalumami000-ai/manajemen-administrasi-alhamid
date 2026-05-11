@@ -54,6 +54,8 @@ function registerTahunAjaranRoutes(app) {
           ta.is_active AS tahun_ajaran_aktif,
           sta.status AS status_tahun_ajaran,
           sta.catatan AS catatan_tahun_ajaran,
+          sta.aktif_ganjil,
+          sta.aktif_genap,
           sta.nis,
           sta.nik,
           sta.nama,

@@ -98,5 +98,16 @@ export async function apiDelete(endpoint) {
   });
   return handleResponse(response);
 }
+/**
+ * PATCH request with auth
+ */
+export async function apiPatch(endpoint, data) {
+  const response = await fetch(`${API_BASE}${endpoint}`, {
+    method: 'PATCH',
+    headers: getAuthHeaders({ 'Content-Type': 'application/json' }),
+    body: JSON.stringify(data),
+  });
+  return handleResponse(response);
+}
 
 export { API_BASE, getAuthHeaders };

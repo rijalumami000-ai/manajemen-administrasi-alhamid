@@ -1,4 +1,4 @@
-import { Table, Tag, Button, Space, Pagination } from 'antd';
+import { Table, Tag, Button, Space, Pagination, Checkbox, Tooltip } from 'antd';
 import { EditOutlined, DeleteOutlined, FileTextOutlined } from '@ant-design/icons';
 import { EmptyState } from '../common';
 import { formatStatusTahunAjaran } from '../../utils/formatters';
@@ -21,21 +21,48 @@ export function SantriTable({
   onPageChange,
   onEdit,
   onDelete,
-  canEdit
+  canEdit,
+  onUpdateSemesterStatus
 }) {
   const columns = [
+    {
+      title: 'Ganjil',
+      dataIndex: 'aktif_ganjil',
+      key: 'aktif_ganjil',
+      width: 90,
+      render: (checked, record) => (
+        <Checkbox
+          checked={checked}
+          onChange={(e) => onUpdateSemesterStatus(record.id, { aktif_ganjil: e.target.checked })}
+          disabled={!canEdit}
+        />
+      )
+    },
+    {
+      title: 'Genap',
+      dataIndex: 'aktif_genap',
+      key: 'aktif_genap',
+      width: 90,
+      render: (checked, record) => (
+        <Checkbox
+          checked={checked}
+          onChange={(e) => onUpdateSemesterStatus(record.id, { aktif_genap: e.target.checked })}
+          disabled={!canEdit}
+        />
+      )
+    },
     {
       title: 'NIS',
       dataIndex: 'nis',
       key: 'nis',
-      width: 120,
+      width: 140,
       render: (text) => text || '-'
     },
     {
       title: 'NIK',
       dataIndex: 'nik',
       key: 'nik',
-      width: 150,
+      width: 160,
       render: (text) => text || '-'
     },
     {
@@ -46,31 +73,31 @@ export function SantriTable({
       render: (text) => text || '-'
     },
     {
-      title: 'Jenis Kelamin',
+      title: 'JK',
       dataIndex: 'jenis_kelamin',
       key: 'jenis_kelamin',
-      width: 130,
+      width: 60,
       render: (text) => text || '-'
     },
     {
       title: 'Kelas Diniyah',
       dataIndex: 'nama_diniyah',
       key: 'nama_diniyah',
-      width: 150,
+      width: 100,
       render: (text) => text || '-'
     },
     {
       title: 'Kelas Sekolah',
       dataIndex: 'nama_sekolah',
       key: 'nama_sekolah',
-      width: 150,
+      width: 100,
       render: (text) => text || '-'
     },
     {
       title: 'Status',
       dataIndex: 'status_tahun_ajaran',
       key: 'status_tahun_ajaran',
-      width: 120,
+      width: 100,
       render: (status) => (
         <Tag color={statusColorMap[status] || 'default'}>
           {formatStatusTahunAjaran(status)}
@@ -81,41 +108,39 @@ export function SantriTable({
       title: 'Tempat Lahir',
       dataIndex: 'tempat_lahir',
       key: 'tempat_lahir',
-      width: 150,
+      width: 120,
       render: (text) => text || '-'
     },
     {
       title: 'Nama Ayah',
       dataIndex: 'nama_ayah',
       key: 'nama_ayah',
-      width: 180,
+      width: 150,
       render: (text) => text || '-'
     },
     {
       title: 'Aksi',
       key: 'action',
       fixed: 'right',
-      width: 150,
+      width: 100,
       render: (_, record) => (
         canEdit ? (
           <Space size="small">
-            <Button
-              type="link"
-              size="small"
-              icon={<EditOutlined />}
-              onClick={() => onEdit(record)}
-            >
-              Edit
-            </Button>
-            <Button
-              type="link"
-              size="small"
-              danger
-              icon={<DeleteOutlined />}
-              onClick={() => onDelete(record.id)}
-            >
-              Hapus
-            </Button>
+            <Tooltip title="Edit">
+              <Button
+                type="text"
+                icon={<EditOutlined style={{ color: '#1890ff' }} />}
+                onClick={() => onEdit(record)}
+              />
+            </Tooltip>
+            <Tooltip title="Hapus">
+              <Button
+                type="text"
+                danger
+                icon={<DeleteOutlined />}
+                onClick={() => onDelete(record.id)}
+              />
+            </Tooltip>
           </Space>
         ) : (
           <Tag icon={<FileTextOutlined />} color="default">Arsip</Tag>
@@ -131,7 +156,7 @@ export function SantriTable({
         dataSource={data}
         rowKey="id"
         pagination={false}
-        scroll={{ x: 1400 }}
+        scroll={{ x: 1450, y: 500 }}
         locale={{
           emptyText: (
             <EmptyState

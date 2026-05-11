@@ -167,7 +167,25 @@ class NilaiService {
          query += ` AND n.kategori_evaluasi_id IS NULL`;
       }
       
-      query += ` WHERE sta.tahun_ajaran_id = $1 AND sta.kelas_diniyah_id = $2 AND sta.status = 'aktif' ORDER BY s.nama ASC`;
+      // Fetch category name to check if it's Ganjil or Genap
+      let isGanjil = false;
+      let isGenap = false;
+      if (kategoriId && kategoriId !== 'null' && kategoriId !== '') {
+        const katResult = await db.query('SELECT nama FROM kategori_evaluasi WHERE id = $1', [kategoriId]);
+        const katNama = katResult.rows[0]?.nama || '';
+        isGanjil = katNama.toLowerCase().includes('ganjil');
+        isGenap = katNama.toLowerCase().includes('genap');
+      }
+
+      query += ` WHERE sta.tahun_ajaran_id = $1 AND sta.kelas_diniyah_id = $2 AND sta.status = 'aktif'`;
+      
+      if (isGanjil) {
+        query += ` AND (sta.aktif_ganjil = true OR n.id IS NOT NULL)`;
+      } else if (isGenap) {
+        query += ` AND (sta.aktif_genap = true OR n.id IS NOT NULL)`;
+      }
+
+      query += ` ORDER BY s.nama ASC`;
       
       const result = await db.query(query, params);
       return result.rows;
@@ -229,6 +247,12 @@ class NilaiService {
   // Rekap Nilai
   async getRekapNilai(tahunAjaranId, kelasId, kategoriId) {
     try {
+      // Fetch category name to check if it's Ganjil or Genap
+      const katResult = await db.query('SELECT nama FROM kategori_evaluasi WHERE id = $1', [kategoriId]);
+      const katNama = katResult.rows[0]?.nama || '';
+      const isGanjil = katNama.toLowerCase().includes('ganjil');
+      const isGenap = katNama.toLowerCase().includes('genap');
+
       let query = `
         SELECT 
           s.id as santri_id, s.nama, s.nis, 
@@ -242,8 +266,16 @@ class NilaiService {
         LEFT JOIN mata_pelajaran m ON n.mata_pelajaran_id = m.id
         WHERE sta.kelas_diniyah_id = $2
           AND sta.tahun_ajaran_id = $1
-        ORDER BY s.nama ASC, m.nama ASC
+          AND sta.status = 'aktif'
       `;
+
+      if (isGanjil) {
+        query += ` AND (sta.aktif_ganjil = true OR n.id IS NOT NULL)`;
+      } else if (isGenap) {
+        query += ` AND (sta.aktif_genap = true OR n.id IS NOT NULL)`;
+      }
+
+      query += ` ORDER BY s.nama ASC, m.nama ASC`;
       const params = [tahunAjaranId, kelasId, kategoriId];
       
       const result = await db.query(query, params);

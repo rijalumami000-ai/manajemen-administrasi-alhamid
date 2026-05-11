@@ -23,6 +23,8 @@ function registerSantriRoutes(app) {
           ta.is_active AS tahun_ajaran_aktif,
           COALESCE(sta.status, 'aktif') AS status_tahun_ajaran,
           sta.catatan AS catatan_tahun_ajaran,
+          sta.aktif_ganjil,
+          sta.aktif_genap,
           COALESCE(sta.nis, s.nis) AS nis,
           COALESCE(sta.nik, s.nik) AS nik,
           COALESCE(sta.nama, s.nama) AS nama,
@@ -200,6 +202,40 @@ function registerSantriRoutes(app) {
     } catch (error) {
       console.error(error);
       res.status(500).json({ error: 'Gagal memperbarui data santri.' });
+    }
+  });
+
+  app.patch('/api/santri/:id/semester-status', async (req, res) => {
+    const { id } = req.params;
+    const { aktif_ganjil, aktif_genap, tahun_ajaran_id } = req.body;
+
+    try {
+      let yearId = tahun_ajaran_id;
+      if (!yearId) {
+        const activeYear = await getActiveTahunAjaran();
+        if (!activeYear) {
+          return res.status(400).json({ error: 'Tidak ada tahun ajaran aktif.' });
+        }
+        yearId = activeYear.id;
+      }
+
+      const result = await db.query(
+        `UPDATE santri_tahun_ajaran 
+         SET aktif_ganjil = COALESCE($1, aktif_ganjil),
+             aktif_genap = COALESCE($2, aktif_genap)
+         WHERE santri_id = $3 AND tahun_ajaran_id = $4
+         RETURNING *`,
+        [aktif_ganjil !== undefined ? aktif_ganjil : null, aktif_genap !== undefined ? aktif_genap : null, id, yearId]
+      );
+
+      if (result.rows.length === 0) {
+        return res.status(404).json({ error: 'Data santri di tahun ajaran ini tidak ditemukan.' });
+      }
+
+      res.json(result.rows[0]);
+    } catch (error) {
+      console.error(error);
+      res.status(500).json({ error: 'Gagal memperbarui status semester.' });
     }
   });
 

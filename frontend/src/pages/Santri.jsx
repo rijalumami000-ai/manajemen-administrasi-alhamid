@@ -14,7 +14,7 @@ import { exportToExcel, exportToPDF } from '../utils/exportUtils';
 import { FileExcelOutlined, FilePdfOutlined, UploadOutlined } from '@ant-design/icons';
 import './Santri.scss';
 
-const PAGE_SIZE = 10;
+const PAGE_SIZE = 30;
 
 export function Santri() {
   // State
@@ -125,6 +125,19 @@ export function Santri() {
     } catch (err) {
       console.error('Failed to load santri:', err);
       antMessage.error(err.message || 'Gagal memuat data santri');
+    }
+  };
+
+  const handleUpdateSemesterStatus = async (id, statusData) => {
+    try {
+      const yearId = selectedTahunAjaranId || (activeTahunAjaran ? activeTahunAjaran.id : null);
+      await santriService.updateSemesterStatus(id, { ...statusData, tahun_ajaran_id: yearId });
+      antMessage.success('Status semester berhasil diperbarui');
+      // Update local state instead of reloading to be smooth
+      setSantriList(prev => prev.map(s => s.id === id ? { ...s, ...statusData } : s));
+    } catch (err) {
+      console.error('Failed to update semester status:', err);
+      antMessage.error(err.message || 'Gagal memperbarui status semester');
     }
   };
 
@@ -596,6 +609,7 @@ export function Santri() {
           onEdit={handleEditClick}
           onDelete={handleDeleteClick}
           canEdit={canEdit}
+          onUpdateSemesterStatus={handleUpdateSemesterStatus}
         />
       </div>
 

@@ -1,8 +1,10 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { Table, Button, Space, Typography, Card, Spin, Empty, Tag, Radio, Select } from 'antd';
-import { BookOutlined, PrinterOutlined, ShareAltOutlined, CheckCircleOutlined, CloseCircleOutlined, SearchOutlined, BarChartOutlined, UndoOutlined } from '@ant-design/icons';
+import { BookOutlined, PrinterOutlined, ShareAltOutlined, CheckCircleOutlined, CloseCircleOutlined, SearchOutlined, BarChartOutlined, UndoOutlined, ExportOutlined, FilePdfOutlined } from '@ant-design/icons';
 import { nilaiService } from '../services/nilaiService';
 import { useResponsive } from '../hooks/useResponsive';
+import { jsPDF } from 'jspdf';
+import autoTable from 'jspdf-autotable';
 import './ManajemenNilai.scss'; // Reuse styles
 
 const { Title, Text } = Typography;
@@ -245,6 +247,270 @@ export const LaporanMuhafadzoh = () => {
     const selected = tahunAjaranList.find(ta => ta.id === val);
     setTahunAjaran(selected);
     localStorage.setItem('sekolah_info_selected_tahun_ajaran', val);
+  };
+
+  const isArabic = (text) => /[\u0600-\u06FF]/.test(text);
+
+  const renderArabicTextToImage = (text) => {
+    const canvas = document.createElement('canvas');
+    const ctx = canvas.getContext('2d');
+    ctx.font = '16px Arial'; // Larger font for clarity
+    const width = ctx.measureText(text).width;
+    canvas.width = width + 20;
+    canvas.height = 30;
+    ctx.font = '16px Arial';
+    ctx.fillStyle = 'black';
+    ctx.textAlign = 'right'; // Arabic is RTL!
+    ctx.fillText(text, width + 10, 20); // Align to right
+    return { dataUrl: canvas.toDataURL('image/png'), width: canvas.width, height: canvas.height };
+  };
+
+  // Helper to generate PDF content for a single class
+  const generatePDFContent = (doc, classObj, classData) => {
+    // Determine font size and padding based on student count to fit on one page
+    const count = classData.length;
+    const fontSize = count > 30 ? 6 : (count > 20 ? 7 : 8);
+    const padding = count > 30 ? 1 : (count > 20 ? 1.5 : 2.5);
+
+    // Add Title
+    doc.setFontSize(14);
+    doc.setFont('helvetica', 'bold');
+    doc.text(`LAPORAN MUHAFADZOH KUBRO`, 107.9, 15, { align: 'center' });
+    doc.setFontSize(12);
+    doc.text(`KELAS: ${classObj?.nama || '-'}`, 107.9, 22, { align: 'center' });
+    doc.setFontSize(10);
+    doc.setFont('helvetica', 'normal');
+    doc.text(`${tahunAjaran?.kode || '-'} | ${currentKategoriObj?.nama || '-'}`, 107.9, 28, { align: 'center' });
+
+    // Prepare Headers
+    const headers = [
+      [
+        { content: 'No', rowSpan: 2, valign: 'middle' },
+        { content: 'Nama Santri', rowSpan: 2, valign: 'middle' },
+        { content: 'Nilai', rowSpan: 2, valign: 'middle' },
+        { content: 'Predikat', colSpan: 4, halign: 'center' },
+        { content: 'Kelulusan', colSpan: 2, halign: 'center' },
+        { content: 'Ghoib', rowSpan: 2, valign: 'middle' }
+      ],
+      [
+        "Rodi'", 'Mutawasith', 'Jayyid', 'Mumtaz',
+        'Lulus', 'Tidak'
+      ]
+    ];
+
+    // Prepare Data
+    const tableData = classData.map((r, idx) => {
+      const isLulus = ["Mutawassith", "Jayyid", "Mumtaz"].includes(r.predikat);
+      const isGhoib = r.nilai_angka === null && !r.capaian;
+      const nilaiText = r.nilai_angka !== null ? Number(r.nilai_angka).toString() : (r.capaian || '-');
+      const isAr = isArabic(nilaiText);
+
+      return [
+        idx + 1,
+        r.nama,
+        isAr ? '' : nilaiText, // Empty string if Arabic to prevent font issues
+        '', // Checkmarks will be drawn manually
+        '',
+        '',
+        '',
+        '',
+        '',
+        isGhoib ? '' : '-'
+      ];
+    });
+
+    // Compute Local Summary
+    const localSummary = {
+      counts: {
+        Rodi: classData.filter(r => r.predikat === "Rodi'").length,
+        Mutawassith: classData.filter(r => r.predikat === "Mutawassith").length,
+        Jayyid: classData.filter(r => r.predikat === "Jayyid").length,
+        Mumtaz: classData.filter(r => r.predikat === "Mumtaz").length,
+        Lulus: classData.filter(r => ["Mutawassith", "Jayyid", "Mumtaz"].includes(r.predikat)).length,
+        Tidak: classData.filter(r => r.predikat === "Rodi'").length,
+      },
+      percents: {
+        Rodi: classData.length > 0 ? `${Math.round((classData.filter(r => r.predikat === "Rodi'").length / classData.length) * 100)}%` : '0%',
+        Mutawassith: classData.length > 0 ? `${Math.round((classData.filter(r => r.predikat === "Mutawassith").length / classData.length) * 100)}%` : '0%',
+        Jayyid: classData.length > 0 ? `${Math.round((classData.filter(r => r.predikat === "Jayyid").length / classData.length) * 100)}%` : '0%',
+        Mumtaz: classData.length > 0 ? `${Math.round((classData.filter(r => r.predikat === "Mumtaz").length / classData.length) * 100)}%` : '0%',
+        Lulus: classData.length > 0 ? `${Math.round((classData.filter(r => ["Mutawassith", "Jayyid", "Mumtaz"].includes(r.predikat)).length / classData.length) * 100)}%` : '0%',
+        Tidak: classData.length > 0 ? `${Math.round((classData.filter(r => r.predikat === "Rodi'").length / classData.length) * 100)}%` : '0%',
+      }
+    };
+
+    const ghoibCount = classData.filter(r => r.nilai_angka === null && !r.capaian).length;
+    const ghoibPercent = classData.length > 0 ? `${Math.round((ghoibCount / classData.length) * 100)}%` : '0%';
+
+    // Prepare Footer
+    const footData = [
+      [
+        { content: '', colSpan: 10, styles: { minCellHeight: 4, fillColor: [255, 255, 255], lineWidth: 0 } }
+      ],
+      [
+        { content: 'Jumlah (Akumulasi)', colSpan: 3, halign: 'right', fontStyle: 'bold' },
+        { content: localSummary.counts.Rodi.toString(), halign: 'center' },
+        { content: localSummary.counts.Mutawassith.toString(), halign: 'center' },
+        { content: localSummary.counts.Jayyid.toString(), halign: 'center' },
+        { content: localSummary.counts.Mumtaz.toString(), halign: 'center' },
+        { content: localSummary.counts.Lulus.toString(), halign: 'center' },
+        { content: localSummary.counts.Tidak.toString(), halign: 'center' },
+        { content: ghoibCount.toString(), halign: 'center' }
+      ],
+      [
+        { content: 'Persentase (%)', colSpan: 3, halign: 'right', fontStyle: 'bold' },
+        { content: localSummary.percents.Rodi, halign: 'center' },
+        { content: localSummary.percents.Mutawassith, halign: 'center' },
+        { content: localSummary.percents.Jayyid, halign: 'center' },
+        { content: localSummary.percents.Mumtaz, halign: 'center' },
+        { content: localSummary.percents.Lulus, halign: 'center' },
+        { content: localSummary.percents.Tidak, halign: 'center' },
+        { content: ghoibPercent, halign: 'center' }
+      ]
+    ];
+
+    // Add Table
+    autoTable(doc, {
+      head: headers,
+      body: tableData,
+      foot: footData,
+      startY: 35,
+      theme: 'grid',
+      styles: { fontSize: fontSize, cellPadding: padding, halign: 'center', valign: 'middle' },
+      headStyles: { fillColor: [26, 54, 93], textColor: 255, fontStyle: 'bold', lineWidth: 0.2, lineColor: [255, 255, 255] },
+      footStyles: { fillColor: [240, 242, 245], textColor: 0, fontStyle: 'bold' },
+      columnStyles: {
+        0: { width: 8 },
+        1: { width: 55, halign: 'left' },
+        2: { width: 30 }, // Increased width for Arabic text
+        3: { width: 12 },
+        4: { width: 15 },
+        5: { width: 12 },
+        6: { width: 12 },
+        7: { width: 12 },
+        8: { width: 12 },
+        9: { width: 12 },
+      },
+      margin: { left: 15, right: 15 },
+      didDrawCell: (data) => {
+        if (data.section === 'body') {
+          const rowIndex = data.row.index;
+          const colIndex = data.column.index;
+          const r = classData[rowIndex];
+          if (!r) return;
+
+          // Draw image for column 2 if it's Arabic
+          if (colIndex === 2) {
+            const nilaiText = r.nilai_angka !== null ? Number(r.nilai_angka).toString() : (r.capaian || '-');
+            if (isArabic(nilaiText)) {
+              const imgInfo = renderArabicTextToImage(nilaiText);
+              const imgHeight = 5; // mm
+              let imgWidth = imgInfo.width * (imgHeight / imgInfo.height);
+              if (imgWidth > data.cell.width - 2) imgWidth = data.cell.width - 2;
+              
+              const x = data.cell.x + (data.cell.width - imgWidth) / 2;
+              const y = data.cell.y + (data.cell.height - imgHeight) / 2;
+              doc.addImage(imgInfo.dataUrl, 'PNG', x, y, imgWidth, imgHeight);
+            }
+          }
+
+          // Draw checkmarks manually
+          if (colIndex >= 3 && colIndex <= 9) {
+            let shouldDrawCheck = false;
+            let isRed = false;
+            const isLulus = ["Mutawassith", "Jayyid", "Mumtaz"].includes(r.predikat);
+            const isGhoib = r.nilai_angka === null && !r.capaian;
+
+            if (colIndex === 3 && r.predikat === "Rodi'") { shouldDrawCheck = true; isRed = true; }
+            else if (colIndex === 4 && r.predikat === "Mutawassith") { shouldDrawCheck = true; }
+            else if (colIndex === 5 && r.predikat === "Jayyid") { shouldDrawCheck = true; }
+            else if (colIndex === 6 && r.predikat === "Mumtaz") { shouldDrawCheck = true; }
+            else if (colIndex === 7 && isLulus) { shouldDrawCheck = true; }
+            else if (colIndex === 8 && r.predikat === "Rodi'") { shouldDrawCheck = true; isRed = true; }
+            else if (colIndex === 9 && isGhoib) { shouldDrawCheck = true; isRed = true; }
+
+            if (shouldDrawCheck) {
+              const x = data.cell.x + data.cell.width / 2;
+              const y = data.cell.y + data.cell.height / 2;
+              
+              if (isRed) {
+                doc.setDrawColor(220, 53, 69);
+              } else {
+                doc.setDrawColor(40, 167, 69);
+              }
+              
+              doc.setLineWidth(0.4);
+              doc.line(x - 1.5, y, x, y + 1.5);
+              doc.line(x, y + 1.5, x + 2.5, y - 1.5);
+              
+              doc.setDrawColor(0, 0, 0);
+              doc.setLineWidth(0.2);
+            }
+          }
+        }
+      },
+      didDrawPage: (data) => {
+        doc.setFontSize(8);
+        doc.text(`Halaman ${data.pageNumber}`, 107.9, 320, { align: 'center' });
+      }
+    });
+  };
+
+  const exportLaporanToPDF = () => {
+    console.log('Tombol Ekspor PDF diklik');
+    try {
+      const doc = jsPDF({
+        orientation: 'portrait',
+        unit: 'mm',
+        format: [215.9, 330.2] // F4 size in mm
+      });
+
+      generatePDFContent(doc, currentKelasObj, data);
+
+      doc.save(`Laporan_Muhafadzoh_${currentKelasObj?.nama || 'Kelas'}_${tahunAjaran?.kode || 'TA'}.pdf`);
+      console.log('PDF berhasil disimpan');
+    } catch (error) {
+      console.error('Error saat ekspor PDF:', error);
+      alert('Terjadi kesalahan saat membuat PDF: ' + error.message);
+    }
+  };
+
+  const exportAllToPDF = async () => {
+    console.log('Tombol Ekspor Semua Kelas diklik');
+    setLoading(true);
+    try {
+      const doc = jsPDF({
+        orientation: 'portrait',
+        unit: 'mm',
+        format: [215.9, 330.2] // F4 size in mm
+      });
+
+      for (let i = 0; i < kelas.length; i++) {
+        const k = kelas[i];
+        console.log(`Mengambil data untuk kelas ${k.nama}...`);
+        
+        const classData = await nilaiService.fetchNilaiSantri({
+          tahun_ajaran_id: tahunAjaran.id,
+          kelas_id: k.id,
+          mapel_id: mapelAkbar.id,
+          kategori_id: selectedKategori
+        });
+
+        if (i > 0) {
+          doc.addPage();
+        }
+
+        generatePDFContent(doc, k, classData);
+      }
+
+      doc.save(`Laporan_Muhafadzoh_Semua_Kelas_${tahunAjaran?.kode || 'TA'}.pdf`);
+      console.log('PDF Semua Kelas berhasil disimpan');
+    } catch (error) {
+      console.error('Error saat ekspor semua kelas:', error);
+      alert('Terjadi kesalahan saat membuat PDF: ' + error.message);
+    } finally {
+      setLoading(false);
+    }
   };
 
   // Helper to render count with percentage in table
@@ -536,11 +802,12 @@ export const LaporanMuhafadzoh = () => {
             {!isMobile && (
               <Space wrap>
                 <Button size="small" icon={<PrinterOutlined />} onClick={() => window.print()}>Cetak</Button>
-                <Button size="small" type="primary" icon={<ShareAltOutlined />} onClick={() => {
+                <Button size="small" type="default" icon={<FilePdfOutlined />} onClick={exportLaporanToPDF}>Ekspor PDF</Button>
+                <Button size="small" type="default" icon={<FilePdfOutlined />} onClick={exportAllToPDF}>Ekspor Semua Kelas</Button>
+                <Button size="small" type="primary" icon={<ExportOutlined />} onClick={() => {
                   const url = `${window.location.origin}/pub/laporan-muhafadzoh?kelas_id=${selectedKelas}&kategori_id=${selectedKategori}`;
-                  navigator.clipboard.writeText(url);
-                  alert('Link khusus Wali Kelas telah disalin!');
-                }}>Salin Link Wali Kelas</Button>
+                  window.open(url, '_blank');
+                }}>Buka Laporan Wali Kelas</Button>
               </Space>
             )}
           </Space>
