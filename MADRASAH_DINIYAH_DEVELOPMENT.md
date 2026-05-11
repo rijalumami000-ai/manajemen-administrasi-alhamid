@@ -68,37 +68,38 @@ Logika penilaian telah disesuaikan dengan standar akademik Madrasah Diniyah.
     *   **Taftisyul Kutub**: Menampilkan status **Tam/Naqish**.
     *   **Reguler/Qiroat**: Menampilkan nilai angka.
 
-## 5. Laporan Muhafadzoh Akbar
+## 5. Laporan Ujian Khusus (Konsolidasi Tiga Laporan)
 
-Halaman laporan baru yang dirancang khusus untuk memantau hasil ujian Muhafadzoh Akbar dengan standar estetika premium dan responsif.
+Halaman laporan terpadu yang dirancang khusus untuk memantau hasil ujian khusus dengan standar estetika premium. Halaman ini menggunakan antarmuka berbasis Tab untuk mengonsolidasi tiga mata pelajaran utama:
 
+*   **Konsolidasi Tiga Mapel**:
+    *   **Muhafadzoh Akbar**: Menampilkan Predikat (Mumtaz, Jayyid, Mutawassith, Rodi') dan status kelulusan (Lulus jika Mumtaz/Jayyid/Mutawassith).
+    *   **Qiroatul Kitab**: Menampilkan Nilai Angka dan kalkulasi Rata-rata.
+    *   **Taftisyul Kutub**: Menampilkan Status (Tam/Lengkap, Naqish/Kurang) dan kelulusan (Lulus jika Tam).
 *   **Dua Mode Tampilan**:
-    *   **Detail Per Kelas**: Menampilkan daftar santri, nilai/capaian, predikat, dan status kelulusan (Lulus jika Mumtaz/Jayyid/Mutawassith, Tidak jika Rodi').
-    *   **Akumulasi Seluruh Kelas**: Menampilkan rekapitulasi jumlah santri per kategori nilai untuk seluruh kelas dalam satu tabel/daftar.
+    *   **Detail Per Kelas**: Menampilkan daftar santri, nilai/capaian, predikat, dan status kelulusan.
+    *   **Akumulasi Seluruh Kelas**: Menampilkan rekapitulasi jumlah santri per kategori nilai (jumlah Tam/Naqish, jumlah Rodi', atau rata-rata nilai) untuk seluruh kelas dalam satu tabel/daftar.
 *   **Optimalisasi Mobile**:
     *   Tabel lebar otomatis diubah menjadi barisan kartu (Cards) yang rapi.
     *   Menu navigasi atas dibuat melayang (Sticky) agar mudah diakses saat men-scroll.
-    *   Pemilihan tingkatan menggunakan list horizontal yang ramah sentuhan.
-*   **Fitur Pencarian Global**: Memungkinkan pencarian nama santri lintas kelas untuk langsung menuju ke kelas yang bersangkutan.
-*   **Dukungan Semester**: Memisahkan data laporan antara Semester Ganjil dan Genap.
-*   **Logika Ghoib**: Mendeteksi santri yang belum diisi nilainya sebagai kategori "Ghoib".
+    *   Tombol aksi (Ekspor PDF & Bagikan) dirancang sebagai tombol melayang (Floating Action Button).
+*   **Ekspor PDF Dinamis**: Sistem PDF otomatis menyesuaikan kolom dan ringkasan perhitungan berdasarkan tab mapel yang sedang aktif. PDF juga mendukung pencetakan Teks Arab tanpa rusak (menggunakan konversi canvas terintegrasi).
 
 ## 6. Konsep Tahun Ajaran (Multi-Year Support)
 
 Untuk mendukung pemantauan perkembangan santri dari tahun ke tahun dan pengelolaan arsip, sistem kini mendukung pemilihan Tahun Ajaran secara fleksibel di seluruh halaman kerja Madrasah Diniyah.
 
-*   **Pemilih Tahun Ajaran (Selector)**: Ditambahkan di bagian header atas pada halaman `Laporan Muhafadzoh` dan `Manajemen Nilai` (mencakup Input Penilaian, Rekap & Rapor, dan Pengaturan Kriteria).
+*   **Pemilih Tahun Ajaran (Selector)**: Ditambahkan di bagian header atas pada halaman `Laporan Ujian Khusus` dan `Manajemen Nilai` (mencakup Input Penilaian, Rekap & Rapor, dan Pengaturan Kriteria).
 *   **Simulasi State Global**: Menggunakan `localStorage` (`sekolah_info_selected_tahun_ajaran`) untuk menyimpan pilihan tahun yang aktif. Hal ini membuat pilihan tahun tetap bertahan meskipun user berpindah-pindah halaman, tanpa harus merombak layout utama aplikasi.
 *   **Format Teks Standar**: Menampilkan string kode tahun ajaran (misal: `2025-2026`) bukan ID database, agar selaras dengan Menu Data Santri.
 
 ## 7. Ringkasan Teknis (Developer Notes)
 
-*   **File Utama**: `ManajemenNilai.jsx`, `LaporanMuhafadzoh.jsx`, & `ManajemenNilai.scss`.
-*   **Komponen Kunci**: `antd/Card`, `antd/Table`, `antd/Select`, `antd/Radio`, `antd/Segmented`.
-*   **Service**: `nilaiService.js` (sinkronisasi antara frontend dan backend untuk kriteria, rekap, dan akumulasi).
-*   **Optimasi**: Penggunaan `useMemo` untuk kalkulasi kategori mapel dan summary data, serta `useEffect` yang terarah untuk meminimalisir re-render saat pemilihan filter.
-*   **Dual Route**: Mendukung rute internal `/laporan-muhafadzoh` (dengan sidebar) dan rute publik `/pub/laporan-muhafadzoh` (tampilan bersih untuk Wali Kelas).
-*   **Data Integrity**: Penggunaan `JSON.stringify` pada kolom konfigurasi JSONB untuk memastikan kompatibilitas data tingkat tinggi antara Node.js dan PostgreSQL.
+*   **File Utama**: `ManajemenNilai.jsx`, `LaporanUjianKhusus.jsx`, & `ManajemenNilai.scss`.
+*   **Komponen Kunci**: `antd/Tabs`, `antd/Card`, `antd/Table`, `antd/Select`, `antd/Radio`, `antd/Segmented`.
+*   **Service**: `nilaiService.js` (sinkronisasi frontend-backend untuk kriteria, rekap, dan query dinamis akumulasi 3 mapel).
+*   **Optimasi**: Penggunaan `useMemo` dengan bullet-proof check (misal `Array.isArray`) untuk kalkulasi summary guna menghindari runtime crash (`ReferenceError`).
+*   **Dual Route**: Mendukung rute internal `/laporan-ujian-khusus` (dengan sidebar) dan rute publik `/pub/laporan-ujian-khusus` (tampilan bersih untuk Wali Kelas).
 
 ---
-*Dokumentasi ini diperbarui untuk mencakup fitur Laporan Muhafadzoh Akbar dan Konsep Tahun Ajaran.*
+*Dokumentasi ini diperbarui untuk mencakup penyatuan sistem Laporan Ujian Khusus.*

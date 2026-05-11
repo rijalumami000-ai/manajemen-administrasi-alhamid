@@ -223,9 +223,12 @@ class NilaiService {
           COUNT(CASE WHEN n.predikat = 'Jayyid' THEN 1 END) as jayyid,
           COUNT(CASE WHEN n.predikat = 'Mutawassith' THEN 1 END) as mutawassith,
           COUNT(CASE WHEN n.predikat = 'Rodi''' THEN 1 END) as rodi,
-          COUNT(CASE WHEN n.predikat IN ('Mumtaz', 'Jayyid', 'Mutawassith') THEN 1 END) as lulus,
-          COUNT(CASE WHEN n.predikat = 'Rodi''' THEN 1 END) as tidak,
-          COUNT(CASE WHEN n.id IS NULL THEN 1 END) as ghoib
+          COUNT(CASE WHEN n.predikat = 'Tam' THEN 1 END) as tam,
+          COUNT(CASE WHEN n.predikat = 'Naqish' THEN 1 END) as naqish,
+          COUNT(CASE WHEN n.predikat IN ('Mumtaz', 'Jayyid', 'Mutawassith', 'Tam') THEN 1 END) as lulus,
+          COUNT(CASE WHEN n.predikat IN ('Rodi''', 'Naqish') THEN 1 END) as tidak,
+          COUNT(CASE WHEN n.id IS NULL THEN 1 END) as ghoib,
+          ROUND(AVG(n.nilai_angka), 2) as rata_rata
         FROM santri_tahun_ajaran sta
         JOIN santri s ON sta.santri_id = s.id
         JOIN kelas k ON sta.kelas_diniyah_id = k.id
