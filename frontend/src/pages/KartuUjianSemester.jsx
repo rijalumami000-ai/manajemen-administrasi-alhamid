@@ -7,7 +7,7 @@ import {
 import {
   IdcardOutlined, SettingOutlined, PrinterOutlined, ThunderboltOutlined,
   DeleteOutlined, UserOutlined, ReloadOutlined, UploadOutlined,
-  CheckCircleOutlined, WarningOutlined, FileImageOutlined
+  CheckCircleOutlined, WarningOutlined, FileImageOutlined, FileTextOutlined
 } from '@ant-design/icons';
 import './KartuUjianSemester.scss';
 import { QRCodeSVG } from 'qrcode.react';
@@ -270,6 +270,111 @@ function TabSettingCard({ settings, onRefresh }) {
   );
 }
 
+// ─── Tab Baru: Edit & Cetak Tata Tertib (Kartu Belakang) ──────────────────────
+function TabKartuBelakang({ settings, onRefresh, pesertaList }) {
+  const [form] = Form.useForm();
+  const [saving, setSaving] = useState(false);
+
+  const defaultKewajiban = `1. Berada di tempat ujian 10 menit sebelum ujian dilaksanakan;
+2. Menunjukan kartu ujiannya kepada penguji dan pengawas saat ujian berlangsung;
+3. Berpakaian sopan dan rapi Syar'an Wa Adatan;
+4. Berbaju putih, polos, berkerah, berlengan panjang dan berkopyah hitam bagi putra;
+5. Berbaju putih dan berkerudung almamater bagi putri;
+6. Membubuhkan tanda tangan di lembar absen dan menulis nama di lembar Jawaban.`;
+
+  const defaultLarangan = `1. Keluar masuk ruang ujian tanpa seizin Penguji dan Pengawas;
+2. Membuat gaduh atau ramai (berkomunikasi dengan peserta lain) saat ujian berlangsung;
+3. Berambut gondrong, bersemir, memakai gelang, bermodel yang tidak sesuai dengan nilai-nilai pesantren dan berkuku panjang serta cat kuku bagi putri;
+4. Membawa sesuatu selain alat tulis (termasuk stypo);
+5. Memberi atau menyontek jawaban dengan cara apapun;
+6. Mengerjakan soal-soal ujian sebelum dipersilahkan oleh penguji;
+7. Bertanya soal-soal ujian kepada penguji saat mengerjakan soal;
+8. Meninggalkan ruang ujian sebelum diperkenankan oleh penguji.`;
+
+  const defaultSanksi = `1. Jika melanggar, maka ujiannya dinyatakan gugur dan dikeluarkan dari ruangan;
+2. Pengurangan nilai;
+3. Diperingatkan oleh pengawas/ penguji;
+4. Berdiri di luar ruangan kelas;`;
+
+  useEffect(() => {
+    form.setFieldsValue({
+      tata_tertib_kewajiban: settings?.tata_tertib_kewajiban || defaultKewajiban,
+      tata_tertib_larangan: settings?.tata_tertib_larangan || defaultLarangan,
+      tata_tertib_sanksi: settings?.tata_tertib_sanksi || defaultSanksi,
+    });
+  }, [settings, form]);
+
+  const handleSave = async () => {
+    setSaving(true);
+    try {
+      const values = form.getFieldsValue();
+      const token = localStorage.getItem('token');
+      
+      // Karena backend hanya menerima { key, value }, kita harus loop tiap field
+      for (const [key, value] of Object.entries(values)) {
+        const res = await fetch(`${API_BASE}/api/settings`, {
+          method: 'POST',
+          headers: { 
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
+          body: JSON.stringify({ key, value }),
+        });
+        if (!res.ok) throw new Error('Gagal menyimpan.');
+      }
+      
+      message.success('Pengaturan tata tertib berhasil disimpan!');
+      onRefresh();
+    } catch { message.error('Gagal menyimpan pengaturan.'); }
+    finally { setSaving(false); }
+  };
+
+  const handlePrint = () => {
+    if (!pesertaList.length) return message.warning('Tidak ada data peserta untuk dicetak. Pilih data di tab "Cetak Kartu" terlebih dahulu.');
+    window.print();
+  };
+
+  return (
+    <div className="tab-kartu-belakang">
+      <Row gutter={20}>
+        <Col xs={24} md={16}>
+          <Card title="📝 Edit Tata Tertib Ujian" size="small">
+            <Form form={form} layout="vertical">
+              <Form.Item label="Kewajiban" name="tata_tertib_kewajiban">
+                <Input.TextArea rows={5} />
+              </Form.Item>
+              <Form.Item label="Larangan" name="tata_tertib_larangan">
+                <Input.TextArea rows={6} />
+              </Form.Item>
+              <Form.Item label="Sanksi" name="tata_tertib_sanksi">
+                <Input.TextArea rows={4} />
+              </Form.Item>
+              <Space>
+                <Button type="primary" onClick={handleSave} loading={saving}>Simpan Tata Tertib</Button>
+                <Button type="primary" icon={<PrinterOutlined />} onClick={handlePrint} disabled={!pesertaList.length} style={{ background: '#0052FF' }}>
+                  Cetak Sisi Belakang ({pesertaList.length} kartu)
+                </Button>
+              </Space>
+            </Form>
+          </Card>
+        </Col>
+        <Col xs={24} md={8}>
+          <Card title="ℹ️ Petunjuk" size="small">
+            <Text type="secondary">
+              Tuliskan poin-poin tata tertib per baris. Teks ini akan dicetak di bagian belakang kartu ujian.
+              <br /><br />
+              <strong>Cara Cetak:</strong><br />
+              1. Pilih filter data di tab <strong>Cetak Kartu</strong> terlebih dahulu.<br />
+              2. Pindah ke tab ini, lalu klik tombol <strong>Cetak Sisi Belakang</strong>.<br />
+              3. Jumlah kartu yang digenerate akan sama persis dengan yang ada di tab Cetak Kartu.
+            </Text>
+          </Card>
+        </Col>
+      </Row>
+    </div>
+  );
+}
+
 // ─── Tab 3: Filter & kontrol cetak (tanpa area kartu) ────────────────────────
 function TabCetakKartu({ tahunAjaranList, settings, onPesertaChange, pesertaList }) {
   const [tahunAjaranId, setTahunAjaranId] = useState(null);
@@ -310,16 +415,79 @@ function TabCetakKartu({ tahunAjaranList, settings, onPesertaChange, pesertaList
     <div className="tab-cetak">
       <Card size="small" style={{ marginBottom: 16 }}>
         <Space wrap>
-          <Select placeholder="Pilih Tahun Ajaran" value={tahunAjaranId} onChange={setTahunAjaranId} style={{ width: 180 }}>
-            {tahunAjaranList.map(ta => <Option key={ta.id} value={ta.id}>{ta.kode}</Option>)}
-          </Select>
-          <Select placeholder="Semester" value={semester} onChange={setSemester} style={{ width: 130 }}>
-            <Option value="Ganjil">Ganjil</Option>
-            <Option value="Genap">Genap</Option>
-          </Select>
-          <Select placeholder="Semua Kelas" value={kelasDiniyahId} onChange={setKelasDiniyahId} allowClear style={{ width: 140 }}>
-            {kelasList.map(k => <Option key={k.id} value={k.id}>{k.nama}</Option>)}
-          </Select>
+          {/* Filter Tahun Ajaran */}
+          <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
+            <span style={{ fontSize: '12px', color: '#8c8c8c' }}>Tahun:</span>
+            {tahunAjaranList.map(ta => (
+              <div
+                key={ta.id}
+                onClick={() => setTahunAjaranId(ta.id)}
+                style={{
+                  padding: '5px 12px',
+                  border: `1px solid ${tahunAjaranId === ta.id ? '#0052FF' : '#d9d9d9'}`,
+                  borderRadius: '6px',
+                  cursor: 'pointer',
+                  background: tahunAjaranId === ta.id ? '#e6f7ff' : '#fff',
+                  color: tahunAjaranId === ta.id ? '#0052FF' : '#595959',
+                  fontSize: '13px',
+                  fontWeight: tahunAjaranId === ta.id ? 'bold' : 'normal',
+                  transition: 'all 0.2s'
+                }}
+              >
+                {ta.kode}
+              </div>
+            ))}
+          </div>
+
+          {/* Filter Semester */}
+          <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
+            <span style={{ fontSize: '12px', color: '#8c8c8c' }}>Smt:</span>
+            {['Ganjil', 'Genap'].map(s => (
+              <div
+                key={s}
+                onClick={() => setSemester(s)}
+                style={{
+                  padding: '5px 12px',
+                  border: `1px solid ${semester === s ? '#0052FF' : '#d9d9d9'}`,
+                  borderRadius: '6px',
+                  cursor: 'pointer',
+                  background: semester === s ? '#e6f7ff' : '#fff',
+                  color: semester === s ? '#0052FF' : '#595959',
+                  fontSize: '13px',
+                  fontWeight: semester === s ? 'bold' : 'normal',
+                  transition: 'all 0.2s'
+                }}
+              >
+                {s}
+              </div>
+            ))}
+          </div>
+
+          {/* Filter Kelas */}
+          <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
+            <span style={{ fontSize: '12px', color: '#8c8c8c' }}>Kelas:</span>
+            <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap', maxWidth: '300px' }}>
+              {kelasList.map(k => (
+                <div
+                  key={k.id}
+                  onClick={() => setKelasDiniyahId(k.id === kelasDiniyahId ? null : k.id)}
+                  style={{
+                    padding: '4px 10px',
+                    border: `1px solid ${kelasDiniyahId === k.id ? '#0052FF' : '#d9d9d9'}`,
+                    borderRadius: '4px',
+                    cursor: 'pointer',
+                    background: kelasDiniyahId === k.id ? '#e6f7ff' : '#fff',
+                    color: kelasDiniyahId === k.id ? '#0052FF' : '#595959',
+                    fontSize: '12px',
+                    fontWeight: kelasDiniyahId === k.id ? 'bold' : 'normal',
+                    transition: 'all 0.2s'
+                  }}
+                >
+                  {k.nama}
+                </div>
+              ))}
+            </div>
+          </div>
           <Input value={tanggalCetak} onChange={e => setTanggalCetak(e.target.value)}
             placeholder="Tanggal Cetak" style={{ width: 200 }} prefix="📅" />
           <Button icon={<ReloadOutlined />} onClick={fetchPeserta} loading={loading} />
@@ -478,6 +646,68 @@ function KartuUjian({ p, settings, tahunAjaran, tanggalCetak }) {
   );
 }
 
+// ─── Satu Kartu Ujian (Bagian Belakang / Tata Tertib) ────────────────────────
+function KartuUjianBelakang({ settings }) {
+  const defaultKewajiban = `1. Berada di tempat ujian 10 menit sebelum ujian dilaksanakan;
+2. Menunjukan kartu ujiannya kepada penguji dan pengawas saat ujian berlangsung;
+3. Berpakaian sopan dan rapi Syar'an Wa Adatan;
+4. Berbaju putih, polos, berkerah, berlengan panjang dan berkopyah hitam bagi putra;
+5. Berbaju putih dan berkerudung almamater bagi putri;
+6. Membubuhkan tanda tangan di lembar absen dan menulis nama di lembar Jawaban.`;
+
+  const defaultLarangan = `1. Keluar masuk ruang ujian tanpa seizin Penguji dan Pengawas;
+2. Membuat gaduh atau ramai (berkomunikasi dengan peserta lain) saat ujian berlangsung;
+3. Berambut gondrong, bersemir, memakai gelang, bermodel yang tidak sesuai dengan nilai-nilai pesantren dan berkuku panjang serta cat kuku bagi putri;
+4. Membawa sesuatu selain alat tulis (termasuk stypo);
+5. Memberi atau menyontek jawaban dengan cara apapun;
+6. Mengerjakan soal-soal ujian sebelum dipersilahkan oleh penguji;
+7. Bertanya soal-soal ujian kepada penguji saat mengerjakan soal;
+8. Meninggalkan ruang ujian sebelum diperkenankan oleh penguji.`;
+
+  const defaultSanksi = `1. Jika melanggar, maka ujiannya dinyatakan gugur dan dikeluarkan dari ruangan;
+2. Pengurangan nilai;
+3. Diperingatkan oleh pengawas/ penguji;
+4. Berdiri di luar ruangan kelas;`;
+
+  const kewajiban = settings?.tata_tertib_kewajiban || defaultKewajiban;
+  const larangan = settings?.tata_tertib_larangan || defaultLarangan;
+  const sanksi = settings?.tata_tertib_sanksi || defaultSanksi;
+
+  const renderList = (text) => {
+    if (!text) return null;
+    return text.split('\n').map((line, i) => (
+      <div key={i} style={{ fontSize: '9.5px', lineHeight: '1.2', color: '#000' }}>
+        {line.trim()}
+      </div>
+    ));
+  };
+
+  return (
+    <div className="kartu-ujian kartu-belakang" style={{ padding: '8px', boxSizing: 'border-box', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
+      <div style={{ textAlign: 'center', fontWeight: 'bold', fontSize: '12px', borderBottom: '1px solid #000', paddingBottom: '2px', marginBottom: '4px' }}>
+        TATA TERTIB UJIAN
+      </div>
+      
+      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '4px' }}>
+        <div>
+          <div style={{ fontWeight: 'bold', fontSize: '10px' }}>Kewajiban :</div>
+          {renderList(kewajiban)}
+        </div>
+
+        <div>
+          <div style={{ fontWeight: 'bold', fontSize: '10px' }}>Larangan :</div>
+          {renderList(larangan)}
+        </div>
+
+        <div>
+          <div style={{ fontWeight: 'bold', fontSize: '10px' }}>Sanksi :</div>
+          {renderList(sanksi)}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ─── Komponen Utama ───────────────────────────────────────────────────────────
 export function KartuUjianSemester() {
   const [tahunAjaranList, setTahunAjaranList] = useState([]);
@@ -523,6 +753,17 @@ export function KartuUjianSemester() {
       ),
     },
     {
+      key: 'kartu_belakang',
+      label: <span><FileTextOutlined /> Kartu Belakang</span>,
+      children: (
+        <TabKartuBelakang
+          settings={settings}
+          onRefresh={fetchMeta}
+          pesertaList={printData.pesertaList}
+        />
+      ),
+    },
+    {
       key: 'setting',
       label: <span><SettingOutlined /> Setting Kartu</span>,
       children: <TabSettingCard settings={settings} onRefresh={fetchMeta} />,
@@ -550,13 +791,20 @@ export function KartuUjianSemester() {
         <div className="kartu-grid-wrapper">
           <div className="kartu-grid">
             {printData.pesertaList.map((p) => (
-              <KartuUjian
-                key={p.id}
-                p={p}
-                settings={settings}
-                tahunAjaran={printData.tahunAjaran}
-                tanggalCetak={printData.tanggalCetak}
-              />
+              activeTab === 'kartu_belakang' ? (
+                <KartuUjianBelakang
+                  key={p.id}
+                  settings={settings}
+                />
+              ) : (
+                <KartuUjian
+                  key={p.id}
+                  p={p}
+                  settings={settings}
+                  tahunAjaran={printData.tahunAjaran}
+                  tanggalCetak={printData.tanggalCetak}
+                />
+              )
             ))}
           </div>
         </div>
