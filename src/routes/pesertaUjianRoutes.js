@@ -177,6 +177,40 @@ function registerPesertaUjianRoutes(app) {
       res.status(500).json({ error: 'Gagal menghapus data peserta ujian.' });
     }
   });
+
+  // === GET: Verifikasi peserta ujian (Publik, tanpa auth) ===
+  app.get('/api/public/verify/:no_peserta', async (req, res) => {
+    try {
+      const { no_peserta } = req.params;
+      if (!no_peserta) {
+        return res.status(400).json({ error: 'Nomor peserta wajib diisi.' });
+      }
+
+      const result = await db.query(`
+        SELECT
+          pu.no_peserta, pu.semester,
+          s.nis, s.nama, s.jenis_kelamin,
+          s.tempat_lahir, s.tanggal_lahir, s.alamat, s.foto_url,
+          kd.nama AS nama_kelas,
+          ta.kode AS tahun_ajaran
+        FROM peserta_ujian pu
+        JOIN santri s ON pu.santri_id = s.id
+        JOIN tahun_ajaran ta ON pu.tahun_ajaran_id = ta.id
+        LEFT JOIN kelas kd ON pu.kelas_diniyah_id = kd.id
+        WHERE pu.no_peserta = $1
+      `, [no_peserta]);
+
+      if (result.rows.length === 0) {
+        return res.status(404).json({ error: 'Data peserta ujian tidak ditemukan.' });
+      }
+
+      res.json(result.rows[0]);
+    } catch (err) {
+      console.error('Error GET verify peserta-ujian:', err);
+      res.status(500).json({ error: 'Gagal memuat data verifikasi.' });
+    }
+  });
+
 }
 
 module.exports = registerPesertaUjianRoutes;

@@ -10,6 +10,7 @@ import {
   CheckCircleOutlined, WarningOutlined, FileImageOutlined
 } from '@ant-design/icons';
 import './KartuUjianSemester.scss';
+import { QRCodeSVG } from 'qrcode.react';
 
 const { Title, Text } = Typography;
 const { Option } = Select;
@@ -404,7 +405,9 @@ function KartuUjian({ p, settings, tahunAjaran, tanggalCetak }) {
           <div className="data-row">
             <span className="d-label">Jenis Kelamin</span>
             <span className="d-sep">:</span>
-            <span className="d-value">{p.jenis_kelamin || '-'}</span>
+            <span className="d-value">
+              {p.jenis_kelamin === 'L' ? 'Laki-laki' : p.jenis_kelamin === 'P' ? 'Perempuan' : (p.jenis_kelamin || '-')}
+            </span>
           </div>
           <div className="data-row">
             <span className="d-label">Kelas</span>
@@ -424,7 +427,7 @@ function KartuUjian({ p, settings, tahunAjaran, tanggalCetak }) {
         </div>
       </div>
 
-      {/* ── Bagian Bawah: Foto (kiri) + Footer TTD (kanan) ── */}
+      {/* ── Bagian Bawah: Foto (kiri) + QR (tengah) + Footer TTD (kanan) ── */}
       <div className="kartu-bottom">
         {/* Foto di bawah kiri */}
         <div className="kartu-foto">
@@ -432,6 +435,16 @@ function KartuUjian({ p, settings, tahunAjaran, tanggalCetak }) {
             ? <img src={`${API_BASE}${p.foto_url}`} alt={p.nama} />
             : <div className="foto-placeholder"><UserOutlined /></div>
           }
+        </div>
+
+        {/* QR Code Verifikasi (Level 3) */}
+        <div className="kartu-qr">
+          <QRCodeSVG 
+            value={`${window.location.origin}/verify/${p.no_peserta}`}
+            size={80}
+            level="H"
+            includeMargin={false}
+          />
         </div>
 
         {/* Footer TTD di bawah kanan */}

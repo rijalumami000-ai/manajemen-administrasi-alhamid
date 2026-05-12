@@ -27,6 +27,7 @@ const RaporPrint = lazy(() => import('./pages/RaporPrint').then(m => ({ default:
 const LaporanUjianKhusus = lazy(() => import('./pages/LaporanUjianKhusus').then(m => ({ default: m.LaporanUjianKhusus })));
 const BukuInduk = lazy(() => import('./pages/BukuInduk').then(m => ({ default: m.BukuInduk })));
 const KartuUjianSemester = lazy(() => import('./pages/KartuUjianSemester').then(m => ({ default: m.KartuUjianSemester })));
+const VerificationPage = lazy(() => import('./pages/VerificationPage').then(m => ({ default: m.VerificationPage })));
 
 function App() {
   const { isDarkMode } = useTheme();
@@ -56,6 +57,10 @@ function App() {
                   <Route 
                     path="/pub/laporan-ujian-khusus" 
                     element={<LaporanUjianKhusus />} 
+                  />
+                  <Route 
+                    path="/verify/:no_peserta" 
+                    element={<VerificationPage />} 
                   />
 
                   <Route path="/" element={

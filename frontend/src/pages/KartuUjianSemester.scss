@@ -261,6 +261,24 @@
         .foto-placeholder { font-size: 26px !important; color: #bbb !important; }
       }
 
+      // QR Code Verifikasi
+      .kartu-qr {
+        width: 20mm !important;
+        height: 20mm !important;
+        flex-shrink: 0 !important;
+        border: 0.5pt solid #888 !important;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        background: #fff !important;
+        padding: 1mm !important;
+
+        svg {
+          width: 100% !important;
+          height: 100% !important;
+        }
+      }
+
       .kartu-footer {
         flex: 1 !important;
         text-align: right !important;
