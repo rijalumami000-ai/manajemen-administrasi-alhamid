@@ -73,15 +73,31 @@ export const LaporanUjianKhusus = () => {
         setMapelQiroah(qiroah);
         setMapelTaftisy(taftisy);
 
+        const params = new URLSearchParams(window.location.search);
+        const kelasIdParam = params.get('kelas_id');
+        const kategoriIdParam = params.get('kategori_id');
+
         if (Array.isArray(katData)) {
-          const ganjil = katData.find(k => k.nama?.toLowerCase().includes('ganjil'));
-          if (ganjil) setSelectedKategori(ganjil.id);
+          if (kategoriIdParam) {
+            setSelectedKategori(Number(kategoriIdParam));
+          } else {
+            const ganjil = katData.find(k => k.nama?.toLowerCase().includes('ganjil'));
+            if (ganjil) setSelectedKategori(ganjil.id);
+          }
         }
 
-        const sifirKelas = diniyahKelas.find(k => k.tingkat === 0);
-        if (sifirKelas) {
-          setSelectedTingkat(0);
-          setSelectedKelas(sifirKelas.id);
+        if (kelasIdParam) {
+          const targetKelas = diniyahKelas.find(k => k.id === Number(kelasIdParam));
+          if (targetKelas) {
+            setSelectedTingkat(targetKelas.tingkat);
+            setSelectedKelas(targetKelas.id);
+          }
+        } else {
+          const sifirKelas = diniyahKelas.find(k => k.tingkat === 0);
+          if (sifirKelas) {
+            setSelectedTingkat(0);
+            setSelectedKelas(sifirKelas.id);
+          }
         }
 
         if (activeTA) {
@@ -95,15 +111,6 @@ export const LaporanUjianKhusus = () => {
       }
     };
     init();
-  }, []);
-
-  useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    const kelasId = params.get('kelas_id');
-    const kategoriId = params.get('kategori_id');
-    
-    if (kelasId) setSelectedKelas(Number(kelasId));
-    if (kategoriId) setSelectedKategori(Number(kategoriId));
   }, []);
 
   const getCurrentMapel = () => {
@@ -514,8 +521,43 @@ export const LaporanUjianKhusus = () => {
       return valArr;
     });
 
-    const ghoibCount = classData.filter(r => r.nilai_angka === null && !r.capaian).length;
-    const ghoibPercent = classData.length > 0 ? `${Math.round((ghoibCount / classData.length) * 100)}%` : '0%';
+    const totalSiswa = classData.length;
+    let localCounts = {};
+    let localPercents = {};
+    
+    if (activeTab === 'muhafadzoh') {
+      localCounts = {
+        Rodi: classData.filter(r => r.predikat === "Rodi'").length,
+        Mutawassith: classData.filter(r => r.predikat === "Mutawassith").length,
+        Jayyid: classData.filter(r => r.predikat === "Jayyid").length,
+        Mumtaz: classData.filter(r => r.predikat === "Mumtaz").length,
+        Lulus: classData.filter(r => ["Mutawassith", "Jayyid", "Mumtaz"].includes(r.predikat)).length,
+        Tidak: classData.filter(r => r.predikat === "Rodi'").length,
+        Ghoib: classData.filter(r => r.nilai_angka === null && !r.capaian).length,
+      };
+    } else if (activeTab === 'taftisyul_kutub') {
+      localCounts = {
+        Tam: classData.filter(r => r.predikat === "Tam").length,
+        Naqish: classData.filter(r => r.predikat === "Naqish").length,
+        Lulus: classData.filter(r => r.predikat === "Tam").length,
+        Tidak: classData.filter(r => r.predikat === "Naqish").length,
+        Ghoib: classData.filter(r => r.nilai_angka === null && !r.capaian).length,
+      };
+    } else {
+      const rated = classData.filter(r => r.nilai_angka !== null).length;
+      const sum = classData.reduce((acc, curr) => acc + (curr.nilai_angka !== null ? Number(curr.nilai_angka) : 0), 0);
+      localCounts = {
+        Rata: rated > 0 ? (sum / rated).toFixed(2) : 0,
+        Ghoib: classData.filter(r => r.nilai_angka === null && !r.capaian).length
+      };
+    }
+
+    Object.entries(localCounts).forEach(([k, v]) => {
+      localPercents[k] = totalSiswa > 0 ? `${Math.round((v / totalSiswa) * 100)}%` : '0%';
+    });
+
+    const ghoibCount = localCounts.Ghoib || 0;
+    const ghoibPercent = localPercents.Ghoib || '0%';
     let footData = [];
 
     if (activeTab === 'muhafadzoh') {
@@ -523,22 +565,22 @@ export const LaporanUjianKhusus = () => {
         [{ content: '', colSpan: 10, styles: { minCellHeight: 4, fillColor: [255, 255, 255], lineWidth: 0 } }],
         [
           { content: 'Jumlah (Akumulasi)', colSpan: 3, halign: 'right', fontStyle: 'bold' },
-          { content: summary.counts.Rodi.toString(), halign: 'center' },
-          { content: summary.counts.Mutawassith.toString(), halign: 'center' },
-          { content: summary.counts.Jayyid.toString(), halign: 'center' },
-          { content: summary.counts.Mumtaz.toString(), halign: 'center' },
-          { content: summary.counts.Lulus.toString(), halign: 'center' },
-          { content: summary.counts.Tidak.toString(), halign: 'center' },
+          { content: localCounts.Rodi.toString(), halign: 'center' },
+          { content: localCounts.Mutawassith.toString(), halign: 'center' },
+          { content: localCounts.Jayyid.toString(), halign: 'center' },
+          { content: localCounts.Mumtaz.toString(), halign: 'center' },
+          { content: localCounts.Lulus.toString(), halign: 'center' },
+          { content: localCounts.Tidak.toString(), halign: 'center' },
           { content: ghoibCount.toString(), halign: 'center' }
         ],
         [
           { content: 'Persentase (%)', colSpan: 3, halign: 'right', fontStyle: 'bold' },
-          { content: summary.percents.Rodi, halign: 'center' },
-          { content: summary.percents.Mutawassith, halign: 'center' },
-          { content: summary.percents.Jayyid, halign: 'center' },
-          { content: summary.percents.Mumtaz, halign: 'center' },
-          { content: summary.percents.Lulus, halign: 'center' },
-          { content: summary.percents.Tidak, halign: 'center' },
+          { content: localPercents.Rodi, halign: 'center' },
+          { content: localPercents.Mutawassith, halign: 'center' },
+          { content: localPercents.Jayyid, halign: 'center' },
+          { content: localPercents.Mumtaz, halign: 'center' },
+          { content: localPercents.Lulus, halign: 'center' },
+          { content: localPercents.Tidak, halign: 'center' },
           { content: ghoibPercent, halign: 'center' }
         ]
       ];
@@ -547,18 +589,18 @@ export const LaporanUjianKhusus = () => {
         [{ content: '', colSpan: 8, styles: { minCellHeight: 4, fillColor: [255, 255, 255], lineWidth: 0 } }],
         [
           { content: 'Jumlah (Akumulasi)', colSpan: 3, halign: 'right', fontStyle: 'bold' },
-          { content: summary.counts.Naqish.toString(), halign: 'center' },
-          { content: summary.counts.Tam.toString(), halign: 'center' },
-          { content: summary.counts.Lulus.toString(), halign: 'center' },
-          { content: summary.counts.Tidak.toString(), halign: 'center' },
+          { content: localCounts.Naqish.toString(), halign: 'center' },
+          { content: localCounts.Tam.toString(), halign: 'center' },
+          { content: localCounts.Lulus.toString(), halign: 'center' },
+          { content: localCounts.Tidak.toString(), halign: 'center' },
           { content: ghoibCount.toString(), halign: 'center' }
         ],
         [
           { content: 'Persentase (%)', colSpan: 3, halign: 'right', fontStyle: 'bold' },
-          { content: summary.percents.Naqish, halign: 'center' },
-          { content: summary.percents.Tam, halign: 'center' },
-          { content: summary.percents.Lulus, halign: 'center' },
-          { content: summary.percents.Tidak, halign: 'center' },
+          { content: localPercents.Naqish, halign: 'center' },
+          { content: localPercents.Tam, halign: 'center' },
+          { content: localPercents.Lulus, halign: 'center' },
+          { content: localPercents.Tidak, halign: 'center' },
           { content: ghoibPercent, halign: 'center' }
         ]
       ];
@@ -567,7 +609,7 @@ export const LaporanUjianKhusus = () => {
         [{ content: '', colSpan: 4, styles: { minCellHeight: 4, fillColor: [255, 255, 255], lineWidth: 0 } }],
         [
           { content: 'Rata-rata Nilai', colSpan: 2, halign: 'right', fontStyle: 'bold' },
-          { content: summary.counts.Rata.toString(), halign: 'center' },
+          { content: localCounts.Rata.toString(), halign: 'center' },
           { content: ghoibCount.toString(), halign: 'center' }
         ]
       ];
@@ -982,15 +1024,19 @@ export const LaporanUjianKhusus = () => {
   const handleShare = () => {
     if (!selectedKelas || !selectedKategori) return;
     const shareUrl = `${window.location.origin}/pub/laporan-ujian-khusus?kelas_id=${selectedKelas}&kategori_id=${selectedKategori}`;
-    if (navigator.share) {
+    
+    if (navigator.share && window.isSecureContext) {
       navigator.share({
         title: getPageTitle(),
         text: `Lihat ${getPageTitle()} untuk kelas ${currentKelasObj?.nama || ''}`,
         url: shareUrl
       }).catch(console.error);
+    } else if (navigator.clipboard && window.isSecureContext) {
+      navigator.clipboard.writeText(shareUrl)
+        .then(() => alert('Link laporan disalin ke clipboard!'))
+        .catch(() => prompt('Silakan salin link berikut secara manual:', shareUrl));
     } else {
-      navigator.clipboard.writeText(shareUrl);
-      alert('Link laporan disalin ke clipboard!');
+      prompt('Salin link laporan berikut:', shareUrl);
     }
   };
 

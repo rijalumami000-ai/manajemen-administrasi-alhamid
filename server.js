@@ -134,6 +134,12 @@ setInterval(() => {
   }
 }, 30 * 60 * 1000);
 
+// ─── Static files: Uploads (foto santri, aset kartu ujian) ──────
+app.use('/uploads', express.static(path.join(__dirname, 'public/uploads'), {
+  maxAge: isProduction ? '7d' : 0,
+  etag: true,
+}));
+
 // ─── Static files with caching headers ──────────────────────────
 app.use(express.static(path.join(__dirname, 'frontend/dist'), {
   maxAge: isProduction ? '1y' : 0,

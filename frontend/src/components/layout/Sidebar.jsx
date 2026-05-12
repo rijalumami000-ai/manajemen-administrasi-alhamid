@@ -15,7 +15,8 @@ import {
   LeftOutlined,
   RightOutlined,
   BankOutlined,
-  EditOutlined
+  EditOutlined,
+  IdcardOutlined
 } from '@ant-design/icons';
 import './Sidebar.scss';
 import { settingsService } from '../../services/settingsService';
@@ -72,6 +73,7 @@ export function Sidebar({ collapsed, onCollapse }) {
       label: 'Pesantren',
       children: [
         { key: '/santri', icon: <TeamOutlined />, label: 'Data Santri' },
+        { key: '/buku-induk', icon: <BookOutlined />, label: 'Buku Induk' },
         { key: '/kamar', icon: <HomeOutlined />, label: 'Data Kamar' },
         { key: '/pelanggaran-prestasi', icon: <TrophyOutlined />, label: 'Pelanggaran & Prestasi' },
       ],
@@ -87,6 +89,7 @@ export function Sidebar({ collapsed, onCollapse }) {
         { key: '/nilai', icon: <EditOutlined />, label: 'Input Penilaian' },
         { key: '/nilai-rekap', icon: <BookOutlined />, label: 'Rekap & Rapot' },
         { key: '/laporan-ujian-khusus', icon: <BookOutlined />, label: 'Laporan Ujian Khusus' },
+        { key: '/kartu-ujian-semester', icon: <IdcardOutlined />, label: 'Kartu Ujian Semester' },
       ],
     },
     { key: '/alumni', icon: <UsergroupAddOutlined />, label: 'Alumni' },

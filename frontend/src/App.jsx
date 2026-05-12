@@ -25,6 +25,8 @@ const ManajemenNilai = lazy(() => import('./pages/ManajemenNilai').then(m => ({ 
 
 const RaporPrint = lazy(() => import('./pages/RaporPrint').then(m => ({ default: m.RaporPrint })));
 const LaporanUjianKhusus = lazy(() => import('./pages/LaporanUjianKhusus').then(m => ({ default: m.LaporanUjianKhusus })));
+const BukuInduk = lazy(() => import('./pages/BukuInduk').then(m => ({ default: m.BukuInduk })));
+const KartuUjianSemester = lazy(() => import('./pages/KartuUjianSemester').then(m => ({ default: m.KartuUjianSemester })));
 
 function App() {
   const { isDarkMode } = useTheme();
@@ -74,6 +76,8 @@ function App() {
                     <Route path="nilai-pengaturan" element={<ManajemenNilai mode="config" key="config" />} />
                     <Route path="nilai-rekap" element={<ManajemenNilai mode="rekap" key="rekap" />} />
                     <Route path="laporan-ujian-khusus" element={<LaporanUjianKhusus />} />
+                    <Route path="buku-induk" element={<BukuInduk />} />
+                    <Route path="kartu-ujian-semester" element={<KartuUjianSemester />} />
                   </Route>
 
                   <Route path="*" element={<Navigate to="/" replace />} />

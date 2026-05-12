@@ -12,6 +12,7 @@ import {
   BankOutlined,
   EditOutlined,
   LogoutOutlined,
+  IdcardOutlined,
 } from '@ant-design/icons';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
@@ -30,6 +31,7 @@ const MobileMenu = ({ open, onClose, onLogout }) => {
       type: 'group',
       children: [
         { key: '/santri', icon: <TeamOutlined />, label: 'Data Santri' },
+        { key: '/buku-induk', icon: <BookOutlined />, label: 'Buku Induk' },
         { key: '/kamar', icon: <HomeOutlined />, label: 'Data Kamar' },
         { key: '/pelanggaran-prestasi', icon: <TrophyOutlined />, label: 'Pelanggaran & Prestasi' },
       ],
@@ -45,6 +47,7 @@ const MobileMenu = ({ open, onClose, onLogout }) => {
         { key: '/nilai-rekap', icon: <BookOutlined />, label: 'Rekap & Rapot' },
         { key: '/laporan-muhafadzoh', icon: <BookOutlined />, label: 'Laporan Muhafadzoh' },
         { key: '/nilai-pengaturan', icon: <SettingOutlined />, label: 'Pengaturan' },
+        { key: '/kartu-ujian-semester', icon: <IdcardOutlined />, label: 'Kartu Ujian Semester' },
       ],
     },
     { key: '/alumni', icon: <TeamOutlined />, label: 'Alumni' },
