@@ -2,6 +2,9 @@ const db = require('../../db');
 const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
+const { syncSantriToActiveTahunAjaran, syncSantriToSpecificTahunAjaran } = require('../services/tahunAjaranService');
+const { nullableInt } = require('../utils/normalizers');
+const santriExcelService = require('../services/santriExcelService');
 
 // Konfigurasi storage multer untuk foto santri
 const fotoStorage = multer.diskStorage({
@@ -55,6 +58,9 @@ const uploadAset = multer({
   limits: { fileSize: 2 * 1024 * 1024 },
 });
 
+// Multer untuk import excel
+const uploadExcel = multer({ storage: multer.memoryStorage() });
+
 function registerBukuIndukRoutes(app) {
 
   // === BUKU INDUK: GET semua santri dikelompokkan per tahun_masuk ===
@@ -80,13 +86,17 @@ function registerBukuIndukRoutes(app) {
           s.id, s.nis, s.nik, s.nama, s.jenis_kelamin,
           s.tempat_lahir, s.tanggal_lahir, s.alamat,
           s.tahun_masuk, s.foto_url, s.created_at,
+          s.kelas_diniyah_id, s.kelas_sekolah_id, s.kamar_id,
           kd.nama AS kelas_diniyah,
+          ks.nama AS kelas_sekolah,
+          km.nama AS nama_kamar,
           o.nama_ayah, o.nama_ibu, o.no_hp_ayah, o.no_hp_ibu,
           o.pekerjaan_ayah, o.pekerjaan_ibu
         FROM santri s
         LEFT JOIN kelas kd ON s.kelas_diniyah_id = kd.id
+        LEFT JOIN kelas ks ON s.kelas_sekolah_id = ks.id
+        LEFT JOIN kamar km ON s.kamar_id = km.id
         LEFT JOIN orangtua o ON s.orangtua_id = o.id
-        LEFT JOIN alumni al ON al.santri_id = s.id
         ${where}
         ORDER BY s.tahun_masuk NULLS LAST, s.nama ASC
       `, params);
@@ -112,6 +122,187 @@ function registerBukuIndukRoutes(app) {
     } catch (err) {
       console.error('Error GET /api/buku-induk/tahun-masuk:', err);
       res.status(500).json({ error: 'Gagal memuat daftar tahun masuk.' });
+    }
+  });
+
+  // === BUKU INDUK: TAMBAH SANTRI BARU (CREATE) ===
+  app.post('/api/buku-induk', async (req, res) => {
+    const {
+      nis, nik, nama, jenis_kelamin,
+      tempat_lahir, tanggal_lahir, alamat, tahun_masuk,
+      nama_ayah, nama_ibu, pekerjaan_ayah, pekerjaan_ibu,
+      no_hp_ayah, no_hp_ibu,
+      // Opsi masukkan ke TA aktif
+      masukkan_ke_ta_aktif,
+      kelas_diniyah_id, kelas_sekolah_id, kamar_id,
+    } = req.body;
+
+    if (!nis || !nama) {
+      return res.status(400).json({ error: 'NIS dan nama santri wajib diisi.' });
+    }
+
+    try {
+      // 1. Insert data orang tua jika ada
+      let orangtuaId = null;
+      if (nama_ayah || nama_ibu) {
+        const orangtuaResult = await db.query(
+          `INSERT INTO orangtua (nama_ayah, nama_ibu, pekerjaan_ayah, pekerjaan_ibu, no_hp_ayah, no_hp_ibu)
+           VALUES ($1, $2, $3, $4, $5, $6)
+           RETURNING id`,
+          [nama_ayah || null, nama_ibu || null, pekerjaan_ayah || null, pekerjaan_ibu || null, no_hp_ayah || null, no_hp_ibu || null]
+        );
+        orangtuaId = orangtuaResult.rows[0].id;
+      }
+
+      // 2. Insert data santri (master)
+      const result = await db.query(
+        `INSERT INTO santri (nis, nik, nama, jenis_kelamin, tempat_lahir, tanggal_lahir, alamat, orangtua_id, tahun_masuk,
+           kelas_diniyah_id, kelas_sekolah_id, kamar_id)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
+         RETURNING *`,
+        [nis, nik || null, nama, jenis_kelamin || null, tempat_lahir || null, tanggal_lahir || null,
+         alamat || null, orangtuaId, tahun_masuk || null,
+         nullableInt(kelas_diniyah_id), nullableInt(kelas_sekolah_id), nullableInt(kamar_id)]
+      );
+
+      const santriId = result.rows[0].id;
+
+      // 3. Jika opsi "masukkan ke TA aktif" dicentang, sync ke tahun ajaran aktif
+      if (masukkan_ke_ta_aktif) {
+        await syncSantriToActiveTahunAjaran(santriId);
+      }
+
+      res.status(201).json(result.rows[0]);
+    } catch (error) {
+      console.error('Error POST /api/buku-induk:', error);
+      if (error.code === '23505' && error.constraint?.includes('nis')) {
+        return res.status(400).json({ error: `NIS "${nis}" sudah terdaftar di sistem.` });
+      }
+      res.status(500).json({ error: 'Gagal menyimpan data santri.' });
+    }
+  });
+
+  // === BUKU INDUK: EDIT DATA SANTRI (UPDATE) ===
+  app.put('/api/buku-induk/:id', async (req, res) => {
+    const { id } = req.params;
+    const {
+      nis, nik, nama, jenis_kelamin,
+      tempat_lahir, tanggal_lahir, alamat, tahun_masuk,
+      nama_ayah, nama_ibu, pekerjaan_ayah, pekerjaan_ibu,
+      no_hp_ayah, no_hp_ibu,
+    } = req.body;
+
+    if (!nis || !nama) {
+      return res.status(400).json({ error: 'NIS dan nama santri wajib diisi.' });
+    }
+
+    try {
+      const existing = await db.query('SELECT orangtua_id FROM santri WHERE id = $1', [id]);
+      if (!existing.rows.length) {
+        return res.status(404).json({ error: 'Santri tidak ditemukan.' });
+      }
+
+      // Update atau insert data orang tua
+      let orangtuaId = existing.rows[0].orangtua_id;
+      if (orangtuaId) {
+        await db.query(
+          `UPDATE orangtua SET nama_ayah = $1, nama_ibu = $2, pekerjaan_ayah = $3, pekerjaan_ibu = $4, no_hp_ayah = $5, no_hp_ibu = $6
+           WHERE id = $7`,
+          [nama_ayah || null, nama_ibu || null, pekerjaan_ayah || null, pekerjaan_ibu || null, no_hp_ayah || null, no_hp_ibu || null, orangtuaId]
+        );
+      } else if (nama_ayah || nama_ibu || pekerjaan_ayah || pekerjaan_ibu || no_hp_ayah || no_hp_ibu) {
+        const orangtuaResult = await db.query(
+          `INSERT INTO orangtua (nama_ayah, nama_ibu, pekerjaan_ayah, pekerjaan_ibu, no_hp_ayah, no_hp_ibu)
+           VALUES ($1, $2, $3, $4, $5, $6)
+           RETURNING id`,
+          [nama_ayah || null, nama_ibu || null, pekerjaan_ayah || null, pekerjaan_ibu || null, no_hp_ayah || null, no_hp_ibu || null]
+        );
+        orangtuaId = orangtuaResult.rows[0].id;
+      }
+
+      // Update data santri (master)
+      const result = await db.query(
+        `UPDATE santri SET nis = $1, nik = $2, nama = $3, jenis_kelamin = $4,
+           tempat_lahir = $5, tanggal_lahir = $6, alamat = $7, orangtua_id = $8, tahun_masuk = $9
+         WHERE id = $10 RETURNING *`,
+        [nis, nik || null, nama, jenis_kelamin || null, tempat_lahir || null, tanggal_lahir || null,
+         alamat || null, orangtuaId, tahun_masuk || null, id]
+      );
+
+      // Sync perubahan identitas ke tahun ajaran aktif (agar snapshot ter-update)
+      await syncSantriToActiveTahunAjaran(id);
+
+      res.json(result.rows[0]);
+    } catch (error) {
+      console.error('Error PUT /api/buku-induk:', error);
+      if (error.code === '23505' && error.constraint?.includes('nis')) {
+        return res.status(400).json({ error: `NIS "${nis}" sudah dipakai santri lain.` });
+      }
+      res.status(500).json({ error: 'Gagal memperbarui data santri.' });
+    }
+  });
+
+  // === BUKU INDUK: HAPUS SANTRI (DELETE) ===
+  app.delete('/api/buku-induk/:id', async (req, res) => {
+    const { id } = req.params;
+    try {
+      const existing = await db.query('SELECT orangtua_id, foto_url FROM santri WHERE id = $1', [id]);
+      if (!existing.rows.length) {
+        return res.status(404).json({ error: 'Santri tidak ditemukan.' });
+      }
+
+      // Cek relasi penting sebelum hapus
+      const nilaiCheck = await db.query('SELECT COUNT(*) FROM nilai_santri WHERE santri_id = $1', [id]);
+      if (parseInt(nilaiCheck.rows[0].count) > 0) {
+        return res.status(400).json({
+          error: 'Santri ini memiliki data nilai. Hapus data nilai terlebih dahulu atau hubungi administrator.'
+        });
+      }
+
+      // Hapus foto fisik jika ada
+      if (existing.rows[0].foto_url) {
+        const fotoPath = path.join(__dirname, '../../public', existing.rows[0].foto_url);
+        if (fs.existsSync(fotoPath)) fs.unlinkSync(fotoPath);
+      }
+
+      const orangtuaId = existing.rows[0].orangtua_id;
+
+      // Hapus semua relasi cascade (santri_tahun_ajaran, pelanggaran, prestasi, peserta_ujian)
+      await db.query('DELETE FROM santri_tahun_ajaran WHERE santri_id = $1', [id]);
+      await db.query('DELETE FROM peserta_ujian WHERE santri_id = $1', [id]);
+      await db.query('DELETE FROM santri WHERE id = $1', [id]);
+
+      if (orangtuaId) {
+        // Hapus orangtua hanya jika tidak dipakai santri lain
+        const otherUsage = await db.query('SELECT COUNT(*) FROM santri WHERE orangtua_id = $1', [orangtuaId]);
+        if (parseInt(otherUsage.rows[0].count) === 0) {
+          await db.query('DELETE FROM orangtua WHERE id = $1', [orangtuaId]);
+        }
+      }
+
+      res.json({ message: 'Data santri berhasil dihapus dari Buku Induk.' });
+    } catch (error) {
+      console.error('Error DELETE /api/buku-induk:', error);
+      res.status(500).json({ error: 'Gagal menghapus data santri.' });
+    }
+  });
+
+  // === BUKU INDUK: IMPORT EXCEL ===
+  app.post('/api/buku-induk/import', uploadExcel.single('file'), async (req, res) => {
+    try {
+      const { tahun_ajaran_id } = req.body;
+      if (!req.file) {
+        return res.status(400).json({ error: 'File tidak ditemukan.' });
+      }
+      if (!tahun_ajaran_id) {
+        return res.status(400).json({ error: 'Tahun ajaran wajib dipilih.' });
+      }
+
+      const stats = await santriExcelService.importFromExcel(req.file.buffer, Number(tahun_ajaran_id));
+      res.json(stats);
+    } catch (error) {
+      console.error('Import error:', error);
+      res.status(500).json({ error: 'Gagal mengimpor data santri: ' + error.message });
     }
   });
 

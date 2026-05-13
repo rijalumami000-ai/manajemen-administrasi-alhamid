@@ -1,18 +1,17 @@
 import { useState, useEffect, useMemo } from 'react';
-import { Button, Space, Alert, message as antMessage } from 'antd';
-import { PlusOutlined, SwapOutlined, RollbackOutlined } from '@ant-design/icons';
+import { Button, Space, Alert, message as antMessage, Modal, Form, Select, Input } from 'antd';
+import { SwapOutlined, RollbackOutlined, FileExcelOutlined, FilePdfOutlined } from '@ant-design/icons';
 import { santriService } from '../services/santriService';
 import { SantriTable } from '../components/features/SantriTable';
 import { SantriFilters } from '../components/features/SantriFilters';
-import { SantriModal } from '../components/features/SantriModal';
 import { MigrationModal } from '../components/features/MigrationModal';
-import { ImportSantriModal } from '../components/features/ImportSantriModal';
 import { TahunAjaranBoard } from '../components/features/TahunAjaranBoard';
 import { PageHeader, LoadingState, ErrorState, PasswordConfirmModal } from '../components/common';
 import { usePagination } from '../hooks/usePagination';
 import { exportToExcel, exportToPDF } from '../utils/exportUtils';
-import { FileExcelOutlined, FilePdfOutlined, UploadOutlined } from '@ant-design/icons';
 import './Santri.scss';
+
+const { Option } = Select;
 
 const PAGE_SIZE = 30;
 
@@ -36,6 +35,7 @@ export function Santri() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingData, setEditingData] = useState(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [editForm] = Form.useForm();
 
   // Migration Modal
   const [isMigrationModalOpen, setIsMigrationModalOpen] = useState(false);
@@ -47,8 +47,6 @@ export function Santri() {
   const [passwordAction, setPasswordAction] = useState(null); // 'rollback' | 'migration'
   const [passwordModalConfig, setPasswordModalConfig] = useState({ title: '', message: '' });
 
-  // Import Modal
-  const [isImportModalOpen, setIsImportModalOpen] = useState(false);
 
   // Messages
   const [modalError, setModalError] = useState('');
@@ -212,93 +210,39 @@ export function Santri() {
     return [...new Set(santriList.map(s => s.nama_sekolah).filter(Boolean))];
   }, [santriList]);
 
-  const handleAddClick = () => {
-    if (!canAdd) {
-      antMessage.warning('Tidak bisa menambah santri ke tahun ajaran yang belum dimulai (Coming Soon).');
-      return;
-    }
-    setEditingData(null);
-    setModalError('');
-    setIsModalOpen(true);
-  };
-
   const handleEditClick = (santri) => {
     if (!canEdit) {
-      antMessage.warning('Data arsip hanya bisa dibaca. Pilih Tahun Ajaran Berjalan untuk edit santri.');
+      antMessage.warning('Data arsip hanya bisa dibaca. Pilih Tahun Ajaran Berjalan untuk edit.');
       return;
     }
     setEditingData(santri);
     setModalError('');
+    editForm.setFieldsValue({
+      kelas_diniyah_id: santri.kelas_diniyah_id || undefined,
+      kelas_sekolah_id: santri.kelas_sekolah_id || undefined,
+      kamar_id: santri.kamar_id || undefined,
+      status_tahun_ajaran: santri.status_tahun_ajaran || 'aktif',
+      catatan_tahun_ajaran: santri.catatan_tahun_ajaran || '',
+    });
     setIsModalOpen(true);
   };
 
-  const handleDeleteClick = async (id) => {
-    if (!canEdit) {
-      antMessage.warning('Data arsip hanya bisa dibaca.');
-      return;
-    }
-
-    if (!confirm('Hapus data santri ini?')) return;
-
-    try {
-      await santriService.deleteSantri(id);
-      antMessage.success('Data santri berhasil dihapus');
-      await loadSantri();
-    } catch (err) {
-      antMessage.error(err.message || 'Gagal menghapus santri');
-    }
-  };
-
-  const handleModalSubmit = async (data) => {
+  const handleModalSubmit = async () => {
     setIsSubmitting(true);
     setModalError('');
-
     try {
-      // Determine which tahun_ajaran_id to use
-      const targetTahunAjaranId = selectedTahunAjaranId
-        ? Number(selectedTahunAjaranId)
-        : (activeTahunAjaran ? activeTahunAjaran.id : null);
-
-      if (!targetTahunAjaranId) {
-        throw new Error('Tahun ajaran tidak ditemukan');
-      }
-
-      // Get selected year info for logging
-      const selectedYear = selectedTahunAjaranId
-        ? tahunAjaranList.find(ta => Number(ta.id) === Number(selectedTahunAjaranId))
-        : activeTahunAjaran;
-
-      // Add tahun_ajaran_id to data
+      const values = await editForm.validateFields();
       const submitData = {
-        ...data,
-        tahun_ajaran_id: targetTahunAjaranId
+        ...editingData,
+        ...values,
+        tahun_ajaran_id: selectedTahunAjaranId ? Number(selectedTahunAjaranId) : activeTahunAjaran?.id,
       };
-
-      console.log('🔍 DEBUG - handleModalSubmit:', {
-        selectedTahunAjaranId,
-        selectedTahunAjaranId_type: typeof selectedTahunAjaranId,
-        activeTahunAjaran,
-        targetTahunAjaranId,
-        targetTahunAjaranId_type: typeof targetTahunAjaranId,
-        selectedYear: selectedYear,
-        submitData_tahun_ajaran_id: submitData.tahun_ajaran_id
-      });
-
-      console.log('📤 Submitting santri data:', submitData);
-
-      if (editingData) {
-        await santriService.updateSantri(editingData.id, submitData);
-        antMessage.success('Data santri berhasil diperbarui');
-      } else {
-        await santriService.createSantri(submitData);
-        antMessage.success(`Data santri berhasil disimpan ke tahun ajaran ${selectedYear?.kode || 'berjalan'}`);
-      }
-
+      await santriService.updateSantri(editingData.id, submitData);
+      antMessage.success('Penempatan santri berhasil diperbarui');
       setIsModalOpen(false);
       await loadSantri();
     } catch (err) {
-      console.error('❌ Error submitting santri:', err);
-      setModalError(err.message || 'Gagal menyimpan data');
+      if (err.message) setModalError(err.message);
     } finally {
       setIsSubmitting(false);
     }
@@ -521,13 +465,6 @@ export function Santri() {
               Ekspor PDF
             </Button>
             <Button
-              icon={<UploadOutlined />}
-              onClick={() => setIsImportModalOpen(true)}
-              disabled={!canAdd}
-            >
-              Impor Excel
-            </Button>
-            <Button
               icon={<RollbackOutlined />}
               onClick={handleRollbackClick}
               disabled={!canEdit || !activeTahunAjaran}
@@ -541,14 +478,6 @@ export function Santri() {
               disabled={!canEdit || !activeTahunAjaran}
             >
               Migrasi
-            </Button>
-            <Button
-              type="primary"
-              icon={<PlusOutlined />}
-              onClick={handleAddClick}
-              disabled={!canAdd}
-            >
-              Tambah Santri
             </Button>
           </Space>
         }
@@ -607,22 +536,60 @@ export function Santri() {
           pageSize={PAGE_SIZE}
           onPageChange={goToPage}
           onEdit={handleEditClick}
-          onDelete={handleDeleteClick}
           canEdit={canEdit}
           onUpdateSemesterStatus={handleUpdateSemesterStatus}
         />
       </div>
 
-      <SantriModal
-        isOpen={isModalOpen}
-        onClose={() => setIsModalOpen(false)}
-        onSubmit={handleModalSubmit}
-        editData={editingData}
-        kelasList={kelasList}
-        kamarList={kamarList}
-        isSubmitting={isSubmitting}
-        error={modalError}
-      />
+      {/* Modal Edit Penempatan (hanya Kelas, Kamar, Status) */}
+      <Modal
+        open={isModalOpen}
+        title={`Ubah Penempatan: ${editingData?.nama || ''}`}
+        onCancel={() => { setIsModalOpen(false); setModalError(''); }}
+        onOk={handleModalSubmit}
+        confirmLoading={isSubmitting}
+        okText="Simpan"
+        cancelText="Batal"
+        destroyOnClose
+      >
+        {modalError && <Alert message={modalError} type="error" showIcon style={{ marginBottom: 16 }} />}
+        <Form form={editForm} layout="vertical" disabled={isSubmitting}
+          initialValues={{
+            kelas_diniyah_id: editingData?.kelas_diniyah_id || undefined,
+            kelas_sekolah_id: editingData?.kelas_sekolah_id || undefined,
+            kamar_id: editingData?.kamar_id || undefined,
+            status_tahun_ajaran: editingData?.status_tahun_ajaran || 'aktif',
+            catatan_tahun_ajaran: editingData?.catatan_tahun_ajaran || '',
+          }}
+        >
+          <Form.Item name="kelas_diniyah_id" label="Kelas Diniyah">
+            <Select placeholder="Pilih" allowClear>
+              {kelasList.filter(k => k.jenis === 'Diniyah').map(k => <Option key={k.id} value={k.id}>{k.nama}</Option>)}
+            </Select>
+          </Form.Item>
+          <Form.Item name="kelas_sekolah_id" label="Kelas Sekolah">
+            <Select placeholder="Pilih" allowClear>
+              {kelasList.filter(k => k.jenis === 'Sekolah').map(k => <Option key={k.id} value={k.id}>{k.nama}</Option>)}
+            </Select>
+          </Form.Item>
+          <Form.Item name="kamar_id" label="Kamar Asrama">
+            <Select placeholder="Pilih" allowClear>
+              {kamarList.map(k => <Option key={k.id} value={k.id}>{k.nama} ({k.jenis})</Option>)}
+            </Select>
+          </Form.Item>
+          <Form.Item name="status_tahun_ajaran" label="Status">
+            <Select>
+              <Option value="aktif">Aktif</Option>
+              <Option value="tidak_naik">Tidak Naik</Option>
+              <Option value="pindah">Pindah</Option>
+              <Option value="keluar">Keluar</Option>
+            </Select>
+          </Form.Item>
+          <Form.Item name="catatan_tahun_ajaran" label="Catatan">
+            <Input.TextArea rows={2} placeholder="Catatan (opsional)" />
+          </Form.Item>
+        </Form>
+      </Modal>
 
       <MigrationModal
         isOpen={isMigrationModalOpen}
@@ -643,13 +610,7 @@ export function Santri() {
         actionType={passwordAction}
       />
 
-      <ImportSantriModal
-        isOpen={isImportModalOpen}
-        onClose={() => setIsImportModalOpen(false)}
-        onSuccess={loadSantri}
-        tahunAjaranId={selectedTahunAjaranId || (activeTahunAjaran ? activeTahunAjaran.id : null)}
-        tahunAjaranKode={selectedYear?.kode}
-      />
+
     </div>
   );
 }
