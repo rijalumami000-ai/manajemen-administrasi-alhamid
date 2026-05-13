@@ -9,7 +9,7 @@ import {
   UserOutlined, BookOutlined, CheckCircleOutlined, InfoCircleOutlined,
   AppstoreOutlined, UnorderedListOutlined, GroupOutlined, CalendarOutlined, MessageOutlined,
   ThunderboltOutlined, StarOutlined, RocketOutlined, DeleteOutlined,
-  AuditOutlined, ReadOutlined, FileSearchOutlined, ArrowRightOutlined, TableOutlined
+  AuditOutlined, ReadOutlined, FileSearchOutlined, ArrowLeftOutlined, ArrowRightOutlined, TableOutlined
 } from '@ant-design/icons';
 import { nilaiService } from '../services/nilaiService';
 import { PageHeader, LoadingState, ErrorState } from '../components/common';
@@ -680,7 +680,7 @@ export const ManajemenNilai = ({ mode = 'input' }) => {
         }]
       });
       setAutoSaveStatus('saved');
-      setTimeout(() => setAutoSaveStatus(null), 2000);
+      setTimeout(() => setAutoSaveStatus(null), 5000);
     } catch (err) {
       console.error('Auto save failed:', err);
       setAutoSaveStatus('error');
@@ -1412,7 +1412,7 @@ export const ManajemenNilai = ({ mode = 'input' }) => {
       default:
         return {
           title: "Input Penilaian",
-          subtitle: "Input nilai, absensi, kepribadian, dan catatan wali kelas"
+          subtitle: "Input nilai Muhafadzoh, Qiroatul Kitab, dan Taftisyul kutub"
         };
     }
   };
@@ -1428,14 +1428,17 @@ export const ManajemenNilai = ({ mode = 'input' }) => {
           <Segmented 
             key="semester"
             className="semester-segmented-highlight"
-            options={kategori.map(k => ({ label: k.nama, value: k.id }))}
+            block={isMobile}
+            options={kategori
+              .filter(k => !k.nama.toLowerCase().includes('harian') && !k.nama.toLowerCase().includes('tugas'))
+              .map(k => ({ label: k.nama, value: k.id }))}
             value={selectedKategori}
             onChange={(val) => {
               setSelectedKategori(val);
               localStorage.setItem('sekolah_info_selected_kategori', val);
             }}
-            size="large"
-            style={{ marginRight: 16 }}
+            size="default"
+            style={isMobile ? { width: '100%' } : { marginRight: 16 }}
           />,
           <Select
             key="ta"
@@ -1458,8 +1461,8 @@ export const ManajemenNilai = ({ mode = 'input' }) => {
             <div className="quick-card muhafadzoh" onClick={() => handleQuickStart('muhafadzoh')}>
               <div className="card-icon"><AuditOutlined /></div>
               <div className="card-content">
-                <h3>Muhafadzoh Akbar</h3>
-                <p>Hafalan Nadhom & Teks Arab</p>
+                <h3>Muhafadzoh Kubro</h3>
+                <p>Nadzom dan lainnya</p>
               </div>
               <div className="card-arrow"><ArrowRightOutlined /></div>
             </div>
@@ -1482,19 +1485,6 @@ export const ManajemenNilai = ({ mode = 'input' }) => {
               <div className="card-arrow"><ArrowRightOutlined /></div>
             </div>
           </div>
-
-          <Divider dashed style={{ borderColor: '#d9d9d9' }}>Opsi Lainnya</Divider>
-          
-          <Button 
-            block 
-            size="large" 
-            type="text"
-            icon={<TableOutlined />}
-            onClick={() => setMobileViewMode('input')}
-            className="full-table-btn"
-          >
-            Buka Tabel Lengkap (Semua Ujian)
-          </Button>
         </div>
       ) : (
         <div className="page-content"><Tabs activeKey={activeTab} onChange={setActiveTab} type="line" items={mainTabs} /></div>
@@ -1558,7 +1548,7 @@ export const ManajemenNilai = ({ mode = 'input' }) => {
                 <Button 
                   shape="circle" 
                   size="large"
-                  icon={<EditOutlined style={{ transform: 'rotate(180deg)' }} />} 
+                  icon={<ArrowLeftOutlined />} 
                   onClick={() => {
                     const idx = santriList.findIndex(s => s.santri_id === activeSantriId);
                     if (idx > 0) setActiveSantriId(santriList[idx - 1].santri_id);
@@ -1566,8 +1556,8 @@ export const ManajemenNilai = ({ mode = 'input' }) => {
                   disabled={santriList.findIndex(s => s.santri_id === activeSantriId) <= 0}
                 />
                 
-                <div className="active-student-info">
-                  <div className="student-name">
+                <div className="active-student-info" style={{ marginTop: '16px', marginBottom: '16px' }}>
+                  <div className="student-name" style={{ marginBottom: '8px' }}>
                     {loading ? 'Memuat...' : (santriList.find(s => s.santri_id === activeSantriId)?.nama || (santriList.length > 0 ? 'Pilih Santri' : 'Data Kosong'))}
                   </div>
                   <div className={`score-preview ${effectiveKriteriaType === 'Teks' ? 'text-mode' : ''}`}>
@@ -1582,7 +1572,7 @@ export const ManajemenNilai = ({ mode = 'input' }) => {
                 <Button 
                   shape="circle" 
                   size="large"
-                  icon={<EditOutlined />} 
+                  icon={<ArrowRightOutlined />} 
                   onClick={() => {
                     const idx = santriList.findIndex(s => s.santri_id === activeSantriId);
                     if (idx < santriList.length - 1) setActiveSantriId(santriList[idx + 1].santri_id);
@@ -1654,14 +1644,27 @@ export const ManajemenNilai = ({ mode = 'input' }) => {
               </div>
             </div>
 
-            <div className="console-footer">
-              <Button type="primary" danger block onClick={() => {
+            <div className="console-footer" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', width: '100%' }}>
+              {autoSaveStatus === 'saved' && (
+                <div style={{ 
+                  marginBottom: '20px', 
+                  fontSize: '28px', 
+                  fontWeight: '800', 
+                  color: '#52c41a', 
+                  textAlign: 'center',
+                  fontStyle: 'italic',
+                  letterSpacing: '4px',
+                  textTransform: 'uppercase',
+                  textShadow: '0 2px 4px rgba(0,0,0,0.1)',
+                  fontFamily: '"Montserrat", "Arial", sans-serif'
+                }}>
+                  {santriList.find(s => s.santri_id === activeSantriId)?.predikat || '-'}
+                </div>
+              )}
+              <Button type="default" style={{ minWidth: '120px' }} onClick={() => {
                 setShowKeypad(false);
                 setMobileViewMode('dashboard'); // Kembali ke dashboard saat tutup
-              }}>Tutup & Kembali ke Menu</Button>
-              <div style={{ marginTop: '8px', textAlign: 'center' }}>
-                <Text type="secondary" size="small">Auto-save aktif</Text>
-              </div>
+              }}>Tutup</Button>
             </div>
           </div>
         </div>

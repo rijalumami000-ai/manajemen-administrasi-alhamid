@@ -3,6 +3,8 @@ import { Table, Button, Space, Typography, Card, Spin, Empty, Tag, Radio, Select
 import { BookOutlined, PrinterOutlined, ShareAltOutlined, CheckCircleOutlined, CloseCircleOutlined, SearchOutlined, BarChartOutlined, UndoOutlined, ExportOutlined, FilePdfOutlined } from '@ant-design/icons';
 import { nilaiService } from '../services/nilaiService';
 import { useResponsive } from '../hooks/useResponsive';
+import { useLocation } from 'react-router-dom';
+import { BottomNav } from '../components/layout/BottomNav';
 import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import './ManajemenNilai.scss'; // Reuse styles
@@ -27,7 +29,10 @@ export const LaporanUjianKhusus = () => {
   const [activeTab, setActiveTab] = useState('muhafadzoh'); // 'muhafadzoh', 'qiroatul_kitab', 'taftisyul_kutub'
   const [viewMode, setViewMode] = useState('detail'); // 'detail' or 'akumulasi'
   const { isMobile } = useResponsive();
+  const location = useLocation();
   const listRef = useRef(null);
+
+  const isPublicRoute = location.pathname.startsWith('/pub/');
 
   useEffect(() => {
     const init = async () => {
@@ -920,21 +925,27 @@ export const LaporanUjianKhusus = () => {
         else if (activeTab === 'taftisyul_kutub') isLulus = r.predikat === "Tam";
         
         return (
-          <Card key={r.santri_id} size="small" className="mobile-santri-card" style={{ borderRadius: 8 }}>
+          <Card key={r.santri_id} size="small" className="mobile-santri-card" style={{ 
+            borderRadius: 8, 
+            borderLeft: `4px solid ${r.predikat ? (isLulus ? '#52c41a' : '#ff4d4f') : '#d9d9d9'}`,
+            marginBottom: 8
+          }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <Space>
-                <Text type="secondary">{idx + 1}.</Text>
-                <Text strong>{r.nama}</Text>
+                <Text type="secondary" style={{ fontSize: 12 }}>{idx + 1}.</Text>
+                <Text strong style={{ fontSize: 14 }}>{r.nama}</Text>
               </Space>
-              <Text strong style={{ fontSize: 14, maxWidth: '40%', textAlign: 'right' }}>
-                {r.nilai_angka !== null ? formatNilai(r.nilai_angka) : (r.capaian || '-')}
-              </Text>
+              <div style={{ textAlign: 'right' }}>
+                <div style={{ fontSize: 16, fontWeight: 'bold', color: r.nilai_angka !== null ? '#1890ff' : '#8c8c8c' }}>
+                  {r.nilai_angka !== null ? formatNilai(r.nilai_angka) : (r.capaian || '-')}
+                </div>
+              </div>
             </div>
             {activeTab !== 'qiroatul_kitab' && (
               <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 8, alignItems: 'center' }}>
-                <Tag color={getPredikatColor(r.predikat)}>{r.predikat || 'Belum Diisi'}</Tag>
+                <Tag color={getPredikatColor(r.predikat)} style={{ borderRadius: 4 }}>{r.predikat || 'Belum Diisi'}</Tag>
                 {r.predikat && (
-                  <Tag color={isLulus ? 'green' : 'red'}>
+                  <Tag color={isLulus ? 'green' : 'red'} style={{ borderRadius: 4 }}>
                     {isLulus ? 'Lulus' : 'Tidak Lulus'}
                   </Tag>
                 )}
@@ -991,9 +1002,86 @@ export const LaporanUjianKhusus = () => {
             <Text strong>{idx + 1}. {k.nama_kelas}</Text>
             <Text type="secondary">{k.jumlah_siswa} Siswa</Text>
           </div>
-          <div style={{ textAlign: 'center', marginTop: 8 }}>
-            <Text type="secondary">Silakan gunakan layar lebar/cetak PDF untuk detail lengkap.</Text>
-          </div>
+          
+          {/* Tampilan Dinamis Berdasarkan Tab */}
+          {activeTab === 'muhafadzoh' && (
+            <>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '6px', marginTop: '8px' }}>
+                <div style={{ textAlign: 'center', background: '#f5f5f5', padding: '4px', borderRadius: '4px' }}>
+                  <div style={{ fontSize: '10px', color: '#8c8c8c' }}>Rodi'</div>
+                  <div style={{ fontWeight: 'bold', fontSize: '12px' }}>{k.rodi || 0}</div>
+                </div>
+                <div style={{ textAlign: 'center', background: '#f5f5f5', padding: '4px', borderRadius: '4px' }}>
+                  <div style={{ fontSize: '10px', color: '#8c8c8c' }}>Mtwsth</div>
+                  <div style={{ fontWeight: 'bold', fontSize: '12px' }}>{k.mutawassith || 0}</div>
+                </div>
+                <div style={{ textAlign: 'center', background: '#f5f5f5', padding: '4px', borderRadius: '4px' }}>
+                  <div style={{ fontSize: '10px', color: '#8c8c8c' }}>Jayyid</div>
+                  <div style={{ fontWeight: 'bold', fontSize: '12px' }}>{k.jayyid || 0}</div>
+                </div>
+                <div style={{ textAlign: 'center', background: '#f5f5f5', padding: '4px', borderRadius: '4px' }}>
+                  <div style={{ fontSize: '10px', color: '#8c8c8c' }}>Mumtaz</div>
+                  <div style={{ fontWeight: 'bold', fontSize: '12px' }}>{k.mumtaz || 0}</div>
+                </div>
+              </div>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '6px', marginTop: '6px' }}>
+                <div style={{ textAlign: 'center', background: '#e6f7ff', padding: '4px', borderRadius: '4px' }}>
+                  <div style={{ fontSize: '10px', color: '#096dd9' }}>Lulus</div>
+                  <div style={{ fontWeight: 'bold', color: '#096dd9', fontSize: '12px' }}>{k.lulus || 0}</div>
+                </div>
+                <div style={{ textAlign: 'center', background: '#fff1f0', padding: '4px', borderRadius: '4px' }}>
+                  <div style={{ fontSize: '10px', color: '#cf1322' }}>Tidak</div>
+                  <div style={{ fontWeight: 'bold', color: '#cf1322', fontSize: '12px' }}>{k.tidak || 0}</div>
+                </div>
+                <div style={{ textAlign: 'center', background: '#fafafa', padding: '4px', borderRadius: '4px' }}>
+                  <div style={{ fontSize: '10px', color: '#8c8c8c' }}>Ghoib</div>
+                  <div style={{ fontWeight: 'bold', fontSize: '12px' }}>{k.ghoib || 0}</div>
+                </div>
+              </div>
+            </>
+          )}
+
+          {activeTab === 'taftisyul_kutub' && (
+            <>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '6px', marginTop: '8px' }}>
+                <div style={{ textAlign: 'center', background: '#f5f5f5', padding: '4px', borderRadius: '4px' }}>
+                  <div style={{ fontSize: '10px', color: '#8c8c8c' }}>Naqish</div>
+                  <div style={{ fontWeight: 'bold', fontSize: '12px' }}>{k.naqish || 0}</div>
+                </div>
+                <div style={{ textAlign: 'center', background: '#f5f5f5', padding: '4px', borderRadius: '4px' }}>
+                  <div style={{ fontSize: '10px', color: '#8c8c8c' }}>Tam</div>
+                  <div style={{ fontWeight: 'bold', fontSize: '12px' }}>{k.tam || 0}</div>
+                </div>
+              </div>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '6px', marginTop: '6px' }}>
+                <div style={{ textAlign: 'center', background: '#e6f7ff', padding: '4px', borderRadius: '4px' }}>
+                  <div style={{ fontSize: '10px', color: '#096dd9' }}>Lulus</div>
+                  <div style={{ fontWeight: 'bold', color: '#096dd9', fontSize: '12px' }}>{k.lulus || 0}</div>
+                </div>
+                <div style={{ textAlign: 'center', background: '#fff1f0', padding: '4px', borderRadius: '4px' }}>
+                  <div style={{ fontSize: '10px', color: '#cf1322' }}>Tidak</div>
+                  <div style={{ fontWeight: 'bold', color: '#cf1322', fontSize: '12px' }}>{k.tidak || 0}</div>
+                </div>
+                <div style={{ textAlign: 'center', background: '#fafafa', padding: '4px', borderRadius: '4px' }}>
+                  <div style={{ fontSize: '10px', color: '#8c8c8c' }}>Ghoib</div>
+                  <div style={{ fontWeight: 'bold', fontSize: '12px' }}>{k.ghoib || 0}</div>
+                </div>
+              </div>
+            </>
+          )}
+
+          {activeTab !== 'muhafadzoh' && activeTab !== 'taftisyul_kutub' && (
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '6px', marginTop: '8px' }}>
+              <div style={{ textAlign: 'center', background: '#f5f5f5', padding: '4px', borderRadius: '4px' }}>
+                <div style={{ fontSize: '10px', color: '#8c8c8c' }}>Rata-rata</div>
+                <div style={{ fontWeight: 'bold', fontSize: '12px' }}>{k.rata_rata || 0}</div>
+              </div>
+              <div style={{ textAlign: 'center', background: '#fafafa', padding: '4px', borderRadius: '4px' }}>
+                <div style={{ fontSize: '10px', color: '#8c8c8c' }}>Ghoib</div>
+                <div style={{ fontWeight: 'bold', fontSize: '12px' }}>{k.ghoib || 0}</div>
+              </div>
+            </div>
+          )}
         </Card>
       ))}
       <Card title="Total Keseluruhan" size="small" style={{ marginTop: 12, borderRadius: 8, background: '#fafafa' }}>
@@ -1041,7 +1129,7 @@ export const LaporanUjianKhusus = () => {
   };
 
   return (
-    <div className={`laporan-container ${isMobile ? 'mobile' : 'desktop'}`} style={{ padding: isMobile ? 8 : 24, background: '#f0f2f5', minHeight: '100vh' }}>
+    <div className={`laporan-container ${isMobile ? 'mobile' : 'desktop'}`} style={{ padding: isMobile ? 8 : 24, paddingBottom: isMobile && isPublicRoute ? 70 : (isMobile ? 8 : 24), background: '#f0f2f5', minHeight: '100vh' }}>
       <Card 
         style={{ marginBottom: 12, borderRadius: 12, boxShadow: '0 2px 8px rgba(0,0,0,0.05)', position: 'sticky', top: 0, zIndex: 10 }}
         bodyStyle={{ padding: isMobile ? 12 : 16 }}
@@ -1213,6 +1301,7 @@ export const LaporanUjianKhusus = () => {
           )}
         </div>
       )}
+      {isMobile && isPublicRoute && <BottomNav />}
     </div>
   );
 };

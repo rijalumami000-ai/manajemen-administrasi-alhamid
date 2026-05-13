@@ -67,6 +67,28 @@ export function AuthProvider({ children }) {
     }
   };
 
+  const magicLogin = async (key) => {
+    try {
+      const response = await fetch('/api/auth/magic-login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ key })
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        localStorage.setItem('token', data.accessToken);
+        setUser(data.user);
+        return { success: true };
+      }
+
+      const error = await response.json();
+      return { success: false, error: error.error || error.message || 'Magic login failed' };
+    } catch (error) {
+      return { success: false, error: 'Network error' };
+    }
+  };
+
   const logout = async () => {
     try {
       const token = localStorage.getItem('token');
@@ -126,7 +148,8 @@ export function AuthProvider({ children }) {
     loading,
     isAdmin,
     updateUser,
-    verifyPassword
+    verifyPassword,
+    magicLogin
   };
 
   return (

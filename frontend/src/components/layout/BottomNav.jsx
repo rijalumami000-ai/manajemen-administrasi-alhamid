@@ -1,9 +1,9 @@
 import React from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { 
-  DashboardOutlined, 
   BookOutlined, 
-  UserOutlined 
+  FileTextOutlined,
+  HomeOutlined
 } from '@ant-design/icons';
 import './BottomNav.scss';
 
@@ -13,19 +13,19 @@ export function BottomNav() {
 
   const navItems = [
     {
-      key: '/',
-      icon: <DashboardOutlined />,
-      label: 'Dashboard',
+      key: '/welcome',
+      icon: <HomeOutlined />,
+      label: 'Welcome',
     },
     {
       key: '/nilai',
       icon: <BookOutlined />,
-      label: 'Diniyah',
+      label: 'Input',
     },
     {
-      key: '/profile',
-      icon: <UserOutlined />,
-      label: 'Profile',
+      key: '/laporan-ujian-khusus',
+      icon: <FileTextOutlined />,
+      label: 'Laporan',
     },
   ];
 

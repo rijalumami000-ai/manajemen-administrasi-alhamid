@@ -28,6 +28,8 @@ const LaporanUjianKhusus = lazy(() => import('./pages/LaporanUjianKhusus').then(
 const BukuInduk = lazy(() => import('./pages/BukuInduk').then(m => ({ default: m.BukuInduk })));
 const KartuUjianSemester = lazy(() => import('./pages/KartuUjianSemester').then(m => ({ default: m.KartuUjianSemester })));
 const VerificationPage = lazy(() => import('./pages/VerificationPage').then(m => ({ default: m.VerificationPage })));
+const Welcome = lazy(() => import('./pages/Welcome').then(m => ({ default: m.Welcome })));
+const QuickLogin = lazy(() => import('./pages/QuickLogin').then(m => ({ default: m.QuickLogin })));
 
 function App() {
   const { isDarkMode } = useTheme();
@@ -62,6 +64,10 @@ function App() {
                     path="/verify/:no_peserta" 
                     element={<VerificationPage />} 
                   />
+                  <Route 
+                    path="/masuk/:key" 
+                    element={<QuickLogin />} 
+                  />
 
                   <Route path="/" element={
                     <ProtectedRoute>
@@ -81,6 +87,7 @@ function App() {
                     <Route path="nilai-pengaturan" element={<ManajemenNilai mode="config" key="config" />} />
                     <Route path="nilai-rekap" element={<ManajemenNilai mode="rekap" key="rekap" />} />
                     <Route path="laporan-ujian-khusus" element={<LaporanUjianKhusus />} />
+                    <Route path="welcome" element={<Welcome />} />
                     <Route path="buku-induk" element={<BukuInduk />} />
                     <Route path="kartu-ujian-semester" element={<KartuUjianSemester />} />
                   </Route>

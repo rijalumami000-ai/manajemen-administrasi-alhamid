@@ -21,6 +21,21 @@ function registerAuthRoutes(app) {
   }));
 
   /**
+   * POST /api/auth/magic-login - Login without password using secret key
+   * Body: { key }
+   * Returns: { user, accessToken, refreshToken }
+   */
+  app.post('/api/auth/magic-login', asyncHandler(async (req, res) => {
+    const { key } = req.body;
+    const ipAddress = req.ip || req.connection.remoteAddress;
+    const userAgent = req.headers['user-agent'];
+
+    const result = await authService.magicLogin(key, ipAddress, userAgent);
+
+    res.json(result);
+  }));
+
+  /**
    * POST /api/auth/logout - Logout (invalidate token)
    * Requires: Authorization header with Bearer token
    * Returns: { message }
