@@ -8,12 +8,16 @@ import {
   UserOutlined, SearchOutlined, UploadOutlined, DeleteOutlined,
   EditOutlined, BookOutlined, CameraOutlined, ReloadOutlined,
   TeamOutlined, CalendarOutlined, PlusOutlined, IdcardOutlined,
-  HomeOutlined, PhoneOutlined, FileExcelOutlined, FilePdfOutlined
+  HomeOutlined, PhoneOutlined, FileExcelOutlined, FilePdfOutlined,
+  ScanOutlined, CheckCircleOutlined, CloseCircleOutlined
 } from '@ant-design/icons';
 import { useAuth } from '../context/AuthContext';
 import { ImportSantriModal } from '../components/features/ImportSantriModal';
 import { exportToExcel, exportToPDF } from '../utils/exportUtils';
 import dayjs from 'dayjs';
+import Webcam from 'react-webcam';
+import * as faceapi from '@vladmandic/face-api';
+import { absensiSholatService } from '../services/absensiSholatService';
 import './BukuInduk.scss';
 
 const { Title, Text } = Typography;
@@ -44,17 +48,24 @@ export function BukuInduk() {
   const [loading, setLoading] = useState(false);
   const [filterTahun, setFilterTahun] = useState(null);
   const [searchText, setSearchText] = useState('');
+  const [filterScanWajah, setFilterScanWajah] = useState(null);
 
   // Modal states
   const [crudModal, setCrudModal] = useState({ open: false, santri: null });
   const [fotoModal, setFotoModal] = useState({ open: false, santri: null });
+  const [faceModal, setFaceModal] = useState({ open: false, santri: null });
   const [isImportModalOpen, setIsImportModalOpen] = useState(false);
   const [uploadingFoto, setUploadingFoto] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [modalError, setModalError] = useState('');
+  
+  const [modelsLoaded, setModelsLoaded] = useState(false);
+  const [isRegistering, setIsRegistering] = useState(false);
+  const [registerResult, setRegisterResult] = useState(null);
 
   const [form] = Form.useForm();
   const fileInputRef = useRef(null);
+  const faceWebcamRef = useRef(null);
 
   const fetchData = useCallback(async () => {
     setLoading(true);
@@ -83,6 +94,24 @@ export function BukuInduk() {
   }, [filterTahun, searchText]);
 
   useEffect(() => { fetchData(); }, [fetchData]);
+
+  // Load face models
+  useEffect(() => {
+    const loadModels = async () => {
+      try {
+        const MODEL_URL = '/models';
+        await Promise.all([
+          faceapi.nets.tinyFaceDetector.loadFromUri(MODEL_URL),
+          faceapi.nets.faceLandmark68Net.loadFromUri(MODEL_URL),
+          faceapi.nets.faceRecognitionNet.loadFromUri(MODEL_URL)
+        ]);
+        setModelsLoaded(true);
+      } catch (error) {
+        console.error('Failed to load face models:', error);
+      }
+    };
+    loadModels();
+  }, []);
 
   // === CRUD Handlers ===
   const handleAddClick = () => {
@@ -209,6 +238,46 @@ export function BukuInduk() {
     });
   };
 
+  // === Face Handlers ===
+  const handleRegisterFace = async () => {
+    if (!faceWebcamRef.current || !faceModal.santri) return;
+
+    setIsRegistering(true);
+    setRegisterResult(null);
+
+    try {
+      const imageSrc = faceWebcamRef.current.getScreenshot();
+      if (!imageSrc) throw new Error('Gagal mengambil gambar dari kamera');
+
+      const img = new Image();
+      img.src = imageSrc;
+      await new Promise((resolve) => (img.onload = resolve));
+
+      const detection = await faceapi
+        .detectSingleFace(img, new faceapi.TinyFaceDetectorOptions())
+        .withFaceLandmarks()
+        .withFaceDescriptor();
+
+      if (!detection) {
+        message.warning('Wajah tidak terdeteksi. Pastikan wajah terlihat jelas.');
+        setIsRegistering(false);
+        return;
+      }
+
+      const descriptor = Array.from(detection.descriptor);
+      await absensiSholatService.registerFace(faceModal.santri.id, descriptor);
+
+      setRegisterResult({ success: true, message: 'Wajah berhasil didaftarkan!' });
+      message.success('Wajah berhasil didaftarkan!');
+    } catch (error) {
+      console.error('Face register error:', error);
+      setRegisterResult({ success: false, message: error.message || 'Gagal mendaftarkan wajah' });
+      message.error(error.message || 'Gagal mendaftarkan wajah');
+    } finally {
+      setIsRegistering(false);
+    }
+  };
+
   // === Export Handlers ===
   const handleExportExcel = () => {
     const dataToExport = santriList.map(s => ({
@@ -254,6 +323,12 @@ export function BukuInduk() {
 
   const kelasDiniyah = kelasList.filter(k => k.jenis === 'Diniyah');
   const kelasSekolah = kelasList.filter(k => k.jenis === 'Sekolah');
+
+  const filteredSantri = santriList.filter(s => {
+    if (filterScanWajah === 'registered') return s.is_face_registered;
+    if (filterScanWajah === 'not_registered') return !s.is_face_registered;
+    return true;
+  });
 
   const columns = [
     {
@@ -306,6 +381,17 @@ export function BukuInduk() {
       ),
     },
     {
+      title: 'Scan Wajah',
+      dataIndex: 'is_face_registered',
+      key: 'is_face_registered',
+      width: 120,
+      render: (isRegistered) => (
+        isRegistered ? 
+          <Tag color="green" icon={<CheckCircleOutlined />}>Terdaftar</Tag> : 
+          <Tag color="red" icon={<CloseCircleOutlined />}>Belum</Tag>
+      ),
+    },
+    {
       title: 'TTL',
       key: 'ttl',
       width: 180,
@@ -350,6 +436,9 @@ export function BukuInduk() {
           </Tooltip>
           <Tooltip title="Upload Foto">
             <Button type="text" size="small" icon={<CameraOutlined />} onClick={() => setFotoModal({ open: true, santri: record })} />
+          </Tooltip>
+          <Tooltip title="Daftar Wajah (AI)">
+            <Button type="text" size="small" icon={<ScanOutlined />} onClick={() => { setFaceModal({ open: true, santri: record }); setRegisterResult(null); }} />
           </Tooltip>
           <Tooltip title="Hapus">
             <Button type="text" size="small" danger icon={<DeleteOutlined />} onClick={() => handleDeleteClick(record)} />
@@ -429,6 +518,11 @@ export function BukuInduk() {
             allowClear style={{ width: 180 }}>
             {tahunMasukList.map(t => (<Option key={t} value={t}>{t}</Option>))}
           </Select>
+          <Select placeholder="Filter Scan Wajah" value={filterScanWajah} onChange={setFilterScanWajah}
+            allowClear style={{ width: 160 }}>
+            <Option value="registered">Sudah Scan</Option>
+            <Option value="not_registered">Belum Scan</Option>
+          </Select>
           <Button icon={<ReloadOutlined />} onClick={fetchData} loading={loading}>Refresh</Button>
           <Tag color="default">{totalSantri} santri</Tag>
         </Space>
@@ -436,7 +530,7 @@ export function BukuInduk() {
 
       {/* Tabel */}
       <Card size="small">
-        <Table dataSource={santriList} columns={columns} rowKey="id" loading={loading}
+        <Table dataSource={filteredSantri} columns={columns} rowKey="id" loading={loading}
           pagination={{ pageSize: 20, showSizeChanger: true, showTotal: (t) => `Total ${t} santri` }}
           size="middle" scroll={{ x: 1000 }}
           locale={{ emptyText: <Empty description="Tidak ada data santri" /> }} />
@@ -622,6 +716,65 @@ export function BukuInduk() {
                 Format: JPG, PNG, WEBP · Maks 2MB
               </Text>
             </Space>
+          </div>
+        )}
+      </Modal>
+
+      {/* Modal Face Registration */}
+      <Modal
+        title={<Space><ScanOutlined /> Pendaftaran Wajah — {faceModal.santri?.nama}</Space>}
+        open={faceModal.open}
+        onCancel={() => setFaceModal({ open: false, santri: null })}
+        footer={null}
+        destroyOnClose
+      >
+        {faceModal.santri && (
+          <div style={{ textAlign: 'center' }}>
+            {!modelsLoaded ? (
+              <Spin tip="Memuat model AI..." />
+            ) : (
+              <>
+                <div style={{ position: 'relative', width: '100%', maxWidth: '320px', margin: '0 auto', background: '#000', borderRadius: '8px', overflow: 'hidden' }}>
+                  <Webcam
+                    audio={false}
+                    ref={faceWebcamRef}
+                    screenshotFormat="image/jpeg"
+                    width="100%"
+                    videoConstraints={{ width: 640, height: 480, facingMode: "user" }}
+                  />
+                  {isRegistering && (
+                    <div style={{
+                      position: 'absolute', top: 0, left: 0, width: '100%', height: '100%',
+                      background: 'rgba(0,0,0,0.5)', display: 'flex', justifyContent: 'center', alignItems: 'center',
+                      color: '#fff'
+                    }}>
+                      Memproses...
+                    </div>
+                  )}
+                </div>
+                
+                <Button
+                  type="primary"
+                  icon={<ScanOutlined />}
+                  onClick={handleRegisterFace}
+                  loading={isRegistering}
+                  style={{ marginTop: '16px', width: '200px' }}
+                >
+                  Ambil Sampel Wajah
+                </Button>
+
+                {registerResult && (
+                  <div style={{ marginTop: '16px' }}>
+                    <Alert
+                      message={registerResult.success ? "Sukses" : "Gagal"}
+                      description={registerResult.message}
+                      type={registerResult.success ? "success" : "error"}
+                      showIcon
+                    />
+                  </div>
+                )}
+              </>
+            )}
           </div>
         )}
       </Modal>

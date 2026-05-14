@@ -51,13 +51,13 @@ app.use((req, res, next) => {
   // Referrer policy
   res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
   // Permissions policy — disable unused features
-  res.setHeader('Permissions-Policy', 'camera=(), microphone=(), geolocation=()');
-  
+  res.setHeader('Permissions-Policy', 'camera=(self), microphone=(), geolocation=()');
+
   if (isProduction) {
     // HSTS — force HTTPS for 1 year (hanya jika pakai HTTPS)
     // res.setHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains');
   }
-  
+
   next();
 });
 
@@ -96,31 +96,31 @@ const LOGIN_RATE_LIMIT = { maxAttempts: 10, windowMs: 15 * 60 * 1000 }; // 10 at
 
 app.use('/api/auth/login', (req, res, next) => {
   if (req.method !== 'POST') return next();
-  
+
   const ip = req.ip || req.connection.remoteAddress;
   const now = Date.now();
   const record = loginAttempts.get(ip);
-  
+
   if (record) {
     // Bersihkan window yang sudah expired
     if (now - record.firstAttempt > LOGIN_RATE_LIMIT.windowMs) {
       loginAttempts.set(ip, { count: 1, firstAttempt: now });
       return next();
     }
-    
+
     if (record.count >= LOGIN_RATE_LIMIT.maxAttempts) {
       const retryAfter = Math.ceil((record.firstAttempt + LOGIN_RATE_LIMIT.windowMs - now) / 1000);
       res.setHeader('Retry-After', retryAfter);
-      return res.status(429).json({ 
-        error: `Terlalu banyak percobaan login. Coba lagi dalam ${Math.ceil(retryAfter / 60)} menit.` 
+      return res.status(429).json({
+        error: `Terlalu banyak percobaan login. Coba lagi dalam ${Math.ceil(retryAfter / 60)} menit.`
       });
     }
-    
+
     record.count++;
   } else {
     loginAttempts.set(ip, { count: 1, firstAttempt: now });
   }
-  
+
   next();
 });
 

@@ -30,6 +30,8 @@ const KartuUjianSemester = lazy(() => import('./pages/KartuUjianSemester').then(
 const VerificationPage = lazy(() => import('./pages/VerificationPage').then(m => ({ default: m.VerificationPage })));
 const Welcome = lazy(() => import('./pages/Welcome').then(m => ({ default: m.Welcome })));
 const QuickLogin = lazy(() => import('./pages/QuickLogin').then(m => ({ default: m.QuickLogin })));
+const AbsensiSholat = lazy(() => import('./pages/AbsensiSholat').then(m => ({ default: m.AbsensiSholat })));
+const RekapAbsensiSholat = lazy(() => import('./pages/RekapAbsensiSholat').then(m => ({ default: m.RekapAbsensiSholat })));
 
 function App() {
   const { isDarkMode } = useTheme();
@@ -90,6 +92,8 @@ function App() {
                     <Route path="welcome" element={<Welcome />} />
                     <Route path="buku-induk" element={<BukuInduk />} />
                     <Route path="kartu-ujian-semester" element={<KartuUjianSemester />} />
+                    <Route path="absensi-sholat" element={<AbsensiSholat />} />
+                    <Route path="rekap-absensi-sholat" element={<RekapAbsensiSholat />} />
                   </Route>
 
                   <Route path="*" element={<Navigate to="/" replace />} />

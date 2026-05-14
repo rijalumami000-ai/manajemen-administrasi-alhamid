@@ -16,7 +16,8 @@ import {
   RightOutlined,
   BankOutlined,
   EditOutlined,
-  IdcardOutlined
+  IdcardOutlined,
+  CameraOutlined
 } from '@ant-design/icons';
 import './Sidebar.scss';
 import { settingsService } from '../../services/settingsService';
@@ -75,6 +76,8 @@ export function Sidebar({ collapsed, onCollapse }) {
         { key: '/santri', icon: <TeamOutlined />, label: 'Data Santri' },
         { key: '/buku-induk', icon: <BookOutlined />, label: 'Buku Induk' },
         { key: '/kamar', icon: <HomeOutlined />, label: 'Data Kamar' },
+        { key: '/absensi-sholat', icon: <CameraOutlined />, label: 'Absensi Sholat' },
+        { key: '/rekap-absensi-sholat', icon: <BookOutlined />, label: 'Rekap Absensi Sholat' },
         { key: '/pelanggaran-prestasi', icon: <TrophyOutlined />, label: 'Pelanggaran & Prestasi' },
       ],
     },

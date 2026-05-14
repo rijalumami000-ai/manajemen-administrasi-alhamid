@@ -91,12 +91,14 @@ function registerBukuIndukRoutes(app) {
           ks.nama AS kelas_sekolah,
           km.nama AS nama_kamar,
           o.nama_ayah, o.nama_ibu, o.no_hp_ayah, o.no_hp_ibu,
-          o.pekerjaan_ayah, o.pekerjaan_ibu
+          o.pekerjaan_ayah, o.pekerjaan_ibu,
+          CASE WHEN sfd.santri_id IS NOT NULL THEN TRUE ELSE FALSE END AS is_face_registered
         FROM santri s
         LEFT JOIN kelas kd ON s.kelas_diniyah_id = kd.id
         LEFT JOIN kelas ks ON s.kelas_sekolah_id = ks.id
         LEFT JOIN kamar km ON s.kamar_id = km.id
         LEFT JOIN orangtua o ON s.orangtua_id = o.id
+        LEFT JOIN santri_face_data sfd ON s.id = sfd.santri_id
         ${where}
         ORDER BY s.tahun_masuk NULLS LAST, s.nama ASC
       `, params);
