@@ -18,3 +18,5 @@ tmp/
 # OS/editor noise
 .DS_Store
 Thumbs.db
+# Uploads
+public/uploads/
