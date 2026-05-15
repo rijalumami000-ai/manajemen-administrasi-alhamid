@@ -16,3 +16,11 @@ CREATE TABLE IF NOT EXISTS lembar_ujian (
 );
 
 CREATE INDEX IF NOT EXISTS idx_lembar_ujian_lookup ON lembar_ujian(tahun_ajaran_id, semester, tingkat, is_her);
+
+-- Tabel untuk menyimpan pengaturan global (seperti Kop Surat)
+CREATE TABLE IF NOT EXISTS settings (
+    key VARCHAR(255) PRIMARY KEY,
+    value TEXT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);

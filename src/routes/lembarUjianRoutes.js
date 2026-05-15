@@ -121,6 +121,38 @@ function registerLembarUjianRoutes(app) {
       res.status(500).json({ error: 'Gagal menghapus lembar ujian.' });
     }
   });
+
+  // ===== SETTINGS API =====
+  
+  // Get setting
+  app.get('/api/lembar-ujian-settings/:key', async (req, res) => {
+    const { key } = req.params;
+    try {
+      const result = await db.query('SELECT value FROM settings WHERE key = $1', [key]);
+      if (result.rows.length === 0) {
+        return res.json({ value: null });
+      }
+      res.json({ value: result.rows[0].value });
+    } catch (error) {
+      console.error(error);
+      res.status(500).json({ error: 'Gagal memuat setting.' });
+    }
+  });
+
+  // Save setting
+  app.post('/api/lembar-ujian-settings', async (req, res) => {
+    const { key, value } = req.body;
+    try {
+      await db.query(
+        'INSERT INTO settings (key, value) VALUES ($1, $2) ON CONFLICT (key) DO UPDATE SET value = $2, updated_at = CURRENT_TIMESTAMP',
+        [key, value]
+      );
+      res.json({ success: true });
+    } catch (error) {
+      console.error(error);
+      res.status(500).json({ error: 'Gagal menyimpan setting.' });
+    }
+  });
 }
 
 module.exports = registerLembarUjianRoutes;

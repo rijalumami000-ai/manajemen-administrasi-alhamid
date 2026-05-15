@@ -1,5 +1,5 @@
-import React from 'react';
-import { Typography, Space } from 'antd';
+import React, { useState } from 'react';
+import { Typography, Space, Modal, Input, message } from 'antd';
 import { EditOutlined, FileTextOutlined, ArrowRightOutlined, LockOutlined } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
 import { useResponsive } from '../hooks/useResponsive';
@@ -9,6 +9,19 @@ const { Title, Text } = Typography;
 export function UjianMenu() {
   const navigate = useNavigate();
   const { isMobile } = useResponsive();
+  
+  const [isModalVisible, setIsModalVisible] = useState(false);
+  const [accessCode, setAccessCode] = useState('');
+
+  const handleAccess = () => {
+    if (accessCode === 'madin123') {
+      setIsModalVisible(false);
+      setAccessCode('');
+      navigate('/lembar-ujian');
+    } else {
+      message.error('Kode akses salah!');
+    }
+  };
 
   return (
     <div style={{
@@ -32,7 +45,7 @@ export function UjianMenu() {
         <Space direction="vertical" style={{ width: '100%' }} size="middle">
           {/* Kartu 1: Input Soal */}
           <div
-            onClick={() => navigate('/lembar-ujian')}
+            onClick={() => setIsModalVisible(true)}
             style={{
               background: '#fff',
               padding: '16px 20px',
@@ -108,6 +121,28 @@ export function UjianMenu() {
           </div>
         </Space>
       </div>
+
+      {/* Modal Kode Akses */}
+      <Modal
+        title="Verifikasi Tim Ujian"
+        open={isModalVisible}
+        onOk={handleAccess}
+        onCancel={() => {
+          setIsModalVisible(false);
+          setAccessCode('');
+        }}
+        okText="Masuk"
+        cancelText="Batal"
+      >
+        <p style={{ marginBottom: 12 }}>Apakah anda tim ujian? Jika iya, silakan masukkan kode akses:</p>
+        <Input.Password
+          placeholder="Masukkan kode akses"
+          value={accessCode}
+          onChange={(e) => setAccessCode(e.target.value)}
+          onPressEnter={handleAccess}
+          autoFocus
+        />
+      </Modal>
       
       {/* CSS untuk hover effect */}
       <style>{`

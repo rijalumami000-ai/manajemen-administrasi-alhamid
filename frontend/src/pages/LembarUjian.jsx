@@ -52,18 +52,31 @@ export function LembarUjian() {
   const [isKunciMode, setIsKunciMode] = useState(false);
   const [isHer, setIsHer] = useState(false);
 
-  const [previewData, setPreviewData] = useState({
-    judul: 'PENILAIAN AKHIR SEMESTER GANJIL',
-    subJudul: 'MADRASAH DINIYYAH AL-HAMID',
-    alamat: 'Cintamulya Candipuro Lampung Selatan',
-    tahunAjaran: 'Tahun Ajaran 2025/2026 M',
-    pelajaran: 'MABADI FIQH (UZ 1)',
-    kelas: 'Sifir',
-    hariTanggal: 'Senin, 12 Desember 2026',
-    instruksi: 'KERJAKAN URAIAN SOAL-SOAL DI BAWAH INI !',
-    soal: [],
-    jumlahGaris: 15,
-    logo: localStorage.getItem('kop_logo') || null // Base64 logo
+  const [previewData, setPreviewData] = useState(() => {
+    const savedKop = localStorage.getItem('kop_settings');
+    const defaults = {
+      judul: 'PENILAIAN AKHIR SEMESTER GANJIL',
+      subJudul: 'MADRASAH DINIYYAH AL-HAMID',
+      alamat: 'Cintamulya Candipuro Lampung Selatan',
+      tahunAjaran: 'Tahun Ajaran 2025/2026 M',
+      pelajaran: 'MABADI FIQH (UZ 1)',
+      kelas: 'Sifir',
+      hariTanggal: 'Senin, 12 Desember 2026',
+      instruksi: 'KERJAKAN URAIAN SOAL-SOAL DI BAWAH INI !',
+      soal: [],
+      jumlahGaris: 15,
+      logo: localStorage.getItem('kop_logo') || null // Base64 logo
+    };
+    
+    if (savedKop) {
+      try {
+        return { ...defaults, ...JSON.parse(savedKop) };
+      } catch (e) {
+        console.error('Failed to parse saved kop settings:', e);
+        return defaults;
+      }
+    }
+    return defaults;
   });
 
   const staticTingkatan = [
@@ -76,6 +89,44 @@ export function LembarUjian() {
     { key: '5', label: 'Kelas 5', tingkat: 5 },
     { key: '6', label: 'Kelas 6', tingkat: 6 }
   ];
+
+  useEffect(() => {
+    const loadSettings = async () => {
+      try {
+        const [kopRes, logoRes] = await Promise.all([
+          apiFetch('/api/lembar-ujian-settings/kop_settings'),
+          apiFetch('/api/lembar-ujian-settings/kop_logo')
+        ]);
+
+        if (kopRes && kopRes.value) {
+          const kopData = JSON.parse(kopRes.value);
+          setPreviewData(prev => ({ ...prev, ...kopData }));
+          formKop.setFieldsValue(kopData);
+        }
+
+        if (logoRes && logoRes.value) {
+          setPreviewData(prev => ({ ...prev, logo: logoRes.value }));
+        }
+      } catch (error) {
+        console.error('Failed to load settings from DB:', error);
+        
+        // Fallback ke localStorage jika gagal
+        const savedKop = localStorage.getItem('kop_settings');
+        if (savedKop) {
+          const kopData = JSON.parse(savedKop);
+          setPreviewData(prev => ({ ...prev, ...kopData }));
+          formKop.setFieldsValue(kopData);
+        }
+        
+        const savedLogo = localStorage.getItem('kop_logo');
+        if (savedLogo) {
+          setPreviewData(prev => ({ ...prev, logo: savedLogo }));
+        }
+      }
+    };
+
+    loadSettings();
+  }, [formKop]);
 
   const fetchMeta = useCallback(async () => {
     setLoading(true);
@@ -301,6 +352,32 @@ export function LembarUjian() {
     message.success('Soal berhasil disimpan ke browser!');
   };
 
+  const handleSaveKop = async () => {
+    const values = formKop.getFieldsValue();
+    const settings = {
+      judul: values.judul,
+      subJudul: values.subJudul,
+      alamat: values.alamat,
+      hariTanggal: values.hariTanggal,
+      instruksi: values.instruksi
+    };
+    
+    // Simpan ke localStorage sebagai fallback
+    localStorage.setItem('kop_settings', JSON.stringify(settings));
+    
+    try {
+      await apiFetch('/api/lembar-ujian-settings', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ key: 'kop_settings', value: JSON.stringify(settings) })
+      });
+      message.success('Pengaturan Kop berhasil disimpan ke database!');
+    } catch (error) {
+      console.error('Failed to save kop to DB:', error);
+      message.warning('Tersimpan di browser, tapi gagal simpan ke database.');
+    }
+  };
+
   const handleSaveToDb = async () => {
     if (!selectedTahunAjaran || !activeTabKey || !selectedMapelId) {
       message.warning('Pilih Tahun Ajaran, Tingkatan, dan Pelajaran terlebih dahulu.');
@@ -500,9 +577,21 @@ export function LembarUjian() {
             <Upload
               beforeUpload={(file) => {
                 const reader = new FileReader();
-                reader.onload = (e) => {
+                reader.onload = async (e) => {
                   setPreviewData(prev => ({ ...prev, logo: e.target.result }));
                   localStorage.setItem('kop_logo', e.target.result);
+                  
+                  try {
+                    await apiFetch('/api/lembar-ujian-settings', {
+                      method: 'POST',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({ key: 'kop_logo', value: e.target.result })
+                    });
+                    message.success('Logo berhasil disimpan ke database!');
+                  } catch (error) {
+                    console.error('Failed to save logo to DB:', error);
+                    message.warning('Logo tersimpan di browser, tapi gagal simpan ke database.');
+                  }
                 };
                 reader.readAsDataURL(file);
                 return false; // Mencegah upload otomatis
@@ -515,12 +604,29 @@ export function LembarUjian() {
             {previewData.logo && (
               <div style={{ marginTop: '10px' }}>
                 <img src={previewData.logo} alt="Logo Preview" style={{ maxHeight: '50px' }} />
-                <Button type="link" danger onClick={() => {
+                <Button type="link" danger onClick={async () => {
                   setPreviewData(prev => ({ ...prev, logo: null }));
                   localStorage.removeItem('kop_logo');
+                  
+                  try {
+                    await apiFetch('/api/lembar-ujian-settings', {
+                      method: 'POST',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({ key: 'kop_logo', value: null })
+                    });
+                    message.success('Logo berhasil dihapus dari database!');
+                  } catch (error) {
+                    console.error('Failed to delete logo from DB:', error);
+                  }
                 }}>Hapus</Button>
               </div>
             )}
+          </Form.Item>
+
+          <Form.Item style={{ marginTop: '16px', textAlign: 'right' }}>
+            <Button type="primary" icon={<SaveOutlined />} onClick={handleSaveKop} style={{ background: '#0052FF' }}>
+              Simpan Kop
+            </Button>
           </Form.Item>
         </Form>
       )
