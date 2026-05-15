@@ -98,20 +98,34 @@ async function identifySantri(faceDescriptor) {
  * @param {string} status - Hadir, Sakit, Izin, Alpha
  * @param {string} keterangan 
  */
-async function recordAttendance(santriId, sholat, status = 'Hadir', keterangan = null) {
+async function recordAttendance(santriId, sholat, status = 'Hadir', keterangan = null, tahunAjaranId = null, semester = null) {
   const validSholat = ['Subuh', 'Dzuhur', 'Ashar', 'Maghrib', 'Isya'];
   if (!validSholat.includes(sholat)) {
     throw new ValidationError('Jenis sholat tidak valid');
   }
 
   try {
+    let finalYearId = tahunAjaranId;
+    let finalSemester = semester;
+
+    // Jika tidak dikirim dari frontend, ambil yang sedang aktif
+    if (!finalYearId) {
+      const activeYearResult = await db.query('SELECT id FROM tahun_ajaran WHERE is_active = TRUE LIMIT 1');
+      finalYearId = activeYearResult.rows[0]?.id || null;
+    }
+
+    if (!finalSemester) {
+      const month = new Date().getMonth() + 1;
+      finalSemester = (month >= 7 && month <= 12) ? 'Ganjil' : 'Genap';
+    }
+
     const result = await db.query(
-      `INSERT INTO absensi_sholat (santri_id, tanggal, sholat, status, waktu_scan, keterangan)
-       VALUES ($1, CURRENT_DATE, $2, $3, NOW(), $4)
+      `INSERT INTO absensi_sholat (santri_id, tanggal, sholat, status, waktu_scan, keterangan, tahun_ajaran_id, semester)
+       VALUES ($1, CURRENT_DATE, $2, $3, NOW(), $4, $5, $6)
        ON CONFLICT (santri_id, tanggal, sholat) 
-       DO UPDATE SET status = EXCLUDED.status, waktu_scan = NOW(), keterangan = EXCLUDED.keterangan
+       DO UPDATE SET status = EXCLUDED.status, waktu_scan = NOW(), keterangan = EXCLUDED.keterangan, tahun_ajaran_id = EXCLUDED.tahun_ajaran_id, semester = EXCLUDED.semester
        RETURNING id`,
-      [santriId, sholat, status, keterangan]
+      [santriId, sholat, status, keterangan, finalYearId, finalSemester]
     );
 
     return { success: true, id: result.rows[0].id };
@@ -156,7 +170,7 @@ async function getTodayAttendance() {
  * @param {number} kamarId 
  * @returns {Promise<Array>}
  */
-async function getAttendanceRecap(startDate = null, endDate = null, kelasId = null, sholat = null, jenisKelamin = null, kamarId = null, status = null) {
+async function getAttendanceRecap(startDate = null, endDate = null, kelasId = null, sholat = null, jenisKelamin = null, kamarId = null, status = null, tahunAjaranId = null, semester = null) {
   try {
     const query = `
       SELECT a.id, a.tanggal, a.sholat, a.status, a.waktu_scan,
@@ -173,10 +187,12 @@ async function getAttendanceRecap(startDate = null, endDate = null, kelasId = nu
         AND ($5::TEXT IS NULL OR s.jenis_kelamin = $5::TEXT)
         AND ($6::INTEGER IS NULL OR s.kamar_id = $6::INTEGER)
         AND ($7::TEXT IS NULL OR a.status = $7::TEXT)
+        AND ($8::INTEGER IS NULL OR a.tahun_ajaran_id = $8::INTEGER)
+        AND ($9::TEXT IS NULL OR a.semester = $9::TEXT)
       ORDER BY a.tanggal DESC, a.waktu_scan DESC
     `;
     
-    const result = await db.query(query, [startDate, endDate, kelasId, sholat, jenisKelamin, kamarId, status]);
+    const result = await db.query(query, [startDate, endDate, kelasId, sholat, jenisKelamin, kamarId, status, tahunAjaranId, semester]);
     return result.rows;
   } catch (error) {
     console.error('Error in getAttendanceRecap:', error);

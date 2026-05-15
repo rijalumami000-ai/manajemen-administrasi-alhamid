@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { Card, Button, Select, Alert, Typography, Space, Table, Tag, message, Tabs, Input, Modal } from 'antd';
+import { Link } from 'react-router-dom';
 import { CameraOutlined, CheckCircleOutlined, CloseCircleOutlined, UserAddOutlined } from '@ant-design/icons';
 import Webcam from 'react-webcam';
 import * as faceapi from '@vladmandic/face-api';
@@ -179,29 +180,20 @@ Wassalamualaikum Wr. Wb.`);
         photo: result.match.foto_url
       });
       
-      // Voice synthesis menggunakan ResponsiveVoice (Suara Perempuan Indonesia)
+      // Voice synthesis menggunakan Proxy Backend (Google TTS)
       const textToSpeak = `${result.match.nama} telah absen sholat ${selectedSholat}`;
+      const ttsUrl = `${API_BASE}/api/tts?text=${encodeURIComponent(textToSpeak)}`;
       
-      if (window.responsiveVoice) {
-        window.responsiveVoice.speak(textToSpeak, "Indonesian Female", {
-          pitch: 1,
-          rate: 1,
-          volume: 1
-        });
-      } else {
-        // FALLBACK 1: Google TTS
-        const ttsUrl = `https://translate.google.com/translate_tts?ie=UTF-8&q=${encodeURIComponent(textToSpeak)}&tl=id&client=tw-ob`;
-        const audio = new Audio(ttsUrl);
-        audio.play().catch(err => {
-          console.error('Gagal memutar suara Google TTS:', err);
-          
-          // FALLBACK 2: Web Speech API internal
-          const speech = new SpeechSynthesisUtterance(textToSpeak);
-          speech.lang = 'id-ID';
-          speech.pitch = 1.5;
-          window.speechSynthesis.speak(speech);
-        });
-      }
+      const audio = new Audio(ttsUrl);
+      audio.play().catch(err => {
+        console.error('Gagal memutar suara TTS Proxy:', err);
+        
+        // FALLBACK: Jika proxy gagal, gunakan suara internal browser (dengan pitch tinggi)
+        const speech = new SpeechSynthesisUtterance(textToSpeak);
+        speech.lang = 'id-ID';
+        speech.pitch = 1.5;
+        window.speechSynthesis.speak(speech);
+      });
 
       // Auto close popup after 3 seconds
       setTimeout(() => {
@@ -222,10 +214,10 @@ Wassalamualaikum Wr. Wb.`);
     }
   };
 
-  const handleManualAttendance = async (santriId, status) => {
+  const handleManualAttendance = async (santriId, status, sholat) => {
     try {
       const today = new Date().toISOString().split('T')[0];
-      await absensiSholatService.recordManualAttendance(santriId, selectedSholatManual, status);
+      await absensiSholatService.recordManualAttendance(santriId, sholat || selectedSholatManual, status);
       message.success(`Status berhasil diubah menjadi ${status}`);
       loadUnattendedSantri();
       loadTodayAttendance();
@@ -331,7 +323,7 @@ Wassalamualaikum Wr. Wb.`);
         <Select
           defaultValue={record.status}
           style={{ width: '120px' }}
-          onChange={(value) => handleManualAttendance(record.santri_id, value)}
+          onChange={(value) => handleManualAttendance(record.santri_id, value, record.sholat)}
         >
           <Option value="Hadir">Hadir</Option>
           <Option value="Sakit">Sakit</Option>
@@ -696,6 +688,14 @@ Wassalamualaikum Wr. Wb.`);
         subtitle="Fitur Smart Absensi menggunakan Scan Wajah"
       />
 
+      <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '16px' }}>
+        <Link to="/absensi-sholat-scan" target="_blank">
+          <Button type="primary" size="large" icon={<CameraOutlined />} style={{ background: '#2563eb' }}>
+            Buka Mode Scan Penuh (Standalone)
+          </Button>
+        </Link>
+      </div>
+
       <Tabs defaultActiveKey="1" items={tabItems} style={{ marginTop: '16px' }} />
       
       <Modal
@@ -730,74 +730,74 @@ Wassalamualaikum Wr. Wb.`);
         footer={null}
         closable={false}
         centered
-        width={360}
-        bodyStyle={{ padding: '0px', overflow: 'hidden', borderRadius: '20px' }}
+        width={450}
+        bodyStyle={{ padding: '0px', overflow: 'hidden', borderRadius: '24px' }}
       >
         <div style={{
           background: '#ffffff',
           color: '#1f2937',
-          padding: '24px',
+          padding: '32px',
           textAlign: 'center',
           position: 'relative',
           border: '1px solid #e5e7eb'
         }}>
           <div style={{
             position: 'absolute',
-            top: '12px',
-            right: '12px',
+            top: '16px',
+            right: '16px',
             background: '#d1fae5',
             color: '#047857',
-            padding: '4px 12px',
+            padding: '6px 16px',
             borderRadius: '20px',
-            fontSize: '12px',
+            fontSize: '14px',
             fontWeight: '600'
           }}>
             Berhasil
           </div>
           
-          <div style={{ marginBottom: '20px', marginTop: '10px' }}>
-            <div style={{ marginBottom: '16px' }}>
+          <div style={{ marginBottom: '20px', marginTop: '15px' }}>
+            <div style={{ marginBottom: '20px' }}>
               {successPopup.photo ? (
                 <img
                   src={`${API_BASE}${successPopup.photo}`}
                   alt={successPopup.name}
                   style={{
-                    width: '140px',
-                    height: '180px',
-                    borderRadius: '12px',
+                    width: '180px',
+                    height: '240px',
+                    borderRadius: '16px',
                     objectFit: 'cover',
-                    border: '3px solid #10b981',
+                    border: '4px solid #10b981',
                     boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)'
                   }}
                 />
               ) : (
                 <div style={{
-                  width: '140px',
-                  height: '180px',
-                  borderRadius: '12px',
+                  width: '180px',
+                  height: '240px',
+                  borderRadius: '16px',
                   background: '#f3f4f6',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
                   margin: '0 auto',
-                  border: '3px solid #10b981',
+                  border: '4px solid #10b981',
                   boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)'
                 }}>
-                  <CameraOutlined style={{ fontSize: '48px', color: '#9ca3af' }} />
+                  <CameraOutlined style={{ fontSize: '64px', color: '#9ca3af' }} />
                 </div>
               )}
             </div>
             
-            <Typography.Title level={4} style={{ color: '#111827', marginBottom: '4px', fontWeight: '700' }}>
+            <Typography.Title level={3} style={{ color: '#111827', marginBottom: '8px', fontWeight: '700' }}>
               {successPopup.name}
             </Typography.Title>
             
-            <Typography.Text style={{ color: '#4b5563', fontSize: '14px' }}>
+            <Typography.Text style={{ color: '#4b5563', fontSize: '16px' }}>
               Telah absen sholat <span style={{ color: '#10b981', fontWeight: 'bold' }}>{successPopup.sholat}</span>
             </Typography.Text>
             
-            <div style={{ marginTop: '16px' }}>
-              <CheckCircleOutlined style={{ fontSize: '36px', color: '#10b981' }} />
+            <div style={{ marginTop: '20px' }}>
+              <CheckCircleOutlined style={{ fontSize: '48px', color: '#10b981' }} />
             </div>
           </div>
         </div>

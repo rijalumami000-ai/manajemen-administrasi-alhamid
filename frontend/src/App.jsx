@@ -31,6 +31,7 @@ const VerificationPage = lazy(() => import('./pages/VerificationPage').then(m =>
 const Welcome = lazy(() => import('./pages/Welcome').then(m => ({ default: m.Welcome })));
 const QuickLogin = lazy(() => import('./pages/QuickLogin').then(m => ({ default: m.QuickLogin })));
 const AbsensiSholat = lazy(() => import('./pages/AbsensiSholat').then(m => ({ default: m.AbsensiSholat })));
+const AbsensiSholatScan = lazy(() => import('./pages/AbsensiSholatScan').then(m => ({ default: m.AbsensiSholatScan })));
 const RekapAbsensiSholat = lazy(() => import('./pages/RekapAbsensiSholat').then(m => ({ default: m.RekapAbsensiSholat })));
 const LembarUjian = lazy(() => import('./pages/LembarUjian').then(m => ({ default: m.LembarUjian })));
 const UjianMenu = lazy(() => import('./pages/UjianMenu').then(m => ({ default: m.UjianMenu })));
@@ -72,6 +73,12 @@ function App() {
                     path="/masuk/:key" 
                     element={<QuickLogin />} 
                   />
+
+                  <Route path="/absensi-sholat-scan" element={
+                    <ProtectedRoute>
+                      <AbsensiSholatScan />
+                    </ProtectedRoute>
+                  } />
 
                   <Route path="/" element={
                     <ProtectedRoute>

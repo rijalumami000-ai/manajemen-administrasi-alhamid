@@ -10,7 +10,7 @@ export const absensiSholatService = {
   getTodayAttendance: () => 
     apiGet('/absensi-sholat/today'),
     
-  getAttendanceRecap: (startDate, endDate, kelasId, sholat, jenisKelamin, kamarId, status) => {
+  getAttendanceRecap: (startDate, endDate, kelasId, sholat, jenisKelamin, kamarId, status, tahunAjaranId, semester) => {
     const params = new URLSearchParams();
     if (startDate) params.append('startDate', startDate);
     if (endDate) params.append('endDate', endDate);
@@ -19,6 +19,8 @@ export const absensiSholatService = {
     if (jenisKelamin) params.append('jenisKelamin', jenisKelamin);
     if (kamarId) params.append('kamarId', kamarId);
     if (status) params.append('status', status);
+    if (tahunAjaranId) params.append('tahunAjaranId', tahunAjaranId);
+    if (semester) params.append('semester', semester);
     return apiGet(`/absensi-sholat/rekap?${params.toString()}`);
   },
   

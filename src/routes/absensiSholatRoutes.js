@@ -1,6 +1,7 @@
 const absensiSholatService = require('../services/absensiSholatService');
 const { asyncHandler } = require('../utils/errorHandler');
 const { authenticateToken } = require('../middleware/authMiddleware');
+const https = require('https');
 
 function registerAbsensiSholatRoutes(app) {
   /**
@@ -18,6 +19,37 @@ function registerAbsensiSholatRoutes(app) {
 
     const result = await absensiSholatService.registerFace(santriId, faceDescriptor);
     res.json(result);
+  }));
+
+  /**
+   * GET /api/tts
+   * Query: { text }
+   * Returns: audio/mpeg stream
+   */
+  app.get('/api/tts', asyncHandler(async (req, res) => {
+    const { text } = req.query;
+    if (!text) {
+      return res.status(400).send('Text harus diisi');
+    }
+
+    const url = `https://translate.google.com/translate_tts?ie=UTF-8&q=${encodeURIComponent(text)}&tl=id&client=tw-ob`;
+    
+    const options = {
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+      }
+    };
+
+    https.get(url, options, (response) => {
+      if (response.statusCode !== 200) {
+        return res.status(response.statusCode).send('Gagal mengambil suara dari Google');
+      }
+      res.setHeader('Content-Type', 'audio/mpeg');
+      response.pipe(res);
+    }).on('error', (err) => {
+      console.error('TTS Proxy Error:', err);
+      res.status(500).send('Error generating TTS');
+    });
   }));
 
   /**
@@ -96,8 +128,8 @@ function registerAbsensiSholatRoutes(app) {
    * Returns: Array of attendance records
    */
   app.get('/api/absensi-sholat/rekap', authenticateToken, asyncHandler(async (req, res) => {
-    const { startDate, endDate, kelasId, sholat, jenisKelamin, kamarId, status } = req.query;
-    const result = await absensiSholatService.getAttendanceRecap(startDate, endDate, kelasId, sholat, jenisKelamin, kamarId, status);
+    const { startDate, endDate, kelasId, sholat, jenisKelamin, kamarId, status, tahunAjaranId, semester } = req.query;
+    const result = await absensiSholatService.getAttendanceRecap(startDate, endDate, kelasId, sholat, jenisKelamin, kamarId, status, tahunAjaranId, semester);
     res.json(result);
   }));
 }

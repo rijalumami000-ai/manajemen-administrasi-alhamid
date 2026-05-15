@@ -74,7 +74,9 @@ export function RekapAbsensiSholat() {
         selectedSholat,
         selectedJenisKelamin,
         selectedKamar,
-        selectedStatus
+        selectedStatus,
+        selectedTahunAjaran,
+        selectedSemester
       );
       
       setData(result);
