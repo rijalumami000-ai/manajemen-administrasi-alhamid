@@ -215,7 +215,17 @@ class NilaiService {
   // Get accumulation for all classes
   async getAkumulasiSemuaKelas(tahunAjaranId, mapelId, kategoriId) {
     try {
-      const query = `
+      // Fetch category name to check if it's Ganjil or Genap
+      let isGanjil = false;
+      let isGenap = false;
+      if (kategoriId && kategoriId !== 'null' && kategoriId !== '') {
+        const katResult = await db.query('SELECT nama FROM kategori_evaluasi WHERE id = $1', [kategoriId]);
+        const katNama = katResult.rows[0]?.nama || '';
+        isGanjil = katNama.toLowerCase().includes('ganjil');
+        isGenap = katNama.toLowerCase().includes('genap');
+      }
+
+      let query = `
         SELECT 
           k.id as kelas_id, k.nama as nama_kelas, k.tingkat,
           COUNT(s.id) as jumlah_siswa,
@@ -237,9 +247,19 @@ class NilaiService {
              AND n.tahun_ajaran_id = $1
              AND n.kategori_evaluasi_id = $3
         WHERE sta.tahun_ajaran_id = $1 AND sta.status = 'aktif'
+      `;
+
+      if (isGanjil) {
+        query += ` AND (sta.aktif_ganjil = true OR n.id IS NOT NULL)`;
+      } else if (isGenap) {
+        query += ` AND (sta.aktif_genap = true OR n.id IS NOT NULL)`;
+      }
+
+      query += `
         GROUP BY k.id, k.nama, k.tingkat
         ORDER BY k.tingkat ASC, k.nama ASC
       `;
+
       const result = await db.query(query, [tahunAjaranId, mapelId, kategoriId]);
       return result.rows;
     } catch (error) {
@@ -334,7 +354,17 @@ class NilaiService {
 
   async getRaporData(tahunAjaranId, kelasId, kategoriId) {
     try {
-      const query = `
+      // Fetch category name to check if it's Ganjil or Genap
+      let isGanjil = false;
+      let isGenap = false;
+      if (kategoriId && kategoriId !== 'null' && kategoriId !== '') {
+        const katResult = await db.query('SELECT nama FROM kategori_evaluasi WHERE id = $1', [kategoriId]);
+        const katNama = katResult.rows[0]?.nama || '';
+        isGanjil = katNama.toLowerCase().includes('ganjil');
+        isGenap = katNama.toLowerCase().includes('genap');
+      }
+
+      let query = `
         SELECT 
           s.id as santri_id, s.nama, s.nis,
           r.sakit, r.izin, r.alpa,
@@ -347,8 +377,16 @@ class NilaiService {
         WHERE sta.kelas_diniyah_id = $2
           AND sta.tahun_ajaran_id = $1
           AND sta.status = 'aktif'
-        ORDER BY s.nama ASC
       `;
+
+      if (isGanjil) {
+        query += ` AND (sta.aktif_ganjil = true OR r.santri_id IS NOT NULL)`;
+      } else if (isGenap) {
+        query += ` AND (sta.aktif_genap = true OR r.santri_id IS NOT NULL)`;
+      }
+
+      query += ` ORDER BY s.nama ASC`;
+
       const result = await db.query(query, [tahunAjaranId, kelasId, kategoriId]);
       return result.rows;
     } catch (error) {
