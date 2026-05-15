@@ -10,6 +10,8 @@ import { PageHeader, LoadingState } from '../components/common';
 const { Title, Text } = Typography;
 const { Option } = Select;
 
+const API_BASE = import.meta.env.VITE_API_URL || '';
+
 export function AbsensiSholat() {
   const webcamRef = useRef(null);
   
@@ -18,6 +20,12 @@ export function AbsensiSholat() {
   const [selectedSholat, setSelectedSholat] = useState('Subuh');
   const [scanResult, setScanResult] = useState(null);
   const [todayAttendance, setTodayAttendance] = useState([]);
+  const [successPopup, setSuccessPopup] = useState({
+    visible: false,
+    name: '',
+    sholat: '',
+    photo: ''
+  });
   const [loadingAttendance, setLoadingAttendance] = useState(false);
   
   // Manual Attendance States
@@ -56,8 +64,14 @@ Wassalamualaikum Wr. Wb.`);
 
   const sholatOptions = ['Subuh', 'Dzuhur', 'Ashar', 'Maghrib', 'Isya'];
 
-  // Load models on mount
+  // Load models and voice script on mount
   useEffect(() => {
+    // Load ResponsiveVoice script untuk suara perempuan yang stabil
+    const script = document.createElement('script');
+    script.src = 'https://code.responsivevoice.org/responsivevoice.js';
+    script.async = true;
+    document.body.appendChild(script);
+
     const loadModels = async () => {
       try {
         const MODEL_URL = '/models';
@@ -157,7 +171,43 @@ Wassalamualaikum Wr. Wb.`);
         success: true,
         match: result.match
       });
-      message.success(`Absensi berhasil: ${result.match.nama}`);
+      
+      setSuccessPopup({
+        visible: true,
+        name: result.match.nama,
+        sholat: selectedSholat,
+        photo: result.match.foto_url
+      });
+      
+      // Voice synthesis menggunakan ResponsiveVoice (Suara Perempuan Indonesia)
+      const textToSpeak = `${result.match.nama} telah absen sholat ${selectedSholat}`;
+      
+      if (window.responsiveVoice) {
+        window.responsiveVoice.speak(textToSpeak, "Indonesian Female", {
+          pitch: 1,
+          rate: 1,
+          volume: 1
+        });
+      } else {
+        // FALLBACK 1: Google TTS
+        const ttsUrl = `https://translate.google.com/translate_tts?ie=UTF-8&q=${encodeURIComponent(textToSpeak)}&tl=id&client=tw-ob`;
+        const audio = new Audio(ttsUrl);
+        audio.play().catch(err => {
+          console.error('Gagal memutar suara Google TTS:', err);
+          
+          // FALLBACK 2: Web Speech API internal
+          const speech = new SpeechSynthesisUtterance(textToSpeak);
+          speech.lang = 'id-ID';
+          speech.pitch = 1.5;
+          window.speechSynthesis.speak(speech);
+        });
+      }
+
+      // Auto close popup after 3 seconds
+      setTimeout(() => {
+        setSuccessPopup(prev => ({ ...prev, visible: false }));
+      }, 3000);
+
       loadTodayAttendance();
       loadUnattendedSantri(); // Refresh list if on tab 2
     } catch (error) {
@@ -673,6 +723,84 @@ Wassalamualaikum Wr. Wb.`);
           value={tempTemplate}
           onChange={(e) => setTempTemplate(e.target.value)}
         />
+      </Modal>
+
+      <Modal
+        open={successPopup.visible}
+        footer={null}
+        closable={false}
+        centered
+        width={360}
+        bodyStyle={{ padding: '0px', overflow: 'hidden', borderRadius: '20px' }}
+      >
+        <div style={{
+          background: '#ffffff',
+          color: '#1f2937',
+          padding: '24px',
+          textAlign: 'center',
+          position: 'relative',
+          border: '1px solid #e5e7eb'
+        }}>
+          <div style={{
+            position: 'absolute',
+            top: '12px',
+            right: '12px',
+            background: '#d1fae5',
+            color: '#047857',
+            padding: '4px 12px',
+            borderRadius: '20px',
+            fontSize: '12px',
+            fontWeight: '600'
+          }}>
+            Berhasil
+          </div>
+          
+          <div style={{ marginBottom: '20px', marginTop: '10px' }}>
+            <div style={{ marginBottom: '16px' }}>
+              {successPopup.photo ? (
+                <img
+                  src={`${API_BASE}${successPopup.photo}`}
+                  alt={successPopup.name}
+                  style={{
+                    width: '140px',
+                    height: '180px',
+                    borderRadius: '12px',
+                    objectFit: 'cover',
+                    border: '3px solid #10b981',
+                    boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)'
+                  }}
+                />
+              ) : (
+                <div style={{
+                  width: '140px',
+                  height: '180px',
+                  borderRadius: '12px',
+                  background: '#f3f4f6',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  margin: '0 auto',
+                  border: '3px solid #10b981',
+                  boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)'
+                }}>
+                  <CameraOutlined style={{ fontSize: '48px', color: '#9ca3af' }} />
+                </div>
+              )}
+            </div>
+            
+            <Typography.Title level={4} style={{ color: '#111827', marginBottom: '4px', fontWeight: '700' }}>
+              {successPopup.name}
+            </Typography.Title>
+            
+            <Typography.Text style={{ color: '#4b5563', fontSize: '14px' }}>
+              Telah absen sholat <span style={{ color: '#10b981', fontWeight: 'bold' }}>{successPopup.sholat}</span>
+            </Typography.Text>
+            
+            <div style={{ marginTop: '16px' }}>
+              <CheckCircleOutlined style={{ fontSize: '36px', color: '#10b981' }} />
+            </div>
+          </div>
+        </div>
       </Modal>
     </div>
   );

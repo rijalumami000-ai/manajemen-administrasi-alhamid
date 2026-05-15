@@ -77,7 +77,7 @@ async function identifySantri(faceDescriptor) {
 
     // Fetch santri details
     const santriResult = await db.query(
-      `SELECT s.id, s.nama, s.nis, k.nama as kelas 
+      `SELECT s.id, s.nama, s.nis, s.foto_url, k.nama as kelas 
        FROM santri s
        LEFT JOIN kelas k ON s.kelas_diniyah_id = k.id
        WHERE s.id = $1`,
