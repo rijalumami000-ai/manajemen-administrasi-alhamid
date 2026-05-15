@@ -3,7 +3,8 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { 
   BookOutlined, 
   FileTextOutlined,
-  HomeOutlined
+  HomeOutlined,
+  EditOutlined
 } from '@ant-design/icons';
 import './BottomNav.scss';
 
@@ -21,6 +22,11 @@ export function BottomNav() {
       key: '/nilai',
       icon: <BookOutlined />,
       label: 'Input',
+    },
+    {
+      key: '/ujian',
+      icon: <EditOutlined />,
+      label: 'Ujian',
     },
     {
       key: '/laporan-ujian-khusus',

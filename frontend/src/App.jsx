@@ -32,6 +32,8 @@ const Welcome = lazy(() => import('./pages/Welcome').then(m => ({ default: m.Wel
 const QuickLogin = lazy(() => import('./pages/QuickLogin').then(m => ({ default: m.QuickLogin })));
 const AbsensiSholat = lazy(() => import('./pages/AbsensiSholat').then(m => ({ default: m.AbsensiSholat })));
 const RekapAbsensiSholat = lazy(() => import('./pages/RekapAbsensiSholat').then(m => ({ default: m.RekapAbsensiSholat })));
+const LembarUjian = lazy(() => import('./pages/LembarUjian').then(m => ({ default: m.LembarUjian })));
+const UjianMenu = lazy(() => import('./pages/UjianMenu').then(m => ({ default: m.UjianMenu })));
 
 function App() {
   const { isDarkMode } = useTheme();
@@ -86,6 +88,7 @@ function App() {
                     <Route path="users" element={<Users />} />
                      <Route path="profile" element={<Profile />} />
                     <Route path="nilai" element={<ManajemenNilai mode="input" key="input" />} />
+                    <Route path="input-nilai-ujian" element={<ManajemenNilai mode="input-ujian" key="input-ujian" />} />
                     <Route path="nilai-pengaturan" element={<ManajemenNilai mode="config" key="config" />} />
                     <Route path="nilai-rekap" element={<ManajemenNilai mode="rekap" key="rekap" />} />
                     <Route path="laporan-ujian-khusus" element={<LaporanUjianKhusus />} />
@@ -94,6 +97,8 @@ function App() {
                     <Route path="kartu-ujian-semester" element={<KartuUjianSemester />} />
                     <Route path="absensi-sholat" element={<AbsensiSholat />} />
                     <Route path="rekap-absensi-sholat" element={<RekapAbsensiSholat />} />
+                    <Route path="lembar-ujian" element={<LembarUjian />} />
+                    <Route path="ujian" element={<UjianMenu />} />
                   </Route>
 
                   <Route path="*" element={<Navigate to="/" replace />} />

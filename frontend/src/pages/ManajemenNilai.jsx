@@ -46,7 +46,7 @@ export const ManajemenNilai = ({ mode = 'input' }) => {
   // State Data Nilai
   const [santriList, setSantriList] = useState([]);
   const { isMobile } = useResponsive();
-  const [mobileFocusMode, setMobileFocusMode] = useState(isMobile);
+  const [mobileFocusMode, setMobileFocusMode] = useState(mode === 'input-ujian' ? false : isMobile);
   const [loading, setLoading] = useState(false);
   const [saveLoading, setSaveLoading] = useState(false);
   const [autoSaveStatus, setAutoSaveStatus] = useState(null); // 'saving', 'saved', 'error'
@@ -152,6 +152,8 @@ export const ManajemenNilai = ({ mode = 'input' }) => {
           if (defaultKat) {
             setSelectedKategori(defaultKat.id);
             localStorage.setItem('sekolah_info_selected_kategori', defaultKat.id);
+          } else if (katData.length > 0) {
+            setSelectedKategori(katData[0].id);
           }
         }
       }
@@ -202,7 +204,7 @@ export const ManajemenNilai = ({ mode = 'input' }) => {
     const qiroah = mataPelajaran.filter(m => m.jenis === 'Qiroah');
     const taftisy = mataPelajaran.filter(m => m.jenis === 'Taftisy');
 
-    return [
+    const cats = [
       { 
         key: 'semester', 
         label: 'Ujian Semester', 
@@ -222,6 +224,8 @@ export const ManajemenNilai = ({ mode = 'input' }) => {
         color: 'gold'
       }
     ].filter(cat => cat.items.length > 0);
+
+    return cats;
   }, [mataPelajaran, mapelTingkat, selectedTingkat]);
 
   // Reset selectedKelasDetail when tingkat changes
@@ -251,6 +255,35 @@ export const ManajemenNilai = ({ mode = 'input' }) => {
       setRekapColumns([]);
     }
   }, [activeTab, selectedKelasDetail, selectedKategori, tahunAjaran, mapelTingkat]);
+
+  // Auto-select first level and class in input-ujian mode
+  useEffect(() => {
+    if (mode === 'input-ujian' && kelas.length > 0) {
+      const levels = [...new Set(kelas.map(k => k.tingkat))].sort((a, b) => {
+        if (a === 99) return 1;
+        if (b === 99) return -1;
+        return a - b;
+      });
+      if (selectedTingkat === null && levels.length > 0) {
+        // Coba cari Kelas 1 (tingkat 1) terlebih dahulu agar sesuai screenshot
+        const level1 = levels.find(l => l === 1);
+        if (level1 !== undefined) {
+          setSelectedTingkat(level1);
+        } else {
+          setSelectedTingkat(levels[0]);
+        }
+      }
+    }
+  }, [mode, kelas, selectedTingkat]);
+
+  useEffect(() => {
+    if (mode === 'input-ujian' && selectedTingkat !== null && selectedKelasDetail === null) {
+      const classOptions = kelas.filter(k => k.tingkat === selectedTingkat);
+      if (classOptions.length > 0) {
+        setSelectedKelasDetail(classOptions[0].id);
+      }
+    }
+  }, [mode, selectedTingkat, kelas, selectedKelasDetail]);
 
   const loadRekapData = async () => {
     try {
@@ -1068,7 +1101,49 @@ export const ManajemenNilai = ({ mode = 'input' }) => {
                     </Title>
                     {selectedTingkat !== null && selectedKelasDetail !== null ? (
                       <div className="mapel-selection-cards">
-                        {isMobile && mobileFocusMode ? (
+                        {mode === 'input-ujian' ? (
+                          // Direct Mode for Input Ujian (Always show Reguler subjects)
+                          <div className="direct-mapel-selection">
+                            <Space wrap>
+                              {mataPelajaran
+                                .filter(m => m.jenis === 'Reguler')
+                                .filter(m => {
+                                  const allowedMapelIds = mapelTingkat.filter(mt => mt.tingkat === selectedTingkat).map(mt => mt.mata_pelajaran_id);
+                                  return allowedMapelIds.includes(m.id);
+                                })
+                                .map(m => (
+                                  <Card
+                                    key={m.id}
+                                    hoverable
+                                    size="small"
+                                    className={`selection-card ${selectedMapel === m.id ? 'active' : ''}`}
+                                    onClick={() => setSelectedMapel(m.id)}
+                                    style={{ 
+                                      padding: '2px 8px', 
+                                      borderRadius: '8px',
+                                      borderColor: selectedMapel === m.id ? 'var(--ant-primary-color)' : '#f0f0f0',
+                                      backgroundColor: selectedMapel === m.id ? '#e6f7ff' : '#fafafa'
+                                    }}
+                                  >
+                                    <Space>
+                                      <Badge color="blue" />
+                                      <Text strong={selectedMapel === m.id} style={{ fontSize: '13px' }}>{m.nama}</Text>
+                                    </Space>
+                                  </Card>
+                                ))
+                              }
+                              {mataPelajaran
+                                .filter(m => m.jenis === 'Reguler')
+                                .filter(m => {
+                                  const allowedMapelIds = mapelTingkat.filter(mt => mt.tingkat === selectedTingkat).map(mt => mt.mata_pelajaran_id);
+                                  return allowedMapelIds.includes(m.id);
+                                }).length === 0 && (
+                                  <Text type="secondary" style={{ fontSize: '13px' }}>Tidak ada mata pelajaran reguler yang terjadwal untuk tingkatan ini.</Text>
+                                )
+                              }
+                            </Space>
+                          </div>
+                        ) : isMobile && mobileFocusMode ? (
                           // Simplified Mode for Mobile Priority
                           <div className="mobile-priority-selection">
                             <Space wrap>
@@ -1391,6 +1466,7 @@ export const ManajemenNilai = ({ mode = 'input' }) => {
   const mainTabs = allTabs.filter(tab => {
     if (mode === 'config') return ['setting', 'jadwal'].includes(tab.key);
     if (mode === 'rekap') return ['rekap'].includes(tab.key);
+    if (mode === 'input-ujian') return ['input'];
     return ['input', 'absensi', 'kepribadian', 'catatan'].includes(tab.key);
   });
 

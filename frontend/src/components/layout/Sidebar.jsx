@@ -17,7 +17,8 @@ import {
   BankOutlined,
   EditOutlined,
   IdcardOutlined,
-  CameraOutlined
+  CameraOutlined,
+  FileTextOutlined
 } from '@ant-design/icons';
 import './Sidebar.scss';
 import { settingsService } from '../../services/settingsService';
@@ -93,6 +94,7 @@ export function Sidebar({ collapsed, onCollapse }) {
         { key: '/nilai-rekap', icon: <BookOutlined />, label: 'Rekap & Rapot' },
         { key: '/laporan-ujian-khusus', icon: <BookOutlined />, label: 'Laporan Ujian Khusus' },
         { key: '/kartu-ujian-semester', icon: <IdcardOutlined />, label: 'Kartu Ujian Semester' },
+        { key: '/lembar-ujian', icon: <FileTextOutlined />, label: 'Lembar Ujian' },
       ],
     },
     { key: '/alumni', icon: <UsergroupAddOutlined />, label: 'Alumni' },

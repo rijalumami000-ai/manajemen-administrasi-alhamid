@@ -18,6 +18,7 @@ const registerSettingsRoutes = require('./settingsRoutes');
 const registerBukuIndukRoutes = require('./bukuIndukRoutes');
 const registerPesertaUjianRoutes = require('./pesertaUjianRoutes');
 const registerAbsensiSholatRoutes = require('./absensiSholatRoutes');
+const registerLembarUjianRoutes = require('./lembarUjianRoutes');
 
 function registerApiRoutes(app) {
   // Authentication routes (public)
@@ -47,6 +48,7 @@ function registerApiRoutes(app) {
   registerBukuIndukRoutes(app);
   registerPesertaUjianRoutes(app);
   registerAbsensiSholatRoutes(app);
+  registerLembarUjianRoutes(app);
 }
 
 module.exports = registerApiRoutes;

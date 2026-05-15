@@ -22,6 +22,16 @@ async function initDatabase() {
   } else {
     console.log('⚠ Authentication schema file not found (optional)');
   }
+
+  // Run lembar_ujian.sql
+  const lembarUjianPath = path.join(__dirname, '..', '..', 'sql', 'lembar_ujian.sql');
+  if (fs.existsSync(lembarUjianPath)) {
+    const lembarUjianSql = fs.readFileSync(lembarUjianPath, 'utf8');
+    await db.query(lembarUjianSql);
+    console.log('✓ Lembar Ujian schema initialized');
+  } else {
+    console.log('⚠ Lembar Ujian schema file not found');
+  }
 }
 
 module.exports = initDatabase;
