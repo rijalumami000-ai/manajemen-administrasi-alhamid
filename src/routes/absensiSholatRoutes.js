@@ -57,7 +57,7 @@ function registerAbsensiSholatRoutes(app) {
    * Body: { faceDescriptor, sholat }
    * Returns: { success, match: { id, nama, nis, kelas }, attendanceId }
    */
-  app.post('/api/absensi-sholat/scan', authenticateToken, asyncHandler(async (req, res) => {
+   app.post('/api/absensi-sholat/scan', asyncHandler(async (req, res) => {
     const { faceDescriptor, sholat } = req.body;
 
     if (!faceDescriptor || !sholat) {

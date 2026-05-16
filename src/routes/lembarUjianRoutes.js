@@ -69,7 +69,7 @@ function registerLembarUjianRoutes(app) {
       is_her
     } = req.body;
 
-    if (!tahun_ajaran_id || !semester || !tingkat || !pelajaran || !soal) {
+    if (!tahun_ajaran_id || !semester || (tingkat === undefined || tingkat === null) || !pelajaran || !soal) {
       return res.status(400).json({ error: 'Data wajib diisi (Tahun Ajaran, Semester, Tingkat, Pelajaran, Soal).' });
     }
 

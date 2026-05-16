@@ -9,7 +9,7 @@ import {
   EditOutlined, BookOutlined, CameraOutlined, ReloadOutlined,
   TeamOutlined, CalendarOutlined, PlusOutlined, IdcardOutlined,
   HomeOutlined, PhoneOutlined, FileExcelOutlined, FilePdfOutlined,
-  ScanOutlined, CheckCircleOutlined, CloseCircleOutlined
+  ScanOutlined, CheckCircleOutlined, CloseCircleOutlined, SyncOutlined
 } from '@ant-design/icons';
 import { useAuth } from '../context/AuthContext';
 import { ImportSantriModal } from '../components/features/ImportSantriModal';
@@ -62,6 +62,8 @@ export function BukuInduk() {
   const [modelsLoaded, setModelsLoaded] = useState(false);
   const [isRegistering, setIsRegistering] = useState(false);
   const [registerResult, setRegisterResult] = useState(null);
+  const [facingMode, setFacingMode] = useState('user');
+  const toggleCamera = () => setFacingMode(prev => prev === 'user' ? 'environment' : 'user');
 
   const [form] = Form.useForm();
   const fileInputRef = useRef(null);
@@ -740,7 +742,23 @@ export function BukuInduk() {
                     ref={faceWebcamRef}
                     screenshotFormat="image/jpeg"
                     width="100%"
-                    videoConstraints={{ width: 640, height: 480, facingMode: "user" }}
+                    videoConstraints={{ width: 640, height: 480, facingMode: facingMode }}
+                  />
+                  <Button 
+                    shape="circle" 
+                    icon={<SyncOutlined />} 
+                    onClick={toggleCamera}
+                    style={{
+                      position: 'absolute',
+                      top: '10px',
+                      right: '10px',
+                      background: 'rgba(255, 255, 255, 0.3)',
+                      border: '1px solid rgba(255, 255, 255, 0.4)',
+                      color: '#fff',
+                      backdropFilter: 'blur(4px)',
+                      zIndex: 5
+                    }}
+                    title="Ganti Kamera"
                   />
                   {isRegistering && (
                     <div style={{

@@ -18,14 +18,15 @@ export function RekapAbsensiSholat() {
   const [tahunAjaranList, setTahunAjaranList] = useState([]);
   
   // Filters
-  const [dateRange, setDateRange] = useState([null, null]);
+  const now = new Date();
+  const [selectedBulan, setSelectedBulan] = useState(now.getMonth() + 1);
+  const [selectedTahun, setSelectedTahun] = useState(now.getFullYear());
   const [selectedKelas, setSelectedKelas] = useState(null);
   const [selectedKamar, setSelectedKamar] = useState(null);
   const [selectedJenisKelamin, setSelectedJenisKelamin] = useState(null);
   const [selectedSholat, setSelectedSholat] = useState(null);
   const [selectedStatus, setSelectedStatus] = useState(null);
   const [selectedTahunAjaran, setSelectedTahunAjaran] = useState(null);
-  const [selectedSemester, setSelectedSemester] = useState(null);
 
   const sholatOptions = ['Subuh', 'Dzuhur', 'Ashar', 'Maghrib', 'Isya'];
   const statusOptions = ['Hadir', 'Sakit', 'Izin', 'Alfa', 'Masbuq', 'Haid', 'Istihadoh'];
@@ -36,7 +37,7 @@ export function RekapAbsensiSholat() {
 
   useEffect(() => {
     loadRecap();
-  }, [dateRange, selectedKelas, selectedKamar, selectedJenisKelamin, selectedSholat, selectedStatus, selectedTahunAjaran, selectedSemester]);
+  }, [selectedBulan, selectedTahun, selectedKelas, selectedKamar, selectedJenisKelamin, selectedSholat, selectedStatus, selectedTahunAjaran]);
 
   const loadFilterData = async () => {
     try {
@@ -64,8 +65,9 @@ export function RekapAbsensiSholat() {
     try {
       setLoading(true);
       
-      const startDate = dateRange[0] ? dateRange[0].format('YYYY-MM-DD') : null;
-      const endDate = dateRange[1] ? dateRange[1].format('YYYY-MM-DD') : null;
+      const startDate = `${selectedTahun}-${String(selectedBulan).padStart(2, '0')}-01`;
+      const lastDay = new Date(selectedTahun, selectedBulan, 0).getDate();
+      const endDate = `${selectedTahun}-${String(selectedBulan).padStart(2, '0')}-${String(lastDay).padStart(2, '0')}`;
       
       const result = await absensiSholatService.getAttendanceRecap(
         startDate, 
@@ -75,8 +77,7 @@ export function RekapAbsensiSholat() {
         selectedJenisKelamin,
         selectedKamar,
         selectedStatus,
-        selectedTahunAjaran,
-        selectedSemester
+        selectedTahunAjaran
       );
       
       setData(result);
@@ -89,17 +90,22 @@ export function RekapAbsensiSholat() {
   };
 
   const handleExportExcel = () => {
-    const dataToExport = data.map(item => ({
-      'Tanggal': new Date(item.tanggal).toLocaleDateString('id-ID'),
-      'Waktu': new Date(item.waktu_scan).toLocaleTimeString('id-ID'),
-      'Nama Santri': item.santri_nama,
-      'NIS': item.santri_nis,
-      'JK': item.jenis_kelamin === 'Laki-laki' ? 'L' : 'P',
-      'Kelas': item.kelas_nama || '-',
-      'Kamar': item.kamar_nama || '-',
-      'Sholat': item.sholat,
-      'Status': item.status
-    }));
+    const dataToExport = data.map(item => {
+      const d = new Date(item.tanggal);
+      const formattedDate = `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}/${d.getFullYear()}`;
+      
+      return {
+        'Tanggal': formattedDate,
+        'Waktu': new Date(item.waktu_scan).toLocaleTimeString('id-ID'),
+        'Nama Santri': item.santri_nama,
+        'NIS': item.santri_nis,
+        'JK': item.jenis_kelamin === 'Laki-laki' ? 'L' : 'P',
+        'Kelas': item.kelas_nama || '-',
+        'Kamar': item.kamar_nama || '-',
+        'Sholat': item.sholat,
+        'Status': item.status
+      };
+    });
     
     exportToExcel(dataToExport, `Rekap_Absensi_Sholat.xlsx`);
   };
@@ -109,7 +115,10 @@ export function RekapAbsensiSholat() {
       title: 'Tanggal',
       dataIndex: 'tanggal',
       key: 'tanggal',
-      render: (text) => new Date(text).toLocaleDateString('id-ID'),
+      render: (text) => {
+        const d = new Date(text);
+        return `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}/${d.getFullYear()}`;
+      },
     },
     {
       title: 'Waktu',
@@ -163,6 +172,7 @@ export function RekapAbsensiSholat() {
 
   return (
     <div style={{ padding: '24px' }}>
+
       <PageHeader
         title="Rekap Absensi Sholat"
         subtitle="Pantau kehadiran sholat berjamaah santri"
@@ -251,27 +261,32 @@ export function RekapAbsensiSholat() {
             </Select>
           </div>
 
+
+
           <div>
-            <Text strong style={{ marginRight: '8px' }}>Semester:</Text>
+            <Text strong style={{ marginRight: '8px' }}>Bulan:</Text>
             <Select
-              placeholder="Pilih Semester"
+              value={selectedBulan}
+              onChange={setSelectedBulan}
               style={{ width: '120px' }}
-              value={selectedSemester}
-              onChange={setSelectedSemester}
-              allowClear
             >
-              <Option value="1">Ganjil (1)</Option>
-              <Option value="2">Genap (2)</Option>
+              {['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'].map((m, i) => (
+                <Option key={i + 1} value={i + 1}>{m}</Option>
+              ))}
             </Select>
           </div>
 
           <div>
-            <Text strong style={{ marginRight: '8px' }}>Range Tanggal:</Text>
-            <RangePicker 
-              onChange={(dates) => setDateRange(dates || [null, null])} 
-              format="DD-MM-YYYY"
-              style={{ width: '240px' }}
-            />
+            <Text strong style={{ marginRight: '8px' }}>Tahun:</Text>
+            <Select
+              value={selectedTahun}
+              onChange={setSelectedTahun}
+              style={{ width: '100px' }}
+            >
+              {[2025, 2026, 2027].map(y => (
+                <Option key={y} value={y}>{y}</Option>
+              ))}
+            </Select>
           </div>
 
           <div>
@@ -325,7 +340,6 @@ export function RekapAbsensiSholat() {
               setSelectedKamar(null);
               setSelectedJenisKelamin(null);
               setSelectedSholat(null);
-              setSelectedSemester(null);
               // Keep active TA
               const activeTA = tahunAjaranList.find(ta => ta.status === 'aktif');
               if (activeTA) setSelectedTahunAjaran(activeTA.id);

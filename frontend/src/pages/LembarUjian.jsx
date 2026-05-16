@@ -232,8 +232,12 @@ export function LembarUjian() {
           
           const paper = data.find(p => p.pelajaran === pelajaranName);
           
-          if (paper) {
-            const normalizedSoal = paper.soal.map(s => typeof s === 'string' ? { teks: s, jawaban: '' } : s);
+          if (paper && Array.isArray(paper.soal)) {
+            const normalizedSoal = paper.soal.map(s => {
+              if (typeof s === 'string') return { teks: s, jawaban: '' };
+              if (s && typeof s === 'object') return { teks: s.teks || '', jawaban: s.jawaban || '' };
+              return { teks: '', jawaban: '' };
+            });
             formSoal.setFieldsValue({ soalList: normalizedSoal });
             setPreviewData(prev => ({ 
               ...prev, 
@@ -255,10 +259,20 @@ export function LembarUjian() {
         const key = `soal_${selectedTahunAjaran}_${activeTabKey}_${selectedMapelId}_${isHer ? 'her' : 'utama'}`;
         const saved = localStorage.getItem(key);
         if (saved) {
-          const parsed = JSON.parse(saved);
-          const normalizedSoal = parsed.map(s => typeof s === 'string' ? { teks: s, jawaban: '' } : s);
-          formSoal.setFieldsValue({ soalList: normalizedSoal });
-          setPreviewData(prev => ({ ...prev, soal: normalizedSoal }));
+          try {
+            const parsed = JSON.parse(saved);
+            if (Array.isArray(parsed)) {
+              const normalizedSoal = parsed.map(s => {
+                if (typeof s === 'string') return { teks: s, jawaban: '' };
+                if (s && typeof s === 'object') return { teks: s.teks || '', jawaban: s.jawaban || '' };
+                return { teks: '', jawaban: '' };
+              });
+              formSoal.setFieldsValue({ soalList: normalizedSoal });
+              setPreviewData(prev => ({ ...prev, soal: normalizedSoal }));
+            }
+          } catch (e) {
+            console.error('Failed to parse local soal:', e);
+          }
         } else {
           formSoal.setFieldsValue({ soalList: [] });
           setPreviewData(prev => ({ ...prev, soal: [] }));
@@ -301,8 +315,9 @@ export function LembarUjian() {
     }));
   };
 
-  const handleSoalChange = () => {
-    const values = formSoal.getFieldsValue();
+  const handleSoalChange = (changedValues, allValues) => {
+    // Jika tidak ada allValues (dipanggil tanpa parameter), ambil dari form
+    const values = allValues || formSoal.getFieldsValue();
     
     let namaMapel = previewData.pelajaran;
     if (values.mapelId) {
@@ -319,7 +334,11 @@ export function LembarUjian() {
       ...prev,
       kelas: values.namaKelas || (currentTab ? currentTab.label : ''),
       pelajaran: namaMapel,
-      jumlahGaris: values.jumlahGaris
+      jumlahGaris: values.jumlahGaris !== undefined ? values.jumlahGaris : prev.jumlahGaris,
+      soal: (values.soalList || []).map(item => ({
+        teks: item?.teks || '',
+        jawaban: item?.jawaban || ''
+      }))
     }));
   };
 
@@ -528,7 +547,7 @@ export function LembarUjian() {
   };
 
   const shouldBeRtl = (text) => {
-    if (!text) return false;
+    if (!text || typeof text !== 'string') return false;
     const hasArabic = /[\u0600-\u06FF]/.test(text);
     const hasLatin = /[a-zA-Z]/.test(text);
     return hasArabic && !hasLatin;
@@ -683,15 +702,6 @@ export function LembarUjian() {
                       <Input.TextArea 
                         rows={2} 
                         placeholder="Ketik soal di sini..." 
-                        onChange={() => {
-                          setTimeout(() => {
-                            const list = formSoal.getFieldValue('soalList');
-                            setPreviewData(prev => ({
-                              ...prev,
-                              soal: list.map(item => ({ teks: item.teks, jawaban: item.jawaban }))
-                            }));
-                          }, 0);
-                        }}
                       />
                     </Form.Item>
 
@@ -704,40 +714,38 @@ export function LembarUjian() {
                       <Input.TextArea 
                         rows={2} 
                         placeholder="Ketik kunci jawaban di sini (opsional)..." 
-                        onChange={() => {
-                          setTimeout(() => {
-                            const list = formSoal.getFieldValue('soalList');
-                            setPreviewData(prev => ({
-                              ...prev,
-                              soal: list.map(item => ({ teks: item.teks, jawaban: item.jawaban }))
-                            }));
-                          }, 0);
-                        }}
                       />
                     </Form.Item>
                     
-                    <Popconfirm
-                      title="Apakah Anda yakin ingin menghapus soal ini?"
-                      onConfirm={() => {
-                        remove(name);
-                        setTimeout(() => {
-                          const list = formSoal.getFieldValue('soalList');
-                          setPreviewData(prev => ({
-                            ...prev,
-                            soal: list.map(item => ({ teks: item.teks, jawaban: item.jawaban }))
-                          }));
-                        }, 0);
-                      }}
-                      okText="Ya"
-                      cancelText="Tidak"
-                    >
-                      <Button 
-                        type="text" 
-                        danger 
-                        icon={<DeleteOutlined />} 
-                        className="btn-delete-soal"
-                      />
-                    </Popconfirm>
+                    <div className="soal-actions-container">
+                      <Tooltip title="Simpan draft ke database">
+                        <Button 
+                          type="text" 
+                          icon={<SaveOutlined style={{ color: '#1890ff' }} />} 
+                          onClick={handleSaveToDb}
+                          className="btn-save-soal"
+                        />
+                      </Tooltip>
+
+                      <Popconfirm
+                        title="Apakah Anda yakin ingin menghapus soal ini?"
+                        onConfirm={() => {
+                          remove(name);
+                          setTimeout(() => {
+                            handleSoalChange();
+                          }, 0);
+                        }}
+                        okText="Ya"
+                        cancelText="Tidak"
+                      >
+                        <Button 
+                          type="text" 
+                          danger 
+                          icon={<DeleteOutlined />} 
+                          className="btn-delete-soal"
+                        />
+                      </Popconfirm>
+                    </div>
                   </div>
                 ))}
                 <Form.Item style={{ marginTop: '12px' }}>
@@ -918,10 +926,10 @@ export function LembarUjian() {
 
             <div className="daftar-soal">
               <ol>
-                {previewData.soal.map((s, index) => {
-                  const isObj = typeof s === 'object';
-                  const teks = isObj ? s.teks : s;
-                  const jawaban = isObj ? s.jawaban : '';
+                {(previewData.soal || []).map((s, index) => {
+                  const isObj = s && typeof s === 'object';
+                  const teks = isObj ? (s.teks || '') : (s || '');
+                  const jawaban = isObj ? (s.jawaban || '') : '';
                   return (
                     <li key={index} className={shouldBeRtl(teks) ? 'rtl' : 'ltr'}>
                       <div>{teks}</div>
@@ -940,7 +948,7 @@ export function LembarUjian() {
               <div className="area-jawaban">
                 <div className="jawaban-title">JAWABAN</div>
                 <div className="garis-titik-titik">
-                  {Array.from({ length: previewData.jumlahGaris }).map((_, i) => (
+                  {Array.from({ length: Math.max(0, parseInt(previewData.jumlahGaris || 0) || 15) }).map((_, i) => (
                     <div key={i} className="garis-item"></div>
                   ))}
                 </div>

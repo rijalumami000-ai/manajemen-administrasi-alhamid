@@ -74,11 +74,7 @@ function App() {
                     element={<QuickLogin />} 
                   />
 
-                  <Route path="/absensi-sholat-scan" element={
-                    <ProtectedRoute>
-                      <AbsensiSholatScan />
-                    </ProtectedRoute>
-                  } />
+                  <Route path="/absensi-sholat-scan" element={<AbsensiSholatScan />} />
 
                   <Route path="/" element={
                     <ProtectedRoute>

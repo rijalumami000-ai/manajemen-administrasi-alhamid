@@ -67,11 +67,19 @@
       margin-bottom: 12px;
       border: 1px solid #f0f0f0;
 
-      .btn-delete-soal {
+      .soal-actions-container {
         position: absolute;
         top: 8px;
         right: 8px;
         z-index: 2;
+        display: flex;
+        gap: 4px;
+
+        .ant-btn {
+          padding: 4px;
+          height: auto;
+          line-height: 1;
+        }
       }
     }
   }

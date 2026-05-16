@@ -28,6 +28,26 @@ async function registerFace(santriId, faceDescriptor) {
       throw new NotFoundError('Santri');
     }
 
+    // --- PENCEGAHAN DUPLIKASI WAJAH ---
+    // Ambil semua data wajah yang sudah terdaftar KECUALI milik santri ini
+    const allFaces = await db.query('SELECT santri_id, face_descriptor FROM santri_face_data WHERE santri_id != $1', [santriId]);
+    
+    const threshold = 0.45; // Threshold ketat untuk pendaftaran (lebih kecil = lebih mirip)
+    
+    for (const row of allFaces.rows) {
+      const storedDescriptor = JSON.parse(row.face_descriptor);
+      const distance = euclideanDistance(faceDescriptor, storedDescriptor);
+      
+      if (distance < threshold) {
+        // Cari nama santri yang sudah terdaftar dengan wajah ini
+        const duplicateSantri = await db.query('SELECT nama FROM santri WHERE id = $1', [row.santri_id]);
+        const namaSantri = duplicateSantri.rows[0]?.nama || 'santri lain';
+        
+        throw new ValidationError(`Wajah ini sudah terdaftar sebagai "${namaSantri}". Satu wajah hanya boleh untuk satu santri.`);
+      }
+    }
+    // --- AKHIR PENCEGAHAN DUPLIKASI ---
+
     const descriptorStr = JSON.stringify(faceDescriptor);
 
     const result = await db.query(

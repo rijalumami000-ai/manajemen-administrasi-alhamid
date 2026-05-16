@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { Card, Button, Select, Alert, Typography, Space, Table, Tag, message, Tabs, Input, Modal } from 'antd';
 import { Link } from 'react-router-dom';
-import { CameraOutlined, CheckCircleOutlined, CloseCircleOutlined, UserAddOutlined } from '@ant-design/icons';
+import { CameraOutlined, CheckCircleOutlined, CloseCircleOutlined, UserAddOutlined, SyncOutlined } from '@ant-design/icons';
 import Webcam from 'react-webcam';
 import * as faceapi from '@vladmandic/face-api';
 import { absensiSholatService } from '../services/absensiSholatService';
@@ -28,6 +28,8 @@ export function AbsensiSholat() {
     photo: ''
   });
   const [loadingAttendance, setLoadingAttendance] = useState(false);
+  const [facingMode, setFacingMode] = useState('user');
+  const toggleCamera = () => setFacingMode(prev => prev === 'user' ? 'environment' : 'user');
   
   // Manual Attendance States
   const [unattendedSantri, setUnattendedSantri] = useState([]);
@@ -498,8 +500,24 @@ Wassalamualaikum Wr. Wb.`);
                 videoConstraints={{
                   width: 640,
                   height: 480,
-                  facingMode: "user"
+                  facingMode: facingMode
                 }}
+              />
+              <Button 
+                shape="circle" 
+                icon={<SyncOutlined />} 
+                onClick={toggleCamera}
+                style={{
+                  position: 'absolute',
+                  top: '10px',
+                  right: '10px',
+                  background: 'rgba(255, 255, 255, 0.3)',
+                  border: '1px solid rgba(255, 255, 255, 0.4)',
+                  color: '#fff',
+                  backdropFilter: 'blur(4px)',
+                  zIndex: 5
+                }}
+                title="Ganti Kamera"
               />
               {isScanning && (
                 <div style={{
