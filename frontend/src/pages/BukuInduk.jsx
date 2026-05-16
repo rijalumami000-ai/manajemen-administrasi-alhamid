@@ -39,7 +39,7 @@ async function apiFetch(url, options = {}) {
 }
 
 export function BukuInduk() {
-  const { isAdmin } = useAuth();
+  const { isAdmin, isStaff } = useAuth();
   const [santriList, setSantriList] = useState([]);
   const [tahunMasukList, setTahunMasukList] = useState([]);
   const [kelasList, setKelasList] = useState([]);
@@ -346,7 +346,7 @@ export function BukuInduk() {
             icon={!foto && <UserOutlined />}
             className={`santri-avatar ${foto ? 'has-foto' : 'no-foto'}`}
           />
-          {isAdmin() && (
+          {(isAdmin() || isStaff()) && (
             <div className="foto-overlay" onClick={() => setFotoModal({ open: true, santri: record })}>
               <CameraOutlined />
             </div>
@@ -431,7 +431,7 @@ export function BukuInduk() {
       title: 'Aksi',
       key: 'aksi',
       width: 120,
-      render: (_, record) => isAdmin() ? (
+      render: (_, record) => (isAdmin() || isStaff()) ? (
         <Space size={4}>
           <Tooltip title="Edit Data">
             <Button type="text" size="small" icon={<EditOutlined />} onClick={() => handleEditClick(record)} />
@@ -464,7 +464,7 @@ export function BukuInduk() {
         <Space wrap>
           <Button icon={<FileExcelOutlined />} onClick={handleExportExcel} disabled={!santriList.length}>Ekspor Excel</Button>
           <Button icon={<FilePdfOutlined />} onClick={handleExportPDF} disabled={!santriList.length}>Ekspor PDF</Button>
-          {isAdmin() && (
+          {(isAdmin() || isStaff()) && (
             <>
               <Button icon={<UploadOutlined />} onClick={() => setIsImportModalOpen(true)}>Impor Excel</Button>
               <Button type="primary" icon={<PlusOutlined />} onClick={handleAddClick}>Tambah Santri</Button>
