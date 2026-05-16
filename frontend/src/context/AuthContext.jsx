@@ -137,6 +137,10 @@ export function AuthProvider({ children }) {
     return user?.role === 'admin';
   };
 
+  const isStaff = () => {
+    return user?.role === 'staff';
+  };
+
   const updateUser = (updates) => {
     setUser(prev => ({ ...prev, ...updates }));
   };
@@ -147,6 +151,7 @@ export function AuthProvider({ children }) {
     logout,
     loading,
     isAdmin,
+    isStaff,
     updateUser,
     verifyPassword,
     magicLogin

@@ -26,7 +26,7 @@ import { settingsService } from '../../services/settingsService';
 export function Sidebar({ collapsed, onCollapse }) {
   const navigate = useNavigate();
   const location = useLocation();
-  const { isAdmin } = useAuth();
+  const { isAdmin, isStaff } = useAuth();
   
   const [appName, setAppName] = useState('Sekolah Info');
   const [appLogo, setAppLogo] = useState(null);
@@ -45,9 +45,16 @@ export function Sidebar({ collapsed, onCollapse }) {
   }, []);
   
   // State for open submenus (so they don't auto-close when navigating)
-  const [openKeys, setOpenKeys] = useState(['sub-pesantren', 'sub-diniyah']);
+  const [openKeys, setOpenKeys] = useState([]);
 
-  // Update open keys when collapsed state changes
+  // Set initial open keys
+  useEffect(() => {
+    if (!collapsed) {
+      setOpenKeys(isStaff() ? ['sub-pesantren'] : ['sub-pesantren', 'sub-diniyah']);
+    }
+  }, [collapsed, isStaff]);
+
+  // Update open keys when collapsed state changes or location changes
   useEffect(() => {
     if (collapsed) {
       setOpenKeys([]);
@@ -55,20 +62,25 @@ export function Sidebar({ collapsed, onCollapse }) {
       // Re-open relevant keys based on current path when expanding
       if (['/santri', '/kelas', '/kamar', '/pelanggaran-prestasi'].includes(location.pathname)) {
         setOpenKeys(['sub-pesantren']);
-      } else if (['/guru'].includes(location.pathname)) {
+      } else if (['/guru'].includes(location.pathname) && !isStaff()) {
         setOpenKeys(['sub-diniyah']);
       } else {
-        setOpenKeys(['sub-pesantren', 'sub-diniyah']);
+        setOpenKeys(isStaff() ? ['sub-pesantren'] : ['sub-pesantren', 'sub-diniyah']);
       }
     }
-  }, [collapsed, location.pathname]);
+  }, [collapsed, location.pathname, isStaff]);
 
   const onOpenChange = (keys) => {
-    setOpenKeys(keys);
+    // Prevent staff from opening sub-diniyah
+    if (isStaff()) {
+      setOpenKeys(keys.filter(key => key !== 'sub-diniyah'));
+    } else {
+      setOpenKeys(keys);
+    }
   };
 
   const menuItems = [
-    { key: '/', icon: <DashboardOutlined />, label: 'Dashboard' },
+    { key: '/', icon: <DashboardOutlined />, label: 'Dashboard', disabled: isStaff() },
     {
       key: 'sub-pesantren',
       icon: <BankOutlined />,
@@ -86,20 +98,26 @@ export function Sidebar({ collapsed, onCollapse }) {
       key: 'sub-diniyah',
       icon: <BookOutlined />,
       label: 'Madrasah Diniyah',
+      disabled: isStaff(),
       children: [
-        { key: '/kelas', icon: <BookOutlined />, label: 'Data Kelas' },
-        { key: '/guru', icon: <UserOutlined />, label: 'Data Guru' },
-        { key: '/nilai-pengaturan', icon: <SettingOutlined />, label: 'Pengaturan & Jadwal' },
-        { key: '/nilai', icon: <EditOutlined />, label: 'Input Penilaian' },
-        { key: '/nilai-rekap', icon: <BookOutlined />, label: 'Rekap & Rapot' },
-        { key: '/laporan-ujian-khusus', icon: <BookOutlined />, label: 'Laporan Ujian Khusus' },
-        { key: '/kartu-ujian-semester', icon: <IdcardOutlined />, label: 'Kartu Ujian Semester' },
-        { key: '/lembar-ujian', icon: <FileTextOutlined />, label: 'Lembar Ujian' },
+        { key: '/kelas', icon: <BookOutlined />, label: 'Data Kelas', disabled: isStaff() },
+        { key: '/guru', icon: <UserOutlined />, label: 'Data Guru', disabled: isStaff() },
+        { key: '/nilai-pengaturan', icon: <SettingOutlined />, label: 'Pengaturan & Jadwal', disabled: isStaff() },
+        { key: '/nilai', icon: <EditOutlined />, label: 'Input Penilaian', disabled: isStaff() },
+        { key: '/nilai-rekap', icon: <BookOutlined />, label: 'Rekap & Rapot', disabled: isStaff() },
+        { key: '/laporan-ujian-khusus', icon: <BookOutlined />, label: 'Laporan Ujian Khusus', disabled: isStaff() },
+        { key: '/kartu-ujian-semester', icon: <IdcardOutlined />, label: 'Kartu Ujian Semester', disabled: isStaff() },
+        { key: '/lembar-ujian', icon: <FileTextOutlined />, label: 'Lembar Ujian', disabled: isStaff() },
       ],
     },
-    { key: '/alumni', icon: <UsergroupAddOutlined />, label: 'Alumni' },
-    ...(isAdmin() ? [{ key: '/users', icon: <SafetyOutlined />, label: 'User Management' }] : []),
-    { key: '/profile', icon: <SettingOutlined />, label: 'Profile' },
+    { key: '/alumni', icon: <UsergroupAddOutlined />, label: 'Alumni', disabled: isStaff() },
+    ...(isAdmin() || isStaff() ? [{ 
+      key: '/users', 
+      icon: <SafetyOutlined />, 
+      label: 'User Management',
+      disabled: isStaff()
+    }] : []),
+    { key: '/profile', icon: <SettingOutlined />, label: 'Profile', disabled: isStaff() },
   ];
 
   const handleMenuClick = ({ key }) => {
