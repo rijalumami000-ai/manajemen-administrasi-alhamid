@@ -22,6 +22,16 @@ function registerAbsensiSholatRoutes(app) {
   }));
 
   /**
+   * POST /api/absensi-sholat/register-palm
+   * Body: { santriId, palmDescriptor }
+   */
+  app.post('/api/absensi-sholat/register-palm', authenticateToken, asyncHandler(async (req, res) => {
+    const { santriId, palmDescriptor } = req.body;
+    const result = await absensiSholatService.registerPalm(santriId, palmDescriptor);
+    res.json(result);
+  }));
+
+  /**
    * GET /api/tts
    * Query: { text }
    * Returns: audio/mpeg stream
@@ -58,17 +68,21 @@ function registerAbsensiSholatRoutes(app) {
    * Returns: { success, match: { id, nama, nis, kelas }, attendanceId }
    */
    app.post('/api/absensi-sholat/scan', asyncHandler(async (req, res) => {
-    const { faceDescriptor, sholat } = req.body;
+    const { faceDescriptor, palmDescriptor, sholat } = req.body;
 
-    if (!faceDescriptor || !sholat) {
-      return res.status(400).json({ error: 'Face descriptor dan jenis sholat harus diisi' });
+    if ((!faceDescriptor && !palmDescriptor) || !sholat) {
+      return res.status(400).json({ error: 'Data biometrik (wajah/tangan) dan jenis sholat harus diisi' });
     }
 
-    // 1. Identify santri
-    const match = await absensiSholatService.identifySantri(faceDescriptor);
+    let match = null;
+    if (faceDescriptor) {
+      match = await absensiSholatService.identifySantri(faceDescriptor);
+    } else if (palmDescriptor) {
+      match = await absensiSholatService.identifySantriByPalm(palmDescriptor);
+    }
 
     if (!match) {
-      return res.status(404).json({ success: false, message: 'Wajah tidak dikenali' });
+      return res.status(404).json({ success: false, message: 'Biometrik tidak dikenali' });
     }
 
     // 2. Record attendance

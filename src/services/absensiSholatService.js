@@ -16,9 +16,9 @@ function euclideanDistance(v1, v2) {
  * @param {number} santriId 
  * @param {Array<number>} faceDescriptor - Array of 128 floats
  */
-async function registerFace(santriId, faceDescriptor) {
-  if (!santriId || !faceDescriptor) {
-    throw new ValidationError('Santri ID dan face descriptor harus diisi');
+async function registerFace(santriId, faceDescriptors) {
+  if (!santriId || !faceDescriptors || !Array.isArray(faceDescriptors)) {
+    throw new ValidationError('Santri ID dan face descriptors (array) harus diisi');
   }
 
   try {
@@ -28,27 +28,30 @@ async function registerFace(santriId, faceDescriptor) {
       throw new NotFoundError('Santri');
     }
 
-    // --- PENCEGAHAN DUPLIKASI WAJAH ---
+    // --- PENCEGAHAN DUPLIKASI WAJAH (Multi-Angle) ---
     // Ambil semua data wajah yang sudah terdaftar KECUALI milik santri ini
     const allFaces = await db.query('SELECT santri_id, face_descriptor FROM santri_face_data WHERE santri_id != $1', [santriId]);
     
-    const threshold = 0.45; // Threshold ketat untuk pendaftaran (lebih kecil = lebih mirip)
+    const threshold = 0.45; // Threshold ketat untuk pendaftaran
     
     for (const row of allFaces.rows) {
-      const storedDescriptor = JSON.parse(row.face_descriptor);
-      const distance = euclideanDistance(faceDescriptor, storedDescriptor);
+      const storedData = JSON.parse(row.face_descriptor);
+      const storedDescriptors = Array.isArray(storedData[0]) ? storedData : [storedData];
       
-      if (distance < threshold) {
-        // Cari nama santri yang sudah terdaftar dengan wajah ini
-        const duplicateSantri = await db.query('SELECT nama FROM santri WHERE id = $1', [row.santri_id]);
-        const namaSantri = duplicateSantri.rows[0]?.nama || 'santri lain';
-        
-        throw new ValidationError(`Wajah ini sudah terdaftar sebagai "${namaSantri}". Satu wajah hanya boleh untuk satu santri.`);
+      for (const newDesc of faceDescriptors) {
+        for (const storedDesc of storedDescriptors) {
+          const distance = euclideanDistance(newDesc, storedDesc);
+          if (distance < threshold) {
+            const duplicateSantri = await db.query('SELECT nama FROM santri WHERE id = $1', [row.santri_id]);
+            const namaSantri = duplicateSantri.rows[0]?.nama || 'santri lain';
+            throw new ValidationError(`Wajah ini terdeteksi sangat mirip dengan "${namaSantri}". Pendaftaran ditolak untuk mencegah bentrok.`);
+          }
+        }
       }
     }
     // --- AKHIR PENCEGAHAN DUPLIKASI ---
 
-    const descriptorStr = JSON.stringify(faceDescriptor);
+    const descriptorStr = JSON.stringify(faceDescriptors);
 
     const result = await db.query(
       `INSERT INTO santri_face_data (santri_id, face_descriptor, updated_at)
@@ -68,6 +71,56 @@ async function registerFace(santriId, faceDescriptor) {
 }
 
 /**
+ * Register palm descriptor for a santri
+ * @param {number} santriId 
+ * @param {Array<number>} palmDescriptor - Array of landmarks
+ */
+async function registerPalm(santriId, palmDescriptor) {
+  if (!santriId || !palmDescriptor) {
+    throw new ValidationError('Santri ID dan data telapak tangan harus diisi');
+  }
+
+  try {
+    const santriCheck = await db.query('SELECT id FROM santri WHERE id = $1', [santriId]);
+    if (santriCheck.rows.length === 0) throw new NotFoundError('Santri');
+
+    // --- PENCEGAHAN DUPLIKASI TANGAN (Super Ketat) ---
+    const allPalms = await db.query('SELECT santri_id, palm_descriptors FROM santri_face_data WHERE santri_id != $1 AND palm_descriptors IS NOT NULL', [santriId]);
+    
+    const threshold = 0.08; // Threshold sangat ketat untuk tangan (geometri landmark)
+    
+    for (const row of allPalms.rows) {
+      const storedPalm = JSON.parse(row.palm_descriptors);
+      const distance = euclideanDistance(palmDescriptor, storedPalm);
+      
+      if (distance < threshold) {
+        const duplicateSantri = await db.query('SELECT nama FROM santri WHERE id = $1', [row.santri_id]);
+        const namaSantri = duplicateSantri.rows[0]?.nama || 'santri lain';
+        throw new ValidationError(`Telapak tangan ini sudah terdaftar atas nama "${namaSantri}". Satu tangan hanya boleh untuk satu santri.`);
+      }
+    }
+    // --- AKHIR PENCEGAHAN DUPLIKASI ---
+
+    const descriptorStr = JSON.stringify(palmDescriptor);
+
+    const result = await db.query(
+      `INSERT INTO santri_face_data (santri_id, palm_descriptors, updated_at)
+       VALUES ($1, $2, NOW())
+       ON CONFLICT (santri_id) 
+       DO UPDATE SET palm_descriptors = EXCLUDED.palm_descriptors, updated_at = NOW()
+       RETURNING id`,
+      [santriId, descriptorStr]
+    );
+
+    return { success: true, id: result.rows[0].id };
+  } catch (error) {
+    if (error instanceof ValidationError || error instanceof NotFoundError) throw error;
+    console.error('Error in registerPalm:', error);
+    throw new AppError('Gagal mendaftarkan telapak tangan', 500);
+  }
+}
+
+/**
  * Identify santri by face descriptor
  * @param {Array<number>} faceDescriptor - Array of 128 floats
  * @returns {Promise<Object|null>} - Santri data if found
@@ -82,12 +135,17 @@ async function identifySantri(faceDescriptor) {
     let minDistance = 0.6; // Threshold for face-api.js (usually 0.6 is good)
 
     for (const row of result.rows) {
-      const storedDescriptor = JSON.parse(row.face_descriptor);
-      const distance = euclideanDistance(faceDescriptor, storedDescriptor);
+      const storedData = JSON.parse(row.face_descriptor);
+      // Mendukung data lama (single array) atau baru (array of arrays)
+      const storedDescriptors = Array.isArray(storedData[0]) ? storedData : [storedData];
+      
+      for (const storedDesc of storedDescriptors) {
+        const distance = euclideanDistance(faceDescriptor, storedDesc);
 
-      if (distance < minDistance) {
-        minDistance = distance;
-        bestMatch = row.santri_id;
+        if (distance < minDistance) {
+          minDistance = distance;
+          bestMatch = row.santri_id;
+        }
       }
     }
 
@@ -108,6 +166,45 @@ async function identifySantri(faceDescriptor) {
   } catch (error) {
     console.error('Error in identifySantri:', error);
     throw new AppError('Gagal mengidentifikasi wajah', 500);
+  }
+}
+
+/**
+ * Identify santri by palm descriptor
+ * @param {Array<number>} palmDescriptor 
+ * @returns {Promise<Object|null>}
+ */
+async function identifySantriByPalm(palmDescriptor) {
+  try {
+    const result = await db.query('SELECT santri_id, palm_descriptors FROM santri_face_data WHERE palm_descriptors IS NOT NULL');
+    
+    let bestMatch = null;
+    let minDistance = 0.15; // Threshold ketat untuk tangan (landmarks normalized)
+
+    for (const row of result.rows) {
+      const storedPalm = JSON.parse(row.palm_descriptors);
+      const distance = euclideanDistance(palmDescriptor, storedPalm);
+
+      if (distance < minDistance) {
+        minDistance = distance;
+        bestMatch = row.santri_id;
+      }
+    }
+
+    if (!bestMatch) return null;
+
+    const santriResult = await db.query(
+      `SELECT s.id, s.nama, s.nis, s.foto_url, k.nama as kelas 
+       FROM santri s
+       LEFT JOIN kelas k ON s.kelas_diniyah_id = k.id
+       WHERE s.id = $1`,
+      [bestMatch]
+    );
+
+    return santriResult.rows[0];
+  } catch (error) {
+    console.error('Error in identifySantriByPalm:', error);
+    return null;
   }
 }
 
@@ -248,7 +345,9 @@ async function getUnattendedSantri(sholat, date) {
 
 module.exports = {
   registerFace,
+  registerPalm,
   identifySantri,
+  identifySantriByPalm,
   recordAttendance,
   getTodayAttendance,
   getAttendanceRecap,

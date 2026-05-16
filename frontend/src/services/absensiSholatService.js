@@ -7,6 +7,12 @@ export const absensiSholatService = {
   scanFace: (faceDescriptor, sholat) => 
     apiPost('/absensi-sholat/scan', { faceDescriptor, sholat }),
     
+  registerPalm: (santriId, palmDescriptor) => 
+    apiPost('/absensi-sholat/register-palm', { santriId, palmDescriptor }),
+    
+  scanPalm: (palmDescriptor, sholat) => 
+    apiPost('/absensi-sholat/scan', { palmDescriptor, sholat }),
+    
   getTodayAttendance: () => 
     apiGet('/absensi-sholat/today'),
     

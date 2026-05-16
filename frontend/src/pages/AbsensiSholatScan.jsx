@@ -6,6 +6,14 @@ import * as faceapi from '@vladmandic/face-api';
 import { absensiSholatService } from '../services/absensiSholatService';
 import { Link } from 'react-router-dom';
 
+// MediaPipe is loaded via CDN in index.html
+const FaceMesh = window.FaceMesh;
+const Hands = window.Hands;
+const MediaPipeCamera = window.Camera;
+const drawConnectors = window.drawConnectors;
+const drawLandmarks = window.drawLandmarks;
+const HAND_CONNECTIONS = window.HAND_CONNECTIONS;
+
 const { Title, Text } = Typography;
 const { Option } = Select;
 
@@ -13,6 +21,8 @@ const API_BASE = import.meta.env.VITE_API_URL || '';
 
 export function AbsensiSholatScan() {
   const webcamRef = useRef(null);
+  const canvasRef = useRef(null);
+  const faceMeshRef = useRef(null);
   
   const [modelsLoaded, setModelsLoaded] = useState(false);
   const [isScanning, setIsScanning] = useState(false);
@@ -50,10 +60,16 @@ export function AbsensiSholatScan() {
   const [isBlinking, setIsBlinking] = useState(false);
   const [lastBlinkTime, setLastBlinkTime] = useState(0);
   const [isFaceDetected, setIsFaceDetected] = useState(false);
+  const [isHandDetected, setIsHandDetected] = useState(false);
   const [facingMode, setFacingMode] = useState('user');
   const blinkRef = useRef(0);
   const isBlinkingRef = useRef(false);
   const isScanningRef = useRef(false);
+  
+  // Hand states
+  const [handStableCount, setHandStableCount] = useState(0);
+  const handStableRef = useRef(0);
+  const handsRef = useRef(null);
 
   const toggleCamera = () => {
     setFacingMode(prev => prev === 'user' ? 'environment' : 'user');
@@ -63,18 +79,47 @@ export function AbsensiSholatScan() {
 
   const sholatOptions = ['Subuh', 'Dzuhur', 'Ashar', 'Maghrib', 'Isya'];
 
-  // Load models on mount
+  // Load models and Initialize MediaPipe
   useEffect(() => {
     const loadModels = async () => {
       try {
         const MODEL_URL = '/models';
         await Promise.all([
-          faceapi.nets.tinyFaceDetector.loadFromUri(MODEL_URL),
+          faceapi.nets.ssdMobilenetv1.loadFromUri(MODEL_URL),
           faceapi.nets.faceLandmark68Net.loadFromUri(MODEL_URL),
           faceapi.nets.faceRecognitionNet.loadFromUri(MODEL_URL)
         ]);
+
+        // Initialize MediaPipe FaceMesh
+        const faceMesh = new FaceMesh({
+          locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh@0.4/${file}`,
+        });
+
+        faceMesh.setOptions({
+          maxNumFaces: 1,
+          refineLandmarks: true,
+          minDetectionConfidence: 0.5,
+          minTrackingConfidence: 0.5,
+        });
+
+        faceMesh.onResults(onFaceMeshResults);
+        faceMeshRef.current = faceMesh;
+
+        // Init Hands
+        const hands = new Hands({
+          locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}`,
+        });
+        hands.setOptions({
+          maxNumHands: 1,
+          modelComplexity: 1,
+          minDetectionConfidence: 0.5,
+          minTrackingConfidence: 0.5,
+        });
+        hands.onResults(onHandsResults);
+        handsRef.current = hands;
+
         setModelsLoaded(true);
-        message.success('Sistem AI Siap. Silakan berdiri di depan kamera.');
+        message.success('Sistem AI (Wajah & Tangan) Siap.');
       } catch (error) {
         console.error('Failed to load models:', error);
         message.error('Gagal memuat model AI.');
@@ -82,6 +127,174 @@ export function AbsensiSholatScan() {
     };
     loadModels();
   }, []);
+
+  const onFaceMeshResults = (results) => {
+    if (!canvasRef.current || !webcamRef.current) return;
+
+    const videoWidth = webcamRef.current.video.videoWidth;
+    const videoHeight = webcamRef.current.video.videoHeight;
+    canvasRef.current.width = videoWidth;
+    canvasRef.current.height = videoHeight;
+
+    const canvasCtx = canvasRef.current.getContext('2d');
+    canvasCtx.save();
+    canvasCtx.clearRect(0, 0, canvasRef.current.width, canvasRef.current.height);
+
+    if (results.multiFaceLandmarks && results.multiFaceLandmarks.length > 0) {
+      setIsFaceDetected(true);
+      const landmarks = results.multiFaceLandmarks[0];
+
+      // Draw Face Mesh - Versi Sleek (Garis Kontur Wajah)
+      drawConnectors(canvasCtx, landmarks, window.FACEMESH_CONTOURS, {
+        color: '#00eeee80', // Biru Cyan transparan
+        lineWidth: 1,
+      });
+      
+      // Highlight Mata dengan warna yang lebih lembut
+      drawConnectors(canvasCtx, landmarks, window.FACEMESH_RIGHT_EYE, { color: '#ff4d4f', lineWidth: 2 });
+      drawConnectors(canvasCtx, landmarks, window.FACEMESH_LEFT_EYE, { color: '#52c41a', lineWidth: 2 });
+
+      // MediaPipe EAR Calculation (for blink)
+      // Landmarks: Left Eye (362, 385, 387, 263, 373, 380), Right Eye (33, 160, 158, 133, 153, 144)
+      const leftEyeEAR = getMediaPipeEAR(landmarks, [362, 385, 387, 263, 373, 380]);
+      const rightEyeEAR = getMediaPipeEAR(landmarks, [33, 160, 158, 133, 153, 144]);
+      const ear = (leftEyeEAR + rightEyeEAR) / 2;
+      
+      const EAR_THRESHOLD = 0.25;
+      if (ear < EAR_THRESHOLD) {
+        if (!isBlinkingRef.current) {
+          isBlinkingRef.current = true;
+          setIsBlinking(true);
+          blinkRef.current += 1;
+          setBlinkCount(blinkRef.current);
+          if (blinkRef.current >= 2) handleAutoScan();
+        }
+      } else {
+        isBlinkingRef.current = false;
+        setIsBlinking(false);
+      }
+    } else {
+      setIsFaceDetected(false);
+    }
+    canvasCtx.restore();
+  };
+
+  const onHandsResults = (results) => {
+    if (!canvasRef.current || !webcamRef.current) return;
+    const canvasCtx = canvasRef.current.getContext('2d');
+
+    if (results.multiHandLandmarks && results.multiHandLandmarks.length > 0) {
+      setIsHandDetected(true);
+      const landmarks = results.multiHandLandmarks[0];
+
+      // Draw Hand Mesh
+      drawConnectors(canvasCtx, landmarks, HAND_CONNECTIONS, { color: '#00ccff', lineWidth: 2 });
+      drawLandmarks(canvasCtx, landmarks, { color: '#ffffff', lineWidth: 1, radius: 2 });
+
+      // Stability check for palm scan
+      handStableRef.current += 1;
+      setHandStableCount(handStableRef.current);
+      if (handStableRef.current >= 40) { // Sekitar 2 detik diam
+        handlePalmScan(landmarks);
+        handStableRef.current = 0;
+      }
+    } else {
+      setIsHandDetected(false);
+      handStableRef.current = 0;
+      setHandStableCount(0);
+    }
+  };
+
+  const handlePalmScan = async (landmarks) => {
+    if (scanning || !sholat) return;
+    setScanning(true);
+    
+    try {
+      // Normalize landmarks (flatten to array of numbers)
+      const palmDescriptor = landmarks.flatMap(l => [l.x, l.y, l.z]);
+      
+      const response = await absensiSholatService.scanPalm(palmDescriptor, sholat);
+      if (response.success) {
+        setResult(response.match);
+        message.success(`Absensi Berhasil (Tangan): ${response.match.nama}`);
+        speak(`Terima kasih ${response.match.nama}, absensi sholat ${sholat} berhasil.`);
+      } else {
+        message.error(response.message || 'Tangan tidak dikenali');
+      }
+    } catch (error) {
+      message.error('Gagal memproses absensi tangan');
+    } finally {
+      setTimeout(() => setScanning(false), 3000);
+    }
+  };
+
+  const getMediaPipeEAR = (landmarks, indices) => {
+    const p1 = landmarks[indices[0]];
+    const p2 = landmarks[indices[1]];
+    const p3 = landmarks[indices[2]];
+    const p4 = landmarks[indices[3]];
+    const p5 = landmarks[indices[4]];
+    const p6 = landmarks[indices[5]];
+    
+    const dist = (a, b) => Math.sqrt(Math.pow(a.x - b.x, 2) + Math.pow(a.y - b.y, 2));
+    const v1 = dist(p2, p6);
+    const v2 = dist(p3, p5);
+    const h = dist(p1, p4);
+    return (v1 + v2) / (2.0 * h);
+  };
+
+  const preprocessImage = (videoElement) => {
+    const canvas = document.createElement('canvas');
+    canvas.width = videoElement.videoWidth;
+    canvas.height = videoElement.videoHeight;
+    const ctx = canvas.getContext('2d');
+    ctx.drawImage(videoElement, 0, 0);
+
+    const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+    const data = imageData.data;
+    let min = 255, max = 0;
+    for (let i = 0; i < data.length; i += 4) {
+      const v = (data[i] + data[i+1] + data[i+2]) / 3;
+      if (v < min) min = v;
+      if (v > max) max = v;
+    }
+    const range = Math.max(max - min, 1);
+    for (let i = 0; i < data.length; i += 4) {
+      data[i] = ((data[i] - min) / range) * 255;
+      data[i+1] = ((data[i+1] - min) / range) * 255;
+      data[i+2] = ((data[i+2] - min) / range) * 255;
+    }
+    ctx.putImageData(imageData, 0, 0);
+    return canvas;
+  };
+
+  // Start MediaPipe Camera loop
+  useEffect(() => {
+    if (modelsLoaded && webcamRef.current && webcamRef.current.video) {
+      const camera = new MediaPipeCamera(webcamRef.current.video, {
+        onFrame: async () => {
+          if (!webcamRef.current || !webcamRef.current.video) return;
+          
+          // Apply Image Pre-processing for better detection
+          const normalizedCanvas = preprocessImage(webcamRef.current.video);
+
+          if (faceMeshRef.current) {
+            await faceMeshRef.current.send({ image: normalizedCanvas });
+          }
+          // Hand detection disabled for now
+          /*
+          if (handsRef.current) {
+            await handsRef.current.send({ image: webcamRef.current.video });
+          }
+          */
+        },
+        width: 640,
+        height: 480,
+      });
+      camera.start();
+      return () => camera.stop();
+    }
+  }, [modelsLoaded, facingMode]);
 
   // Force Light Mode for this page
   useEffect(() => {
@@ -115,8 +328,10 @@ export function AbsensiSholatScan() {
 
     try {
       const video = webcamRef.current.video;
+      const normalizedCanvas = preprocessImage(video);
+
       const detection = await faceapi
-        .detectSingleFace(video, new faceapi.TinyFaceDetectorOptions())
+        .detectSingleFace(normalizedCanvas, new faceapi.SsdMobilenetv1Options({ minConfidence: 0.5 }))
         .withFaceLandmarks()
         .withFaceDescriptor();
 
@@ -163,43 +378,9 @@ export function AbsensiSholatScan() {
     }
   };
 
+  // Removed the old interval loop as we now use MediaPipe's onFrame
   useEffect(() => {
-    let interval;
-    if (modelsLoaded && !successPopup.visible) {
-      interval = setInterval(async () => {
-        if (webcamRef.current && webcamRef.current.video.readyState === 4) {
-          const video = webcamRef.current.video;
-          const detection = await faceapi
-            .detectSingleFace(video, new faceapi.TinyFaceDetectorOptions())
-            .withFaceLandmarks();
-
-          if (detection) {
-            setIsFaceDetected(true);
-            const ear = calculateEAR(detection.landmarks);
-            const EAR_THRESHOLD = 0.23;
-
-            if (ear < EAR_THRESHOLD) {
-              if (!isBlinkingRef.current) {
-                isBlinkingRef.current = true;
-                setIsBlinking(true);
-                blinkRef.current += 1;
-                setBlinkCount(blinkRef.current);
-                
-                if (blinkRef.current >= 2) {
-                  handleAutoScan();
-                }
-              }
-            } else {
-              isBlinkingRef.current = false;
-              setIsBlinking(false);
-            }
-          } else {
-            setIsFaceDetected(false);
-          }
-        }
-      }, 150);
-    }
-    return () => clearInterval(interval);
+    // MediaPipe initialization handled in the loadModels effect
   }, [modelsLoaded, successPopup.visible, selectedSholat]);
 
   const handleScan = async () => {
@@ -436,19 +617,33 @@ export function AbsensiSholatScan() {
             )}
 
             {modelsLoaded ? (
-              <Webcam
-                audio={false}
-                ref={webcamRef}
-                screenshotFormat="image/jpeg"
-                style={{
-                  width: '100%',
-                  height: '100%',
-                  objectFit: 'cover'
-                }}
-                videoConstraints={{
-                  facingMode: facingMode
-                }}
-              />
+              <div style={{ width: '100%', height: '100%', position: 'relative' }}>
+                <Webcam
+                  audio={false}
+                  ref={webcamRef}
+                  screenshotFormat="image/jpeg"
+                  style={{
+                    width: '100%',
+                    height: '100%',
+                    objectFit: 'cover'
+                  }}
+                  videoConstraints={{
+                    facingMode: facingMode
+                  }}
+                />
+                <canvas
+                  ref={canvasRef}
+                  style={{
+                    position: 'absolute',
+                    top: 0,
+                    left: 0,
+                    width: '100%',
+                    height: '100%',
+                    objectFit: 'cover',
+                    zIndex: 1
+                  }}
+                />
+              </div>
             ) : (
               <div style={{ 
                 height: '100%', 
@@ -459,7 +654,7 @@ export function AbsensiSholatScan() {
                 flexDirection: 'column'
               }}>
                 <CameraOutlined style={{ fontSize: '48px', marginBottom: '10px' }} />
-                <Text style={{ color: '#9ca3af' }}>Memuat kamera dan model AI...</Text>
+                <Text style={{ color: '#9ca3af' }}>Memuat MediaPipe & AI Models...</Text>
               </div>
             )}
           </div>

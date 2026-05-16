@@ -9,7 +9,7 @@ import {
   EditOutlined, BookOutlined, CameraOutlined, ReloadOutlined,
   TeamOutlined, CalendarOutlined, PlusOutlined, IdcardOutlined,
   HomeOutlined, PhoneOutlined, FileExcelOutlined, FilePdfOutlined,
-  ScanOutlined, CheckCircleOutlined, CloseCircleOutlined, SyncOutlined
+  ScanOutlined, AimOutlined, CheckCircleOutlined, CloseCircleOutlined, SyncOutlined
 } from '@ant-design/icons';
 import { useAuth } from '../context/AuthContext';
 import { ImportSantriModal } from '../components/features/ImportSantriModal';
@@ -18,6 +18,12 @@ import dayjs from 'dayjs';
 import Webcam from 'react-webcam';
 import * as faceapi from '@vladmandic/face-api';
 import { absensiSholatService } from '../services/absensiSholatService';
+
+// MediaPipe globals
+const Hands = window.Hands;
+const MediaPipeCamera = window.Camera;
+const drawConnectors = window.drawConnectors;
+const HAND_CONNECTIONS = window.HAND_CONNECTIONS;
 import './BukuInduk.scss';
 
 const { Title, Text } = Typography;
@@ -63,11 +69,21 @@ export function BukuInduk() {
   const [isRegistering, setIsRegistering] = useState(false);
   const [registerResult, setRegisterResult] = useState(null);
   const [facingMode, setFacingMode] = useState('user');
+  const [angleStep, setAngleStep] = useState(0); // 0: Depan, 1: Kiri, 2: Kanan
+  const [capturedDescriptors, setCapturedDescriptors] = useState([]);
   const toggleCamera = () => setFacingMode(prev => prev === 'user' ? 'environment' : 'user');
 
   const [form] = Form.useForm();
   const fileInputRef = useRef(null);
   const faceWebcamRef = useRef(null);
+  
+  // Palm State
+  const [palmModal, setPalmModal] = useState({ open: false, santri: null });
+  const [isPalmDetected, setIsPalmDetected] = useState(false);
+  const palmHandsRef = useRef(null);
+  const palmWebcamRef = useRef(null);
+  const palmCanvasRef = useRef(null);
+  const lastPalmLandmarks = useRef(null);
 
   const fetchData = useCallback(async () => {
     setLoading(true);
@@ -103,7 +119,7 @@ export function BukuInduk() {
       try {
         const MODEL_URL = '/models';
         await Promise.all([
-          faceapi.nets.tinyFaceDetector.loadFromUri(MODEL_URL),
+          faceapi.nets.ssdMobilenetv1.loadFromUri(MODEL_URL),
           faceapi.nets.faceLandmark68Net.loadFromUri(MODEL_URL),
           faceapi.nets.faceRecognitionNet.loadFromUri(MODEL_URL)
         ]);
@@ -240,6 +256,32 @@ export function BukuInduk() {
     });
   };
 
+  // === Image Pre-processing Helper ===
+  const preprocessImage = (videoElement) => {
+    const canvas = document.createElement('canvas');
+    canvas.width = videoElement.videoWidth;
+    canvas.height = videoElement.videoHeight;
+    const ctx = canvas.getContext('2d');
+    ctx.drawImage(videoElement, 0, 0);
+
+    const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+    const data = imageData.data;
+    let min = 255, max = 0;
+    for (let i = 0; i < data.length; i += 4) {
+      const v = (data[i] + data[i+1] + data[i+2]) / 3;
+      if (v < min) min = v;
+      if (v > max) max = v;
+    }
+    const range = Math.max(max - min, 1);
+    for (let i = 0; i < data.length; i += 4) {
+      data[i] = ((data[i] - min) / range) * 255;
+      data[i+1] = ((data[i+1] - min) / range) * 255;
+      data[i+2] = ((data[i+2] - min) / range) * 255;
+    }
+    ctx.putImageData(imageData, 0, 0);
+    return canvas;
+  };
+
   // === Face Handlers ===
   const handleRegisterFace = async () => {
     if (!faceWebcamRef.current || !faceModal.santri) return;
@@ -248,37 +290,123 @@ export function BukuInduk() {
     setRegisterResult(null);
 
     try {
-      const imageSrc = faceWebcamRef.current.getScreenshot();
-      if (!imageSrc) throw new Error('Gagal mengambil gambar dari kamera');
-
-      const img = new Image();
-      img.src = imageSrc;
-      await new Promise((resolve) => (img.onload = resolve));
+      const video = faceWebcamRef.current.video;
+      const normalizedCanvas = preprocessImage(video);
 
       const detection = await faceapi
-        .detectSingleFace(img, new faceapi.TinyFaceDetectorOptions())
+        .detectSingleFace(normalizedCanvas, new faceapi.SsdMobilenetv1Options({ minConfidence: 0.5 }))
         .withFaceLandmarks()
         .withFaceDescriptor();
 
       if (!detection) {
-        message.warning('Wajah tidak terdeteksi. Pastikan wajah terlihat jelas.');
-        setIsRegistering(false);
-        return;
+        throw new Error('Wajah tidak terdeteksi dengan jelas. Pastikan posisi pas dan pencahayaan cukup.');
       }
 
       const descriptor = Array.from(detection.descriptor);
-      await absensiSholatService.registerFace(faceModal.santri.id, descriptor);
+      const newDescriptors = [...capturedDescriptors, descriptor];
+      
+      if (angleStep < 2) {
+        // Lanjut ke sudut berikutnya
+        setCapturedDescriptors(newDescriptors);
+        setAngleStep(prev => prev + 1);
+        message.info(`Sudut wajah berhasil diambil. Sekarang posisi ${angleStep === 0 ? 'Miring ke Kiri' : 'Miring ke Kanan'}.`);
+      } else {
+        // Selesai semua sudut, kirim ke backend
+        await absensiSholatService.registerFace(faceModal.santri.id, newDescriptors);
 
-      setRegisterResult({ success: true, message: 'Wajah berhasil didaftarkan!' });
-      message.success('Wajah berhasil didaftarkan!');
-    } catch (error) {
-      console.error('Face register error:', error);
-      setRegisterResult({ success: false, message: error.message || 'Gagal mendaftarkan wajah' });
-      message.error(error.message || 'Gagal mendaftarkan wajah');
+        setRegisterResult({ success: true, message: 'Pendaftaran wajah 3-Angle berhasil!' });
+        message.success('Wajah berhasil didaftarkan dengan 3 sudut pandang!');
+        setAngleStep(0);
+        setCapturedDescriptors([]);
+        fetchData();
+      }
+    } catch (err) {
+      setRegisterResult({ success: false, message: err.message });
+      message.error(err.message);
     } finally {
       setIsRegistering(false);
     }
   };
+
+  const handleRegisterPalm = async () => {
+    if (!palmWebcamRef.current || !palmModal.santri) return;
+    setIsRegistering(true);
+    
+    try {
+      if (!lastPalmLandmarks.current) {
+        throw new Error('Tangan belum terdeteksi. Silakan tunjukkan telapak tangan ke kamera.');
+      }
+      
+      const palmDescriptor = lastPalmLandmarks.current.flatMap(l => [l.x, l.y, l.z]);
+      const res = await absensiSholatService.registerPalm(palmModal.santri.id, palmDescriptor);
+      
+      if (res.success) {
+        message.success(`Telapak tangan ${palmModal.santri.nama} berhasil didaftarkan!`);
+        setPalmModal({ open: false, santri: null });
+        fetchData();
+      }
+    } catch (err) {
+      message.error(err.message);
+    } finally {
+      setIsRegistering(false);
+    }
+  };
+
+  const onPalmResults = (results) => {
+    if (!palmCanvasRef.current || !palmWebcamRef.current) return;
+    const canvasCtx = palmCanvasRef.current.getContext('2d');
+    canvasCtx.save();
+    canvasCtx.clearRect(0, 0, 640, 480);
+
+    if (results.multiHandLandmarks && results.multiHandLandmarks.length > 0) {
+      setIsPalmDetected(true);
+      const landmarks = results.multiHandLandmarks[0];
+      lastPalmLandmarks.current = landmarks;
+
+      // Draw Hand Mesh for feedback
+      drawConnectors(canvasCtx, landmarks, HAND_CONNECTIONS, { color: '#00ccff', lineWidth: 2 });
+    } else {
+      setIsPalmDetected(false);
+      lastPalmLandmarks.current = null;
+    }
+    canvasCtx.restore();
+  };
+
+  // Start Hands loop for registration modal
+  useEffect(() => {
+    if (palmModal.open && palmWebcamRef.current) {
+      const hands = new Hands({
+        locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}`,
+      });
+      
+      hands.setOptions({
+        maxNumHands: 1,
+        modelComplexity: 1,
+        minDetectionConfidence: 0.5,
+        minTrackingConfidence: 0.5,
+        selfieMode: true
+      });
+      
+      hands.onResults(onPalmResults);
+
+      const camera = new MediaPipeCamera(palmWebcamRef.current.video, {
+        onFrame: async () => {
+          if (palmWebcamRef.current && palmWebcamRef.current.video) {
+            await hands.send({ image: palmWebcamRef.current.video });
+          }
+        },
+        width: 640,
+        height: 480
+      });
+      camera.start();
+      palmHandsRef.current = hands;
+      
+      return () => {
+        camera.stop();
+        hands.close();
+      };
+    }
+  }, [palmModal.open]);
 
   // === Export Handlers ===
   const handleExportExcel = () => {
@@ -386,11 +514,11 @@ export function BukuInduk() {
       title: 'Scan Wajah',
       dataIndex: 'is_face_registered',
       key: 'is_face_registered',
-      width: 120,
+      width: 110,
       render: (isRegistered) => (
         isRegistered ? 
-          <Tag color="green" icon={<CheckCircleOutlined />}>Terdaftar</Tag> : 
-          <Tag color="red" icon={<CloseCircleOutlined />}>Belum</Tag>
+          <Tag color="green" icon={<CheckCircleOutlined />}>Aktif</Tag> : 
+          <Tag color="red" icon={<CloseCircleOutlined />}>Off</Tag>
       ),
     },
     {
@@ -439,7 +567,7 @@ export function BukuInduk() {
           <Tooltip title="Upload Foto">
             <Button type="text" size="small" icon={<CameraOutlined />} onClick={() => setFotoModal({ open: true, santri: record })} />
           </Tooltip>
-          <Tooltip title="Daftar Wajah (AI)">
+          <Tooltip title="Daftar Wajah (3-Angle)">
             <Button type="text" size="small" icon={<ScanOutlined />} onClick={() => { setFaceModal({ open: true, santri: record }); setRegisterResult(null); }} />
           </Tooltip>
           <Tooltip title="Hapus">
@@ -771,14 +899,20 @@ export function BukuInduk() {
                   )}
                 </div>
                 
+                <div style={{ marginBottom: '15px' }}>
+                  <Tag color="blue" style={{ fontSize: '14px', padding: '4px 12px' }}>
+                    Tahap {angleStep + 1}/3: {angleStep === 0 ? 'Wajah Depan' : angleStep === 1 ? 'Menoleh Kiri' : 'Menoleh Kanan'}
+                  </Tag>
+                </div>
+                
                 <Button
                   type="primary"
                   icon={<ScanOutlined />}
                   onClick={handleRegisterFace}
                   loading={isRegistering}
-                  style={{ marginTop: '16px', width: '200px' }}
+                  style={{ width: '220px', height: '45px', borderRadius: '22px', fontWeight: 'bold' }}
                 >
-                  Ambil Sampel Wajah
+                  {angleStep === 0 ? 'Ambil Sisi Depan' : angleStep === 1 ? 'Ambil Sisi Kiri' : 'Selesaikan Pendaftaran'}
                 </Button>
 
                 {registerResult && (
@@ -795,6 +929,63 @@ export function BukuInduk() {
             )}
           </div>
         )}
+      </Modal>
+
+      {/* Modal Daftar Telapak Tangan */}
+      <Modal
+        title={`Registrasi Biometrik Tangan: ${palmModal.santri?.nama}`}
+        open={palmModal.open}
+        onCancel={() => setPalmModal({ open: false, santri: null })}
+        footer={null}
+        width={700}
+        destroyOnClose
+      >
+        <div style={{ textAlign: 'center', padding: '20px' }}>
+          <div style={{ position: 'relative', width: '640px', height: '480px', margin: '0 auto', background: '#000', borderRadius: '12px', overflow: 'hidden' }}>
+            <Webcam
+              ref={palmWebcamRef}
+              audio={false}
+              screenshotFormat="image/jpeg"
+              videoConstraints={{ width: 640, height: 480, facingMode }}
+              style={{ width: '100%', height: '100%' }}
+            />
+            <canvas
+              ref={palmCanvasRef}
+              width={640}
+              height={480}
+              style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%' }}
+            />
+            {isPalmDetected ? (
+              <div style={{ position: 'absolute', top: 20, right: 20, zIndex: 11 }}>
+                <Tag color="cyan" icon={<CheckCircleOutlined />}>Tangan Terdeteksi</Tag>
+              </div>
+            ) : (
+              <div style={{ position: 'absolute', top: 20, right: 20, zIndex: 11 }}>
+                <Tag color="red" icon={<CloseCircleOutlined />}>Tangan Tidak Terlihat</Tag>
+              </div>
+            )}
+            
+            <div style={{ position: 'absolute', bottom: 20, left: 0, right: 0, textAlign: 'center' }}>
+              <Text style={{ color: '#fff', background: 'rgba(0,0,0,0.5)', padding: '4px 12px', borderRadius: '4px' }}>
+                Posisikan telapak tangan terbuka menghadap kamera
+              </Text>
+            </div>
+          </div>
+
+          <div style={{ marginTop: '24px' }}>
+            <Button
+              type="primary"
+              size="large"
+              icon={<AimOutlined />}
+              onClick={handleRegisterPalm}
+              loading={isRegistering}
+              disabled={!isPalmDetected}
+              style={{ width: '250px', height: '50px', borderRadius: '25px', fontWeight: 'bold' }}
+            >
+              Daftarkan Telapak Tangan
+            </Button>
+          </div>
+        </div>
       </Modal>
 
       {/* Modal Import Excel — tetap pakai endpoint /api/santri/import yang sudah powerful */}
