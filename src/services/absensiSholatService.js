@@ -127,20 +127,31 @@ async function registerPalm(santriId, palmDescriptor) {
  */
 async function identifySantri(faceDescriptor) {
   try {
-    // Fetch all face descriptors
-    // Note: For large scale, use pgvector extension. For small scale (<10k), this is fine.
-    const result = await db.query('SELECT santri_id, face_descriptor FROM santri_face_data');
+    // Ambil descriptor beserta nama santri untuk logging detail jarak Euclidean
+    const result = await db.query(`
+      SELECT fd.santri_id, fd.face_descriptor, s.nama 
+      FROM santri_face_data fd
+      JOIN santri s ON fd.santri_id = s.id
+    `);
     
     let bestMatch = null;
-    let minDistance = 0.6; // Threshold for face-api.js (usually 0.6 is good)
+    let minDistance = 0.63; // Threshold disesuaikan ke 0.63 untuk toleransi cahaya & sudut kamera depan HP yang ideal
+    let closestName = "Tidak ada";
+    let closestDistance = 999.0;
 
+    console.log("=== MEMULAI PENCOCOKAN WAJAH ===");
     for (const row of result.rows) {
       const storedData = JSON.parse(row.face_descriptor);
-      // Mendukung data lama (single array) atau baru (array of arrays)
       const storedDescriptors = Array.isArray(storedData[0]) ? storedData : [storedData];
       
       for (const storedDesc of storedDescriptors) {
         const distance = euclideanDistance(faceDescriptor, storedDesc);
+        console.log(`- Jarak Euclidean ke "${row.nama}": ${distance.toFixed(4)} (Threshold: ${minDistance})`);
+
+        if (distance < closestDistance) {
+          closestDistance = distance;
+          closestName = row.nama;
+        }
 
         if (distance < minDistance) {
           minDistance = distance;
@@ -148,6 +159,7 @@ async function identifySantri(faceDescriptor) {
         }
       }
     }
+    console.log(`=== HASIL COCOK: Best Match adalah "${closestName}" dengan jarak: ${closestDistance.toFixed(4)} ===`);
 
     if (!bestMatch) {
       return null;

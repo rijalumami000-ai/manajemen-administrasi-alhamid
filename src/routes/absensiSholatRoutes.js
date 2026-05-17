@@ -1,7 +1,13 @@
 const absensiSholatService = require('../services/absensiSholatService');
+const faceRecognitionService = require('../services/faceRecognitionService');
 const { asyncHandler } = require('../utils/errorHandler');
 const { authenticateToken } = require('../middleware/authMiddleware');
 const https = require('https');
+const multer = require('multer');
+const upload = multer({ 
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 5 * 1024 * 1024 }
+});
 
 function registerAbsensiSholatRoutes(app) {
   /**
@@ -95,6 +101,50 @@ function registerAbsensiSholatRoutes(app) {
     });
   }));
 
+  app.post('/api/absensi-sholat/scan-image', upload.single('image'), asyncHandler(async (req, res) => {
+    const { sholat } = req.body;
+    const imageFile = req.file;
+
+    if (!imageFile) {
+      return res.status(400).json({ error: 'File gambar wajah harus dikirim' });
+    }
+
+    if (!sholat) {
+      return res.status(400).json({ error: 'Jenis sholat harus diisi' });
+    }
+
+    const fs = require('fs');
+    const path = require('path');
+    try {
+      fs.writeFileSync(path.resolve(__dirname, '../../tmp_face_debug.jpg'), imageFile.buffer);
+    } catch (e) {
+      console.error("Failed to save debug face file:", e);
+    }
+
+    // 1. Extract descriptor using faceRecognitionService
+    const faceDescriptor = await faceRecognitionService.extractDescriptor(imageFile.buffer);
+
+    if (!faceDescriptor) {
+      return res.status(400).json({ success: false, message: 'Wajah tidak terdeteksi pada gambar' });
+    }
+
+    // 2. Identify santri from descriptor
+    const match = await absensiSholatService.identifySantri(faceDescriptor);
+
+    if (!match) {
+      return res.status(404).json({ success: false, message: 'Wajah tidak dikenali' });
+    }
+
+    // 3. Record attendance
+    const attendanceResult = await absensiSholatService.recordAttendance(match.id, sholat, 'Hadir');
+
+    res.json({
+      success: true,
+      match,
+      attendanceId: attendanceResult.id
+    });
+  }));
+
   /**
    * POST /api/absensi-sholat/manual
    * Body: { santriId, sholat, status, keterangan }
@@ -115,7 +165,7 @@ function registerAbsensiSholatRoutes(app) {
    * GET /api/absensi-sholat/today
    * Returns: Array of today's attendance
    */
-  app.get('/api/absensi-sholat/today', authenticateToken, asyncHandler(async (req, res) => {
+  app.get('/api/absensi-sholat/today', asyncHandler(async (req, res) => {
     const result = await absensiSholatService.getTodayAttendance();
     res.json(result);
   }));
