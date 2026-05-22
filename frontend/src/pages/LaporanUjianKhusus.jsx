@@ -82,12 +82,17 @@ export const LaporanUjianKhusus = () => {
         const kelasIdParam = params.get('kelas_id');
         const kategoriIdParam = params.get('kategori_id');
 
+        let initialKategoriId = null;
         if (Array.isArray(katData)) {
           if (kategoriIdParam) {
-            setSelectedKategori(Number(kategoriIdParam));
+            initialKategoriId = Number(kategoriIdParam);
+            setSelectedKategori(initialKategoriId);
           } else {
             const ganjil = katData.find(k => k.nama?.toLowerCase().includes('ganjil'));
-            if (ganjil) setSelectedKategori(ganjil.id);
+            if (ganjil) {
+              initialKategoriId = ganjil.id;
+              setSelectedKategori(initialKategoriId);
+            }
           }
         }
 
@@ -106,7 +111,7 @@ export const LaporanUjianKhusus = () => {
         }
 
         if (activeTA) {
-          const searchRes = await nilaiService.fetchSantriReport(activeTA.id);
+          const searchRes = await nilaiService.fetchSantriReport(activeTA.id, initialKategoriId);
           setSantriSearchList(Array.isArray(searchRes) ? searchRes : []);
         }
       } catch (err) {
@@ -173,13 +178,13 @@ export const LaporanUjianKhusus = () => {
     const refetchSearch = async () => {
       if (tahunAjaran) {
         try {
-          const searchRes = await nilaiService.fetchSantriReport(tahunAjaran.id);
+          const searchRes = await nilaiService.fetchSantriReport(tahunAjaran.id, selectedKategori);
           setSantriSearchList(searchRes || []);
         } catch (err) {}
       }
     };
     refetchSearch();
-  }, [tahunAjaran]);
+  }, [tahunAjaran, selectedKategori]);
 
   const filteredKelas = useMemo(() => {
     return kelas.filter(k => k.tingkat === selectedTingkat);
@@ -262,8 +267,12 @@ export const LaporanUjianKhusus = () => {
         ghoib: akumulasiData.reduce((acc, curr) => acc + Number(curr.ghoib), 0),
       };
     } else {
+      const ratedSiswaTotal = akumulasiData.reduce((acc, curr) => acc + (Number(curr.jumlah_siswa || 0) - Number(curr.ghoib || 0)), 0);
+      const totalWeight = akumulasiData.reduce((acc, curr) => acc + (Number(curr.rata_rata || 0) * (Number(curr.jumlah_siswa || 0) - Number(curr.ghoib || 0))), 0);
+      const weightedAverage = ratedSiswaTotal > 0 ? (totalWeight / ratedSiswaTotal).toFixed(2) : 0;
+
       counts = {
-        rata_rata: akumulasiData.length > 0 ? (akumulasiData.reduce((acc, curr) => acc + Number(curr.rata_rata || 0), 0) / akumulasiData.length).toFixed(2) : 0,
+        rata_rata: weightedAverage,
         ghoib: akumulasiData.reduce((acc, curr) => acc + Number(curr.ghoib), 0),
       };
     }
@@ -271,7 +280,9 @@ export const LaporanUjianKhusus = () => {
       totalSiswa,
       counts,
       percents: Object.fromEntries(
-        Object.entries(counts).map(([k, v]) => [k, totalSiswa > 0 ? `${Math.round((v / totalSiswa) * 100)}%` : '0%'])
+        Object.entries(counts)
+          .filter(([k]) => k !== 'rata_rata')
+          .map(([k, v]) => [k, totalSiswa > 0 ? `${Math.round((v / totalSiswa) * 100)}%` : '0%'])
       )
     };
   }, [akumulasiData, activeTab]);

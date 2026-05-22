@@ -20,3 +20,10 @@ tmp/
 Thumbs.db
 # Uploads
 public/uploads/
+
+# Build and Release
+release/
+
+# Temporary and Scratch Files
+scratch/
+scratch_check_db.js

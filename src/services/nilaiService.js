@@ -180,9 +180,9 @@ class NilaiService {
       query += ` WHERE sta.tahun_ajaran_id = $1 AND sta.kelas_diniyah_id = $2 AND sta.status = 'aktif'`;
       
       if (isGanjil) {
-        query += ` AND (sta.aktif_ganjil = true OR n.id IS NOT NULL)`;
+        query += ` AND sta.aktif_ganjil = true`;
       } else if (isGenap) {
-        query += ` AND (sta.aktif_genap = true OR n.id IS NOT NULL)`;
+        query += ` AND sta.aktif_genap = true`;
       }
 
       query += ` ORDER BY s.nama ASC`;
@@ -195,17 +195,36 @@ class NilaiService {
   }
 
   // Get all santri with their class for report search
-  async getSantriForReport(tahunAjaranId) {
+  async getSantriForReport(tahunAjaranId, kategoriId = null) {
     try {
-      const query = `
+      let query = `
         SELECT s.id as santri_id, s.nama, k.id as kelas_id, k.nama as nama_kelas, k.tingkat
         FROM santri_tahun_ajaran sta
         JOIN santri s ON sta.santri_id = s.id
         JOIN kelas k ON sta.kelas_diniyah_id = k.id
         WHERE sta.tahun_ajaran_id = $1 AND sta.status = 'aktif'
-        ORDER BY s.nama ASC
       `;
-      const result = await db.query(query, [tahunAjaranId]);
+      
+      const params = [tahunAjaranId];
+      
+      let isGanjil = false;
+      let isGenap = false;
+      if (kategoriId && kategoriId !== 'null' && kategoriId !== '') {
+        const katResult = await db.query('SELECT nama FROM kategori_evaluasi WHERE id = $1', [kategoriId]);
+        const katNama = katResult.rows[0]?.nama || '';
+        isGanjil = katNama.toLowerCase().includes('ganjil');
+        isGenap = katNama.toLowerCase().includes('genap');
+      }
+
+      if (isGanjil) {
+        query += ` AND sta.aktif_ganjil = true`;
+      } else if (isGenap) {
+        query += ` AND sta.aktif_genap = true`;
+      }
+
+      query += ` ORDER BY s.nama ASC`;
+      
+      const result = await db.query(query, params);
       return result.rows;
     } catch (error) {
       handleDatabaseError(error);
@@ -237,7 +256,7 @@ class NilaiService {
           COUNT(CASE WHEN n.predikat = 'Naqish' THEN 1 END) as naqish,
           COUNT(CASE WHEN n.predikat IN ('Mumtaz', 'Jayyid', 'Mutawassith', 'Tam') THEN 1 END) as lulus,
           COUNT(CASE WHEN n.predikat IN ('Rodi''', 'Naqish') THEN 1 END) as tidak,
-          COUNT(CASE WHEN n.id IS NULL THEN 1 END) as ghoib,
+          COUNT(CASE WHEN n.id IS NULL OR (n.nilai_angka IS NULL AND n.capaian IS NULL) THEN 1 END) as ghoib,
           ROUND(AVG(n.nilai_angka), 2) as rata_rata
         FROM santri_tahun_ajaran sta
         JOIN santri s ON sta.santri_id = s.id
@@ -250,9 +269,9 @@ class NilaiService {
       `;
 
       if (isGanjil) {
-        query += ` AND (sta.aktif_ganjil = true OR n.id IS NOT NULL)`;
+        query += ` AND sta.aktif_ganjil = true`;
       } else if (isGenap) {
-        query += ` AND (sta.aktif_genap = true OR n.id IS NOT NULL)`;
+        query += ` AND sta.aktif_genap = true`;
       }
 
       query += `
@@ -293,9 +312,9 @@ class NilaiService {
       `;
 
       if (isGanjil) {
-        query += ` AND (sta.aktif_ganjil = true OR n.id IS NOT NULL)`;
+        query += ` AND sta.aktif_ganjil = true`;
       } else if (isGenap) {
-        query += ` AND (sta.aktif_genap = true OR n.id IS NOT NULL)`;
+        query += ` AND sta.aktif_genap = true`;
       }
 
       query += ` ORDER BY s.nama ASC, m.nama ASC`;
@@ -380,9 +399,9 @@ class NilaiService {
       `;
 
       if (isGanjil) {
-        query += ` AND (sta.aktif_ganjil = true OR r.santri_id IS NOT NULL)`;
+        query += ` AND sta.aktif_ganjil = true`;
       } else if (isGenap) {
-        query += ` AND (sta.aktif_genap = true OR r.santri_id IS NOT NULL)`;
+        query += ` AND sta.aktif_genap = true`;
       }
 
       query += ` ORDER BY s.nama ASC`;

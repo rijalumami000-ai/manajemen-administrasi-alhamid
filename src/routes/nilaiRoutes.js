@@ -67,8 +67,8 @@ function registerNilaiRoutes(app) {
   // Get all santri with class for search
   router.get('/santri-report', async (req, res, next) => {
     try {
-      const { tahun_ajaran_id } = req.query;
-      const data = await NilaiService.getSantriForReport(tahun_ajaran_id);
+      const { tahun_ajaran_id, kategori_id } = req.query;
+      const data = await NilaiService.getSantriForReport(tahun_ajaran_id, kategori_id);
       res.json(data);
     } catch (error) {
       next(error);

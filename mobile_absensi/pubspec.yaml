@@ -1,0 +1,50 @@
+name: mobile_absensi
+description: Aplikasi Absensi Wajah Santri Ponpes Al-Hamid.
+version: 1.0.0+1
+
+environment:
+  sdk: '>=3.0.0 <4.0.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+  
+  # UI & Icons
+  cupertino_icons: ^1.0.5
+  google_fonts: ^6.2.1
+  intl: ^0.18.1
+  
+  # Kamera & ML
+  camera: ^0.10.5+5
+  google_mlkit_face_detection: ^0.9.0
+  tflite_flutter: ^0.10.0
+  image: ^4.0.17
+  
+  # API & Storage
+  dio: ^5.3.3
+  flutter_secure_storage: ^9.0.0
+  provider: ^6.1.1
+  
+  # Multimedia
+  flutter_tts: ^3.8.3
+  audioplayers: ^5.2.1
+  lottie: ^3.3.3
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^2.0.0
+  flutter_launcher_icons: ^0.13.1
+
+flutter_launcher_icons:
+  android: "ic_launcher"
+  ios: true
+  image_path: "assets/images/logo.png"
+  adaptive_icon_background: "#0B0F19"
+  adaptive_icon_foreground: "assets/images/logo.png"
+
+flutter:
+  uses-material-design: true
+  assets:
+    - assets/models/
+    - assets/images/

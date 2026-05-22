@@ -18,6 +18,9 @@ function registerPesertaUjianRoutes(app) {
         where += ` AND pu.kelas_diniyah_id = $${params.length}`;
       }
 
+      // Filter strictly by active semester status
+      where += ` AND (($2 = 'Ganjil' AND COALESCE(sta.aktif_ganjil, TRUE) = TRUE) OR ($2 = 'Genap' AND COALESCE(sta.aktif_genap, TRUE) = TRUE))`;
+
       const result = await db.query(`
         SELECT
           pu.id, pu.no_peserta, pu.urutan_kelas, pu.urutan_di_kelas, pu.urutan_global,
@@ -31,6 +34,7 @@ function registerPesertaUjianRoutes(app) {
         FROM peserta_ujian pu
         JOIN santri s ON pu.santri_id = s.id
         JOIN tahun_ajaran ta ON pu.tahun_ajaran_id = ta.id
+        JOIN santri_tahun_ajaran sta ON sta.santri_id = s.id AND sta.tahun_ajaran_id = pu.tahun_ajaran_id
         LEFT JOIN kelas kd ON pu.kelas_diniyah_id = kd.id
         LEFT JOIN orangtua o ON s.orangtua_id = o.id
         WHERE ${where}
@@ -74,8 +78,8 @@ function registerPesertaUjianRoutes(app) {
         JOIN santri_tahun_ajaran sta ON sta.santri_id = s.id AND sta.tahun_ajaran_id = $1
         LEFT JOIN kelas kd ON COALESCE(sta.kelas_diniyah_id, s.kelas_diniyah_id) = kd.id
         WHERE sta.status IN ('aktif', 'tidak_naik')
-          AND ($2 = 'Ganjil' AND COALESCE(sta.aktif_ganjil, TRUE) = TRUE
-            OR $2 = 'Genap' AND COALESCE(sta.aktif_genap, TRUE) = TRUE)
+          AND (($2 = 'Ganjil' AND COALESCE(sta.aktif_ganjil, TRUE) = TRUE)
+            OR ($2 = 'Genap' AND COALESCE(sta.aktif_genap, TRUE) = TRUE))
         ORDER BY COALESCE(kd.tingkat, 999) ASC, kd.nama ASC NULLS LAST, s.nama ASC
       `, [tahun_ajaran_id, semester]);
 

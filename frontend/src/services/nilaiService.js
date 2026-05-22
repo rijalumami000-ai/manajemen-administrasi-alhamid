@@ -75,8 +75,12 @@ export const nilaiService = {
     return apiGet('/tahun-ajaran');
   },
 
-  fetchSantriReport: async (tahunAjaranId) => {
-    return apiGet(`/nilai/santri-report?tahun_ajaran_id=${tahunAjaranId}`);
+  fetchSantriReport: async (tahunAjaranId, kategoriId = null) => {
+    let url = `/nilai/santri-report?tahun_ajaran_id=${tahunAjaranId}`;
+    if (kategoriId) {
+      url += `&kategori_id=${kategoriId}`;
+    }
+    return apiGet(url);
   },
 
   fetchAkumulasiKelas: async (filters) => {
