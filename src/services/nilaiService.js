@@ -256,7 +256,7 @@ class NilaiService {
           COUNT(CASE WHEN n.predikat = 'Naqish' THEN 1 END) as naqish,
           COUNT(CASE WHEN n.predikat IN ('Mumtaz', 'Jayyid', 'Mutawassith', 'Tam') THEN 1 END) as lulus,
           COUNT(CASE WHEN n.predikat IN ('Rodi''', 'Naqish') THEN 1 END) as tidak,
-          COUNT(CASE WHEN n.id IS NULL OR (n.nilai_angka IS NULL AND n.capaian IS NULL) THEN 1 END) as ghoib,
+          COUNT(CASE WHEN n.id IS NULL OR (n.nilai_angka IS NULL AND (n.capaian IS NULL OR TRIM(n.capaian) = '') AND (n.predikat IS NULL OR TRIM(n.predikat) = '')) THEN 1 END) as ghoib,
           ROUND(AVG(n.nilai_angka), 2) as rata_rata
         FROM santri_tahun_ajaran sta
         JOIN santri s ON sta.santri_id = s.id

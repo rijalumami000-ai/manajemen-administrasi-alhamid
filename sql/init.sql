@@ -284,7 +284,7 @@ CREATE TABLE IF NOT EXISTS nilai_santri (
   mata_pelajaran_id INTEGER NOT NULL REFERENCES mata_pelajaran(id) ON DELETE CASCADE,
   tahun_ajaran_id INTEGER NOT NULL REFERENCES tahun_ajaran(id) ON DELETE CASCADE,
   kategori_evaluasi_id INTEGER REFERENCES kategori_evaluasi(id) ON DELETE SET NULL,
-  nilai_angka NUMERIC(5,2),
+  nilai_angka NUMERIC(6,2),
   predikat VARCHAR(50),
   capaian VARCHAR(255),
   created_at TIMESTAMPTZ DEFAULT NOW(),
