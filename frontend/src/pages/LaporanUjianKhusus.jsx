@@ -219,10 +219,10 @@ export const LaporanUjianKhusus = () => {
       };
     } else if (activeTab === 'taftisyul_kutub') {
       counts = {
-        Tam: data.filter(r => r.predikat === "Tam").length,
-        Naqish: data.filter(r => r.predikat === "Naqish").length,
-        Lulus: data.filter(r => r.predikat === "Tam").length,
-        Tidak: data.filter(r => r.predikat === "Naqish").length,
+        Tam: data.filter(r => r.predikat === "Tam" || r.capaian === "Tam").length,
+        Naqish: data.filter(r => r.predikat === "Naqish" || r.capaian === "Naqish").length,
+        Lulus: data.filter(r => r.predikat === "Tam" || r.capaian === "Tam").length,
+        Tidak: data.filter(r => r.predikat === "Naqish" || r.capaian === "Naqish").length,
         Ghoib: data.filter(r => r.nilai_angka === null && !r.capaian).length,
       };
     } else {
@@ -383,15 +383,15 @@ export const LaporanUjianKhusus = () => {
         {
           title: 'Hasil',
           children: [
-            { title: 'Naqish', width: 100, align: 'center', render: (_, r) => r.predikat === "Naqish" ? <Text type="danger">✓</Text> : '' },
-            { title: 'Tam', width: 100, align: 'center', render: (_, r) => r.predikat === "Tam" ? <Text style={{ color: '#52c41a' }}>✓</Text> : '' },
+            { title: 'Naqish', width: 100, align: 'center', render: (_, r) => (r.predikat === "Naqish" || r.capaian === "Naqish") ? <Text type="danger">✓</Text> : '' },
+            { title: 'Tam', width: 100, align: 'center', render: (_, r) => (r.predikat === "Tam" || r.capaian === "Tam") ? <Text style={{ color: '#52c41a' }}>✓</Text> : '' },
           ]
         },
         {
           title: 'Kelulusan',
           children: [
-            { title: 'Lulus', width: 80, align: 'center', render: (_, r) => r.predikat === "Tam" ? <CheckCircleOutlined style={{ color: '#52c41a' }} /> : '' },
-            { title: 'Tidak', width: 80, align: 'center', render: (_, r) => r.predikat === "Naqish" ? <CloseCircleOutlined style={{ color: '#ff4d4f' }} /> : '' },
+            { title: 'Lulus', width: 80, align: 'center', render: (_, r) => (r.predikat === "Tam" || r.capaian === "Tam") ? <CheckCircleOutlined style={{ color: '#52c41a' }} /> : '' },
+            { title: 'Tidak', width: 80, align: 'center', render: (_, r) => (r.predikat === "Naqish" || r.capaian === "Naqish") ? <CloseCircleOutlined style={{ color: '#ff4d4f' }} /> : '' },
           ]
         },
         { title: 'Ghoib', width: 80, align: 'center', render: (_, r) => (r.nilai_angka === null && !r.capaian) ? <CloseCircleOutlined style={{ color: '#ff4d4f' }} /> : '' }
@@ -553,10 +553,10 @@ export const LaporanUjianKhusus = () => {
       };
     } else if (activeTab === 'taftisyul_kutub') {
       localCounts = {
-        Tam: classData.filter(r => r.predikat === "Tam").length,
-        Naqish: classData.filter(r => r.predikat === "Naqish").length,
-        Lulus: classData.filter(r => r.predikat === "Tam").length,
-        Tidak: classData.filter(r => r.predikat === "Naqish").length,
+        Tam: classData.filter(r => r.predikat === "Tam" || r.capaian === "Tam").length,
+        Naqish: classData.filter(r => r.predikat === "Naqish" || r.capaian === "Naqish").length,
+        Lulus: classData.filter(r => r.predikat === "Tam" || r.capaian === "Tam").length,
+        Tidak: classData.filter(r => r.predikat === "Naqish" || r.capaian === "Naqish").length,
         Ghoib: classData.filter(r => r.nilai_angka === null && !r.capaian).length,
       };
     } else {
@@ -668,7 +668,7 @@ export const LaporanUjianKhusus = () => {
           let shouldDrawCheck = false;
           let isRed = false;
           const isLulusMuhafadzoh = ["Mutawassith", "Jayyid", "Mumtaz"].includes(r.predikat);
-          const isLulusTaftisy = r.predikat === "Tam";
+          const isLulusTaftisy = r.predikat === "Tam" || r.capaian === "Tam";
           const isGhoib = r.nilai_angka === null && !r.capaian;
 
           if (activeTab === 'muhafadzoh' && colIndex >= 3 && colIndex <= 9) {
@@ -680,10 +680,10 @@ export const LaporanUjianKhusus = () => {
             else if (colIndex === 8 && r.predikat === "Rodi'") { shouldDrawCheck = true; isRed = true; }
             else if (colIndex === 9 && isGhoib) { shouldDrawCheck = true; isRed = true; }
           } else if (activeTab === 'taftisyul_kutub' && colIndex >= 3 && colIndex <= 7) {
-            if (colIndex === 3 && r.predikat === "Naqish") { shouldDrawCheck = true; isRed = true; }
-            else if (colIndex === 4 && r.predikat === "Tam") { shouldDrawCheck = true; }
+            if (colIndex === 3 && (r.predikat === "Naqish" || r.capaian === "Naqish")) { shouldDrawCheck = true; isRed = true; }
+            else if (colIndex === 4 && (r.predikat === "Tam" || r.capaian === "Tam")) { shouldDrawCheck = true; }
             else if (colIndex === 5 && isLulusTaftisy) { shouldDrawCheck = true; }
-            else if (colIndex === 6 && r.predikat === "Naqish") { shouldDrawCheck = true; isRed = true; }
+            else if (colIndex === 6 && (r.predikat === "Naqish" || r.capaian === "Naqish")) { shouldDrawCheck = true; isRed = true; }
             else if (colIndex === 7 && isGhoib) { shouldDrawCheck = true; isRed = true; }
           } else if (activeTab === 'qiroatul_kitab' && colIndex === 3) {
             if (isGhoib) { shouldDrawCheck = true; isRed = true; }

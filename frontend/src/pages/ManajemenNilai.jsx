@@ -98,10 +98,14 @@ export const ManajemenNilai = ({ mode = 'input' }) => {
     if (kriteriaConfig && kriteriaConfig.tipe_input) {
       return kriteriaConfig.tipe_input;
     }
+    const mapel = mataPelajaran.find(m => m.id === selectedMapel);
+    if (mapel && mapel.jenis === 'Qiroah') return 'Angka';
+    if (mapel && mapel.jenis === 'Taftisy') return 'Teks';
+
     if (selectedTingkat === 2 || selectedTingkat === 99) return 'Teks';
     if (selectedTingkat !== 0) return 'Angka';
     return kriteriaType; // Fallback for Sifir
-  }, [kriteriaConfig, selectedTingkat, kriteriaType]);
+  }, [kriteriaConfig, selectedTingkat, kriteriaType, mataPelajaran, selectedMapel]);
 
   useEffect(() => {
     loadInitialData();
@@ -881,11 +885,11 @@ export const ManajemenNilai = ({ mode = 'input' }) => {
         );
       }
     },
-    { 
+    ...(isMobile ? [] : [{ 
       title: 'Predikat', 
       dataIndex: 'predikat', 
       key: 'predikat',
-      width: isMobile ? 120 : 150,
+      width: 150,
       render: (pred, record) => {
         const mapel = mataPelajaran.find(m => m.id === selectedMapel);
         const jenis = mapel?.jenis;
@@ -899,7 +903,7 @@ export const ManajemenNilai = ({ mode = 'input' }) => {
         }
         return <Tag color={pred === 'Mumtaz' ? 'gold' : pred === 'Jayyid' ? 'green' : pred === 'Mutawassith' ? 'blue' : 'default'}>{pred || '-'}</Tag>
       }
-    }
+    }])
   ];
 
   const renderTingkatSelection = (isSettings = false) => {
@@ -1078,14 +1082,27 @@ export const ManajemenNilai = ({ mode = 'input' }) => {
       label: <span><EditOutlined /> Input Nilai</span>,
       children: (
         <Row gutter={[16, 16]}>
+          {isMobile && (
+            <Col span={24}>
+              <Button 
+                type="link" 
+                icon={<ArrowLeftOutlined />} 
+                onClick={() => setMobileViewMode('dashboard')}
+                style={{ paddingLeft: 0, fontSize: '15px', color: '#1890ff', fontWeight: 600, marginBottom: '-8px' }}
+              >
+                Kembali ke Menu Utama
+              </Button>
+            </Col>
+          )}
           <Col span={24}>
             <Card className="filter-card">
               <Row gutter={[24, 24]}>
-                <Col xs={24} lg={12}>
+                <Col xs={24} lg={isMobile ? 24 : 12}>
                   {renderTingkatSelection()}
                 </Col>
-                <Col xs={24} lg={12}>
-                    <Title level={5}>
+                {!isMobile && (
+                  <Col xs={24} lg={12}>
+                      <Title level={5}>
                       <BookOutlined /> Pilih Mata Pelajaran
                       {isMobile && (
                         <div style={{ float: 'right' }}>
@@ -1225,7 +1242,8 @@ export const ManajemenNilai = ({ mode = 'input' }) => {
                     ) : (
                       <Empty description="Silakan pilih Tingkatan dan Rincian Kelas terlebih dahulu" />
                     )}
-                </Col>
+                  </Col>
+                )}
               </Row>
             </Card>
           </Col>
@@ -1474,6 +1492,14 @@ export const ManajemenNilai = ({ mode = 'input' }) => {
   if (error) return <ErrorState message={error} onRetry={loadInitialData} />;
 
   const getHeaderInfo = () => {
+    if (isMobile && mobileViewMode === 'input' && selectedMapel) {
+      const mapelName = mataPelajaran.find(m => m.id === selectedMapel)?.nama || '';
+      return {
+        title: `Input ${mapelName}`,
+        subtitle: "Manajemen penilaian santri"
+      };
+    }
+
     switch(mode) {
       case 'config':
         return {
@@ -1563,7 +1589,13 @@ export const ManajemenNilai = ({ mode = 'input' }) => {
           </div>
         </div>
       ) : (
-        <div className="page-content"><Tabs activeKey={activeTab} onChange={setActiveTab} type="line" items={mainTabs} /></div>
+        <div className="page-content">
+          {isMobile ? (
+            allTabs.find(tab => tab.key === 'input')?.children
+          ) : (
+            <Tabs activeKey={activeTab} onChange={setActiveTab} type="line" items={mainTabs} />
+          )}
+        </div>
       )}
       {/* Mobile Input Console (Virtual Keypad Expanded) */}
       {isMobile && showKeypad && (
