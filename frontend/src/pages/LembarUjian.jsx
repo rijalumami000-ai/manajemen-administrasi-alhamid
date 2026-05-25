@@ -59,7 +59,7 @@ export function LembarUjian() {
       subJudul: 'MADRASAH DINIYYAH AL-HAMID',
       alamat: 'Cintamulya Candipuro Lampung Selatan',
       tahunAjaran: 'Tahun Ajaran 2025/2026 M',
-      pelajaran: 'MABADI FIQH (UZ 1)',
+      pelajaran: '...................................',
       kelas: 'Sifir',
       hariTanggal: 'Senin, 12 Desember 2026',
       instruksi: 'KERJAKAN URAIAN SOAL-SOAL DI BAWAH INI !',
@@ -319,9 +319,9 @@ export function LembarUjian() {
     // Jika tidak ada allValues (dipanggil tanpa parameter), ambil dari form
     const values = allValues || formSoal.getFieldsValue();
     
-    let namaMapel = previewData.pelajaran;
+    let namaMapel = '...................................';
     if (values.mapelId) {
-      const m = mapelList.find(item => item.id === values.mapelId);
+      const m = mapelList.find(item => String(item.id) === String(values.mapelId));
       if (m) {
         namaMapel = m.nama;
         setSelectedMapelId(values.mapelId);
@@ -666,7 +666,7 @@ export function LembarUjian() {
           <Row gutter={12}>
             <Col span={24}>
               <Form.Item label="Pilih Pelajaran" name="mapelId" rules={[{ required: true }]}>
-                <Select placeholder="Pilih Pelajaran" onChange={handleSoalChange}>
+                <Select placeholder="Pilih Pelajaran">
                   {filteredMapel.map(m => (
                     <Option key={m.id} value={m.id}>{m.nama} {m.nama_arab && <span style={{ direction: 'rtl', float: 'right', color: '#aaa' }}>{m.nama_arab}</span>}</Option>
                   ))}
