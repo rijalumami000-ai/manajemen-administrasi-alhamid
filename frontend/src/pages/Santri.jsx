@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
-import { Button, Space, Alert, message as antMessage, Modal, Form, Select, Input } from 'antd';
-import { SwapOutlined, RollbackOutlined, FileExcelOutlined, FilePdfOutlined } from '@ant-design/icons';
+import { Button, Space, Alert, message as antMessage, Modal, Form, Select, Input, Dropdown } from 'antd';
+import { SwapOutlined, RollbackOutlined, FileExcelOutlined, FilePdfOutlined, DownOutlined } from '@ant-design/icons';
 import { santriService } from '../services/santriService';
 import { SantriTable } from '../components/features/SantriTable';
 import { SantriFilters } from '../components/features/SantriFilters';
@@ -392,8 +392,27 @@ export function Santri() {
     return `Data Santri Tahun Ajaran ${selectedYear.kode}${statusLabel}`;
   };
 
-  const handleExportExcel = () => {
-    const dataToExport = filteredSantri.map(s => ({
+  const handleExportExcel = (type) => {
+    let sourceData = filteredSantri;
+    
+    if (type === 'ganjil') {
+      sourceData = filteredSantri.filter(s => s.aktif_ganjil);
+    } else if (type === 'genap') {
+      sourceData = filteredSantri.filter(s => s.aktif_genap);
+    }
+
+    const formatDate = (dateString) => {
+      if (!dateString) return '-';
+      try {
+        const date = new Date(dateString);
+        if (isNaN(date.getTime())) return dateString;
+        return `${String(date.getDate()).padStart(2, '0')}-${String(date.getMonth() + 1).padStart(2, '0')}-${date.getFullYear()}`;
+      } catch (e) {
+        return dateString;
+      }
+    };
+
+    const dataToExport = sourceData.map(s => ({
       'NIS': s.nis,
       'NIK': s.nik,
       'Nama': s.nama,
@@ -403,13 +422,33 @@ export function Santri() {
       'Kamar': s.nama_kamar,
       'Status': s.status_tahun_ajaran,
       'Tempat Lahir': s.tempat_lahir,
-      'Tanggal Lahir': s.tanggal_lahir,
+      'Tanggal Lahir': formatDate(s.tanggal_lahir),
       'Nama Ayah': s.nama_ayah,
       'Nama Ibu': s.nama_ibu,
       'Alamat': s.alamat
     }));
-    exportToExcel(dataToExport, `Data_Santri_${selectedYear?.kode || 'Export'}.xlsx`);
+    
+    const typeLabel = type === 'ganjil' ? 'Ganjil_' : type === 'genap' ? 'Genap_' : '';
+    exportToExcel(dataToExport, `Data_Santri_${typeLabel}${selectedYear?.kode || 'Export'}.xlsx`);
   };
+
+  const exportExcelItems = [
+    {
+      key: 'ganjil',
+      label: 'Ekspor Ganjil',
+      onClick: () => handleExportExcel('ganjil')
+    },
+    {
+      key: 'genap',
+      label: 'Ekspor Genap',
+      onClick: () => handleExportExcel('genap')
+    },
+    {
+      key: 'global',
+      label: 'Ekspor Global',
+      onClick: () => handleExportExcel('global')
+    }
+  ];
 
   const handleExportPDF = () => {
     const columns = [
@@ -450,13 +489,11 @@ export function Santri() {
         subtitle={yearLabel}
         extra={
           <Space>
-            <Button
-              icon={<FileExcelOutlined />}
-              onClick={handleExportExcel}
-              disabled={filteredSantri.length === 0}
-            >
-              Ekspor Excel
-            </Button>
+            <Dropdown menu={{ items: exportExcelItems }} disabled={filteredSantri.length === 0} trigger={['click']}>
+              <Button icon={<FileExcelOutlined />}>
+                Ekspor Excel <DownOutlined />
+              </Button>
+            </Dropdown>
             <Button
               icon={<FilePdfOutlined />}
               onClick={handleExportPDF}
