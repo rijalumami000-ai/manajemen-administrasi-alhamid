@@ -940,7 +940,65 @@ export const LaporanUjianKhusus = () => {
     });
   };
 
+  const exportRingkasanToPDF = async () => {
+    setLoading(true);
+    try {
+      const doc = jsPDF({ orientation: 'portrait', unit: 'mm', format: [215.9, 330.2] });
+      
+      doc.setFontSize(14);
+      doc.setFont('helvetica', 'bold');
+      doc.text('RINGKASAN HASIL UJIAN KHUSUS', 107.9, 15, { align: 'center' });
+      doc.setFontSize(12);
+      doc.text(`KELAS: ${currentKelasObj?.nama || '-'}`, 107.9, 22, { align: 'center' });
+      doc.setFontSize(10);
+      doc.setFont('helvetica', 'normal');
+      doc.text(`${tahunAjaran?.kode || '-'} | ${currentKategoriObj?.nama || '-'}`, 107.9, 28, { align: 'center' });
+
+      const headers = ['No', 'Nama Santri', 'Hasil Muhafazdoh', 'Hasil Qiroatul Kitab', 'Hasil Taftisyul Kutub'];
+      
+      const body = data.map((r, idx) => [
+        idx + 1,
+        r.nama,
+        r.akbar?.predikat || '-',
+        r.qiroah?.nilai_angka !== null && r.qiroah?.nilai_angka !== undefined ? Number(r.qiroah.nilai_angka).toString() : (r.qiroah?.capaian || '-'),
+        r.taftisy?.predikat || r.taftisy?.capaian || '-'
+      ]);
+
+      autoTable(doc, {
+        head: [headers],
+        body: body,
+        startY: 35,
+        theme: 'grid',
+        styles: { fontSize: 9, cellPadding: 2, halign: 'center', valign: 'middle' },
+        headStyles: { fillColor: [26, 54, 93], textColor: 255, fontStyle: 'bold', lineWidth: 0.2, lineColor: [255, 255, 255] },
+        columnStyles: {
+          0: { width: 12 },
+          1: { width: 65, halign: 'left' },
+          2: { width: 40 },
+          3: { width: 40 },
+          4: { width: 40 }
+        },
+        margin: { left: 15, right: 15 },
+        didDrawPage: (d) => {
+          doc.setFontSize(8);
+          doc.text(`Halaman ${d.pageNumber}`, 107.9, 320, { align: 'center' });
+        }
+      });
+
+      doc.save(`Ringkasan_Hasil_Ujian_Khusus_${currentKelasObj?.nama || 'Kelas'}_${tahunAjaran?.kode || 'TA'}.pdf`);
+    } catch (error) {
+      console.error('Error saat ekspor PDF Ringkasan:', error);
+      alert('Terjadi kesalahan saat membuat PDF: ' + error.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const exportLaporanToPDF = async () => {
+    if (activeTab === 'ringkasan') {
+      await exportRingkasanToPDF();
+      return;
+    }
     const currentMapel = getCurrentMapel();
     if (!currentMapel) return;
     setLoading(true);
@@ -1305,7 +1363,10 @@ export const LaporanUjianKhusus = () => {
                   <Button size="small" type="primary" icon={<ExportOutlined />} onClick={exportAllToPDF} loading={loading}>Ekspor Semua Kelas (PDF)</Button>
                 )}
                 {activeTab === 'ringkasan' && (
-                  <Button size="small" type="primary" icon={<FileExcelOutlined />} onClick={exportToExcel} loading={loading} style={{ background: '#52c41a', borderColor: '#52c41a' }}>Ekspor Excel</Button>
+                  <>
+                    <Button size="small" type="primary" icon={<FilePdfOutlined />} onClick={exportLaporanToPDF} loading={loading}>Ekspor PDF</Button>
+                    <Button size="small" type="primary" icon={<FileExcelOutlined />} onClick={exportToExcel} loading={loading} style={{ background: '#52c41a', borderColor: '#52c41a' }}>Ekspor Excel</Button>
+                  </>
                 )}
               </Space>
             )}
@@ -1422,6 +1483,7 @@ export const LaporanUjianKhusus = () => {
             <>
               {activeTab !== 'ringkasan' && <Button type="primary" shape="circle" icon={<ShareAltOutlined />} size="large" onClick={handleShare} style={{ boxShadow: '0 4px 12px rgba(24,144,255,0.5)', background: '#52c41a', borderColor: '#52c41a' }} />}
               {activeTab !== 'ringkasan' && <Button type="primary" shape="circle" icon={<FilePdfOutlined />} size="large" onClick={exportLaporanToPDF} loading={loading} style={{ boxShadow: '0 4px 12px rgba(24,144,255,0.5)' }} />}
+              {activeTab === 'ringkasan' && <Button type="primary" shape="circle" icon={<FilePdfOutlined />} size="large" onClick={exportLaporanToPDF} loading={loading} style={{ boxShadow: '0 4px 12px rgba(24,144,255,0.5)' }} />}
               {activeTab === 'ringkasan' && <Button type="primary" shape="circle" icon={<FileExcelOutlined />} size="large" onClick={exportToExcel} loading={loading} style={{ boxShadow: '0 4px 12px rgba(82,196,26,0.5)', background: '#52c41a', borderColor: '#52c41a' }} />}
             </>
           ) : (

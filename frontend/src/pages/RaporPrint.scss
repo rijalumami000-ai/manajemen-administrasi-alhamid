@@ -5,8 +5,22 @@
   font-family: "Times New Roman", Times, serif;
 
   .print-controls {
-    text-align: center;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 16px;
     margin-bottom: 20px;
+
+    .slider-nav {
+      display: flex;
+      gap: 12px;
+      align-items: center;
+      background: #fff;
+      padding: 6px 16px;
+      border-radius: 6px;
+      border: 1px solid #d9d9d9;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+    }
   }
 
   // F4 paper: 215.9mm x 330.2mm (Legal / Folio)
@@ -112,6 +126,10 @@
     .header-subheader th {
       background-color: #eaeaea;
       font-size: 13px;
+
+      &.side-arab {
+        font-size: 20px;
+      }
     }
 
     .text-center { text-align: center; }

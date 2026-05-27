@@ -387,7 +387,7 @@ class NilaiService {
         SELECT 
           s.id as santri_id, s.nama, s.nis,
           r.sakit, r.izin, r.alpa,
-          r.keaktifan, r.akhlaq, r.kerapihan, r.catatan
+          r.keaktifan, r.akhlaq, r.kerapihan, r.catatan, r.keputusan_kenaikan
         FROM santri_tahun_ajaran sta
         JOIN santri s ON sta.santri_id = s.id
         LEFT JOIN rapor_santri r ON s.id = r.santri_id 
@@ -423,8 +423,8 @@ class NilaiService {
         
         await client.query(
           `INSERT INTO rapor_santri 
-            (santri_id, tahun_ajaran_id, kategori_evaluasi_id, sakit, izin, alpa, keaktifan, akhlaq, kerapihan, catatan)
-           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+            (santri_id, tahun_ajaran_id, kategori_evaluasi_id, sakit, izin, alpa, keaktifan, akhlaq, kerapihan, catatan, keputusan_kenaikan)
+           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
            ON CONFLICT (santri_id, tahun_ajaran_id, kategori_evaluasi_id)
            DO UPDATE SET 
             sakit = EXCLUDED.sakit,
@@ -433,7 +433,8 @@ class NilaiService {
             keaktifan = EXCLUDED.keaktifan,
             akhlaq = EXCLUDED.akhlaq,
             kerapihan = EXCLUDED.kerapihan,
-            catatan = EXCLUDED.catatan`,
+            catatan = EXCLUDED.catatan,
+            keputusan_kenaikan = EXCLUDED.keputusan_kenaikan`,
           [
             item.santri_id, 
             tahunAjaranId, 
@@ -444,7 +445,8 @@ class NilaiService {
             item.keaktifan || null, 
             item.akhlaq || null, 
             item.kerapihan || null, 
-            item.catatan || null
+            item.catatan || null,
+            item.keputusan_kenaikan || null
           ]
         );
       }
@@ -505,7 +507,21 @@ class NilaiService {
       // 7. Get Rekap Data to find Peringkat and Total (Call existing method)
       const rekapData = await this.getRekapNilai(tahunAjaranId, kelasId, kategoriId);
       
-      // Compute Peringkat logic
+      // Helper: convert predikat muhafadzoh to numeric score
+      const muhafadzohScore = (predikat) => {
+        if (predikat === 'Mumtaz') return 100;
+        if (predikat === 'Jayyid') return 80;
+        if (predikat === 'Mutawassith') return 60;
+        if (predikat === "Rodi'") return 40;
+        return 0;
+      };
+      // Helper: convert taftisy capaian to numeric score
+      const taftisyScore = (capaian) => {
+        if (capaian === 'Tam') return 100;
+        return 0; // Naqish or empty
+      };
+
+      // Compute Peringkat logic 
       const pivoted = {};
       rekapData.forEach(row => {
         if (!pivoted[row.santri_id]) {
@@ -520,12 +536,22 @@ class NilaiService {
             pivoted[row.santri_id].total_nilai += Number(row.nilai_angka);
             pivoted[row.santri_id].mapel_count++;
           }
+        } else if (row.jenis_mapel === 'Muhafadzoh') {
+          const score = muhafadzohScore(row.predikat);
+          pivoted[row.santri_id].total_nilai += score;
+          if (row.predikat && row.predikat !== '-') pivoted[row.santri_id].mapel_count++;
+        } else if (row.jenis_mapel === 'Taftisy') {
+          const score = taftisyScore(row.capaian);
+          pivoted[row.santri_id].total_nilai += score;
+          if (row.capaian) pivoted[row.santri_id].mapel_count++;
         }
       });
       const rekapArr = Object.values(pivoted);
+      // Sort by total_nilai 
       rekapArr.sort((a, b) => b.total_nilai - a.total_nilai);
       const rankIndex = rekapArr.findIndex(r => r.santri_id == santriId);
       const peringkat = rankIndex >= 0 ? rankIndex + 1 : '-';
+      // Total and rata-rata 
       const totalNilai = rankIndex >= 0 ? rekapArr[rankIndex].total_nilai : 0;
       const rataRata = rankIndex >= 0 && rekapArr[rankIndex].mapel_count > 0 
         ? (rekapArr[rankIndex].total_nilai / rekapArr[rankIndex].mapel_count).toFixed(2) 

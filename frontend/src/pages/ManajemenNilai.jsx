@@ -9,13 +9,15 @@ import {
   UserOutlined, BookOutlined, CheckCircleOutlined, InfoCircleOutlined,
   AppstoreOutlined, UnorderedListOutlined, GroupOutlined, CalendarOutlined, MessageOutlined,
   ThunderboltOutlined, StarOutlined, RocketOutlined, DeleteOutlined,
-  AuditOutlined, ReadOutlined, FileSearchOutlined, ArrowLeftOutlined, ArrowRightOutlined, TableOutlined
+  AuditOutlined, ReadOutlined, FileSearchOutlined, ArrowLeftOutlined, ArrowRightOutlined, TableOutlined, PrinterOutlined, FilePdfOutlined
 } from '@ant-design/icons';
 import { nilaiService } from '../services/nilaiService';
 import { PageHeader, LoadingState, ErrorState } from '../components/common';
 import { RaporSantriForms } from '../components/features/RaporSantriForms';
 import { RaporSettingsTab } from '../components/features/RaporSettingsTab';
 import { useResponsive } from '../hooks/useResponsive';
+import { jsPDF } from 'jspdf';
+import 'jspdf-autotable';
 import './ManajemenNilai.scss';
 
 const { Title, Text, Paragraph } = Typography;
@@ -301,6 +303,20 @@ export const ManajemenNilai = ({ mode = 'input' }) => {
 
       // Pivot data
       const pivoted = {};
+      // Helper: convert predikat muhafadzoh to numeric score
+      const muhafadzohScore = (predikat) => {
+        if (predikat === 'Mumtaz') return 100;
+        if (predikat === 'Jayyid') return 80;
+        if (predikat === 'Mutawassith') return 60;
+        if (predikat === "Rodi'") return 40;
+        return 0;
+      };
+      // Helper: convert taftisy capaian to numeric score
+      const taftisyScore = (capaian) => {
+        if (capaian === 'Tam') return 100;
+        return 0; // Naqish or empty
+      };
+
       rawData.forEach(row => {
         if (!pivoted[row.santri_id]) {
           pivoted[row.santri_id] = {
@@ -322,8 +338,15 @@ export const ManajemenNilai = ({ mode = 'input' }) => {
 
         if (isTaftisy) {
           displayValue = row.capaian || '-';
+          const score = taftisyScore(row.capaian);
+          pivoted[row.santri_id].total_nilai += score;
+          if(row.capaian) pivoted[row.santri_id].mapel_count++;
         } else if (isMuhafadzoh) {
           displayValue = row.predikat || (row.nilai_angka !== null ? Number(row.nilai_angka).toString() : '-');
+          const pred = row.predikat || displayValue;
+          const score = muhafadzohScore(pred);
+          pivoted[row.santri_id].total_nilai += score;
+          if(pred && pred !== '-') pivoted[row.santri_id].mapel_count++;
         } else if (row.jenis_mapel === 'Reguler' || isQiroat) {
           displayValue = row.nilai_angka !== null ? Number(row.nilai_angka).toString() : '-';
           if (row.nilai_angka !== null) {
@@ -338,11 +361,11 @@ export const ManajemenNilai = ({ mode = 'input' }) => {
       });
 
       const dataSource = Object.values(pivoted);
-      // Hitung Rata-rata
+      // Hitung Rata-rata 
       dataSource.forEach(item => {
         item.rata_rata = item.mapel_count > 0 ? (item.total_nilai / item.mapel_count).toFixed(2) : 0;
       });
-      // Sort by total_nilai descending
+      // Sort by total_nilai
       dataSource.sort((a, b) => b.total_nilai - a.total_nilai);
       // Assign Peringkat
       dataSource.forEach((item, idx) => {
@@ -373,10 +396,23 @@ export const ManajemenNilai = ({ mode = 'input' }) => {
           dataIndex: `mapel_${m.id}`,
           width: 120,
           align: 'center',
-          render: val => {
+          render: (val, record) => {
             if (!val || val === '-') return <Text type="secondary">-</Text>;
-            if (['Mumtaz', 'Jayyid', 'Mutawassith', 'Rodi\''].includes(val)) {
-              return <Tag color={val === 'Mumtaz' ? 'gold' : val === 'Jayyid' ? 'green' : val === 'Mutawassith' ? 'blue' : 'default'}>{val}</Tag>;
+            if (m.jenis === 'Muhafadzoh') {
+              const score = muhafadzohScore(val);
+              let color = val === 'Mumtaz' ? 'gold' : val === 'Jayyid' ? 'green' : val === 'Mutawassith' ? 'blue' : 'default';
+              return <Space direction="vertical" size={0}>
+                <Tag color={color}>{val}</Tag>
+                <Text type="secondary" style={{fontSize: '11px'}}>({score})</Text>
+              </Space>;
+            }
+            if (m.jenis === 'Taftisy') {
+              const score = taftisyScore(val);
+              let color = val === 'Tam' ? 'success' : 'error';
+              return <Space direction="vertical" size={0}>
+                <Tag color={color}>{val}</Tag>
+                <Text type="secondary" style={{fontSize: '11px'}}>({score})</Text>
+              </Space>;
             }
             return <Text strong>{val}</Text>;
           }
@@ -1370,6 +1406,35 @@ export const ManajemenNilai = ({ mode = 'input' }) => {
         </Row>
       )
     },
+    ...(kategori.find(k => k.id === selectedKategori)?.nama?.toLowerCase().includes('genap') ? [{
+      key: 'kenaikan_kelas',
+      label: <span><ArrowRightOutlined /> Kenaikan Kelas</span>,
+      children: (
+        <Row gutter={[16, 16]}>
+          <Col span={24}>
+            <Card className="filter-card">
+              <Row gutter={[24, 24]}>
+                <Col xs={24} lg={12}>{renderTingkatSelection()}</Col>
+                <Col xs={24} lg={12}>
+                  <Alert message="Pilih Tingkat dan Kelas untuk mengisi Keputusan Kenaikan Kelas." type="info" showIcon style={{ marginTop: 16 }} />
+                </Col>
+              </Row>
+            </Card>
+          </Col>
+          <Col span={24}>
+            {selectedKelasDetail && selectedKategori ? (
+              <RaporSantriForms 
+                type="kenaikan_kelas" 
+                tahunAjaran={tahunAjaran} 
+                selectedKelasDetail={selectedKelasDetail} 
+                selectedKategori={selectedKategori} 
+                kelasName={kelas.find(k => k.id === selectedKelasDetail)?.nama}
+              />
+            ) : <Empty description="Silakan pilih Tingkat dan Kelas terlebih dahulu" />}
+          </Col>
+        </Row>
+      )
+    }] : []),
     {
       key: 'setting',
       label: <span><SettingOutlined /> Pengaturan Kriteria</span>,
@@ -1463,6 +1528,102 @@ export const ManajemenNilai = ({ mode = 'input' }) => {
                     <span>Rekap Nilai - {kelas.find(k => k.id === selectedKelasDetail)?.nama}</span>
                   </Space>
                 }
+                extra={
+                  <Space>
+                    <Button 
+                      type="default" 
+                      icon={<FilePdfOutlined style={{ color: 'red' }} />}
+                      onClick={() => {
+                        try {
+                          const doc = new jsPDF({ orientation: 'landscape', format: 'a4' });
+                          const namaKelas = kelas.find(k => k.id === selectedKelasDetail)?.nama || 'Kelas';
+                          
+                          doc.setFontSize(14);
+                          doc.text(`Rekap Nilai - ${namaKelas}`, 14, 15);
+                          doc.setFontSize(10);
+                          doc.text(`Tahun Ajaran: ${tahunAjaran?.kode || ''} | Semester: ${kategori.find(k => k.id === selectedKategori)?.nama || ''}`, 14, 22);
+                  
+                          const allowedMapelIds = mapelTingkat.filter(mt => mt.tingkat === selectedTingkat).map(mt => mt.mata_pelajaran_id);
+                          const semesterMapels = mataPelajaran.filter(m => m.jenis === 'Reguler' && allowedMapelIds.includes(m.id));
+                          const akbarMapels = mataPelajaran.filter(m => m.jenis === 'Muhafadzoh' && m.nama?.toLowerCase().includes('akbar'));
+                          const qiroatulMapels = mataPelajaran.filter(m => m.jenis === 'Qiroah');
+                          const taftisyulMapels = mataPelajaran.filter(m => m.jenis === 'Taftisy');
+                          const allRekapMapels = [...semesterMapels, ...akbarMapels, ...qiroatulMapels, ...taftisyulMapels];
+
+                          const headers = ['No', 'NIS', 'Nama Santri'];
+                          allRekapMapels.forEach(m => headers.push(m.nama));
+                          headers.push('Total', 'Rata-rata', 'Peringkat');
+                  
+                          const muhafadzohScore = (predikat) => {
+                            if (predikat === 'Mumtaz') return 100;
+                            if (predikat === 'Jayyid') return 80;
+                            if (predikat === 'Mutawassith') return 60;
+                            if (predikat === "Rodi'") return 40;
+                            return 0;
+                          };
+                          const taftisyScore = (capaian) => {
+                            if (capaian === 'Tam') return 100;
+                            return 0;
+                          };
+                  
+                          const body = rekapData.map((row, idx) => {
+                            const rowData = [idx + 1, row.nis || '-', row.nama || '-'];
+                            
+                            allRekapMapels.forEach(m => {
+                              const val = row[`mapel_${m.id}`];
+                              if (!val || val === '-') {
+                                rowData.push('-');
+                              } else if (m.jenis === 'Muhafadzoh') {
+                                rowData.push(`${val} (${muhafadzohScore(val)})`);
+                              } else if (m.jenis === 'Taftisy') {
+                                rowData.push(`${val} (${taftisyScore(val)})`);
+                              } else {
+                                rowData.push(val);
+                              }
+                            });
+                            
+                            rowData.push(row.total_nilai, row.rata_rata, row.peringkat);
+                            return rowData;
+                          });
+                  
+                  
+                          import('jspdf-autotable').then(({ default: autoTable }) => {
+                            autoTable(doc, {
+                              head: [headers],
+                              body: body,
+                              startY: 28,
+                              theme: 'grid',
+                              styles: { fontSize: 8 },
+                              headStyles: { fillColor: [24, 144, 255], textColor: 255, halign: 'center' },
+                              columnStyles: {
+                                0: { halign: 'center' },
+                                1: { halign: 'center' }
+                              },
+                              bodyStyles: { valign: 'middle' }
+                            });
+                            doc.save(`Rekap_Nilai_${namaKelas}_${tahunAjaran?.kode}.pdf`);
+                          }).catch(err => {
+                            console.error('autotable error:', err);
+                            message.error(`Autotable Error: ${err.message}`);
+                          });
+                          
+                        } catch (err) {
+                          message.error(`Error: ${err.message || 'Gagal membuat file PDF'}`);
+                          console.error(err);
+                        }
+                      }}
+                    >
+                      Ekspor PDF
+                    </Button>
+                    <Button 
+                      type="primary" 
+                      icon={<PrinterOutlined />}
+                      onClick={() => window.open(`/rapor-print/${tahunAjaran.id}/${selectedKelasDetail}/${selectedKategori}/all`, '_blank')}
+                    >
+                      Buka Rapor Kelas (Slide)
+                    </Button>
+                  </Space>
+                }
               >
                 <Table 
                   dataSource={rekapData} 
@@ -1495,7 +1656,7 @@ export const ManajemenNilai = ({ mode = 'input' }) => {
     if (mode === 'config') return ['setting', 'jadwal'].includes(tab.key);
     if (mode === 'rekap') return ['rekap', 'pengaturan-rapor'].includes(tab.key);
     if (mode === 'input-ujian') return ['input'];
-    return ['input', 'absensi', 'kepribadian', 'catatan'].includes(tab.key);
+    return ['input', 'absensi', 'kepribadian', 'catatan', 'kenaikan_kelas'].includes(tab.key);
   });
 
   if (loading && !santriList.length) return <LoadingState tip="Memuat modul manajemen nilai..." />;

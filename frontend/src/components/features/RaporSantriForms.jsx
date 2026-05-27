@@ -42,7 +42,8 @@ export function RaporSantriForms({
         keaktifan: item.keaktifan || null,
         akhlaq: item.akhlaq || null,
         kerapihan: item.kerapihan || null,
-        catatan: item.catatan || ''
+        catatan: item.catatan || '',
+        keputusan_kenaikan: item.keputusan_kenaikan || ''
       }));
       setData(initialized);
     } catch (err) {
@@ -74,6 +75,38 @@ export function RaporSantriForms({
     setData(prev => prev.map(item => 
       item.santri_id === santriId ? { ...item, [field]: value } : item
     ));
+  };
+
+  const handleAutoFillKenaikan = () => {
+    let nextClass = '';
+    const current = (kelasName || '').toLowerCase();
+    
+    if (current.includes('sifir')) nextClass = 'Satu';
+    else if (current.includes('sp')) nextClass = 'Dua';
+    else if (current.includes('1')) nextClass = 'Dua';
+    else if (current.includes('2')) nextClass = 'Tiga';
+    else if (current.includes('3')) nextClass = 'Empat';
+    else if (current.includes('4')) nextClass = 'Lima';
+    else if (current.includes('5')) nextClass = 'Enam';
+    else if (current.includes('6')) {
+      antMessage.info('Kelas 6 tidak ada kelas selanjutnya.');
+      return;
+    }
+
+    if (nextClass) {
+      setData(prev => prev.map(item => ({ ...item, keputusan_kenaikan: nextClass })));
+      antMessage.success(`Berhasil mengisi otomatis: ${nextClass}`);
+    }
+  };
+
+  const handleAutoFillCatatan = () => {
+    setData(prev => prev.map(item => ({ ...item, catatan: 'Tingkatkan lagi belajarnya!!' })));
+    antMessage.success(`Berhasil mengisi otomatis catatan`);
+  };
+
+  const handleAutoFillKepribadian = () => {
+    setData(prev => prev.map(item => ({ ...item, keaktifan: 'B', akhlaq: 'B', kerapihan: 'B' })));
+    antMessage.success(`Berhasil mengisi otomatis kepribadian dengan nilai B`);
   };
 
   let columns = [
@@ -141,12 +174,28 @@ export function RaporSantriForms({
         )
       }
     ];
+  } else if (type === 'kenaikan_kelas') {
+    columns = [
+      ...columns,
+      {
+        title: 'Keputusan Kenaikan Kelas',
+        dataIndex: 'keputusan_kenaikan',
+        render: (val, record) => (
+          <Input 
+            value={val} 
+            onChange={(e) => handleValueChange(record.santri_id, 'keputusan_kenaikan', e.target.value)} 
+            placeholder="Contoh: Naik ke Kelas 2"
+          />
+        )
+      }
+    ];
   }
 
   const titles = {
     absensi: 'Input Absensi',
     kepribadian: 'Input Nilai Kepribadian',
-    catatan: 'Input Catatan Wali Kelas'
+    catatan: 'Input Catatan Wali Kelas',
+    kenaikan_kelas: 'Input Keputusan Kenaikan Kelas'
   };
 
   return (
@@ -158,9 +207,26 @@ export function RaporSantriForms({
         </Space>
       }
       extra={
-        <Button type="primary" icon={<SaveOutlined />} onClick={handleSave} loading={saving} disabled={!data.length}>
-          Simpan Data
-        </Button>
+        <Space>
+          {type === 'kenaikan_kelas' && (
+            <Button type="dashed" onClick={handleAutoFillKenaikan} disabled={!data.length}>
+              Isi Otomatis
+            </Button>
+          )}
+          {type === 'catatan' && (
+            <Button type="dashed" onClick={handleAutoFillCatatan} disabled={!data.length}>
+              Isi Otomatis
+            </Button>
+          )}
+          {type === 'kepribadian' && (
+            <Button type="dashed" onClick={handleAutoFillKepribadian} disabled={!data.length}>
+              Isi Otomatis (Semua B)
+            </Button>
+          )}
+          <Button type="primary" icon={<SaveOutlined />} onClick={handleSave} loading={saving} disabled={!data.length}>
+            Simpan Data
+          </Button>
+        </Space>
       }
     >
       <Table 
