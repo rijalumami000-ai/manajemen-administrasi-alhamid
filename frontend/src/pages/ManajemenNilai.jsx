@@ -14,6 +14,7 @@ import {
 import { nilaiService } from '../services/nilaiService';
 import { PageHeader, LoadingState, ErrorState } from '../components/common';
 import { RaporSantriForms } from '../components/features/RaporSantriForms';
+import { RaporSettingsTab } from '../components/features/RaporSettingsTab';
 import { useResponsive } from '../hooks/useResponsive';
 import './ManajemenNilai.scss';
 
@@ -364,7 +365,7 @@ export const ManajemenNilai = ({ mode = 'input' }) => {
       const taftisyulMapels = mataPelajaran.filter(m => m.jenis === 'Taftisy');
       const miniMapels = mataPelajaran.filter(m => m.jenis === 'Muhafadzoh' && m.nama?.toLowerCase().includes('mini'));
       
-      const allRekapMapels = [...semesterMapels, ...akbarMapels, ...qiroatulMapels, ...taftisyulMapels, ...miniMapels];
+      const allRekapMapels = [...semesterMapels, ...akbarMapels, ...qiroatulMapels, ...taftisyulMapels];
       
       allRekapMapels.forEach(m => {
         cols.push({
@@ -1469,7 +1470,7 @@ export const ManajemenNilai = ({ mode = 'input' }) => {
                   rowKey="santri_id" 
                   pagination={false} 
                   size="small"
-                  scroll={{ x: 'max-content' }}
+                  scroll={{ x: 'max-content', y: 'calc(100vh - 350px)' }}
                   loading={rekapLoading}
                   bordered
                 />
@@ -1478,12 +1479,21 @@ export const ManajemenNilai = ({ mode = 'input' }) => {
           </Col>
         </Row>
       )
+    },
+    {
+      key: 'pengaturan-rapor',
+      label: <span><SettingOutlined /> Pengaturan Rapor</span>,
+      children: (
+        <Card className="filter-card">
+          <RaporSettingsTab />
+        </Card>
+      )
     }
   ];
 
   const mainTabs = allTabs.filter(tab => {
     if (mode === 'config') return ['setting', 'jadwal'].includes(tab.key);
-    if (mode === 'rekap') return ['rekap'].includes(tab.key);
+    if (mode === 'rekap') return ['rekap', 'pengaturan-rapor'].includes(tab.key);
     if (mode === 'input-ujian') return ['input'];
     return ['input', 'absensi', 'kepribadian', 'catatan'].includes(tab.key);
   });

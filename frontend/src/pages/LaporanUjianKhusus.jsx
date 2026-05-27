@@ -1,12 +1,13 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { Table, Button, Space, Typography, Card, Spin, Empty, Tag, Radio, Select, Tabs } from 'antd';
-import { BookOutlined, PrinterOutlined, ShareAltOutlined, CheckCircleOutlined, CloseCircleOutlined, SearchOutlined, BarChartOutlined, UndoOutlined, ExportOutlined, FilePdfOutlined } from '@ant-design/icons';
+import { BookOutlined, PrinterOutlined, ShareAltOutlined, CheckCircleOutlined, CloseCircleOutlined, SearchOutlined, BarChartOutlined, UndoOutlined, ExportOutlined, FilePdfOutlined, FileExcelOutlined } from '@ant-design/icons';
 import { nilaiService } from '../services/nilaiService';
 import { useResponsive } from '../hooks/useResponsive';
 import { useLocation } from 'react-router-dom';
 import { BottomNav } from '../components/layout/BottomNav';
 import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
+import * as XLSX from 'xlsx';
 import './ManajemenNilai.scss'; // Reuse styles
 
 const { Title, Text } = Typography;
@@ -132,22 +133,73 @@ export const LaporanUjianKhusus = () => {
 
   useEffect(() => {
     const loadData = async () => {
-      const currentMapel = getCurrentMapel();
-      if (!selectedKelas || !tahunAjaran || !currentMapel || !selectedKategori || viewMode !== 'detail') return;
-      setLoading(true);
-      try {
-        const res = await nilaiService.fetchNilaiSantri({
-          tahun_ajaran_id: tahunAjaran.id,
-          kelas_id: selectedKelas,
-          mapel_id: currentMapel.id,
-          kategori_id: selectedKategori
-        });
-        setData(Array.isArray(res) ? res : []);
-      } catch (err) {
-        console.error('Gagal memuat laporan:', err);
-        setData([]);
-      } finally {
-        setLoading(false);
+      if (!selectedKelas || !tahunAjaran || !selectedKategori || viewMode !== 'detail') return;
+
+      if (activeTab === 'ringkasan') {
+        if (!mapelAkbar || !mapelQiroah || !mapelTaftisy) return;
+        setLoading(true);
+        try {
+          const [resAkbar, resQiroah, resTaftisy] = await Promise.all([
+            nilaiService.fetchNilaiSantri({
+              tahun_ajaran_id: tahunAjaran.id,
+              kelas_id: selectedKelas,
+              mapel_id: mapelAkbar.id,
+              kategori_id: selectedKategori
+            }),
+            nilaiService.fetchNilaiSantri({
+              tahun_ajaran_id: tahunAjaran.id,
+              kelas_id: selectedKelas,
+              mapel_id: mapelQiroah.id,
+              kategori_id: selectedKategori
+            }),
+            nilaiService.fetchNilaiSantri({
+              tahun_ajaran_id: tahunAjaran.id,
+              kelas_id: selectedKelas,
+              mapel_id: mapelTaftisy.id,
+              kategori_id: selectedKategori
+            })
+          ]);
+          
+          const merged = {};
+          const processRes = (resArray, mapelKey) => {
+            if (Array.isArray(resArray)) {
+              resArray.forEach(r => {
+                if (!merged[r.santri_id]) {
+                  merged[r.santri_id] = { santri_id: r.santri_id, nama: r.nama, nis: r.nis };
+                }
+                merged[r.santri_id][mapelKey] = r;
+              });
+            }
+          };
+          processRes(resAkbar, 'akbar');
+          processRes(resQiroah, 'qiroah');
+          processRes(resTaftisy, 'taftisy');
+          
+          setData(Object.values(merged).sort((a, b) => a.nama.localeCompare(b.nama)));
+        } catch (err) {
+          console.error('Gagal memuat laporan ringkasan:', err);
+          setData([]);
+        } finally {
+          setLoading(false);
+        }
+      } else {
+        const currentMapel = getCurrentMapel();
+        if (!currentMapel) return;
+        setLoading(true);
+        try {
+          const res = await nilaiService.fetchNilaiSantri({
+            tahun_ajaran_id: tahunAjaran.id,
+            kelas_id: selectedKelas,
+            mapel_id: currentMapel.id,
+            kategori_id: selectedKategori
+          });
+          setData(Array.isArray(res) ? res : []);
+        } catch (err) {
+          console.error('Gagal memuat laporan:', err);
+          setData([]);
+        } finally {
+          setLoading(false);
+        }
       }
     };
     loadData();
@@ -207,6 +259,9 @@ export const LaporanUjianKhusus = () => {
   const summary = useMemo(() => {
     let counts = {};
     if (!Array.isArray(data)) return { total: 0, counts: {}, percents: {} };
+    if (activeTab === 'ringkasan') {
+      return { total: data.length, counts: {}, percents: {} };
+    }
     if (activeTab === 'muhafadzoh') {
       counts = {
         Rodi: data.filter(r => r.predikat === "Rodi'").length,
@@ -247,6 +302,9 @@ export const LaporanUjianKhusus = () => {
   const grandTotal = useMemo(() => {
     let counts = {};
     if (!Array.isArray(akumulasiData)) return { totalSiswa: 0, counts: {}, percents: {} };
+    if (activeTab === 'ringkasan') {
+      return { totalSiswa: 0, counts: {}, percents: {} };
+    }
     const totalSiswa = akumulasiData.reduce((acc, curr) => acc + Number(curr.jumlah_siswa || 0), 0);
     if (activeTab === 'muhafadzoh') {
       counts = {
@@ -345,6 +403,16 @@ export const LaporanUjianKhusus = () => {
   };
 
   const getColumns = () => {
+    if (activeTab === 'ringkasan') {
+      return [
+        { title: 'No', width: 50, align: 'center', render: (_, __, idx) => idx + 1 },
+        { title: 'Nama Santri', dataIndex: 'nama', className: 'font-weight-bold' },
+        { title: 'Hasil Muhafazdoh', align: 'center', render: (_, r) => r.akbar?.predikat || '-' },
+        { title: 'Hasil Qiroatul Kitab', align: 'center', render: (_, r) => r.qiroah?.nilai_angka !== null && r.qiroah?.nilai_angka !== undefined ? Number(r.qiroah.nilai_angka).toString() : (r.qiroah?.capaian || '-') },
+        { title: 'Hasil Taftisyul Kutub', align: 'center', render: (_, r) => r.taftisy?.predikat || r.taftisy?.capaian || '-' }
+      ];
+    }
+
     const base = [
       { title: 'No', width: 50, align: 'center', render: (_, __, idx) => idx + 1 },
       { title: 'Nama Santri', dataIndex: 'nama', className: 'font-weight-bold' },
@@ -928,9 +996,52 @@ export const LaporanUjianKhusus = () => {
     }
   };
 
+  const exportToExcel = () => {
+    if (activeTab !== 'ringkasan' || data.length === 0) return;
+    const exportData = data.map((r, idx) => ({
+      'No': idx + 1,
+      'Nama Santri': r.nama,
+      'Hasil Muhafazdoh': r.akbar?.predikat || '-',
+      'Hasil Qiroatul Kitab': r.qiroah?.nilai_angka !== null && r.qiroah?.nilai_angka !== undefined ? Number(r.qiroah.nilai_angka).toString() : (r.qiroah?.capaian || '-'),
+      'Hasil Taftisyul Kutub': r.taftisy?.predikat || r.taftisy?.capaian || '-'
+    }));
+
+    const ws = XLSX.utils.json_to_sheet(exportData);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Ringkasan");
+    XLSX.writeFile(wb, `Ringkasan_Hasil_Ujian_Khusus_${currentKelasObj?.nama || 'Kelas'}_${tahunAjaran?.kode || 'TA'}.xlsx`);
+  };
+
   const renderMobileView = () => (
     <Space direction="vertical" style={{ width: '100%' }} size="small" ref={listRef}>
       {data.map((r, idx) => {
+        if (activeTab === 'ringkasan') {
+          return (
+            <Card key={r.santri_id} size="small" className="mobile-santri-card" style={{ borderRadius: 8, marginBottom: 8, borderLeft: '4px solid #1890ff' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+                <Space>
+                  <Text type="secondary" style={{ fontSize: 12 }}>{idx + 1}.</Text>
+                  <Text strong style={{ fontSize: 14 }}>{r.nama}</Text>
+                </Space>
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 4, fontSize: 12 }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                  <Text type="secondary">Hasil Muhafazdoh:</Text>
+                  <Text strong>{r.akbar?.predikat || '-'}</Text>
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                  <Text type="secondary">Hasil Qiroatul Kitab:</Text>
+                  <Text strong>{r.qiroah?.nilai_angka !== null && r.qiroah?.nilai_angka !== undefined ? Number(r.qiroah.nilai_angka).toString() : (r.qiroah?.capaian || '-')}</Text>
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                  <Text type="secondary">Hasil Taftisyul Kutub:</Text>
+                  <Text strong>{r.taftisy?.predikat || r.taftisy?.capaian || '-'}</Text>
+                </div>
+              </div>
+            </Card>
+          );
+        }
+
         let isLulus = false;
         if (activeTab === 'muhafadzoh') isLulus = ["Mutawassith", "Jayyid", "Mumtaz"].includes(r.predikat);
         else if (activeTab === 'taftisyul_kutub') isLulus = r.predikat === "Tam";
@@ -1176,21 +1287,25 @@ export const LaporanUjianKhusus = () => {
               type={viewMode === 'akumulasi' ? 'primary' : 'default'}
               icon={viewMode === 'akumulasi' ? <UndoOutlined /> : <BarChartOutlined />}
               onClick={() => setViewMode(viewMode === 'detail' ? 'akumulasi' : 'detail')}
+              style={{ display: activeTab === 'ringkasan' ? 'none' : 'inline-block' }}
             >
               {viewMode === 'detail' ? 'Lihat Akumulasi' : 'Kembali ke Detail'}
             </Button>
             
             {!isMobile && (
               <Space wrap>
-                <Button size="small" icon={<PrinterOutlined />} onClick={() => window.print()}>Cetak</Button>
-                {viewMode === 'detail' && (
+                {activeTab !== 'ringkasan' && <Button size="small" icon={<PrinterOutlined />} onClick={() => window.print()}>Cetak</Button>}
+                {viewMode === 'detail' && activeTab !== 'ringkasan' && (
                   <>
                     <Button size="small" icon={<ShareAltOutlined />} onClick={handleShare}>Bagikan</Button>
                     <Button size="small" type="primary" icon={<FilePdfOutlined />} onClick={exportLaporanToPDF} loading={loading}>Ekspor PDF</Button>
                   </>
                 )}
-                {viewMode === 'akumulasi' && (
+                {viewMode === 'akumulasi' && activeTab !== 'ringkasan' && (
                   <Button size="small" type="primary" icon={<ExportOutlined />} onClick={exportAllToPDF} loading={loading}>Ekspor Semua Kelas (PDF)</Button>
+                )}
+                {activeTab === 'ringkasan' && (
+                  <Button size="small" type="primary" icon={<FileExcelOutlined />} onClick={exportToExcel} loading={loading} style={{ background: '#52c41a', borderColor: '#52c41a' }}>Ekspor Excel</Button>
                 )}
               </Space>
             )}
@@ -1208,6 +1323,7 @@ export const LaporanUjianKhusus = () => {
             { key: 'muhafadzoh', label: 'Muhafadzoh Akbar' },
             { key: 'qiroatul_kitab', label: 'Qiroatul Kitab' },
             { key: 'taftisyul_kutub', label: 'Taftisyul Kutub' },
+            { key: 'ringkasan', label: 'Ringkasan Hasil Ujian Khusus' },
           ]}
         />
 
@@ -1304,8 +1420,9 @@ export const LaporanUjianKhusus = () => {
         <div style={{ position: 'fixed', bottom: 64, right: 16, display: 'flex', flexDirection: 'column', gap: 8 }}>
           {viewMode === 'detail' ? (
             <>
-              <Button type="primary" shape="circle" icon={<ShareAltOutlined />} size="large" onClick={handleShare} style={{ boxShadow: '0 4px 12px rgba(24,144,255,0.5)', background: '#52c41a', borderColor: '#52c41a' }} />
-              <Button type="primary" shape="circle" icon={<FilePdfOutlined />} size="large" onClick={exportLaporanToPDF} loading={loading} style={{ boxShadow: '0 4px 12px rgba(24,144,255,0.5)' }} />
+              {activeTab !== 'ringkasan' && <Button type="primary" shape="circle" icon={<ShareAltOutlined />} size="large" onClick={handleShare} style={{ boxShadow: '0 4px 12px rgba(24,144,255,0.5)', background: '#52c41a', borderColor: '#52c41a' }} />}
+              {activeTab !== 'ringkasan' && <Button type="primary" shape="circle" icon={<FilePdfOutlined />} size="large" onClick={exportLaporanToPDF} loading={loading} style={{ boxShadow: '0 4px 12px rgba(24,144,255,0.5)' }} />}
+              {activeTab === 'ringkasan' && <Button type="primary" shape="circle" icon={<FileExcelOutlined />} size="large" onClick={exportToExcel} loading={loading} style={{ boxShadow: '0 4px 12px rgba(82,196,26,0.5)', background: '#52c41a', borderColor: '#52c41a' }} />}
             </>
           ) : (
             <Button type="primary" shape="circle" icon={<ExportOutlined />} size="large" onClick={exportAllToPDF} loading={loading} style={{ boxShadow: '0 4px 12px rgba(24,144,255,0.5)' }} />

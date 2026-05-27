@@ -59,5 +59,15 @@ export const guruService = {
   // Delete jabatan
   async deleteJabatan(id) {
     return apiDelete(`/jabatan/${id}`);
+  },
+
+  // Upload Tanda Tangan Guru
+  async uploadTtd(id, formData) {
+    return apiPost(`/guru/${id}/ttd`, formData);
+  },
+
+  // Delete Tanda Tangan Guru
+  async deleteTtd(id) {
+    return apiDelete(`/guru/${id}/ttd`);
   }
 };

@@ -7,5 +7,9 @@ export const settingsService = {
 
   updateSetting: async (key, value) => {
     return apiPost('/settings', { key, value });
+  },
+
+  uploadAset: async (key, formData) => {
+    return apiPost(`/kartu-ujian/upload-aset/${key}`, formData);
   }
 };

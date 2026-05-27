@@ -9,56 +9,79 @@
     margin-bottom: 20px;
   }
 
+  // F4 paper: 215.9mm x 330.2mm (Legal / Folio)
   .rapor-page {
     background: white;
-    width: 210mm;
-    min-height: 297mm;
+    width: 215.9mm;
+    min-height: 330mm;
     margin: 0 auto;
-    padding: 15mm 20mm;
+    padding: 5mm 15mm;
     box-shadow: 0 0 10px rgba(0,0,0,0.1);
   }
 
   .rapor-header {
     text-align: center;
-    margin-bottom: 15px;
+    margin-bottom: 12px;
 
     .kop-surat {
-      h2 {
-        font-size: 16px;
-        font-weight: bold;
-        margin: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 20px;
+
+      .kop-logo {
+        width: 80px;
+        height: 80px;
+        object-fit: contain;
       }
-      h3 {
-        font-size: 18px;
-        font-weight: bold;
-        margin: 5px 0;
-      }
-      p {
-        font-size: 12px;
-        margin: 0;
+
+      .kop-teks {
+        text-align: center;
+        h1 {
+          margin: 0;
+          font-weight: bold;
+          color: #000;
+          line-height: 1.2;
+        }
+
+        h2 {
+          margin: 2px 0;
+          font-weight: bold;
+          color: #000;
+          line-height: 1.2;
+        }
+        
+        h3 {
+          margin: 2px 0;
+          font-weight: bold;
+          color: #000;
+          line-height: 1.2;
+        }
       }
     }
 
-    hr {
-      border: 0;
+    .kop-alamat {
       border-top: 2px solid #000;
-      border-bottom: 1px solid #000;
-      height: 3px;
-      margin: 10px 0;
+      border-bottom: 2px solid #000;
+      text-align: center;
+      padding: 4px 0;
+      margin: 8px 0 12px 0;
+      font-family: 'Times New Roman', Times, serif;
     }
 
     .title-rapor {
-      font-size: 14px;
+      text-align: center;
+      font-size: 16px;
       font-weight: bold;
       text-decoration: underline;
-      margin: 15px 0;
+      margin: 12px 0;
     }
 
     .info-table {
       width: 100%;
       text-align: left;
-      font-size: 12px;
-      margin-bottom: 10px;
+      font-size: 14px;
+      margin-bottom: 8px;
 
       td {
         padding: 2px 0;
@@ -66,15 +89,18 @@
     }
   }
 
+  // ============================================================
+  // DUAL-SIDED NILAI TABLE
+  // ============================================================
   .nilai-table, .info-table-bordered {
     width: 100%;
     border-collapse: collapse;
-    font-size: 12px;
-    margin-bottom: 15px;
+    font-size: 13px;
+    margin-bottom: 12px;
 
     th, td {
       border: 1px solid #000;
-      padding: 5px;
+      padding: 1px 2px;
     }
 
     th {
@@ -85,78 +111,155 @@
 
     .header-subheader th {
       background-color: #eaeaea;
+      font-size: 13px;
     }
 
     .text-center { text-align: center; }
     .text-right { text-align: right; }
     .text-left { text-align: left; }
     .pr-2 { padding-right: 10px; }
+    .pl-2 { padding-left: 10px; }
 
     .arabic {
-      font-family: 'Amiri', 'Traditional Arabic', serif;
-      font-size: 14px;
+      font-family: 'Amiri', 'Traditional Arabic', 'Scheherazade New', serif;
+      font-size: 18px;
     }
 
     .kitab-name {
       font-style: italic;
+      font-size: 12px;
     }
 
     .nilai-merah {
       color: red;
       font-weight: bold;
     }
+
+    .huruf-col {
+      font-size: 12px;
+      word-break: break-word;
+    }
   }
 
-  .bottom-section {
-    display: flex;
-    justify-content: space-between;
-    margin-bottom: 15px;
+  // Side styling
+  .rapor-dual {
+    .side-indonesia {
+      background-color: #f5f5f5;
+    }
+    .side-arab {
+      background-color: #f0f0e8;
+    }
 
-    .col-half {
-      width: 48%;
+    thead tr:first-child {
+      th.side-indonesia {
+        background-color: #e8e8e8;
+        font-weight: bold;
+        font-size: 14px;
+      }
+      th.side-arab {
+        background-color: #e5e5d8;
+        font-weight: bold;
+        font-size: 16px;
+      }
+    }
+
+    .row-jumlah, .row-rata, .row-peringkat {
+      td {
+        background-color: #fafafa;
+      }
+    }
+  }
+
+  // ============================================================
+  // BOTTOM SECTION — Table-based layout for reliable printing
+  // ============================================================
+  .bottom-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-bottom: 12px;
+
+    .bottom-cell {
+      border: none;
+      vertical-align: top;
+    }
+  }
+
+  .info-table-bordered {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+
+    th, td {
+      border: 1px solid #000;
+      padding: 4px 6px;
+    }
+
+    th {
+      text-align: center;
+      font-weight: bold;
+      background-color: #f0f0f0;
     }
   }
 
   .catatan-section {
-    font-size: 12px;
-    margin-bottom: 20px;
+    font-size: 14px;
+    margin-bottom: 10px;
 
     .catatan-box {
       border: 1px solid #000;
-      min-height: 50px;
-      padding: 5px;
-      margin-top: 5px;
+      min-height: 25px;
+      padding: 4px 6px;
+
+      b {
+        margin-right: 5px;
+      }
     }
   }
 
   .signature-section {
     display: flex;
     justify-content: space-between;
-    text-align: center;
-    font-size: 12px;
-    margin-top: 30px;
+    margin-top: 20px;
+    font-size: 14px;
 
     .sig-box {
       width: 30%;
+      text-align: center;
+
+      p {
+        margin: 0;
+        line-height: 1.5;
+      }
+
+      .ttd-area {
+        min-height: 50px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin: 5px 0;
+
+        .ttd-img {
+          max-height: 70px;
+          max-width: 180px;
+          object-fit: contain;
+        }
+      }
     }
   }
 
+  // ============================================================
+  // PRINT STYLES — F4 paper (215.9mm x 330mm)
+  // ============================================================
   @media print {
-    body * {
-      visibility: hidden;
-    }
-    .rapor-page, .rapor-page * {
-      visibility: visible;
-    }
+    background: white;
+    padding: 0;
+
     .rapor-page {
-      position: absolute;
-      left: 0;
-      top: 0;
-      width: 210mm;
-      min-height: 297mm;
-      padding: 10mm;
+      width: 215.9mm;
+      min-height: auto;
+      padding: 0mm 10mm 5mm 10mm;
       box-shadow: none;
-      margin: 0;
+      margin: 0 auto;
     }
     .print-controls {
       display: none;
@@ -167,9 +270,34 @@
       print-color-adjust: exact;
     }
     th {
+      -webkit-print-color-adjust: exact;
+      print-color-adjust: exact;
+    }
+    .side-indonesia {
+      background-color: #f5f5f5 !important;
+      -webkit-print-color-adjust: exact;
+      print-color-adjust: exact;
+    }
+    .side-arab {
+      background-color: #f0f0e8 !important;
+      -webkit-print-color-adjust: exact;
+      print-color-adjust: exact;
+    }
+    .header-subheader th {
       background-color: #eaeaea !important;
       -webkit-print-color-adjust: exact;
       print-color-adjust: exact;
     }
+    .row-jumlah td, .row-rata td, .row-peringkat td {
+      background-color: #fafafa !important;
+      -webkit-print-color-adjust: exact;
+      print-color-adjust: exact;
+    }
   }
+}
+
+// @page must be at root level (not nested)
+@page {
+  size: 215.9mm 330.2mm;
+  margin: 0;
 }

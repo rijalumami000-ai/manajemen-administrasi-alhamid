@@ -463,7 +463,7 @@ class NilaiService {
     try {
       // 1. Get Kelas Data
       const kelasRes = await db.query(`
-        SELECT k.*, g.nama as mustahiq_nama, 
+        SELECT k.*, g.nama as mustahiq_nama, g.ttd_url as mustahiq_ttd_url,
                m.nama as muhafadzoh_nama, m.nama_arab as muhafadzoh_arab,
                q.nama as qiroatul_nama, q.nama_arab as qiroatul_arab
         FROM kelas k
@@ -490,7 +490,7 @@ class NilaiService {
       const kategoriName = katRes.rows[0]?.nama || '';
 
       // 5. Get Tahun Ajaran Name
-      const taRes = await db.query('SELECT nama FROM tahun_ajaran WHERE id = $1', [tahunAjaranId]);
+      const taRes = await db.query('SELECT kode as nama FROM tahun_ajaran WHERE id = $1', [tahunAjaranId]);
       const tahunAjaranName = taRes.rows[0]?.nama || '';
 
       // 6. Get Nilai for this santri specifically with mapel details
@@ -515,7 +515,7 @@ class NilaiService {
             mapel_count: 0
           };
         }
-        if (row.jenis_mapel === 'Reguler' || row.jenis_mapel.includes('Qiroatul')) {
+        if (row.jenis_mapel === 'Reguler' || row.jenis_mapel === 'Qiroah') {
           if (row.nilai_angka !== null) {
             pivoted[row.santri_id].total_nilai += Number(row.nilai_angka);
             pivoted[row.santri_id].mapel_count++;
@@ -531,6 +531,11 @@ class NilaiService {
         ? (rekapArr[rankIndex].total_nilai / rekapArr[rankIndex].mapel_count).toFixed(2) 
         : 0;
 
+      // 8. Get Settings
+      const settingsRes = await db.query("SELECT key, value FROM system_settings WHERE key LIKE 'rapor_%'");
+      const settings = {};
+      settingsRes.rows.forEach(r => settings[r.key] = r.value);
+
       return {
         santri: santriData,
         kelas: kelasData,
@@ -538,6 +543,7 @@ class NilaiService {
         semester: kategoriName,
         nilai: nilaiList,
         tambahan: raporTambahan,
+        settings,
         statistik: {
           peringkat,
           total: totalNilai,

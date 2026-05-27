@@ -1,5 +1,5 @@
 import { Table, Tag, Button, Space, Pagination } from 'antd';
-import { EditOutlined, DeleteOutlined } from '@ant-design/icons';
+import { EditOutlined, DeleteOutlined, UploadOutlined } from '@ant-design/icons';
 import { EmptyState } from '../common';
 
 const statusColorMap = {
@@ -8,7 +8,7 @@ const statusColorMap = {
   'Pensiun': 'default'
 };
 
-export function GuruTable({ data, total, currentPage, pageSize, onPageChange, onEdit, onDelete }) {
+export function GuruTable({ data, total, currentPage, pageSize, onPageChange, onEdit, onDelete, onUploadTtd }) {
   const columns = [
     {
       title: 'NIP',
@@ -78,6 +78,14 @@ export function GuruTable({ data, total, currentPage, pageSize, onPageChange, on
             onClick={() => onEdit(record)}
           >
             Edit
+          </Button>
+          <Button
+            type="link"
+            size="small"
+            icon={<UploadOutlined />}
+            onClick={() => onUploadTtd(record)}
+          >
+            Upload TTD
           </Button>
           <Button
             type="link"

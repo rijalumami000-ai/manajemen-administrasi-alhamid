@@ -7,6 +7,7 @@ import { GuruFilters } from '../components/features/GuruFilters';
 import { GuruModal } from '../components/features/GuruModal';
 import { MasterList } from '../components/features/MasterList';
 import { MasterModal } from '../components/features/MasterModal';
+import { GuruTtdModal } from '../components/features/GuruTtdModal';
 import { PageHeader, LoadingState, ErrorState } from '../components/common';
 import { usePagination } from '../hooks/usePagination';
 import './Guru.scss';
@@ -32,8 +33,10 @@ export function Guru() {
   const [isGuruModalOpen, setIsGuruModalOpen] = useState(false);
   const [isMapelModalOpen, setIsMapelModalOpen] = useState(false);
   const [isJabatanModalOpen, setIsJabatanModalOpen] = useState(false);
+  const [isTtdModalOpen, setIsTtdModalOpen] = useState(false);
 
   const [editingGuru, setEditingGuru] = useState(null);
+  const [activeTtdGuru, setActiveTtdGuru] = useState(null);
   const [editingMapel, setEditingMapel] = useState(null);
   const [editingJabatan, setEditingJabatan] = useState(null);
 
@@ -153,6 +156,11 @@ export function Guru() {
     setEditingGuru(guru);
     setGuruModalError('');
     setIsGuruModalOpen(true);
+  };
+
+  const handleUploadTtdClick = (guru) => {
+    setActiveTtdGuru(guru);
+    setIsTtdModalOpen(true);
   };
 
   const handleDeleteGuruClick = async (id) => {
@@ -332,6 +340,7 @@ export function Guru() {
             onPageChange={goToPage}
             onEdit={handleEditGuruClick}
             onDelete={handleDeleteGuruClick}
+            onUploadTtd={handleUploadTtdClick}
           />
         </div>
       )
@@ -467,6 +476,13 @@ export function Guru() {
         placeholder="Contoh: Wali Kelas"
         isSubmitting={isSubmitting}
         error={jabatanModalError}
+      />
+
+      <GuruTtdModal
+        isOpen={isTtdModalOpen}
+        onClose={() => setIsTtdModalOpen(false)}
+        guru={activeTtdGuru}
+        onSuccess={loadGuru}
       />
     </div>
   );

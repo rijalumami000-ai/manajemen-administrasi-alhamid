@@ -371,7 +371,7 @@ function registerBukuIndukRoutes(app) {
   // === KARTU UJIAN: Upload aset (logo, stempel, ttd) ===
   app.post('/api/kartu-ujian/upload-aset/:key', uploadAset.single('file'), async (req, res) => {
     const { key } = req.params;
-    const allowedKeys = ['kartu_ujian_logo_url', 'kartu_ujian_stempel_url', 'kartu_ujian_ttd_url'];
+    const allowedKeys = ['kartu_ujian_logo_url', 'kartu_ujian_stempel_url', 'kartu_ujian_ttd_url', 'rapor_kop_logo_url', 'rapor_kepala_madrasah_ttd_url'];
     if (!allowedKeys.includes(key)) return res.status(400).json({ error: 'Key tidak valid.' });
     if (!req.file) return res.status(400).json({ error: 'File tidak ditemukan.' });
 

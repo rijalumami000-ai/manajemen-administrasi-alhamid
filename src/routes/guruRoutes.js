@@ -2,6 +2,39 @@ const db = require('../../db');
 const { getActiveTahunAjaran, syncSantriToActiveTahunAjaran } = require('../services/tahunAjaranService');
 const { isUniqueViolation } = require('../utils/databaseErrors');
 const { normalizeKelasJenis, normalizeText, normalizeYearCode, nullableInt } = require('../utils/normalizers');
+const multer = require('multer');
+const path = require('path');
+const fs = require('fs');
+
+const ttdStorage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    const dir = path.join(__dirname, '../../public/uploads/ttd-guru');
+    if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+    cb(null, dir);
+  },
+  filename: (req, file, cb) => {
+    const guruId = req.params.id;
+    const ext = path.extname(file.originalname).toLowerCase();
+    const filename = `guru_${guruId}_${Date.now()}${ext}`;
+    cb(null, filename);
+  },
+});
+
+const ttdFilter = (req, file, cb) => {
+  const allowed = ['.jpg', '.jpeg', '.png', '.webp'];
+  const ext = path.extname(file.originalname).toLowerCase();
+  if (allowed.includes(ext)) {
+    cb(null, true);
+  } else {
+    cb(new Error('Format file tidak didukung. Gunakan JPG, PNG, atau WEBP.'));
+  }
+};
+
+const uploadTtd = multer({
+  storage: ttdStorage,
+  fileFilter: ttdFilter,
+  limits: { fileSize: 2 * 1024 * 1024 }, // max 2MB
+});
 
 function registerGuruRoutes(app) {
   // ===== GURU API =====
@@ -19,6 +52,7 @@ function registerGuruRoutes(app) {
           g.no_hp,
           g.alamat,
           g.status,
+          g.ttd_url,
           g.created_at
         FROM guru g
         LEFT JOIN mata_pelajaran mp ON g.mata_pelajaran_id = mp.id
@@ -128,6 +162,49 @@ function registerGuruRoutes(app) {
     } catch (error) {
       console.error(error);
       res.status(500).json({ error: 'Gagal menghapus data guru.' });
+    }
+  });
+
+  // ===== GURU TTD UPLOAD =====
+  app.post('/api/guru/:id/ttd', uploadTtd.single('ttd'), async (req, res) => {
+    const { id } = req.params;
+    if (!req.file) return res.status(400).json({ error: 'File tanda tangan tidak ditemukan.' });
+
+    const ttdUrl = `/uploads/ttd-guru/${req.file.filename}`;
+    try {
+      // Hapus ttd lama jika ada
+      const old = await db.query('SELECT ttd_url FROM guru WHERE id = $1', [id]);
+      if (old.rows[0]?.ttd_url) {
+        const oldPath = path.join(__dirname, '../../public', old.rows[0].ttd_url);
+        if (fs.existsSync(oldPath)) fs.unlinkSync(oldPath);
+      }
+
+      const result = await db.query(
+        `UPDATE guru SET ttd_url = $1 WHERE id = $2 RETURNING id, nama, ttd_url`,
+        [ttdUrl, id]
+      );
+      
+      if (!result.rows.length) return res.status(404).json({ error: 'Data guru tidak ditemukan.' });
+      res.json({ ...result.rows[0], ttd_url: ttdUrl });
+    } catch (err) {
+      console.error('Error upload ttd guru:', err);
+      res.status(500).json({ error: 'Gagal menyimpan tanda tangan guru.' });
+    }
+  });
+
+  app.delete('/api/guru/:id/ttd', async (req, res) => {
+    const { id } = req.params;
+    try {
+      const old = await db.query('SELECT ttd_url FROM guru WHERE id = $1', [id]);
+      if (old.rows[0]?.ttd_url) {
+        const oldPath = path.join(__dirname, '../../public', old.rows[0].ttd_url);
+        if (fs.existsSync(oldPath)) fs.unlinkSync(oldPath);
+      }
+      await db.query(`UPDATE guru SET ttd_url = NULL WHERE id = $1`, [id]);
+      res.json({ message: 'Tanda tangan berhasil dihapus.' });
+    } catch (err) {
+      console.error('Error delete ttd guru:', err);
+      res.status(500).json({ error: 'Gagal menghapus tanda tangan guru.' });
     }
   });
 }
