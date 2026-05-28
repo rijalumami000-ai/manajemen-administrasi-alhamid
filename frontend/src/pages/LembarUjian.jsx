@@ -241,12 +241,7 @@ export function LembarUjian() {
             formSoal.setFieldsValue({ soalList: normalizedSoal });
             setPreviewData(prev => ({ 
               ...prev, 
-              soal: normalizedSoal,
-              judul: paper.judul || prev.judul,
-              subJudul: paper.sub_judul || prev.subJudul,
-              alamat: paper.alamat || prev.alamat,
-              hariTanggal: paper.hari_tanggal || prev.hariTanggal,
-              instruksi: paper.instruksi || prev.instruksi
+              soal: normalizedSoal
             }));
             message.info('Data lembar ujian dimuat dari arsip database.');
             return;
