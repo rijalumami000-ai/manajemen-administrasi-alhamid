@@ -302,17 +302,11 @@ export function RaporPrint() {
                   <td>
                     <span className="kitab-name">{kelas.muhafadzoh_nama || 'Imrithi'}</span>
                   </td>
-                  <td className={`text-center ${isMerah ? 'nilai-merah' : ''}`}>
-                    {muhafadzohVal}
-                  </td>
-                  <td className={`text-center huruf-col ${isMerah ? 'nilai-merah' : ''}`}>
+                  <td colSpan="2" className={`text-center huruf-col ${isMerah ? 'nilai-merah' : ''}`}>
                     {muhafadzohAkbar.predikat || '-'}
                   </td>
-                  <td className={`text-center arabic huruf-col ${isMerah ? 'nilai-merah' : ''}`} style={{ fontSize: '18px' }}>
+                  <td colSpan="2" className={`text-center arabic huruf-col ${isMerah ? 'nilai-merah' : ''}`} style={{ fontSize: '18px' }}>
                     {getArabHurufDisplay(muhafadzohAkbar, 'muhafadzoh')}
-                  </td>
-                  <td className={`text-center arabic ${isMerah ? 'nilai-merah' : ''}`}>
-                    {getArabAngkaDisplay(muhafadzohAkbar, 'muhafadzoh')}
                   </td>
                   <td className="arabic text-right">
                     <span className="kitab-name">{kelas.muhafadzoh_arab || 'العمريطي'}</span>
@@ -360,17 +354,11 @@ export function RaporPrint() {
                   <td>
                     <span className="kitab-name">Taftisyul Kutub</span>
                   </td>
-                  <td className={`text-center ${isMerah ? 'nilai-merah' : ''}`}>
-                    {taftisyVal}
-                  </td>
-                  <td className={`text-center huruf-col ${isMerah ? 'nilai-merah' : ''}`}>
+                  <td colSpan="2" className={`text-center huruf-col ${isMerah ? 'nilai-merah' : ''}`}>
                     {taftisyul.capaian || '-'}
                   </td>
-                  <td className={`text-center arabic huruf-col ${isMerah ? 'nilai-merah' : ''}`} style={{ fontSize: '18px' }}>
+                  <td colSpan="2" className={`text-center arabic huruf-col ${isMerah ? 'nilai-merah' : ''}`} style={{ fontSize: '18px' }}>
                     {getArabHurufDisplay(taftisyul, 'taftisy')}
-                  </td>
-                  <td className={`text-center arabic ${isMerah ? 'nilai-merah' : ''}`}>
-                    {getArabAngkaDisplay(taftisyul, 'taftisy')}
                   </td>
                   <td className="arabic text-right">
                     <span className="kitab-name">تفتيش الكتب</span>

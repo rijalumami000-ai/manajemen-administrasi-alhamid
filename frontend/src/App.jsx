@@ -35,6 +35,7 @@ const AbsensiSholatScan = lazy(() => import('./pages/AbsensiSholatScan').then(m 
 const RekapAbsensiSholat = lazy(() => import('./pages/RekapAbsensiSholat').then(m => ({ default: m.RekapAbsensiSholat })));
 const LembarUjian = lazy(() => import('./pages/LembarUjian').then(m => ({ default: m.LembarUjian })));
 const UjianMenu = lazy(() => import('./pages/UjianMenu').then(m => ({ default: m.UjianMenu })));
+const ScanNilai = lazy(() => import('./pages/ScanNilai').then(m => ({ default: m.ScanNilai })));
 
 function App() {
   const { isDarkMode } = useTheme();
@@ -102,6 +103,7 @@ function App() {
                     <Route path="rekap-absensi-sholat" element={<RekapAbsensiSholat />} />
                     <Route path="lembar-ujian" element={<LembarUjian />} />
                     <Route path="ujian" element={<UjianMenu />} />
+                    <Route path="scan-nilai" element={<ScanNilai />} />
                   </Route>
 
                   <Route path="*" element={<Navigate to="/" replace />} />

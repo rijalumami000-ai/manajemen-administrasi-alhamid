@@ -56,6 +56,7 @@
           font-weight: bold;
           color: #000;
           line-height: 1.2;
+          font-family: 'KFGQPC Uthman Taha Naskh', 'KFGQPC Uthmanic Script HAFS', 'UthmanicHafs', 'LPMQ Isep Misbah', 'Amiri', 'Traditional Arabic', serif;
         }
 
         h2 {
@@ -120,11 +121,11 @@
     th {
       text-align: center;
       font-weight: bold;
-      background-color: #f9f9f9;
+      background-color: white;
     }
 
     .header-subheader th {
-      background-color: #eaeaea;
+      background-color: white;
       font-size: 13px;
 
       &.side-arab {
@@ -162,20 +163,20 @@
   // Side styling
   .rapor-dual {
     .side-indonesia {
-      background-color: #f5f5f5;
+      background-color: white;
     }
     .side-arab {
-      background-color: #f0f0e8;
+      background-color: white;
     }
 
     thead tr:first-child {
       th.side-indonesia {
-        background-color: #e8e8e8;
+        background-color: white;
         font-weight: bold;
         font-size: 14px;
       }
       th.side-arab {
-        background-color: #e5e5d8;
+        background-color: white;
         font-weight: bold;
         font-size: 16px;
       }
@@ -183,7 +184,7 @@
 
     .row-jumlah, .row-rata, .row-peringkat {
       td {
-        background-color: #fafafa;
+        background-color: white;
       }
     }
   }
@@ -215,7 +216,7 @@
     th {
       text-align: center;
       font-weight: bold;
-      background-color: #f0f0f0;
+      background-color: white;
     }
   }
 
@@ -292,22 +293,22 @@
       print-color-adjust: exact;
     }
     .side-indonesia {
-      background-color: #f5f5f5 !important;
+      background-color: white !important;
       -webkit-print-color-adjust: exact;
       print-color-adjust: exact;
     }
     .side-arab {
-      background-color: #f0f0e8 !important;
+      background-color: white !important;
       -webkit-print-color-adjust: exact;
       print-color-adjust: exact;
     }
     .header-subheader th {
-      background-color: #eaeaea !important;
+      background-color: white !important;
       -webkit-print-color-adjust: exact;
       print-color-adjust: exact;
     }
     .row-jumlah td, .row-rata td, .row-peringkat td {
-      background-color: #fafafa !important;
+      background-color: white !important;
       -webkit-print-color-adjust: exact;
       print-color-adjust: exact;
     }

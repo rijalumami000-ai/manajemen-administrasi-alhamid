@@ -144,11 +144,145 @@ function registerNilaiRoutes(app) {
     }
   });
 
+  router.post('/peringkat-manual', async (req, res, next) => {
+    try {
+      const { tahun_ajaran_id, kategori_evaluasi_id, data } = req.body;
+      if (!tahun_ajaran_id || !kategori_evaluasi_id || !data) {
+        return res.status(400).json({ error: 'Data tidak lengkap' });
+      }
+      const result = await NilaiService.savePeringkatManual(tahun_ajaran_id, kategori_evaluasi_id, data);
+      res.json(result);
+    } catch (error) {
+      next(error);
+    }
+  });
+
   router.get('/rapor-cetak/:tahun_ajaran_id/:kelas_id/:kategori_id/:santri_id', async (req, res, next) => {
     try {
       const { tahun_ajaran_id, kelas_id, kategori_id, santri_id } = req.params;
       const data = await NilaiService.getCetakRapor(tahun_ajaran_id, kelas_id, kategori_id, santri_id);
       res.json(data);
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  // Direct USB Scanner Integration via WIA / PowerShell
+  router.post('/scanner/scan', async (req, res, next) => {
+    const { exec } = require('child_process');
+    const path = require('path');
+    const fs = require('fs');
+
+    try {
+      const tempDir = path.join(__dirname, '../../tmp');
+      if (!fs.existsSync(tempDir)) {
+        fs.mkdirSync(tempDir, { recursive: true });
+      }
+      
+      const psScriptPath = path.join(tempDir, `scan_script_${Date.now()}.ps1`);
+      const tempImgPath = path.join(tempDir, `scan_out_${Date.now()}.jpg`);
+      
+      const psScriptContent = `
+$deviceManager = New-Object -ComObject WIA.DeviceManager
+$device = $null
+foreach ($info in $deviceManager.DeviceInfos) {
+    if ($info.Type -eq 1) {
+        $device = $info.Connect()
+        break
+    }
+}
+if ($device -eq $null) {
+    Write-Host "ERROR_NO_SCANNER"
+    exit 1
+}
+$item = $device.Items.Item(1)
+try {
+    $intentProp = $item.Properties.Item("6146")
+    if ($intentProp) { $intentProp.Value = 1 }
+} catch {}
+$wiaFormatJPEG = "{B96B3CAE-0728-11D3-9D7B-0000F81EF32E}"
+$image = $item.Transfer($wiaFormatJPEG)
+$targetPath = "${tempImgPath.replace(/\\/g, '\\\\')}"
+if (Test-Path $targetPath) { Remove-Item $targetPath }
+$image.SaveFile($targetPath)
+Write-Host "SCAN_SUCCESS"
+`;
+
+      fs.writeFileSync(psScriptPath, psScriptContent, 'utf-8');
+
+      exec(`powershell.exe -NoProfile -ExecutionPolicy Bypass -File "${psScriptPath}"`, (error, stdout, stderr) => {
+        // Cleanup script file immediately
+        try { fs.unlinkSync(psScriptPath); } catch (_) {}
+
+        if (error) {
+          console.error("Scanner CLI Error:", error, stderr);
+          return res.status(500).json({ error: "Terjadi kesalahan internal saat mengakses scanner." });
+        }
+        
+        if (stdout.includes("ERROR_NO_SCANNER")) {
+          return res.status(404).json({ error: "Scanner USB tidak ditemukan. Pastikan kabel USB scanner Epson terhubung dan menyala." });
+        }
+
+        if (fs.existsSync(tempImgPath)) {
+          const fileBuffer = fs.readFileSync(tempImgPath);
+          const base64Image = fileBuffer.toString('base64');
+          const dataUrl = `data:image/jpeg;base64,${base64Image}`;
+          
+          // Cleanup image file
+          try { fs.unlinkSync(tempImgPath); } catch (_) {}
+
+          res.json({ success: true, image: dataUrl });
+        } else {
+          res.status(500).json({ error: "Gagal menghasilkan file gambar dari scanner." });
+        }
+      });
+      
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  // Process image using Python OMR Engine
+  router.post('/scanner/process', express.json({limit: '50mb'}), async (req, res, next) => {
+    const { exec } = require('child_process');
+    const path = require('path');
+    const fs = require('fs');
+
+    try {
+      const { image } = req.body; 
+      if (!image) {
+        return res.status(400).json({ error: 'Data gambar tidak ditemukan' });
+      }
+
+      const tempDir = path.join(__dirname, '../../tmp');
+      if (!fs.existsSync(tempDir)) {
+        fs.mkdirSync(tempDir, { recursive: true });
+      }
+
+      const base64Data = image.replace(/^data:image\/\w+;base64,/, "");
+      const tempImgPath = path.join(tempDir, `process_in_${Date.now()}.jpg`);
+      
+      fs.writeFileSync(tempImgPath, base64Data, { encoding: 'base64' });
+
+      const pythonScript = path.join(__dirname, '../utils/omr_engine.py');
+      
+      exec(`python "${pythonScript}" "${tempImgPath}"`, { maxBuffer: 1024 * 1024 * 10 }, (error, stdout, stderr) => {
+        try { fs.unlinkSync(tempImgPath); } catch (_) {}
+
+        if (error) {
+          console.error("Python OMR Error:", error, stderr);
+          return res.status(500).json({ error: "Gagal memproses gambar OMR di backend." });
+        }
+        
+        try {
+            const result = JSON.parse(stdout);
+            res.json(result);
+        } catch(e) {
+            console.error("Failed to parse Python JSON:", stdout);
+            res.status(500).json({ error: "Format respons dari AI OMR tidak valid." });
+        }
+      });
+      
     } catch (error) {
       next(error);
     }

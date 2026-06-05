@@ -54,6 +54,10 @@ export const nilaiService = {
     return apiGet(`/nilai/rapor${params ? '?' + params : ''}`);
   },
 
+  savePeringkatManual: async (data) => {
+    return apiPost('/nilai/peringkat-manual', data);
+  },
+
   saveRaporBulk: async (data) => {
     return apiPost('/nilai/rapor/bulk', data);
   },

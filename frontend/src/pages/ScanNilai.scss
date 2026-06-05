@@ -1,0 +1,230 @@
+.scan-nilai-page {
+  padding: 24px;
+  background: #f0f2f5;
+  min-height: calc(100vh - 64px);
+
+  .page-header {
+    display: flex;
+    align-items: center;
+    margin-bottom: 24px;
+    
+    .page-icon {
+      font-size: 32px;
+      color: #0052FF;
+      margin-right: 16px;
+      background: white;
+      padding: 12px;
+      border-radius: 8px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+    }
+  }
+
+  .main-card {
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+  }
+}
+
+/* Print Only Section */
+.print-only {
+  display: none;
+}
+
+@media print {
+  @page {
+    size: 215mm 330mm; /* F4 / Folio */
+    margin: 0;
+  }
+  
+  body {
+    background: white;
+    margin: 0;
+    padding: 0;
+  }
+  
+  /* Hide sidebar, header, and other layout elements globally */
+  .app-sidebar, .app-header, .sidebar, .header {
+    display: none !important;
+  }
+  
+  .app-main, .main-content, #root {
+    margin: 0 !important;
+    padding: 0 !important;
+    width: 100% !important;
+  }
+  
+  .no-print {
+    display: none !important;
+  }
+  .scan-nilai-page {
+    padding: 0 !important;
+    min-height: 0 !important;
+    background: transparent !important;
+  }
+
+  .print-only {
+    display: block; /* Chrome print has bugs with flex containers, use block */
+    width: 100%;
+    max-width: 195mm; /* Safe printable area, guarantees centering */
+    margin: 0 auto;
+    padding: 10mm 0 20mm 0; /* Memberikan ruang sedikit di atas agar tidak menabrak kotak hitam (marker) */
+    box-sizing: border-box;
+    position: relative;
+    background: white;
+    font-family: Arial, sans-serif;
+  }
+
+  /* Anchor markers for computer vision (Deskewing) */
+  .anchor-marker {
+    position: absolute;
+    width: 6mm;
+    height: 6mm;
+    background-color: black;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+  .marker-tl { top: 10mm; left: 0; }
+  .marker-tr { top: 10mm; right: 0; }
+  .marker-bl { bottom: 10mm; left: 0; }
+  .marker-br { bottom: 10mm; right: 0; }
+
+  /* ---------- HEADER CETAK ---------- */
+  .print-header {
+    text-align: center;
+    margin-bottom: 5px; /* Rapatkan */
+  }
+
+  .print-title {
+    text-align: center;
+    flex-grow: 1;
+    h1 { font-size: 15px; font-weight: bold; margin: 0; text-transform: uppercase; }
+    h2 { font-size: 11px; margin: 2px 0 0 0; font-weight: normal; }
+  }
+
+  .print-info-grid {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border: 2px solid #000;
+    padding: 5px 10px;
+    width: 100%;
+    margin-bottom: 5px; /* Rapatkan */
+    font-size: 11px;
+    box-sizing: border-box;
+  }
+  
+  .info-grid-col {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .info-item {
+    display: flex;
+    font-size: 11px;
+    font-weight: bold;
+    margin-bottom: 2px;
+  }
+
+  .info-label {
+    width: 90px;
+  }
+  
+  .info-colon {
+    width: 15px;
+    text-align: center;
+  }
+
+  .info-value {
+    flex: 1;
+  }
+  
+  .qr-col {
+    width: 90px;
+    text-align: right;
+  }
+
+  /* The actual grade table to scan */
+  .omr-table {
+    width: 100%;
+    border-collapse: collapse;
+    border: 2px solid #000;
+    margin: 0 auto;
+    page-break-inside: avoid; /* Force to fit on one page if possible */
+    table-layout: fixed; /* SANGAT KRUSIAL: Cegah browser mengubah lebar kolom agar koordinat AI akurat */
+  }
+
+  .omr-table th, .omr-table td {
+    border: 1.5px solid #000; /* Garis lebih tipis */
+    padding: 3px; /* Sedikit dirapatkan */
+    font-size: 11px;
+    overflow: hidden; /* Hindari konten meluber */
+  }
+  
+  .omr-table th {
+    text-align: center;
+    background-color: #eee;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  /* Define exact widths for cells so we can guess coordinates */
+  .col-no { width: 4%; text-align: center; }
+  .col-nama { width: 28%; } /* Sedikit dilebarkan untuk nama panjang */
+  .col-nilai { width: 38%; text-align: center; } 
+  .col-kehadiran-group { text-align: center; }
+  .col-kehadiran { width: 6%; text-align: center; }
+  .col-ttd { width: 18%; position: relative; vertical-align: top; } /* Dirapatkan */
+
+  .ttd-left {
+    position: absolute;
+    top: 2px;
+    left: 4px;
+    font-size: 10px;
+  }
+  
+  .ttd-right {
+    position: absolute;
+    top: 50%; /* Middle of the 2-row span */
+    left: 50%; /* Middle horizontally */
+    font-size: 10px;
+  }
+
+  /* OMR Bubbles styling */
+  .omr-bubble-container {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    width: 100%;
+    height: 22px;
+    padding: 0 4px;
+  }
+  
+  .omr-bubble {
+    width: 15px;
+    height: 15px;
+    border: 1px solid #000; /* Garis bulatan lebih tipis */
+    border-radius: 50%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-size: 8px;
+    font-weight: bold;
+    color: #000;
+  }
+  
+  .omr-separator {
+    width: 1.5px;
+    height: 18px;
+    background-color: #000;
+    margin: 0 2px;
+  }
+
+  .print-panduan {
+    margin-top: 4px;
+    padding: 3px;
+    border: 1px dashed #666;
+    font-size: 9px; /* Reduced font size */
+    text-align: center;
+  }
+}

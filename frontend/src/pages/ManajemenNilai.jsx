@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { 
   Tabs, Card, Select, Input, InputNumber, Button, Table, 
   Space, Tag, Typography, Divider, Empty, message, Popconfirm, Tooltip,
-  Row, Col, Badge, Segmented, Alert, Checkbox, Spin, Collapse, Radio
+  Row, Col, Badge, Segmented, Alert, Checkbox, Spin, Collapse, Radio, Modal
 } from 'antd';
 import { 
   SaveOutlined, ReloadOutlined, SettingOutlined, EditOutlined,
@@ -81,10 +81,12 @@ export const ManajemenNilai = ({ mode = 'input' }) => {
     }
   }, [santriList, activeSantriId, pendingConsoleOpen]);
 
-  // State Rekap Nilai
   const [rekapData, setRekapData] = useState([]);
   const [rekapColumns, setRekapColumns] = useState([]);
   const [rekapLoading, setRekapLoading] = useState(false);
+  const [isManualRankModalOpen, setIsManualRankModalOpen] = useState(false);
+  const [manualRankData, setManualRankData] = useState([]);
+  const [manualRankSaveLoading, setManualRankSaveLoading] = useState(false);
   
   // State Kriteria
   const [kriteriaConfig, setKriteriaConfig] = useState(null);
@@ -324,7 +326,8 @@ export const ManajemenNilai = ({ mode = 'input' }) => {
             nis: row.nis,
             nama: row.nama,
             total_nilai: 0,
-            mapel_count: 0
+            mapel_count: 0,
+            peringkat_manual: row.peringkat_manual
           };
         }
         
@@ -338,15 +341,8 @@ export const ManajemenNilai = ({ mode = 'input' }) => {
 
         if (isTaftisy) {
           displayValue = row.capaian || '-';
-          const score = taftisyScore(row.capaian);
-          pivoted[row.santri_id].total_nilai += score;
-          if(row.capaian) pivoted[row.santri_id].mapel_count++;
         } else if (isMuhafadzoh) {
           displayValue = row.predikat || (row.nilai_angka !== null ? Number(row.nilai_angka).toString() : '-');
-          const pred = row.predikat || displayValue;
-          const score = muhafadzohScore(pred);
-          pivoted[row.santri_id].total_nilai += score;
-          if(pred && pred !== '-') pivoted[row.santri_id].mapel_count++;
         } else if (row.jenis_mapel === 'Reguler' || isQiroat) {
           displayValue = row.nilai_angka !== null ? Number(row.nilai_angka).toString() : '-';
           if (row.nilai_angka !== null) {
@@ -369,7 +365,8 @@ export const ManajemenNilai = ({ mode = 'input' }) => {
       dataSource.sort((a, b) => b.total_nilai - a.total_nilai);
       // Assign Peringkat
       dataSource.forEach((item, idx) => {
-        item.peringkat = idx + 1;
+        item.peringkat_sistem = idx + 1;
+        item.peringkat = item.peringkat_manual || item.peringkat_sistem;
       });
 
       setRekapData(dataSource);
@@ -399,20 +396,12 @@ export const ManajemenNilai = ({ mode = 'input' }) => {
           render: (val, record) => {
             if (!val || val === '-') return <Text type="secondary">-</Text>;
             if (m.jenis === 'Muhafadzoh') {
-              const score = muhafadzohScore(val);
               let color = val === 'Mumtaz' ? 'gold' : val === 'Jayyid' ? 'green' : val === 'Mutawassith' ? 'blue' : 'default';
-              return <Space direction="vertical" size={0}>
-                <Tag color={color}>{val}</Tag>
-                <Text type="secondary" style={{fontSize: '11px'}}>({score})</Text>
-              </Space>;
+              return <Tag color={color}>{val}</Tag>;
             }
             if (m.jenis === 'Taftisy') {
-              const score = taftisyScore(val);
               let color = val === 'Tam' ? 'success' : 'error';
-              return <Space direction="vertical" size={0}>
-                <Tag color={color}>{val}</Tag>
-                <Text type="secondary" style={{fontSize: '11px'}}>({score})</Text>
-              </Space>;
+              return <Tag color={color}>{val}</Tag>;
             }
             return <Text strong>{val}</Text>;
           }
@@ -1530,6 +1519,13 @@ export const ManajemenNilai = ({ mode = 'input' }) => {
                 }
                 extra={
                   <Space>
+                    <Button
+                      type="primary"
+                      icon={<EditOutlined />}
+                      onClick={() => setIsManualRankModalOpen(true)}
+                    >
+                      Sesuaikan Peringkat
+                    </Button>
                     <Button 
                       type="default" 
                       icon={<FilePdfOutlined style={{ color: 'red' }} />}
@@ -1554,18 +1550,6 @@ export const ManajemenNilai = ({ mode = 'input' }) => {
                           allRekapMapels.forEach(m => headers.push(m.nama));
                           headers.push('Total', 'Rata-rata', 'Peringkat');
                   
-                          const muhafadzohScore = (predikat) => {
-                            if (predikat === 'Mumtaz') return 100;
-                            if (predikat === 'Jayyid') return 80;
-                            if (predikat === 'Mutawassith') return 60;
-                            if (predikat === "Rodi'") return 40;
-                            return 0;
-                          };
-                          const taftisyScore = (capaian) => {
-                            if (capaian === 'Tam') return 100;
-                            return 0;
-                          };
-                  
                           const body = rekapData.map((row, idx) => {
                             const rowData = [idx + 1, row.nis || '-', row.nama || '-'];
                             
@@ -1574,9 +1558,9 @@ export const ManajemenNilai = ({ mode = 'input' }) => {
                               if (!val || val === '-') {
                                 rowData.push('-');
                               } else if (m.jenis === 'Muhafadzoh') {
-                                rowData.push(`${val} (${muhafadzohScore(val)})`);
+                                rowData.push(`${val}`);
                               } else if (m.jenis === 'Taftisy') {
-                                rowData.push(`${val} (${taftisyScore(val)})`);
+                                rowData.push(`${val}`);
                               } else {
                                 rowData.push(val);
                               }
@@ -1956,6 +1940,103 @@ export const ManajemenNilai = ({ mode = 'input' }) => {
           <span>{autoSaveStatus === 'saving' ? 'Menyimpan...' : autoSaveStatus === 'saved' ? 'Tersimpan' : 'Gagal Menyimpan'}</span>
         </div>
       )}
+
+      {/* Manual Rank Modal */}
+      <Modal
+        title="Sesuaikan Peringkat Manual"
+        open={isManualRankModalOpen}
+        onCancel={() => {
+          setIsManualRankModalOpen(false);
+          setManualRankData([]);
+        }}
+        width={800}
+        footer={[
+          <Button key="cancel" onClick={() => setIsManualRankModalOpen(false)}>
+            Batal
+          </Button>,
+          <Button 
+            key="save" 
+            type="primary" 
+            loading={manualRankSaveLoading}
+            onClick={async () => {
+              try {
+                setManualRankSaveLoading(true);
+                const payload = manualRankData.filter(d => d.peringkat_manual !== undefined && d.peringkat_manual !== null && d.peringkat_manual !== '').map(d => ({
+                  santri_id: d.santri_id,
+                  peringkat_manual: d.peringkat_manual
+                }));
+                
+                // Fetch to backend API
+                await nilaiService.savePeringkatManual({
+                  tahun_ajaran_id: tahunAjaran.id,
+                  kategori_evaluasi_id: selectedKategori,
+                  data: payload
+                });
+                message.success('Peringkat kustom berhasil disimpan');
+                setIsManualRankModalOpen(false);
+                loadRekapData(); // reload rekap data
+              } catch (err) {
+                message.error('Gagal menyimpan peringkat');
+              } finally {
+                setManualRankSaveLoading(false);
+              }
+            }}
+          >
+            Simpan Peringkat
+          </Button>
+        ]}
+      >
+        <Alert 
+          message="Informasi" 
+          description="Mengubah peringkat di sini tidak akan merubah Total Nilai dan Rata-rata asli yang diolah sistem. Peringkat ini akan ditampilkan pada Rekap Nilai dan Rapor Santri." 
+          type="info" 
+          showIcon 
+          style={{ marginBottom: 16 }} 
+        />
+        <Table
+          dataSource={rekapData.map(r => {
+            const existing = manualRankData.find(m => m.santri_id === r.santri_id);
+            return {
+              ...r,
+              peringkat_manual_input: existing !== undefined ? existing.peringkat_manual : r.peringkat_manual
+            };
+          })}
+          rowKey="santri_id"
+          pagination={false}
+          size="small"
+          columns={[
+            { title: 'NIS', dataIndex: 'nis', width: 100 },
+            { title: 'Nama Santri', dataIndex: 'nama', width: 250 },
+            { title: 'Total Nilai', dataIndex: 'total_nilai', width: 100, align: 'center' },
+            { title: 'Peringkat Sistem', dataIndex: 'peringkat_sistem', width: 120, align: 'center' },
+            { 
+              title: 'Peringkat Manual', 
+              dataIndex: 'peringkat_manual_input', 
+              width: 150, 
+              align: 'center',
+              render: (val, record) => (
+                <InputNumber 
+                  min={1}
+                  value={val}
+                  placeholder="Isi angka"
+                  onChange={(v) => {
+                    setManualRankData(prev => {
+                      const clone = [...prev];
+                      const idx = clone.findIndex(d => d.santri_id === record.santri_id);
+                      if (idx >= 0) {
+                        clone[idx].peringkat_manual = v;
+                      } else {
+                        clone.push({ santri_id: record.santri_id, peringkat_manual: v });
+                      }
+                      return clone;
+                    });
+                  }}
+                />
+              )
+            }
+          ]}
+        />
+      </Modal>
     </div>
   );
 };

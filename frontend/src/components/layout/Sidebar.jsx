@@ -104,6 +104,7 @@ export function Sidebar({ collapsed, onCollapse }) {
         { key: '/guru', icon: <UserOutlined />, label: 'Data Guru', disabled: isStaff() },
         { key: '/nilai-pengaturan', icon: <SettingOutlined />, label: 'Pengaturan & Jadwal', disabled: isStaff() },
         { key: '/nilai', icon: <EditOutlined />, label: 'Input Penilaian', disabled: isStaff() },
+        { key: '/scan-nilai', icon: <CameraOutlined />, label: 'Manajemen Scan Nilai', disabled: isStaff() },
         { key: '/nilai-rekap', icon: <BookOutlined />, label: 'Rekap & Rapot', disabled: isStaff() },
         { key: '/laporan-ujian-khusus', icon: <BookOutlined />, label: 'Laporan Ujian Khusus', disabled: isStaff() },
         { key: '/kartu-ujian-semester', icon: <IdcardOutlined />, label: 'Kartu Ujian Semester', disabled: isStaff() },

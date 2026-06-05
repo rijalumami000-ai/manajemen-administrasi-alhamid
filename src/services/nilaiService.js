@@ -300,12 +300,14 @@ class NilaiService {
           s.id as santri_id, s.nama, s.nis, 
           n.mata_pelajaran_id,
           m.nama as nama_mapel, m.jenis as jenis_mapel,
-          n.nilai_angka, n.predikat, n.capaian
+          n.nilai_angka, n.predikat, n.capaian,
+          r.peringkat_manual
         FROM santri_tahun_ajaran sta
         JOIN santri s ON sta.santri_id = s.id
         LEFT JOIN nilai_santri n ON s.id = n.santri_id AND n.tahun_ajaran_id = $1
           AND n.kategori_evaluasi_id = $3
         LEFT JOIN mata_pelajaran m ON n.mata_pelajaran_id = m.id
+        LEFT JOIN rapor_santri r ON r.santri_id = s.id AND r.tahun_ajaran_id = $1 AND r.kategori_evaluasi_id = $3
         WHERE sta.kelas_diniyah_id = $2
           AND sta.tahun_ajaran_id = $1
           AND sta.status = 'aktif'
@@ -461,6 +463,31 @@ class NilaiService {
     }
   }
 
+  async savePeringkatManual(tahunAjaranId, kategoriId, dataList) {
+    const client = await db.pool.connect();
+    try {
+      await client.query('BEGIN');
+      for (const item of dataList) {
+        if (!item.santri_id) continue;
+        await client.query(
+          `INSERT INTO rapor_santri 
+            (santri_id, tahun_ajaran_id, kategori_evaluasi_id, peringkat_manual)
+           VALUES ($1, $2, $3, $4)
+           ON CONFLICT (santri_id, tahun_ajaran_id, kategori_evaluasi_id)
+           DO UPDATE SET peringkat_manual = EXCLUDED.peringkat_manual`,
+          [item.santri_id, tahunAjaranId, kategoriId, item.peringkat_manual]
+        );
+      }
+      await client.query('COMMIT');
+      return { success: true };
+    } catch (error) {
+      await client.query('ROLLBACK');
+      handleDatabaseError(error);
+    } finally {
+      client.release();
+    }
+  }
+
   async getCetakRapor(tahunAjaranId, kelasId, kategoriId, santriId) {
     try {
       // 1. Get Kelas Data
@@ -528,7 +555,8 @@ class NilaiService {
           pivoted[row.santri_id] = {
             santri_id: row.santri_id,
             total_nilai: 0,
-            mapel_count: 0
+            mapel_count: 0,
+            peringkat_manual: row.peringkat_manual
           };
         }
         if (row.jenis_mapel === 'Reguler' || row.jenis_mapel === 'Qiroah') {
@@ -536,21 +564,17 @@ class NilaiService {
             pivoted[row.santri_id].total_nilai += Number(row.nilai_angka);
             pivoted[row.santri_id].mapel_count++;
           }
-        } else if (row.jenis_mapel === 'Muhafadzoh') {
-          const score = muhafadzohScore(row.predikat);
-          pivoted[row.santri_id].total_nilai += score;
-          if (row.predikat && row.predikat !== '-') pivoted[row.santri_id].mapel_count++;
-        } else if (row.jenis_mapel === 'Taftisy') {
-          const score = taftisyScore(row.capaian);
-          pivoted[row.santri_id].total_nilai += score;
-          if (row.capaian) pivoted[row.santri_id].mapel_count++;
         }
       });
       const rekapArr = Object.values(pivoted);
       // Sort by total_nilai 
       rekapArr.sort((a, b) => b.total_nilai - a.total_nilai);
+      rekapArr.forEach((item, idx) => {
+        item.peringkat_sistem = idx + 1;
+        item.peringkat = item.peringkat_manual || item.peringkat_sistem;
+      });
       const rankIndex = rekapArr.findIndex(r => r.santri_id == santriId);
-      const peringkat = rankIndex >= 0 ? rankIndex + 1 : '-';
+      const peringkat = rankIndex >= 0 ? rekapArr[rankIndex].peringkat : '-';
       // Total and rata-rata 
       const totalNilai = rankIndex >= 0 ? rekapArr[rankIndex].total_nilai : 0;
       const rataRata = rankIndex >= 0 && rekapArr[rankIndex].mapel_count > 0 
