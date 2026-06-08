@@ -1,0 +1,143 @@
+@import '../../styles/variables-light.scss';
+
+.ui-datagrid {
+  background: $lt-bg-card;
+  border-radius: $lt-radius-lg;
+  border: 1px solid $lt-border-light;
+  box-shadow: $lt-shadow-sm;
+  overflow: hidden;
+
+  &.empty {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 200px;
+    padding: $lt-space-8;
+  }
+
+  .empty-state {
+    text-align: center;
+    &__icon {
+      font-size: 48px;
+      margin-bottom: $lt-space-3;
+      display: block;
+      opacity: 0.8;
+    }
+    &__text {
+      color: $lt-text-secondary;
+      font-size: $lt-text-base;
+    }
+  }
+
+  &__table-container {
+    width: 100%;
+    overflow-x: auto;
+    
+    &::-webkit-scrollbar {
+      height: 8px;
+    }
+    &::-webkit-scrollbar-thumb {
+      background: $lt-border-medium;
+      border-radius: $lt-radius-full;
+    }
+  }
+
+  table {
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0;
+    min-width: 800px;
+  }
+
+  thead {
+    background: $lt-bg-muted;
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    
+    th {
+      padding: 14px $lt-space-4;
+      font-size: 13px;
+      font-weight: 600;
+      color: $lt-text-tertiary;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      border-bottom: 1px solid $lt-border-default;
+      white-space: nowrap;
+      
+      &:first-child { padding-left: $lt-space-5; }
+      &:last-child { padding-right: $lt-space-5; }
+    }
+  }
+
+  tbody {
+    tr {
+      transition: background $lt-transition-fast;
+
+      &:not(:last-child) td {
+        border-bottom: 1px solid $lt-border-light;
+      }
+
+      &.clickable {
+        cursor: pointer;
+        &:hover {
+          background: $lt-bg-hover;
+        }
+      }
+    }
+
+    td {
+      padding: 16px $lt-space-4;
+      font-size: $lt-text-sm;
+      color: $lt-text-primary;
+      vertical-align: middle;
+
+      &:first-child { padding-left: $lt-space-5; }
+      &:last-child { padding-right: $lt-space-5; }
+    }
+  }
+}
+
+// Mobile responsive adaptation
+@media (max-width: 768px) {
+  .ui-datagrid {
+    &__table-container {
+      // Create a card-like layout for mobile
+      table, thead, tbody, th, td, tr {
+        display: block;
+      }
+      
+      thead {
+        display: none; // Hide headers on mobile
+      }
+      
+      tr {
+        padding: $lt-space-4;
+        border-bottom: 8px solid $lt-bg-muted;
+        background: $lt-bg-card;
+      }
+      
+      td {
+        padding: 8px 0;
+        border: none !important;
+        position: relative;
+        text-align: right !important;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+
+        &:first-child { padding-left: 0; }
+        &:last-child { padding-right: 0; }
+
+        &::before {
+          content: attr(data-label);
+          font-weight: 600;
+          color: $lt-text-tertiary;
+          font-size: 12px;
+          text-transform: uppercase;
+          text-align: left;
+        }
+      }
+    }
+  }
+}

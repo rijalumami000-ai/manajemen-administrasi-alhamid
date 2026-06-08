@@ -1,20 +1,20 @@
-import { useState } from 'react';
-import { Modal, Upload, Button, Table, Space, Alert, message as antMessage, Progress } from 'antd';
-import { InboxOutlined, DownloadOutlined, UploadOutlined } from '@ant-design/icons';
+import { useState, useRef } from 'react';
+import { Upload, Download, Inbox, AlertCircle, X, CheckCircle, FileSpreadsheet } from 'lucide-react';
 import { santriService } from '../../services/santriService';
 import { downloadTemplate } from '../../utils/exportUtils';
-
-const { Dragger } = Upload;
+import { CustomModal } from '../ui/CustomModal';
+import './ImportSantriModal.scss';
 
 export function ImportSantriModal({ isOpen, onClose, onSuccess, tahunAjaranId, tahunAjaranKode }) {
   const [file, setFile] = useState(null);
   const [isUploading, setIsUploading] = useState(false);
   const [result, setResult] = useState(null);
   const [isDragging, setIsDragging] = useState(false);
+  const fileInputRef = useRef(null);
 
   const handleUpload = async () => {
     if (!file) {
-      antMessage.warning('Pilih file terlebih dahulu');
+      alert('Pilih file terlebih dahulu');
       return;
     }
 
@@ -26,10 +26,9 @@ export function ImportSantriModal({ isOpen, onClose, onSuccess, tahunAjaranId, t
 
       const res = await santriService.importExcel(formData);
       setResult(res);
-      antMessage.success('Impor berhasil diselesaikan');
       if (onSuccess) onSuccess();
     } catch (err) {
-      antMessage.error(err.message || 'Gagal mengimpor data');
+      alert(err.message || 'Gagal mengimpor data');
     } finally {
       setIsUploading(false);
     }
@@ -65,126 +64,143 @@ export function ImportSantriModal({ isOpen, onClose, onSuccess, tahunAjaranId, t
     }
   };
 
-  const handleFile = (file) => {
-    const isExcel = file.type === 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' || file.type === 'application/vnd.ms-excel' || file.name.endsWith('.xlsx') || file.name.endsWith('.xls');
+  const handleFile = (selectedFile) => {
+    const isExcel = selectedFile.type === 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' || 
+                    selectedFile.type === 'application/vnd.ms-excel' || 
+                    selectedFile.name.endsWith('.xlsx') || 
+                    selectedFile.name.endsWith('.xls');
     if (!isExcel) {
-      antMessage.error(`${file.name} bukan file Excel.`);
+      alert(`${selectedFile.name} bukan file Excel.`);
       return;
     }
-    setFile(file);
+    setFile(selectedFile);
   };
 
   return (
-    <Modal
-      title={`Impor Data Santri - TA ${tahunAjaranKode}`}
+    <CustomModal
       open={isOpen}
-      onCancel={handleCancel}
-      footer={[
-        <Button key="cancel" onClick={handleCancel}>
-          {result ? 'Tutup' : 'Batal'}
-        </Button>,
-        !result && (
-          <Button 
-            key="submit" 
-            type="primary" 
-            onClick={handleUpload} 
-            loading={isUploading}
-            disabled={!file}
-          >
-            Mulai Impor
-          </Button>
-        ),
-      ]}
-      width={700}
+      onClose={handleCancel}
+      title={`Impor Data Santri - TA ${tahunAjaranKode || 'Aktif'}`}
+      subtitle="Tambahkan data santri secara massal via file Excel"
+      icon={<Upload />}
+      size="md"
+      destroyOnClose
     >
-      {!result ? (
-        <Space direction="vertical" style={{ width: '100%' }} size="middle">
-          <Alert
-            message="Petunjuk Impor"
-            description={
-              <ul>
+      <div className="import-santri-modal">
+        {!result ? (
+          <>
+            <div className="import-instructions">
+              <div className="instruction-header">
+                <AlertCircle size={18} />
+                <span>Petunjuk Impor</span>
+              </div>
+              <ul className="instruction-list">
                 <li>Gunakan template yang sudah disediakan agar format data sesuai.</li>
                 <li>Data dengan NIS yang sudah ada akan diperbarui (update).</li>
                 <li>Data baru akan ditambahkan ke database dan disinkronkan ke Tahun Ajaran terpilih.</li>
                 <li>Nama Kelas dan Kamar harus sama persis dengan yang ada di sistem (case-insensitive).</li>
               </ul>
-            }
-            type="info"
-            showIcon
-          />
-          
-          <div style={{ textAlign: 'center', marginBottom: 16 }}>
-            <Button 
-              icon={<DownloadOutlined />} 
-              onClick={downloadTemplate}
+            </div>
+
+            <div className="template-download">
+              <button type="button" className="btn-outline" onClick={downloadTemplate}>
+                <Download size={16} /> Download Template Excel
+              </button>
+            </div>
+
+            <div 
+              className={`upload-dropzone ${isDragging ? 'dragging' : ''} ${file ? 'has-file' : ''}`}
+              onDragOver={handleDragOver}
+              onDragLeave={handleDragLeave}
+              onDrop={handleDrop}
+              onClick={() => fileInputRef.current?.click()}
             >
-              Download Template Excel
-            </Button>
-          </div>
-
-          <div 
-            style={{ 
-              border: isDragging ? '2px dashed #1890ff' : '2px dashed #d9d9d9', 
-              borderRadius: 8, 
-              padding: '30px 20px', 
-              textAlign: 'center', 
-              backgroundColor: isDragging ? '#e6f7ff' : '#fafafa',
-              cursor: 'pointer'
-            }}
-            onDragOver={handleDragOver}
-            onDragLeave={handleDragLeave}
-            onDrop={handleDrop}
-            onClick={() => document.getElementById('excel-input').click()}
-          >
-            <p style={{ fontSize: 40, color: '#1890ff', marginBottom: 8 }}><InboxOutlined /></p>
-            <p style={{ margin: '0 0 4px 0' }}>Klik atau seret file ke area ini untuk mengunggah</p>
-            <p style={{ margin: 0, color: 'rgba(0,0,0,0.45)', fontSize: 12 }}>Hanya mendukung file .xlsx atau .xls</p>
-            <input
-              id="excel-input"
-              type="file"
-              style={{ display: 'none' }}
-              onChange={(e) => { if (e.target.files[0]) handleFile(e.target.files[0]); }}
-              accept=".xlsx, .xls"
-            />
-          </div>
-
-          {file && (
-            <div style={{ marginTop: 8, textAlign: 'center' }}>
-              <span style={{ color: '#1890ff' }}>File terpilih: <strong>{file.name}</strong></span>
-              <Button type="link" danger onClick={() => setFile(null)}>
-                Hapus
-              </Button>
+              {!file ? (
+                <>
+                  <Inbox size={48} className="dropzone-icon" />
+                  <h4>Klik atau seret file ke area ini untuk mengunggah</h4>
+                  <p>Hanya mendukung file .xlsx atau .xls</p>
+                </>
+              ) : (
+                <div className="selected-file">
+                  <FileSpreadsheet size={32} className="file-icon" />
+                  <div className="file-info">
+                    <span className="file-name">{file.name}</span>
+                    <span className="file-size">{(file.size / 1024).toFixed(1)} KB</span>
+                  </div>
+                </div>
+              )}
+              <input
+                ref={fileInputRef}
+                type="file"
+                style={{ display: 'none' }}
+                onChange={(e) => { if (e.target.files[0]) handleFile(e.target.files[0]); }}
+                accept=".xlsx, .xls"
+              />
             </div>
-          )}
-        </Space>
-      ) : (
-        <Space direction="vertical" style={{ width: '100%' }} size="middle">
-          <Alert
-            message="Hasil Impor Selesai"
-            description={
-              <div>
-                <p>Total Baris Diproses: <strong>{result.total}</strong></p>
-                <p>Berhasil Ditambah: <strong style={{ color: 'green' }}>{result.imported}</strong></p>
-                <p>Berhasil Diperbarui: <strong style={{ color: 'blue' }}>{result.updated}</strong></p>
-                <p>Gagal: <strong style={{ color: 'red' }}>{result.errors.length}</strong></p>
+
+            {file && (
+              <div className="file-actions">
+                <button type="button" className="btn-text-danger" onClick={() => setFile(null)}>
+                  <X size={16} /> Hapus File
+                </button>
               </div>
-            }
-            type={result.errors.length > 0 ? "warning" : "success"}
-            showIcon
-          />
+            )}
 
-          {result.errors.length > 0 && (
-            <div style={{ maxHeight: 200, overflow: 'auto', border: '1px solid #f0f0f0', padding: 8 }}>
-              <h4 style={{ color: 'red' }}>Daftar Kesalahan:</h4>
-              <ul style={{ color: 'red', fontSize: '12px' }}>
-                {result.errors.map((err, idx) => (
-                  <li key={idx}>{err}</li>
-                ))}
-              </ul>
+            <div className="modal-actions-right">
+              <button type="button" className="btn-secondary" onClick={handleCancel}>Batal</button>
+              <button 
+                type="button" 
+                className="btn-primary" 
+                onClick={handleUpload} 
+                disabled={!file || isUploading}
+              >
+                {isUploading ? <span className="loading-spinner"></span> : <><Upload size={16} /> Mulai Impor</>}
+              </button>
             </div>
-          )}
-        </Space>
-      )}
-    </Modal>
+          </>
+        ) : (
+          <div className="import-result">
+            <div className={`result-banner ${result.errors.length > 0 ? 'warning' : 'success'}`}>
+              {result.errors.length > 0 ? <AlertCircle size={24} /> : <CheckCircle size={24} />}
+              <div>
+                <h4>Hasil Impor Selesai</h4>
+                <p>Total Baris Diproses: <strong>{result.total}</strong></p>
+              </div>
+            </div>
+
+            <div className="result-stats">
+              <div className="stat-item success">
+                <span className="stat-label">Berhasil Ditambah</span>
+                <span className="stat-value">{result.imported}</span>
+              </div>
+              <div className="stat-item info">
+                <span className="stat-label">Berhasil Diperbarui</span>
+                <span className="stat-value">{result.updated}</span>
+              </div>
+              <div className="stat-item danger">
+                <span className="stat-label">Gagal</span>
+                <span className="stat-value">{result.errors.length}</span>
+              </div>
+            </div>
+
+            {result.errors.length > 0 && (
+              <div className="error-list-container">
+                <h5>Daftar Kesalahan:</h5>
+                <ul className="error-list">
+                  {result.errors.map((err, idx) => (
+                    <li key={idx}>{err}</li>
+                  ))}
+                </ul>
+              </div>
+            )}
+
+            <div className="modal-actions-right">
+              <button type="button" className="btn-primary" onClick={handleCancel}>Tutup</button>
+            </div>
+          </div>
+        )}
+      </div>
+    </CustomModal>
   );
 }

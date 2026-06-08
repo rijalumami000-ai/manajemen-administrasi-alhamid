@@ -1,14 +1,16 @@
-import { useState, useEffect } from 'react';
-import { Card, Button, Select, Table, Tag, DatePicker, Space, message, Typography, Row, Col } from 'antd';
-import { FileExcelOutlined, SearchOutlined, ReloadOutlined } from '@ant-design/icons';
+import { useState, useEffect, useMemo } from 'react';
+import { Select, message, Button } from 'antd';
+import { FileDown, RotateCcw, TrendingUp, Users, UserX, Target } from 'lucide-react';
 import { absensiSholatService } from '../services/absensiSholatService';
 import { santriService } from '../services/santriService';
-import { PageHeader, LoadingState } from '../components/common';
+import { DataGrid } from '../components/ui/DataGrid';
+import { PrayerCard } from '../components/ui/PrayerCard';
+import { StatusPill } from '../components/ui/StatusPill';
 import { exportToExcel } from '../utils/exportUtils';
+import './RekapAbsensiSholat.scss';
 
-const { RangePicker } = DatePicker;
 const { Option } = Select;
-const { Text, Title } = Typography;
+const API_BASE = import.meta.env.VITE_API_URL || '';
 
 export function RekapAbsensiSholat() {
   const [loading, setLoading] = useState(false);
@@ -50,11 +52,8 @@ export function RekapAbsensiSholat() {
       setKamarList(kamarData);
       setTahunAjaranList(taData);
       
-      // Set active tahun ajaran as default if available
       const activeTA = taData.find(ta => ta.status === 'aktif');
-      if (activeTA) {
-        setSelectedTahunAjaran(activeTA.id);
-      }
+      if (activeTA) setSelectedTahunAjaran(activeTA.id);
     } catch (error) {
       console.error('Failed to load filter data:', error);
       message.error('Gagal memuat data filter');
@@ -64,22 +63,13 @@ export function RekapAbsensiSholat() {
   const loadRecap = async () => {
     try {
       setLoading(true);
-      
       const startDate = `${selectedTahun}-${String(selectedBulan).padStart(2, '0')}-01`;
       const lastDay = new Date(selectedTahun, selectedBulan, 0).getDate();
       const endDate = `${selectedTahun}-${String(selectedBulan).padStart(2, '0')}-${String(lastDay).padStart(2, '0')}`;
       
       const result = await absensiSholatService.getAttendanceRecap(
-        startDate, 
-        endDate, 
-        selectedKelas,
-        selectedSholat,
-        selectedJenisKelamin,
-        selectedKamar,
-        selectedStatus,
-        selectedTahunAjaran
+        startDate, endDate, selectedKelas, selectedSholat, selectedJenisKelamin, selectedKamar, selectedStatus, selectedTahunAjaran
       );
-      
       setData(result);
     } catch (error) {
       console.error('Failed to load recap:', error);
@@ -93,7 +83,6 @@ export function RekapAbsensiSholat() {
     const dataToExport = data.map(item => {
       const d = new Date(item.tanggal);
       const formattedDate = `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}/${d.getFullYear()}`;
-      
       return {
         'Tanggal': formattedDate,
         'Waktu': new Date(item.waktu_scan).toLocaleTimeString('id-ID'),
@@ -106,267 +95,198 @@ export function RekapAbsensiSholat() {
         'Status': item.status
       };
     });
-    
     exportToExcel(dataToExport, `Rekap_Absensi_Sholat.xlsx`);
   };
 
+  // Stats calculation
+  const stats = useMemo(() => {
+    if (!data.length) return { hadir: 0, alfa: 0, total: 0, rate: 0 };
+    const hadir = data.filter(d => d.status === 'Hadir').length;
+    const alfa = data.filter(d => d.status === 'Alfa').length;
+    return {
+      hadir, alfa, total: data.length, rate: Math.round((hadir / data.length) * 100)
+    };
+  }, [data]);
+
   const columns = [
-    {
-      title: 'Tanggal',
-      dataIndex: 'tanggal',
-      key: 'tanggal',
-      render: (text) => {
-        const d = new Date(text);
-        return `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}/${d.getFullYear()}`;
+    { 
+      header: 'Waktu & Tanggal', 
+      accessor: (row) => {
+        const d = new Date(row.tanggal);
+        const dateStr = `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}/${d.getFullYear()}`;
+        return (
+          <div className="table-time-info">
+            <span className="time">{new Date(row.waktu_scan).toLocaleTimeString('id-ID')}</span>
+            <span className="date">{dateStr}</span>
+          </div>
+        );
       },
+      width: '150px'
     },
-    {
-      title: 'Waktu',
-      dataIndex: 'waktu_scan',
-      key: 'waktu_scan',
-      render: (text) => new Date(text).toLocaleTimeString('id-ID'),
+    { 
+      header: 'Santri', 
+      accessor: (row) => (
+        <div className="table-profile">
+          <div className="table-profile-info">
+            <span className="name">{row.santri_nama}</span>
+            <span className="meta">{row.kelas_nama || '-'} • {row.kamar_nama || '-'}</span>
+          </div>
+        </div>
+      )
     },
-    {
-      title: 'Nama Santri',
-      dataIndex: 'santri_nama',
-      key: 'santri_nama',
+    { 
+      header: 'Gender', 
+      accessor: (row) => <span className={`gender-badge ${row.jenis_kelamin === 'Laki-laki' ? 'm' : 'f'}`}>{row.jenis_kelamin === 'Laki-laki' ? 'L' : 'P'}</span>,
+      width: '100px'
     },
-    {
-      title: 'NIS',
-      dataIndex: 'santri_nis',
-      key: 'santri_nis',
-    },
-    {
-      title: 'JK',
-      dataIndex: 'jenis_kelamin',
-      key: 'jenis_kelamin',
-      render: (text) => text === 'Laki-laki' ? 'L' : 'P',
-    },
-    {
-      title: 'Kelas',
-      dataIndex: 'kelas_nama',
-      key: 'kelas_nama',
-      render: (text) => text || '-',
-    },
-    {
-      title: 'Kamar',
-      dataIndex: 'kamar_nama',
-      key: 'kamar_nama',
-      render: (text) => text || '-',
-    },
-    {
-      title: 'Sholat',
-      dataIndex: 'sholat',
-      key: 'sholat',
-      render: (sholat) => <Tag color="blue">{sholat}</Tag>,
-    },
-    {
-      title: 'Status',
-      dataIndex: 'status',
-      key: 'status',
-      render: (status) => (
-        <Tag color={status === 'Hadir' ? 'green' : 'red'}>{status}</Tag>
-      ),
-    },
+    { header: 'Sholat', accessor: 'sholat', width: '120px' },
+    { header: 'Status', accessor: (row) => <StatusPill status={row.status} active />, width: '150px' }
   ];
 
   return (
-    <div style={{ padding: '24px' }}>
+    <div className="rekap-dashboard">
+      <div className="rekap-header">
+        <div className="header-top">
+          <div className="title-area">
+            <h1>Analytics & Rekapitulasi</h1>
+            <p>Pantau kehadiran sholat berjamaah secara komprehensif</p>
+          </div>
+          <div className="action-area">
+            <button className="btn-export" onClick={handleExportExcel} disabled={data.length === 0}>
+              <FileDown size={18} /> Ekspor Laporan Excel
+            </button>
+          </div>
+        </div>
 
-      <PageHeader
-        title="Rekap Absensi Sholat"
-        subtitle="Pantau kehadiran sholat berjamaah santri"
-        extra={
-          <Button
-            type="primary"
-            icon={<FileExcelOutlined />}
-            onClick={handleExportExcel}
-            disabled={data.length === 0}
-          >
-            Ekspor Excel
-          </Button>
-        }
-      />
-
-      {/* Kartu Waktu Sholat (Proporsional) */}
-      <div style={{ display: 'flex', gap: '12px', marginBottom: '16px', marginTop: '16px' }}>
-        {sholatOptions.map(s => (
-          <Card
-            key={s}
-            hoverable
-            style={{
-              flex: 1,
-              textAlign: 'center',
-              borderColor: selectedSholat === s ? '#1677ff' : '#d9d9d9',
-              background: selectedSholat === s ? '#e6f4ff' : '#fff',
-              borderWidth: selectedSholat === s ? '2px' : '1px',
-              transition: 'all 0.3s'
-            }}
-            onClick={() => {
-              const newValue = selectedSholat === s ? null : s;
-              setSelectedSholat(newValue);
-            }}
-          >
-            <Title level={4} style={{ margin: 0, color: selectedSholat === s ? '#1677ff' : '#1677ff' }}>
-              {s}
-            </Title>
-            <Text style={{ fontSize: '12px', color: selectedSholat === s ? '#1677ff' : '#8c8c8c' }}>
-              {selectedSholat === s ? 'Terpilih' : 'Klik untuk filter'}
-            </Text>
-          </Card>
-        ))}
-      </div>
-
-      {/* Kartu Status Kehadiran (Minimalis) */}
-      <div style={{ display: 'flex', gap: '8px', marginBottom: '16px', flexWrap: 'wrap' }}>
-        {statusOptions.map(s => (
-          <Card
-            key={s}
-            hoverable
-            style={{
-              flex: '1 1 auto',
-              minWidth: '100px',
-              textAlign: 'center',
-              borderColor: selectedStatus === s ? '#52c41a' : '#d9d9d9',
-              background: selectedStatus === s ? '#f6ffed' : '#fff',
-              transition: 'all 0.3s'
-            }}
-            onClick={() => {
-              const newValue = selectedStatus === s ? null : s;
-              setSelectedStatus(newValue);
-            }}
-          >
-            <div style={{ fontWeight: 'bold', color: selectedStatus === s ? '#52c41a' : 'inherit' }}>
-              {s}
+        <div className="stats-grid">
+          <div className="stat-card">
+            <div className="icon-wrap primary"><Target size={24}/></div>
+            <div className="stat-info">
+              <span className="label">Total Record</span>
+              <span className="value">{stats.total}</span>
             </div>
-          </Card>
-        ))}
+          </div>
+          <div className="stat-card">
+            <div className="icon-wrap success"><TrendingUp size={24}/></div>
+            <div className="stat-info">
+              <span className="label">Kehadiran (Rate)</span>
+              <span className="value">{stats.rate}%</span>
+            </div>
+          </div>
+          <div className="stat-card">
+            <div className="icon-wrap info"><Users size={24}/></div>
+            <div className="stat-info">
+              <span className="label">Total Hadir</span>
+              <span className="value">{stats.hadir}</span>
+            </div>
+          </div>
+          <div className="stat-card">
+            <div className="icon-wrap error"><UserX size={24}/></div>
+            <div className="stat-info">
+              <span className="label">Total Alfa</span>
+              <span className="value">{stats.alfa}</span>
+            </div>
+          </div>
+        </div>
       </div>
 
-      {/* Filter Area */}
-      <Card style={{ marginBottom: '16px' }}>
-        <Space wrap size="middle">
-          <div>
-            <Text strong style={{ marginRight: '8px' }}>Tahun Ajaran:</Text>
-            <Select
-              placeholder="Pilih TA"
-              style={{ width: '120px' }}
-              value={selectedTahunAjaran}
-              onChange={setSelectedTahunAjaran}
-              allowClear
-            >
-              {tahunAjaranList.map((ta) => (
-                <Option key={ta.id} value={ta.id}>{ta.kode}</Option>
+      <div className="rekap-content">
+        <div className="filter-sidebar">
+          <h3>Filter Data</h3>
+          
+          <div className="filter-group">
+            <label>Waktu Sholat</label>
+            <div className="prayer-filter-grid">
+              {sholatOptions.map(s => (
+                <PrayerCard 
+                  key={s} name={s} 
+                  active={selectedSholat === s} 
+                  onClick={() => setSelectedSholat(selectedSholat === s ? null : s)} 
+                />
               ))}
-            </Select>
+            </div>
           </div>
 
-
-
-          <div>
-            <Text strong style={{ marginRight: '8px' }}>Bulan:</Text>
-            <Select
-              value={selectedBulan}
-              onChange={setSelectedBulan}
-              style={{ width: '120px' }}
-            >
-              {['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'].map((m, i) => (
-                <Option key={i + 1} value={i + 1}>{m}</Option>
+          <div className="filter-group">
+            <label>Status Kehadiran</label>
+            <div className="status-filter-wrap">
+              {statusOptions.map(s => (
+                <StatusPill 
+                  key={s} status={s} 
+                  active={selectedStatus === s} 
+                  onClick={() => setSelectedStatus(selectedStatus === s ? null : s)} 
+                />
               ))}
+            </div>
+          </div>
+
+          <div className="filter-group">
+            <label>Bulan & Tahun</label>
+            <div className="split-selects">
+              <Select value={selectedBulan} onChange={setSelectedBulan} style={{ flex: 1 }}>
+                {['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Ags', 'Sep', 'Okt', 'Nov', 'Des'].map((m, i) => (
+                  <Option key={i + 1} value={i + 1}>{m}</Option>
+                ))}
+              </Select>
+              <Select value={selectedTahun} onChange={setSelectedTahun} style={{ width: 90 }}>
+                {[2025, 2026, 2027].map(y => <Option key={y} value={y}>{y}</Option>)}
+              </Select>
+            </div>
+          </div>
+
+          <div className="filter-group">
+            <label>Tahun Ajaran</label>
+            <Select placeholder="Pilih TA" value={selectedTahunAjaran} onChange={setSelectedTahunAjaran} allowClear style={{ width: '100%' }}>
+              {tahunAjaranList.map((ta) => <Option key={ta.id} value={ta.id}>{ta.kode}</Option>)}
             </Select>
           </div>
 
-          <div>
-            <Text strong style={{ marginRight: '8px' }}>Tahun:</Text>
-            <Select
-              value={selectedTahun}
-              onChange={setSelectedTahun}
-              style={{ width: '100px' }}
-            >
-              {[2025, 2026, 2027].map(y => (
-                <Option key={y} value={y}>{y}</Option>
-              ))}
+          <div className="filter-group">
+            <label>Kelas</label>
+            <Select placeholder="Pilih Kelas" allowClear onChange={setSelectedKelas} value={selectedKelas} style={{ width: '100%' }}>
+              {kelasList.map((k) => <Option key={k.id} value={k.id}>{k.nama}</Option>)}
             </Select>
           </div>
 
-          <div>
-            <Text strong style={{ marginRight: '8px' }}>JK:</Text>
-            <Select
-              placeholder="Semua"
-              style={{ width: '100px' }}
-              allowClear
-              onChange={setSelectedJenisKelamin}
-            >
-              <Option value="Laki-laki">L</Option>
-              <Option value="Perempuan">P</Option>
+          <div className="filter-group">
+            <label>Kamar</label>
+            <Select placeholder="Pilih Kamar" allowClear onChange={setSelectedKamar} value={selectedKamar} style={{ width: '100%' }}>
+              {kamarList.map((k) => <Option key={k.id} value={k.id}>{k.nama}</Option>)}
             </Select>
           </div>
 
-          <div>
-            <Text strong style={{ marginRight: '8px' }}>Kelas:</Text>
-            <Select
-              placeholder="Pilih Kelas"
-              style={{ width: '150px' }}
-              allowClear
-              onChange={setSelectedKelas}
-            >
-              {kelasList.map((k) => (
-                <Option key={k.id} value={k.id}>{k.nama}</Option>
-              ))}
+          <div className="filter-group">
+            <label>Jenis Kelamin</label>
+            <Select placeholder="Semua" allowClear onChange={setSelectedJenisKelamin} value={selectedJenisKelamin} style={{ width: '100%' }}>
+              <Option value="Laki-laki">Laki-laki</Option>
+              <Option value="Perempuan">Perempuan</Option>
             </Select>
           </div>
 
-          <div>
-            <Text strong style={{ marginRight: '8px' }}>Kamar:</Text>
-            <Select
-              placeholder="Pilih Kamar"
-              style={{ width: '150px' }}
-              allowClear
-              onChange={setSelectedKamar}
-            >
-              {kamarList.map((k) => (
-                <Option key={k.id} value={k.id}>{k.nama}</Option>
-              ))}
-            </Select>
-          </div>
-
-
-
-          <Button
-            icon={<ReloadOutlined />}
+          <button 
+            className="btn-reset" 
             onClick={() => {
-              setDateRange([null, null]);
-              setSelectedKelas(null);
-              setSelectedKamar(null);
-              setSelectedJenisKelamin(null);
-              setSelectedSholat(null);
-              // Keep active TA
+              setSelectedKelas(null); setSelectedKamar(null); setSelectedJenisKelamin(null);
+              setSelectedSholat(null); setSelectedStatus(null);
               const activeTA = tahunAjaranList.find(ta => ta.status === 'aktif');
               if (activeTA) setSelectedTahunAjaran(activeTA.id);
-              
-              setTimeout(() => loadRecap(), 0);
             }}
           >
-            Reset
-          </Button>
-        </Space>
-      </Card>
+            <RotateCcw size={16} /> Reset Filter
+          </button>
+        </div>
 
-      {/* Table Area */}
-      <Card>
-        <Table
-          dataSource={data}
-          columns={columns}
-          rowKey="id"
-          loading={loading}
-          pagination={{ 
-            pageSize: 20,
-            showSizeChanger: true,
-            showTotal: (total) => `Total ${total} data`
-          }}
-          size="middle"
-        />
-      </Card>
+        <div className="data-area">
+          <div className="data-table-wrap">
+            <DataGrid 
+              data={data} 
+              columns={columns} 
+              loading={loading}
+              emptyText="Tidak ada data untuk filter yang dipilih"
+            />
+          </div>
+        </div>
+      </div>
     </div>
   );
 }

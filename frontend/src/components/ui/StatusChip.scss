@@ -1,0 +1,64 @@
+@import '../../styles/variables-light.scss';
+
+.ui-status-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  border-radius: $lt-radius-full;
+  font-family: $lt-font-sans;
+  font-weight: 500;
+  white-space: nowrap;
+  transition: all $lt-transition-fast;
+
+  &.size-sm {
+    padding: 3px 10px;
+    font-size: $lt-text-xs;
+  }
+
+  &.size-md {
+    padding: 5px 14px;
+    font-size: $lt-text-sm;
+  }
+
+  &.active {
+    background: $lt-success-light;
+    color: darken($lt-success, 5%);
+    border: 1px solid $lt-success-border;
+
+    .status-chip__dot {
+      background: $lt-success;
+      box-shadow: 0 0 6px rgba($lt-success, 0.4);
+    }
+  }
+
+  &.inactive {
+    background: #F8FAFC;
+    color: $lt-text-tertiary;
+    border: 1px solid $lt-border-default;
+
+    .status-chip__dot {
+      background: $lt-text-disabled;
+    }
+  }
+
+  &:hover {
+    transform: translateY(-1px);
+  }
+}
+
+.status-chip__dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.status-chip__icon {
+  font-size: 12px;
+  line-height: 1;
+  display: flex;
+}
+
+.status-chip__label {
+  line-height: 1.2;
+}

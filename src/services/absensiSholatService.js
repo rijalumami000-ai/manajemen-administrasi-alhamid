@@ -221,6 +221,69 @@ async function identifySantriByPalm(palmDescriptor) {
 }
 
 /**
+ * Identify santri by QR Code
+ * @param {string} qrCode 
+ * @returns {Promise<Object|null>}
+ */
+async function identifySantriByQR(qrCode) {
+  try {
+    const santriResult = await db.query(
+      `SELECT s.id, s.nama, s.nis, s.foto_url, k.nama as kelas 
+       FROM santri s
+       LEFT JOIN kelas k ON s.kelas_diniyah_id = k.id
+       WHERE s.qr_code = $1`,
+      [qrCode]
+    );
+    return santriResult.rows[0] || null;
+  } catch (error) {
+    console.error('Error in identifySantriByQR:', error);
+    throw new AppError('Gagal mengidentifikasi QR Code', 500);
+  }
+}
+
+/**
+ * Identify santri by NFC UID
+ * @param {string} nfcUid 
+ * @returns {Promise<Object|null>}
+ */
+async function identifySantriByNFC(nfcUid) {
+  try {
+    const santriResult = await db.query(
+      `SELECT s.id, s.nama, s.nis, s.foto_url, k.nama as kelas 
+       FROM santri s
+       LEFT JOIN kelas k ON s.kelas_diniyah_id = k.id
+       WHERE s.nfc_uid = $1`,
+      [nfcUid]
+    );
+    return santriResult.rows[0] || null;
+  } catch (error) {
+    console.error('Error in identifySantriByNFC:', error);
+    throw new AppError('Gagal mengidentifikasi NFC', 500);
+  }
+}
+
+/**
+ * Identify santri by Fingerprint ID
+ * @param {string} fingerprintId 
+ * @returns {Promise<Object|null>}
+ */
+async function identifySantriByFingerprint(fingerprintId) {
+  try {
+    const santriResult = await db.query(
+      `SELECT s.id, s.nama, s.nis, s.foto_url, k.nama as kelas 
+       FROM santri s
+       LEFT JOIN kelas k ON s.kelas_diniyah_id = k.id
+       WHERE s.fingerprint_id = $1`,
+      [fingerprintId]
+    );
+    return santriResult.rows[0] || null;
+  } catch (error) {
+    console.error('Error in identifySantriByFingerprint:', error);
+    throw new AppError('Gagal mengidentifikasi Fingerprint', 500);
+  }
+}
+
+/**
  * Record attendance for a prayer
  * @param {number} santriId 
  * @param {string} sholat - Subuh, Dzuhur, Ashar, Maghrib, Isya
@@ -363,5 +426,8 @@ module.exports = {
   recordAttendance,
   getTodayAttendance,
   getAttendanceRecap,
-  getUnattendedSantri
+  getUnattendedSantri,
+  identifySantriByQR,
+  identifySantriByNFC,
+  identifySantriByFingerprint
 };

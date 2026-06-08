@@ -1,0 +1,76 @@
+@import '../../styles/variables-light.scss';
+
+.photo-upload-modal {
+  display: flex;
+  flex-direction: column;
+  gap: $lt-space-4;
+}
+
+.upload-dropzone {
+  border: 2px dashed $lt-border-medium;
+  border-radius: $lt-radius-lg;
+  padding: $lt-space-8 $lt-space-4;
+  text-align: center;
+  cursor: pointer;
+  background: $lt-bg-muted;
+  transition: all $lt-transition-fast;
+
+  &:hover {
+    border-color: $lt-primary;
+    background: $lt-primary-light;
+  }
+
+  &__icon {
+    color: $lt-primary;
+    margin-bottom: $lt-space-3;
+  }
+
+  h4 {
+    margin: 0 0 $lt-space-2;
+    font-size: $lt-text-base;
+    color: $lt-text-primary;
+    font-weight: 600;
+  }
+
+  p {
+    margin: 0;
+    font-size: $lt-text-sm;
+    color: $lt-text-secondary;
+  }
+
+  .hidden-input {
+    display: none;
+  }
+}
+
+.crop-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: $lt-space-4;
+
+  .ReactCrop {
+    max-width: 100%;
+    max-height: 50vh;
+    border-radius: $lt-radius-md;
+    overflow: hidden;
+    box-shadow: $lt-shadow-md;
+  }
+
+  .crop-image {
+    max-width: 100%;
+    max-height: 50vh;
+    object-fit: contain;
+  }
+}
+
+.crop-actions {
+  display: flex;
+  width: 100%;
+  gap: $lt-space-3;
+  justify-content: space-between;
+
+  button {
+    flex: 1;
+  }
+}

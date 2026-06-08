@@ -146,6 +146,48 @@ function registerAbsensiSholatRoutes(app) {
   }));
 
   /**
+   * POST /api/absensi-sholat/scan-qr
+   */
+  app.post('/api/absensi-sholat/scan-qr', asyncHandler(async (req, res) => {
+    const { qrCode, sholat } = req.body;
+    if (!qrCode || !sholat) return res.status(400).json({ error: 'QR Code dan sholat harus diisi' });
+    
+    const match = await absensiSholatService.identifySantriByQR(qrCode);
+    if (!match) return res.status(404).json({ success: false, message: 'QR Code tidak dikenali' });
+    
+    const attendanceResult = await absensiSholatService.recordAttendance(match.id, sholat, 'Hadir');
+    res.json({ success: true, match, attendanceId: attendanceResult.id });
+  }));
+
+  /**
+   * POST /api/absensi-sholat/scan-nfc
+   */
+  app.post('/api/absensi-sholat/scan-nfc', asyncHandler(async (req, res) => {
+    const { nfcUid, sholat } = req.body;
+    if (!nfcUid || !sholat) return res.status(400).json({ error: 'NFC UID dan sholat harus diisi' });
+    
+    const match = await absensiSholatService.identifySantriByNFC(nfcUid);
+    if (!match) return res.status(404).json({ success: false, message: 'Kartu NFC tidak dikenali' });
+    
+    const attendanceResult = await absensiSholatService.recordAttendance(match.id, sholat, 'Hadir');
+    res.json({ success: true, match, attendanceId: attendanceResult.id });
+  }));
+
+  /**
+   * POST /api/absensi-sholat/scan-fingerprint
+   */
+  app.post('/api/absensi-sholat/scan-fingerprint', asyncHandler(async (req, res) => {
+    const { fingerprintId, sholat } = req.body;
+    if (!fingerprintId || !sholat) return res.status(400).json({ error: 'Fingerprint ID dan sholat harus diisi' });
+    
+    const match = await absensiSholatService.identifySantriByFingerprint(fingerprintId);
+    if (!match) return res.status(404).json({ success: false, message: 'Sidik Jari tidak dikenali' });
+    
+    const attendanceResult = await absensiSholatService.recordAttendance(match.id, sholat, 'Hadir');
+    res.json({ success: true, match, attendanceId: attendanceResult.id });
+  }));
+
+  /**
    * POST /api/absensi-sholat/manual
    * Body: { santriId, sholat, status, keterangan }
    * Returns: { success, id }

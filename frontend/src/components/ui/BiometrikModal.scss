@@ -1,0 +1,172 @@
+@import '../../styles/variables-light.scss';
+
+.biometrik-modal {
+  display: flex;
+  flex-direction: column;
+}
+
+.bio-tabs {
+  display: flex;
+  gap: $lt-space-2;
+  margin-bottom: $lt-space-5;
+  border-bottom: 1px solid $lt-border-light;
+  padding-bottom: $lt-space-3;
+}
+
+.bio-tab {
+  display: flex;
+  align-items: center;
+  gap: $lt-space-2;
+  padding: 8px 16px;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: $lt-radius-md;
+  color: $lt-text-secondary;
+  font-size: $lt-text-sm;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all $lt-transition-fast;
+
+  &:hover {
+    background: $lt-bg-hover;
+    color: $lt-text-primary;
+  }
+
+  &.active {
+    background: $lt-primary-light;
+    color: $lt-primary;
+    border-color: $lt-primary-border;
+  }
+}
+
+.bio-pane {
+  display: flex;
+  flex-direction: column;
+  gap: $lt-space-5;
+
+  &__header {
+    text-align: center;
+    h4 {
+      margin: 0 0 $lt-space-2;
+      font-size: $lt-text-base;
+      color: $lt-text-primary;
+    }
+    p {
+      margin: 0;
+      font-size: $lt-text-sm;
+      color: $lt-text-secondary;
+    }
+  }
+
+  &__actions {
+    margin-top: $lt-space-4;
+  }
+}
+
+.qr-display-box {
+  display: flex;
+  justify-content: center;
+  padding: $lt-space-4;
+  background: $lt-bg-muted;
+  border-radius: $lt-radius-lg;
+  border: 1px solid $lt-border-light;
+
+  .qr-wrapper {
+    background: white;
+    padding: $lt-space-4;
+    border-radius: $lt-radius-md;
+    box-shadow: $lt-shadow-sm;
+  }
+}
+
+.scanner-box {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: $lt-space-5;
+  padding: $lt-space-6 $lt-space-4;
+  background: $lt-bg-muted;
+  border-radius: $lt-radius-lg;
+  border: 1px solid $lt-border-light;
+}
+
+.scanner-animation {
+  position: relative;
+  width: 80px;
+  height: 80px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: $lt-text-tertiary;
+  transition: all $lt-transition-smooth;
+
+  .ripple {
+    position: absolute;
+    inset: -10px;
+    border-radius: 50%;
+    border: 2px solid $lt-primary;
+    opacity: 0;
+    transform: scale(0.8);
+  }
+
+  &.detected {
+    color: $lt-primary;
+    
+    .ripple {
+      animation: rippleEffect 1.5s infinite;
+    }
+  }
+}
+
+@keyframes rippleEffect {
+  0% { opacity: 0.8; transform: scale(0.8); }
+  100% { opacity: 0; transform: scale(1.5); }
+}
+
+.scanner-input {
+  width: 100%;
+  max-width: 300px;
+  padding: 12px 16px;
+  text-align: center;
+  border: 2px solid $lt-border-medium;
+  border-radius: $lt-radius-md;
+  background: $lt-bg-input;
+  font-size: $lt-text-base;
+  color: $lt-text-primary;
+  transition: all $lt-transition-fast;
+
+  &:focus {
+    outline: none;
+    border-color: $lt-primary;
+    box-shadow: 0 0 0 3px $lt-primary-light;
+  }
+}
+
+.status-banner {
+  padding: 12px 16px;
+  border-radius: $lt-radius-md;
+  text-align: center;
+  font-size: $lt-text-sm;
+  font-weight: 500;
+
+  &.success {
+    background: $lt-success-light;
+    color: darken($lt-success, 10%);
+    border: 1px solid $lt-success-border;
+  }
+}
+
+.current-id-text {
+  text-align: center;
+  margin-top: $lt-space-3;
+  font-size: $lt-text-sm;
+  color: $lt-text-secondary;
+
+  strong {
+    color: $lt-text-primary;
+    background: $lt-bg-muted;
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-family: $lt-font-mono;
+  }
+}

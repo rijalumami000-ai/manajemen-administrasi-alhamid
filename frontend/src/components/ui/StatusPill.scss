@@ -1,0 +1,58 @@
+@import '../../styles/variables-light.scss';
+
+.status-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: $lt-space-1;
+  padding: 4px 10px;
+  border-radius: $lt-radius-full;
+  font-size: 12px;
+  font-weight: 600;
+  border: 1px solid transparent;
+  cursor: pointer;
+  transition: all $lt-transition-fast;
+  background: $lt-bg-hover;
+  color: $lt-text-secondary;
+
+  &:hover {
+    filter: brightness(0.95);
+  }
+
+  &.active {
+    &.status-pill--success {
+      background: $lt-success-light;
+      color: darken($lt-success, 10%);
+      border-color: $lt-success-border;
+    }
+    &.status-pill--error {
+      background: $lt-error-light;
+      color: darken($lt-error, 10%);
+      border-color: $lt-error-border;
+    }
+    &.status-pill--warning {
+      background: $lt-warning-light;
+      color: darken($lt-warning, 15%);
+      border-color: $lt-warning-border;
+    }
+    &.status-pill--info {
+      background: $lt-info-light;
+      color: darken($lt-info, 10%);
+      border-color: $lt-info-border;
+    }
+    &.status-pill--pink {
+      background: #FDF2F8;
+      color: #DB2777;
+      border-color: #FBCFE8;
+    }
+    &.status-pill--default {
+      background: $lt-bg-active;
+      color: $lt-text-primary;
+      border-color: $lt-border-medium;
+    }
+  }
+
+  &:not(.active) {
+    opacity: 0.8;
+    &:hover { opacity: 1; }
+  }
+}

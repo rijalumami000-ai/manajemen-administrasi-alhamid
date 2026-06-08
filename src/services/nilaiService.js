@@ -528,7 +528,17 @@ class NilaiService {
         FROM nilai_santri n
         JOIN mata_pelajaran m ON n.mata_pelajaran_id = m.id
         WHERE n.santri_id = $1 AND n.tahun_ajaran_id = $2 AND n.kategori_evaluasi_id = $3
-      `, [santriId, tahunAjaranId, kategoriId]);
+          AND (
+            m.jenis != 'Reguler'
+            OR EXISTS (
+              SELECT 1 FROM mapel_tingkat mt
+              WHERE mt.mata_pelajaran_id = m.id
+                AND mt.tingkat = $4
+                AND (mt.tahun_ajaran_id = $2 OR mt.tahun_ajaran_id IS NULL)
+                AND (mt.kategori_evaluasi_id = $3 OR mt.kategori_evaluasi_id IS NULL)
+            )
+          )
+      `, [santriId, tahunAjaranId, kategoriId, kelasData.tingkat]);
       const nilaiList = nilaiRes.rows;
 
       // 7. Get Rekap Data to find Peringkat and Total (Call existing method)

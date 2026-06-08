@@ -92,7 +92,8 @@ function registerBukuIndukRoutes(app) {
           km.nama AS nama_kamar,
           o.nama_ayah, o.nama_ibu, o.no_hp_ayah, o.no_hp_ibu,
           o.pekerjaan_ayah, o.pekerjaan_ibu,
-          CASE WHEN sfd.santri_id IS NOT NULL THEN TRUE ELSE FALSE END AS is_face_registered
+          CASE WHEN sfd.santri_id IS NOT NULL THEN TRUE ELSE FALSE END AS is_face_registered,
+          s.qr_code, s.nfc_uid, s.fingerprint_id
         FROM santri s
         LEFT JOIN kelas kd ON s.kelas_diniyah_id = kd.id
         LEFT JOIN kelas ks ON s.kelas_sekolah_id = ks.id
@@ -392,6 +393,39 @@ function registerBukuIndukRoutes(app) {
     } catch (err) {
       console.error('Error upload aset:', err);
       res.status(500).json({ error: 'Gagal menyimpan aset.' });
+    }
+  });
+
+  // === BUKU INDUK: REGISTRASI BIOMETRIK (QR, NFC, Fingerprint) ===
+  app.post('/api/buku-induk/:id/biometrik', async (req, res) => {
+    const { id } = req.params;
+    const { type, data } = req.body;
+    // type: 'qr_code', 'nfc_uid', 'fingerprint_id'
+    
+    if (!['qr_code', 'nfc_uid', 'fingerprint_id'].includes(type)) {
+      return res.status(400).json({ error: 'Tipe biometrik tidak valid.' });
+    }
+
+    try {
+      // Cek apakah data sudah dipakai santri lain
+      if (data) {
+        const check = await db.query(`SELECT id, nama FROM santri WHERE ${type} = $1 AND id != $2`, [data, id]);
+        if (check.rows.length > 0) {
+          return res.status(400).json({ error: `Data ini sudah terdaftar untuk santri: ${check.rows[0].nama}` });
+        }
+      }
+
+      const result = await db.query(
+        `UPDATE santri SET ${type} = $1 WHERE id = $2 RETURNING id, nama, ${type}`,
+        [data || null, id]
+      );
+
+      if (!result.rows.length) return res.status(404).json({ error: 'Santri tidak ditemukan.' });
+      
+      res.json({ message: 'Registrasi biometrik berhasil.', santri: result.rows[0] });
+    } catch (err) {
+      console.error('Error registrasi biometrik:', err);
+      res.status(500).json({ error: 'Gagal menyimpan data biometrik.' });
     }
   });
 }

@@ -1,0 +1,59 @@
+// ============================================
+// DESIGN TOKENS - DARK MODE (for Kiosk/Standalone Scan)
+// Indigo/Purple palette on dark background
+// ============================================
+
+@import './variables-light.scss';
+
+// ============================================
+// DARK SURFACES
+// ============================================
+$dk-bg-body: #0B0F1A;
+$dk-bg-card: #111827;
+$dk-bg-elevated: #1E293B;
+$dk-bg-hover: #1E293B;
+$dk-bg-muted: #0F172A;
+$dk-bg-input: #1E293B;
+$dk-bg-overlay: rgba(0, 0, 0, 0.7);
+
+// ============================================
+// DARK TEXT
+// ============================================
+$dk-text-primary: #F1F5F9;
+$dk-text-secondary: #94A3B8;
+$dk-text-tertiary: #64748B;
+$dk-text-disabled: #475569;
+$dk-text-accent: $indigo-400;
+
+// ============================================
+// DARK BORDERS
+// ============================================
+$dk-border-light: #1E293B;
+$dk-border-default: #334155;
+$dk-border-medium: #475569;
+$dk-border-focus: $indigo-500;
+
+// ============================================
+// DARK SHADOWS
+// ============================================
+$dk-shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.3);
+$dk-shadow-md: 0 4px 6px rgba(0, 0, 0, 0.4);
+$dk-shadow-lg: 0 10px 15px rgba(0, 0, 0, 0.5);
+$dk-shadow-glow-indigo: 0 0 20px rgba($indigo-500, 0.3);
+$dk-shadow-glow-green: 0 0 20px rgba(#10B981, 0.3);
+$dk-shadow-glow-red: 0 0 20px rgba(#EF4444, 0.3);
+$dk-shadow-glow-cyan: 0 0 20px rgba(#06B6D4, 0.3);
+
+// ============================================
+// DARK GLASSMORPHISM
+// ============================================
+$dk-glass-bg: rgba(17, 24, 39, 0.8);
+$dk-glass-border: rgba(255, 255, 255, 0.08);
+$dk-glass-blur: blur(24px);
+
+// ============================================
+// DARK GRADIENTS
+// ============================================
+$dk-gradient-primary: linear-gradient(135deg, $indigo-600, $purple-700);
+$dk-gradient-card: linear-gradient(145deg, #1E293B, #111827);
+$dk-gradient-success: linear-gradient(135deg, #065F46, #10B981);

@@ -1,0 +1,191 @@
+@import '../../styles/variables-light.scss';
+
+.student-detail-drawer {
+  display: flex;
+  flex-direction: column;
+  gap: $lt-space-6;
+  padding-bottom: $lt-space-8;
+}
+
+.profile-header-block {
+  display: flex;
+  align-items: center;
+  gap: $lt-space-5;
+  padding-bottom: $lt-space-5;
+  border-bottom: 1px solid $lt-border-light;
+
+  .profile-avatar-wrap {
+    position: relative;
+    width: 80px;
+    height: 80px;
+
+    .profile-avatar {
+      width: 100%;
+      height: 100%;
+      border-radius: 20px;
+      object-fit: cover;
+      border: 2px solid $lt-border-light;
+      box-shadow: $lt-shadow-md;
+    }
+
+    .profile-avatar-placeholder {
+      width: 100%;
+      height: 100%;
+      border-radius: 20px;
+      background: $lt-bg-muted;
+      color: $lt-text-tertiary;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border: 2px solid $lt-border-light;
+    }
+
+    .completeness-badge {
+      position: absolute;
+      bottom: -10px;
+      right: -10px;
+      background: $lt-bg-card;
+      border-radius: 50%;
+      box-shadow: $lt-shadow-sm;
+      padding: 2px;
+    }
+  }
+
+  .profile-info {
+    flex: 1;
+
+    .profile-name {
+      font-family: $lt-font-sans;
+      font-size: $lt-text-2xl;
+      font-weight: 700;
+      color: $lt-text-primary;
+      margin: 0 0 $lt-space-2;
+      line-height: 1.2;
+    }
+
+    .profile-meta {
+      display: flex;
+      align-items: center;
+      gap: $lt-space-3;
+
+      .nis-badge {
+        font-family: $lt-font-mono;
+        font-size: $lt-text-xs;
+        padding: 4px 8px;
+        background: $lt-primary-light;
+        color: $lt-primary;
+        border-radius: $lt-radius-sm;
+        font-weight: 600;
+      }
+
+      .gender-text {
+        font-size: $lt-text-sm;
+        color: $lt-text-secondary;
+      }
+    }
+  }
+}
+
+.detail-section {
+  &__title {
+    font-size: $lt-text-sm;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: $lt-text-tertiary;
+    margin: 0 0 $lt-space-4;
+  }
+}
+
+.biometric-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: $lt-space-4;
+
+  .biometric-item {
+    display: flex;
+    flex-direction: column;
+    gap: $lt-space-2;
+    padding: $lt-space-4;
+    background: $lt-bg-muted;
+    border-radius: $lt-radius-lg;
+    border: 1px solid $lt-border-light;
+
+    .biometric-label {
+      font-size: $lt-text-xs;
+      color: $lt-text-secondary;
+      font-weight: 500;
+    }
+  }
+}
+
+.info-list {
+  display: flex;
+  flex-direction: column;
+  gap: $lt-space-4;
+
+  .info-row {
+    display: flex;
+    align-items: flex-start;
+    gap: $lt-space-3;
+    color: $lt-text-secondary;
+
+    svg {
+      margin-top: 2px;
+      color: $lt-text-tertiary;
+    }
+
+    .info-label {
+      display: block;
+      font-size: $lt-text-xs;
+      color: $lt-text-tertiary;
+      margin-bottom: 2px;
+    }
+
+    .info-value {
+      display: block;
+      font-size: $lt-text-base;
+      color: $lt-text-primary;
+      font-weight: 500;
+    }
+  }
+}
+
+.parent-cards {
+  display: flex;
+  gap: $lt-space-4;
+
+  .parent-card {
+    flex: 1;
+    padding: $lt-space-4;
+    background: $lt-bg-muted;
+    border-radius: $lt-radius-lg;
+    border: 1px solid $lt-border-light;
+
+    .parent-role {
+      font-size: $lt-text-xs;
+      font-weight: 600;
+      color: $lt-primary;
+      text-transform: uppercase;
+      margin-bottom: $lt-space-2;
+    }
+
+    .parent-name {
+      font-size: $lt-text-base;
+      font-weight: 600;
+      color: $lt-text-primary;
+      margin-bottom: $lt-space-2;
+    }
+
+    .parent-detail {
+      display: flex;
+      align-items: center;
+      gap: $lt-space-2;
+      font-size: $lt-text-sm;
+      color: $lt-text-secondary;
+      margin-top: $lt-space-2;
+
+      svg { color: $lt-text-tertiary; }
+    }
+  }
+}

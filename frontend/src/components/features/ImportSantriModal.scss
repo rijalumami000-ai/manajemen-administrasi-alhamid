@@ -1,0 +1,233 @@
+@import '../../styles/variables-light.scss';
+
+.import-santri-modal {
+  display: flex;
+  flex-direction: column;
+  gap: $lt-space-5;
+  padding-bottom: $lt-space-4;
+}
+
+.import-instructions {
+  background: $lt-info-light;
+  border: 1px solid $lt-info-border;
+  border-radius: $lt-radius-md;
+  padding: $lt-space-4;
+
+  .instruction-header {
+    display: flex;
+    align-items: center;
+    gap: $lt-space-2;
+    color: darken($lt-info, 15%);
+    font-weight: 600;
+    margin-bottom: $lt-space-3;
+  }
+
+  .instruction-list {
+    margin: 0;
+    padding-left: $lt-space-5;
+    color: darken($lt-info, 20%);
+    font-size: $lt-text-sm;
+
+    li {
+      margin-bottom: $lt-space-1;
+      &:last-child { margin-bottom: 0; }
+    }
+  }
+}
+
+.template-download {
+  display: flex;
+  justify-content: center;
+}
+
+.upload-dropzone {
+  border: 2px dashed $lt-border-medium;
+  border-radius: $lt-radius-lg;
+  padding: $lt-space-8 $lt-space-4;
+  text-align: center;
+  cursor: pointer;
+  background: $lt-bg-muted;
+  transition: all $lt-transition-fast;
+
+  &:hover, &.dragging {
+    border-color: $lt-primary;
+    background: $lt-primary-light;
+  }
+
+  &.has-file {
+    padding: $lt-space-5;
+    border-color: $lt-primary;
+    background: white;
+  }
+
+  .dropzone-icon {
+    color: $lt-primary;
+    margin-bottom: $lt-space-3;
+  }
+
+  h4 {
+    margin: 0 0 $lt-space-2;
+    font-size: $lt-text-base;
+    color: $lt-text-primary;
+    font-weight: 600;
+  }
+
+  p {
+    margin: 0;
+    font-size: $lt-text-sm;
+    color: $lt-text-secondary;
+  }
+}
+
+.selected-file {
+  display: flex;
+  align-items: center;
+  gap: $lt-space-4;
+  justify-content: center;
+
+  .file-icon {
+    color: $lt-primary;
+  }
+
+  .file-info {
+    text-align: left;
+    display: flex;
+    flex-direction: column;
+
+    .file-name {
+      font-weight: 600;
+      color: $lt-text-primary;
+    }
+    .file-size {
+      font-size: $lt-text-xs;
+      color: $lt-text-secondary;
+    }
+  }
+}
+
+.file-actions {
+  display: flex;
+  justify-content: center;
+  
+  .btn-text-danger {
+    display: flex;
+    align-items: center;
+    gap: $lt-space-2;
+    background: none;
+    border: none;
+    color: $lt-error;
+    font-size: $lt-text-sm;
+    font-weight: 500;
+    cursor: pointer;
+    padding: $lt-space-2;
+    border-radius: $lt-radius-sm;
+    transition: background $lt-transition-fast;
+
+    &:hover {
+      background: $lt-error-light;
+    }
+  }
+}
+
+.modal-actions-right {
+  display: flex;
+  justify-content: flex-end;
+  gap: $lt-space-3;
+  margin-top: $lt-space-4;
+  padding-top: $lt-space-4;
+  border-top: 1px solid $lt-border-light;
+}
+
+.import-result {
+  display: flex;
+  flex-direction: column;
+  gap: $lt-space-4;
+}
+
+.result-banner {
+  display: flex;
+  align-items: flex-start;
+  gap: $lt-space-3;
+  padding: $lt-space-4;
+  border-radius: $lt-radius-md;
+  
+  h4 {
+    margin: 0 0 $lt-space-1;
+    font-size: $lt-text-base;
+  }
+  p {
+    margin: 0;
+    font-size: $lt-text-sm;
+  }
+
+  &.success {
+    background: $lt-success-light;
+    border: 1px solid $lt-success-border;
+    color: darken($lt-success, 15%);
+  }
+  
+  &.warning {
+    background: $lt-warning-light;
+    border: 1px solid $lt-warning-border;
+    color: darken($lt-warning, 20%);
+  }
+}
+
+.result-stats {
+  display: flex;
+  gap: $lt-space-3;
+
+  .stat-item {
+    flex: 1;
+    padding: $lt-space-3;
+    border-radius: $lt-radius-md;
+    border: 1px solid $lt-border-light;
+    background: $lt-bg-card;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: $lt-space-1;
+
+    .stat-label {
+      font-size: $lt-text-xs;
+      color: $lt-text-secondary;
+      font-weight: 500;
+    }
+
+    .stat-value {
+      font-size: $lt-text-xl;
+      font-weight: 700;
+    }
+
+    &.success .stat-value { color: $lt-success; }
+    &.info .stat-value { color: $lt-info; }
+    &.danger .stat-value { color: $lt-error; }
+  }
+}
+
+.error-list-container {
+  background: $lt-bg-muted;
+  border: 1px solid $lt-error-border;
+  border-radius: $lt-radius-md;
+  padding: $lt-space-3;
+  max-height: 200px;
+  overflow-y: auto;
+
+  h5 {
+    color: $lt-error;
+    margin: 0 0 $lt-space-2;
+    font-size: $lt-text-sm;
+  }
+
+  .error-list {
+    margin: 0;
+    padding-left: $lt-space-5;
+    color: darken($lt-error, 10%);
+    font-size: $lt-text-xs;
+    font-family: $lt-font-mono;
+
+    li {
+      margin-bottom: 4px;
+    }
+  }
+}

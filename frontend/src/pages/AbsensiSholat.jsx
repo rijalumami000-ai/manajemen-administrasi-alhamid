@@ -1,36 +1,49 @@
 import { useState, useEffect, useRef } from 'react';
-import { Card, Button, Select, Alert, Typography, Space, Table, Tag, message, Tabs, Input, Modal } from 'antd';
+import { Card, Button, Select, Alert, Typography, Input, message } from 'antd';
 import { Link } from 'react-router-dom';
-import { CameraOutlined, CheckCircleOutlined, CloseCircleOutlined, UserAddOutlined, SyncOutlined } from '@ant-design/icons';
+import { Camera, CheckCircle2, XCircle, Search, RefreshCw, Send, Settings, User } from 'lucide-react';
 import Webcam from 'react-webcam';
 import * as faceapi from '@vladmandic/face-api';
 import { absensiSholatService } from '../services/absensiSholatService';
 import { santriService } from '../services/santriService';
-import { PageHeader, LoadingState } from '../components/common';
+import { LoadingState } from '../components/common';
+import { DataGrid } from '../components/ui/DataGrid';
+import { CustomModal } from '../components/ui/CustomModal';
+import { PrayerCard } from '../components/ui/PrayerCard';
+import { StatusPill } from '../components/ui/StatusPill';
+import { AttendanceSuccessOverlay } from '../components/ui/AttendanceSuccessOverlay';
+import './AbsensiSholat.scss';
 
-const { Title, Text } = Typography;
+const { Text } = Typography;
 const { Option } = Select;
-
 const API_BASE = import.meta.env.VITE_API_URL || '';
 
 export function AbsensiSholat() {
   const webcamRef = useRef(null);
-  
   const [modelsLoaded, setModelsLoaded] = useState(false);
   const [isScanning, setIsScanning] = useState(false);
+  
+  const sholatOptions = ['Subuh', 'Dzuhur', 'Ashar', 'Maghrib', 'Isya'];
   const [selectedSholat, setSelectedSholat] = useState('Subuh');
+  
   const [scanResult, setScanResult] = useState(null);
   const [todayAttendance, setTodayAttendance] = useState([]);
-  const [successPopup, setSuccessPopup] = useState({
-    visible: false,
-    name: '',
-    sholat: '',
-    photo: ''
-  });
+  const [successPopup, setSuccessPopup] = useState({ visible: false, name: '', sholat: '', photo: '', kelas: '' });
   const [loadingAttendance, setLoadingAttendance] = useState(false);
+  
   const [facingMode, setFacingMode] = useState('user');
   const toggleCamera = () => setFacingMode(prev => prev === 'user' ? 'environment' : 'user');
   
+  // Realtime Clock
+  const [currentTime, setCurrentTime] = useState(new Date());
+  useEffect(() => {
+    const timer = setInterval(() => setCurrentTime(new Date()), 1000);
+    return () => clearInterval(timer);
+  }, []);
+
+  // Tabs
+  const [activeTab, setActiveTab] = useState('scan');
+
   // Manual Attendance States
   const [unattendedSantri, setUnattendedSantri] = useState([]);
   const [loadingUnattended, setLoadingUnattended] = useState(false);
@@ -40,36 +53,22 @@ export function AbsensiSholat() {
   const [kelasList, setKelasList] = useState([]);
   const [kamarList, setKamarList] = useState([]);
   
-  // Filters for Tab 2 (Manual)
+  // Filters for Manual
   const [searchManual, setSearchManual] = useState('');
   const [filterKelasManual, setFilterKelasManual] = useState(null);
   const [filterKamarManual, setFilterKamarManual] = useState(null);
   
-  // Filters for Tab 1 (History)
+  // Filters for History
   const [searchHistory, setSearchHistory] = useState('');
   
   // WA Template States
-  const [waTemplate, setWaTemplate] = useState(`Assalamualaikum Wr. Wb.
-Yth. Orang Tua dari Ananda *[nama]*,
-
-Berikut kami laporkan rekap kehadiran sholat berjamaah Ananda hari ini:
-- Subuh: [Subuh]
-- Dzuhur: [Dzuhur]
-- Ashar: [Ashar]
-- Maghrib: [Maghrib]
-- Isya: [Isya]
-
-Terima kasih atas perhatiannya.
-Wassalamualaikum Wr. Wb.`);
+  const [waTemplate, setWaTemplate] = useState(`Assalamualaikum Wr. Wb.\nYth. Orang Tua dari Ananda *[nama]*,\n\nBerikut kami laporkan rekap kehadiran sholat berjamaah Ananda hari ini:\n- Subuh: [Subuh]\n- Dzuhur: [Dzuhur]\n- Ashar: [Ashar]\n- Maghrib: [Maghrib]\n- Isya: [Isya]\n\nTerima kasih atas perhatiannya.\nWassalamualaikum Wr. Wb.`);
   const [isTemplateModalVisible, setIsTemplateModalVisible] = useState(false);
   const [tempTemplate, setTempTemplate] = useState(waTemplate);
   const [sentSantriIds, setSentSantriIds] = useState([]);
 
-  const sholatOptions = ['Subuh', 'Dzuhur', 'Ashar', 'Maghrib', 'Isya'];
-
-  // Load models and voice script on mount
+  // Load models
   useEffect(() => {
-    // Load ResponsiveVoice script untuk suara perempuan yang stabil
     const script = document.createElement('script');
     script.src = 'https://code.responsivevoice.org/responsivevoice.js';
     script.async = true;
@@ -84,7 +83,6 @@ Wassalamualaikum Wr. Wb.`);
           faceapi.nets.faceRecognitionNet.loadFromUri(MODEL_URL)
         ]);
         setModelsLoaded(true);
-        message.success('Model AI berhasil dimuat');
       } catch (error) {
         console.error('Failed to load models:', error);
         message.error('Gagal memuat model AI. Pastikan file model ada di folder public/models');
@@ -110,8 +108,8 @@ Wassalamualaikum Wr. Wb.`);
   };
 
   useEffect(() => {
-    loadUnattendedSantri();
-  }, [selectedSholatManual]);
+    if (activeTab === 'manual') loadUnattendedSantri();
+  }, [selectedSholatManual, activeTab]);
 
   const loadTodayAttendance = async () => {
     try {
@@ -119,7 +117,6 @@ Wassalamualaikum Wr. Wb.`);
       const data = await absensiSholatService.getTodayAttendance();
       setTodayAttendance(data);
     } catch (error) {
-      console.error('Failed to load attendance:', error);
       message.error('Gagal memuat data absensi hari ini');
     } finally {
       setLoadingAttendance(false);
@@ -133,7 +130,6 @@ Wassalamualaikum Wr. Wb.`);
       const data = await absensiSholatService.getUnattendedSantri(selectedSholatManual, today);
       setUnattendedSantri(data);
     } catch (error) {
-      console.error('Failed to load unattended santri:', error);
       message.error('Gagal memuat data santri yang belum absen');
     } finally {
       setLoadingUnattended(false);
@@ -142,15 +138,12 @@ Wassalamualaikum Wr. Wb.`);
 
   const handleScan = async () => {
     if (!webcamRef.current) return;
-
     setIsScanning(true);
     setScanResult(null);
 
     try {
       const imageSrc = webcamRef.current.getScreenshot();
-      if (!imageSrc) {
-        throw new Error('Gagal mengambil gambar dari kamera');
-      }
+      if (!imageSrc) throw new Error('Gagal mengambil gambar dari kamera');
 
       const img = new Image();
       img.src = imageSrc;
@@ -170,46 +163,31 @@ Wassalamualaikum Wr. Wb.`);
       const descriptor = Array.from(detection.descriptor);
       const result = await absensiSholatService.scanFace(descriptor, selectedSholat);
 
-      setScanResult({
-        success: true,
-        match: result.match
-      });
+      setScanResult({ success: true, match: result.match });
       
       setSuccessPopup({
         visible: true,
         name: result.match.nama,
+        kelas: result.match.kelas_nama || result.match.kelas || '-',
         sholat: selectedSholat,
         photo: result.match.foto_url
       });
       
-      // Voice synthesis menggunakan Proxy Backend (Google TTS)
       const textToSpeak = `${result.match.nama} telah absen sholat ${selectedSholat}`;
       const ttsUrl = `${API_BASE}/api/tts?text=${encodeURIComponent(textToSpeak)}`;
-      
       const audio = new Audio(ttsUrl);
-      audio.play().catch(err => {
-        console.error('Gagal memutar suara TTS Proxy:', err);
-        
-        // FALLBACK: Jika proxy gagal, gunakan suara internal browser (dengan pitch tinggi)
+      audio.play().catch(() => {
         const speech = new SpeechSynthesisUtterance(textToSpeak);
         speech.lang = 'id-ID';
         speech.pitch = 1.5;
         window.speechSynthesis.speak(speech);
       });
 
-      // Auto close popup after 3 seconds
-      setTimeout(() => {
-        setSuccessPopup(prev => ({ ...prev, visible: false }));
-      }, 3000);
-
+      setTimeout(() => setSuccessPopup(prev => ({ ...prev, visible: false })), 3000);
       loadTodayAttendance();
-      loadUnattendedSantri(); // Refresh list if on tab 2
+      if (activeTab === 'manual') loadUnattendedSantri();
     } catch (error) {
-      console.error('Scan error:', error);
-      setScanResult({
-        success: false,
-        message: error.message || 'Gagal mengenali wajah'
-      });
+      setScanResult({ success: false, message: error.message || 'Gagal mengenali wajah' });
       message.error(error.message || 'Gagal mengenali wajah');
     } finally {
       setIsScanning(false);
@@ -218,29 +196,39 @@ Wassalamualaikum Wr. Wb.`);
 
   const handleManualAttendance = async (santriId, status, sholat) => {
     try {
-      const today = new Date().toISOString().split('T')[0];
       await absensiSholatService.recordManualAttendance(santriId, sholat || selectedSholatManual, status);
       message.success(`Status berhasil diubah menjadi ${status}`);
+      if (activeTab === 'manual') loadUnattendedSantri();
+      loadTodayAttendance();
+    } catch (error) {
+      message.error('Gagal mencatat absensi manual');
+    }
+  };
+
+  const handleMarkAllAsAlfa = async () => {
+    try {
+      setLoadingUnattended(true);
+      await Promise.all(
+        filteredUnattendedSantri.map(s => 
+          absensiSholatService.recordManualAttendance(s.id, selectedSholatManual, 'Alfa')
+        )
+      );
+      message.success('Semua santri yang tampil berhasil ditandai Alfa');
       loadUnattendedSantri();
       loadTodayAttendance();
     } catch (error) {
-      console.error('Manual attendance error:', error);
-      message.error('Gagal mencatat absensi manual');
+      message.error('Gagal menandai Alfa massal');
+    } finally {
+      setLoadingUnattended(false);
     }
   };
 
   const handleSendWA = (record) => {
     const noHp = record.no_hp_ibu || record.no_hp_ayah;
-    if (!noHp) {
-      message.error('Nomor HP tidak tersedia');
-      return;
-    }
+    if (!noHp) return message.error('Nomor HP tidak tersedia');
     
-    // Format number: remove leading 0 and replace with 62
     let formattedNoHp = noHp.replace(/[^0-9]/g, '');
-    if (formattedNoHp.startsWith('0')) {
-      formattedNoHp = '62' + formattedNoHp.slice(1);
-    }
+    if (formattedNoHp.startsWith('0')) formattedNoHp = '62' + formattedNoHp.slice(1);
     
     let messageText = waTemplate
       .replace('[nama]', record.nama)
@@ -250,132 +238,21 @@ Wassalamualaikum Wr. Wb.`);
       .replace('[Maghrib]', record.rekap.Maghrib)
       .replace('[Isya]', record.rekap.Isya);
 
-    const encodedMessage = encodeURIComponent(messageText);
-    const url = `https://wa.me/${formattedNoHp}?text=${encodedMessage}`;
+    const url = `https://wa.me/${formattedNoHp}?text=${encodeURIComponent(messageText)}`;
     window.open(url, '_blank');
     setSentSantriIds(prev => prev.includes(record.santri_id) ? prev : [...prev, record.santri_id]);
   };
-  const handleMarkAllAsAlfa = async () => {
-    try {
-      setLoadingUnattended(true);
-      const today = new Date().toISOString().split('T')[0];
-      
-      // Mark all in unattendedSantri as Alfa
-      await Promise.all(
-        unattendedSantri.map(s => 
-          absensiSholatService.recordManualAttendance(s.id, selectedSholatManual, 'Alfa')
-        )
-      );
-      
-      message.success('Semua santri yang belum hadir berhasil ditandai Alfa');
-      loadUnattendedSantri();
-      loadTodayAttendance();
-    } catch (error) {
-      console.error('Mark all as alfa error:', error);
-      message.error('Gagal menandai Alfa massal');
-    } finally {
-      setLoadingUnattended(false);
-    }
-  };
 
-  const columns = [
-    {
-      title: 'Waktu',
-      dataIndex: 'waktu_scan',
-      key: 'waktu_scan',
-      render: (text) => new Date(text).toLocaleTimeString('id-ID'),
-    },
-    {
-      title: 'Nama',
-      dataIndex: 'santri_nama',
-      key: 'santri_nama',
-      render: (text) => <span style={{ whiteSpace: 'nowrap' }}>{text}</span>,
-    },
-
-    {
-      title: 'Kelas',
-      dataIndex: 'kelas_nama',
-      key: 'kelas_nama',
-    },
-    {
-      title: 'Sholat',
-      dataIndex: 'sholat',
-      key: 'sholat',
-      render: (sholat) => <Tag color="blue">{sholat}</Tag>,
-    },
-    {
-      title: 'Status',
-      dataIndex: 'status',
-      key: 'status',
-      render: (status) => {
-        let color = 'green';
-        if (status === 'Alfa') color = 'red';
-        if (status === 'Sakit') color = 'orange';
-        if (status === 'Izin') color = 'cyan';
-        if (status === 'Masbuq') color = 'purple';
-        if (status === 'Haid' || status === 'Istihadoh') color = 'pink';
-        
-        return <Tag color={color}>{status}</Tag>;
-      },
-    },
-    {
-      title: 'Ubah Status',
-      key: 'aksi',
-      render: (_, record) => (
-        <Select
-          defaultValue={record.status}
-          style={{ width: '120px' }}
-          onChange={(value) => handleManualAttendance(record.santri_id, value, record.sholat)}
-        >
-          <Option value="Hadir">Hadir</Option>
-          <Option value="Sakit">Sakit</Option>
-          <Option value="Izin">Izin</Option>
-          <Option value="Masbuq">Masbuq</Option>
-          <Option value="Haid">Haid</Option>
-          <Option value="Istihadoh">Istihadoh</Option>
-          <Option value="Alfa">Alfa</Option>
-        </Select>
-      ),
-    },
-  ];
-
-  const manualColumns = [
-    {
-      title: 'Nama',
-      dataIndex: 'nama',
-      key: 'nama',
-    },
-
-    {
-      title: 'Kelas',
-      dataIndex: 'kelas_nama',
-      key: 'kelas_nama',
-      render: (text) => text || '-',
-    },
-    {
-      title: 'Aksi Cepat',
-      key: 'aksi',
-      render: (_, record) => (
-        <Space size="small" style={{ whiteSpace: 'nowrap' }}>
-          <Button size="small" type="primary" ghost onClick={() => handleManualAttendance(record.id, 'Sakit')}>Sakit</Button>
-          <Button size="small" type="primary" ghost onClick={() => handleManualAttendance(record.id, 'Izin')}>Izin</Button>
-          <Button size="small" type="primary" ghost onClick={() => handleManualAttendance(record.id, 'Masbuq')}>Masbuq</Button>
-          <Button size="small" type="primary" ghost onClick={() => handleManualAttendance(record.id, 'Haid')}>Haid</Button>
-          <Button size="small" type="primary" ghost onClick={() => handleManualAttendance(record.id, 'Istihadoh')}>Istihadoh</Button>
-        </Space>
-      ),
-    },
-  ];
+  // Data processing for Tables
+  const filteredTodayAttendance = todayAttendance.filter(a => 
+    a.santri_nama.toLowerCase().includes(searchHistory.toLowerCase())
+  );
 
   const filteredUnattendedSantri = unattendedSantri.filter(s => {
     const matchName = s.nama.toLowerCase().includes(searchManual.toLowerCase());
     const matchKelas = filterKelasManual ? s.kelas_diniyah_id === filterKelasManual : true;
     const matchKamar = filterKamarManual ? s.kamar_id === filterKamarManual : true;
     return matchName && matchKelas && matchKamar;
-  });
-
-  const filteredTodayAttendance = todayAttendance.filter(a => {
-    return a.santri_nama.toLowerCase().includes(searchHistory.toLowerCase());
   });
 
   const aggregatedWAData = {};
@@ -387,439 +264,333 @@ Wassalamualaikum Wr. Wb.`);
         kelas: record.kelas_nama,
         no_hp_ayah: record.no_hp_ayah,
         no_hp_ibu: record.no_hp_ibu,
-        rekap: {
-          Subuh: '-',
-          Dzuhur: '-',
-          Ashar: '-',
-          Maghrib: '-',
-          Isya: '-'
-        }
+        rekap: { Subuh: '-', Dzuhur: '-', Ashar: '-', Maghrib: '-', Isya: '-' }
       };
     }
     aggregatedWAData[record.santri_id].rekap[record.sholat] = record.status;
   });
-
   const waDataSource = Object.values(aggregatedWAData);
 
-  const waColumns = [
-    {
-      title: 'Nama',
-      dataIndex: 'nama',
-      key: 'nama',
+  // Statistics
+  const totalSantri = 80; // Placeholder, you might want to fetch this
+  const prayerStats = sholatOptions.map(sholat => {
+    const count = todayAttendance.filter(a => a.sholat === sholat && a.status === 'Hadir').length;
+    return { name: sholat, count, total: totalSantri };
+  });
+
+  if (!modelsLoaded) return <LoadingState message="Memuat AI Vision Engine..." />;
+
+  const historyColumns = [
+    { header: 'Waktu', accessor: (row) => new Date(row.waktu_scan).toLocaleTimeString('id-ID'), width: '100px' },
+    { 
+      header: 'Santri', 
+      accessor: (row) => (
+        <div className="table-profile">
+          <div className="table-avatar">
+            {row.foto_url ? <img src={`${API_BASE}${row.foto_url}`} alt="" onError={e=>e.target.style.display='none'}/> : <User size={16}/>}
+          </div>
+          <div className="table-profile-info">
+            <span className="name">{row.santri_nama}</span>
+            <span className="meta">{row.kelas_nama}</span>
+          </div>
+        </div>
+      ),
+      width: '250px'
     },
-    {
-      title: 'Kelas',
-      dataIndex: 'kelas',
-      key: 'kelas',
-    },
-    {
-      title: 'Subuh',
-      dataIndex: ['rekap', 'Subuh'],
-      key: 'Subuh',
-      render: (status) => <Tag color={status === 'Hadir' ? 'green' : status === '-' ? 'default' : 'red'}>{status}</Tag>,
-    },
-    {
-      title: 'Dzuhur',
-      dataIndex: ['rekap', 'Dzuhur'],
-      key: 'Dzuhur',
-      render: (status) => <Tag color={status === 'Hadir' ? 'green' : status === '-' ? 'default' : 'red'}>{status}</Tag>,
-    },
-    {
-      title: 'Ashar',
-      dataIndex: ['rekap', 'Ashar'],
-      key: 'Ashar',
-      render: (status) => <Tag color={status === 'Hadir' ? 'green' : status === '-' ? 'default' : 'red'}>{status}</Tag>,
-    },
-    {
-      title: 'Maghrib',
-      dataIndex: ['rekap', 'Maghrib'],
-      key: 'Maghrib',
-      render: (status) => <Tag color={status === 'Hadir' ? 'green' : status === '-' ? 'default' : 'red'}>{status}</Tag>,
-    },
-    {
-      title: 'Isya',
-      dataIndex: ['rekap', 'Isya'],
-      key: 'Isya',
-      render: (status) => <Tag color={status === 'Hadir' ? 'green' : status === '-' ? 'default' : 'red'}>{status}</Tag>,
-    },
-    {
-      title: 'Aksi',
-      key: 'aksi',
-      render: (_, record) => {
-        const noHp = record.no_hp_ibu || record.no_hp_ayah;
-        const disabled = !noHp;
-        const isSent = sentSantriIds.includes(record.santri_id);
-        
-        return (
-          <Button
-            type={isSent ? 'default' : 'primary'}
-            icon={isSent ? <CheckCircleOutlined /> : <Typography.Text style={{ color: '#fff' }}>WA</Typography.Text>}
-            disabled={disabled}
-            onClick={() => handleSendWA(record)}
-          >
-            {isSent ? 'Kirim Lagi' : 'Kirim WA'}
-          </Button>
-        );
-      },
-    },
+    { header: 'Sholat', accessor: 'sholat', width: '100px' },
+    { header: 'Status', accessor: (row) => <StatusPill status={row.status} active />, width: '120px' },
+    { 
+      header: 'Ubah', 
+      accessor: (row) => (
+        <Select
+          defaultValue={row.status}
+          style={{ width: 120 }}
+          bordered={false}
+          className="sleek-select"
+          onChange={(val) => handleManualAttendance(row.santri_id, val, row.sholat)}
+        >
+          {['Hadir', 'Sakit', 'Izin', 'Masbuq', 'Haid', 'Istihadoh', 'Alfa'].map(s => (
+            <Option key={s} value={s}>{s}</Option>
+          ))}
+        </Select>
+      )
+    }
   ];
 
-  if (!modelsLoaded) {
-    return <LoadingState message="Memuat model AI untuk pengenalan wajah..." />;
-  }
-
-  const tabItems = [
-    {
-      key: '1',
-      label: 'Presensi Sholat (Scan)',
-      children: (
-        <div style={{ display: 'grid', gridTemplateColumns: '400px 1fr', gap: '24px' }}>
-          {/* Kolom Kiri: Kamera */}
-          <Card title="Area Pemindaian Wajah" style={{ textAlign: 'center' }}>
-            <div style={{ marginBottom: '16px' }}>
-              <Text style={{ marginRight: '8px' }}>Pilih Waktu Sholat:</Text>
-              <Select
-                value={selectedSholat}
-                onChange={setSelectedSholat}
-                style={{ width: '150px' }}
-              >
-                {sholatOptions.map((s) => (
-                  <Option key={s} value={s}>
-                    {s}
-                  </Option>
-                ))}
-              </Select>
-            </div>
-
-            <div style={{ position: 'relative', width: '100%', maxWidth: '400px', margin: '0 auto', background: '#000', borderRadius: '8px', overflow: 'hidden' }}>
-              <Webcam
-                audio={false}
-                ref={webcamRef}
-                screenshotFormat="image/jpeg"
-                width="100%"
-                videoConstraints={{
-                  width: 640,
-                  height: 480,
-                  facingMode: facingMode
-                }}
-              />
-              <Button 
-                shape="circle" 
-                icon={<SyncOutlined />} 
-                onClick={toggleCamera}
-                style={{
-                  position: 'absolute',
-                  top: '10px',
-                  right: '10px',
-                  background: 'rgba(255, 255, 255, 0.3)',
-                  border: '1px solid rgba(255, 255, 255, 0.4)',
-                  color: '#fff',
-                  backdropFilter: 'blur(4px)',
-                  zIndex: 5
-                }}
-                title="Ganti Kamera"
-              />
-              {isScanning && (
-                <div style={{
-                  position: 'absolute',
-                  top: 0, left: 0, width: '100%', height: '100%',
-                  background: 'rgba(0,0,0,0.5)',
-                  display: 'flex', justifyContent: 'center', alignItems: 'center',
-                  color: '#fff', fontSize: '18px'
-                }}>
-                  Sedang memproses...
-                </div>
-              )}
-            </div>
-
-            <Button
-              type="primary"
-              icon={<CameraOutlined />}
-              onClick={handleScan}
-              loading={isScanning}
-              style={{ marginTop: '16px', width: '200px' }}
-            >
-              Scan Wajah
-            </Button>
-
-            {scanResult && (
-              <div style={{ marginTop: '16px' }}>
-                {scanResult.success ? (
-                  <Alert
-                    message={`Berhasil Absen: ${scanResult.match.nama}`}
-                    description={`NIS: ${scanResult.match.nis} | Kelas: ${scanResult.match.kelas || '-'}`}
-                    type="success"
-                    showIcon
-                    icon={<CheckCircleOutlined />}
-                  />
-                ) : (
-                  <Alert
-                    message="Gagal Mengenali"
-                    description={scanResult.message}
-                    type="error"
-                    showIcon
-                    icon={<CloseCircleOutlined />}
-                  />
-                )}
-              </div>
-            )}
-          </Card>
-
-          {/* Kolom Kanan: Riwayat Hari Ini */}
-          <Card title="Riwayat Absensi Hari Ini">
-            <div style={{ marginBottom: '16px' }}>
-              <Input
-                placeholder="Cari nama"
-                value={searchHistory}
-                onChange={(e) => setSearchHistory(e.target.value)}
-                style={{ width: '100%' }}
-                allowClear
-              />
-            </div>
-            <Table
-              dataSource={filteredTodayAttendance}
-              columns={columns}
-              rowKey="id"
-              loading={loadingAttendance}
-              pagination={{ pageSize: 10 }}
-            />
-          </Card>
+  const manualColumns = [
+    { 
+      header: 'Santri', 
+      accessor: (row) => (
+        <div className="table-profile">
+          <div className="table-profile-info">
+            <span className="name">{row.nama}</span>
+            <span className="meta">{row.kelas_nama || '-'}</span>
+          </div>
         </div>
       )
     },
     {
-      key: '2',
-      label: 'Absensi Manual',
-      children: (
-        <Card title="Daftar Santri Belum Absen">
-          <div style={{ marginBottom: '16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <Space wrap size="middle">
-              <div>
-                <Text style={{ marginRight: '8px' }}>Waktu Sholat:</Text>
-                <Select
-                  value={selectedSholatManual}
-                  onChange={setSelectedSholatManual}
-                  style={{ width: '120px' }}
-                >
-                  {sholatOptions.map((s) => (
-                    <Option key={s} value={s}>{s}</Option>
-                  ))}
-                </Select>
-              </div>
-
-              <div>
-                <Text style={{ marginRight: '8px' }}>Cari Nama:</Text>
-                <Input
-                  placeholder="Cari nama"
-                  value={searchManual}
-                  onChange={(e) => setSearchManual(e.target.value)}
-                  style={{ width: '150px' }}
-                  allowClear
-                />
-              </div>
-
-              <div>
-                <Text style={{ marginRight: '8px' }}>Kelas:</Text>
-                <Select
-                  placeholder="Semua"
-                  style={{ width: '120px' }}
-                  value={filterKelasManual}
-                  onChange={setFilterKelasManual}
-                  allowClear
-                >
-                  {kelasList.map((k) => (
-                    <Option key={k.id} value={k.id}>{k.nama}</Option>
-                  ))}
-                </Select>
-              </div>
-
-              <div>
-                <Text style={{ marginRight: '8px' }}>Kamar:</Text>
-                <Select
-                  placeholder="Semua"
-                  style={{ width: '120px' }}
-                  value={filterKamarManual}
-                  onChange={setFilterKamarManual}
-                  allowClear
-                >
-                  {kamarList.map((k) => (
-                    <Option key={k.id} value={k.id}>{k.nama}</Option>
-                  ))}
-                </Select>
-              </div>
-            </Space>
-            
-            <Button 
-              type="primary" 
-              danger 
-              onClick={handleMarkAllAsAlfa}
-              disabled={filteredUnattendedSantri.length === 0}
-              loading={loadingUnattended}
-            >
-              Tandai Alfa Semua yang Belum Hadir
-            </Button>
-          </div>
-
-          <Table
-            dataSource={filteredUnattendedSantri}
-            columns={manualColumns}
-            rowKey="id"
-            loading={loadingUnattended}
-            pagination={{ pageSize: 20 }}
-          />
-        </Card>
-      )
-    },
-    {
-      key: '3',
-      label: 'Kirim WhatsApp',
-      children: (
-        <Card 
-          title="Kirim Rekap Harian ke Orang Tua"
-          extra={
-            <Button 
-              type="default" 
-              onClick={() => {
-                setTempTemplate(waTemplate);
-                setIsTemplateModalVisible(true);
-              }}
-            >
-              Pengaturan Pesan
-            </Button>
-          }
-        >
-          <Table
-            dataSource={waDataSource}
-            columns={waColumns}
-            rowKey="santri_id"
-            pagination={{ pageSize: 20 }}
-          />
-        </Card>
+      header: 'Tindakan Cepat',
+      accessor: (row) => (
+        <div className="quick-actions">
+          <StatusPill status="Hadir" onClick={() => handleManualAttendance(row.id, 'Hadir')} />
+          <StatusPill status="Sakit" onClick={() => handleManualAttendance(row.id, 'Sakit')} />
+          <StatusPill status="Izin" onClick={() => handleManualAttendance(row.id, 'Izin')} />
+          <StatusPill status="Masbuq" onClick={() => handleManualAttendance(row.id, 'Masbuq')} />
+          <StatusPill status="Alfa" onClick={() => handleManualAttendance(row.id, 'Alfa')} />
+        </div>
       )
     }
   ];
 
   return (
-    <div style={{ padding: '24px' }}>
-      <PageHeader
-        title="Absensi Sholat Berjamaah"
-        subtitle="Fitur Smart Absensi menggunakan Scan Wajah"
-      />
-
-      <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '16px' }}>
-        <Link to="/absensi-sholat-scan" target="_blank">
-          <Button type="primary" size="large" icon={<CameraOutlined />} style={{ background: '#2563eb' }}>
-            Buka Mode Scan Penuh (Standalone)
-          </Button>
-        </Link>
+    <div className="sholat-dashboard">
+      <div className="dashboard-header">
+        <div className="header-content">
+          <div className="header-title">
+            <h1>Absensi Sholat Berjamaah</h1>
+            <p>Smart Attendance Command Center</p>
+          </div>
+          <div className="header-stats">
+            <div className="stat-item">
+              <span className="stat-label">Waktu</span>
+              <span className="stat-value clock">{currentTime.toLocaleTimeString('id-ID')}</span>
+            </div>
+            <div className="stat-item">
+              <span className="stat-label">Hadir Hari Ini</span>
+              <span className="stat-value">{todayAttendance.length} <small>Santri</small></span>
+            </div>
+          </div>
+          <div className="header-actions">
+            <Link to="/absensi-sholat-scan" target="_blank">
+              <button className="btn-standalone">
+                <Camera size={18} />
+                Mode Kiosk (Fullscreen)
+              </button>
+            </Link>
+          </div>
+        </div>
+        
+        <div className="prayer-overview">
+          {prayerStats.map(stat => (
+            <PrayerCard 
+              key={stat.name}
+              name={stat.name}
+              attended={stat.count}
+              total={stat.total}
+              active={selectedSholat === stat.name}
+              onClick={() => setSelectedSholat(stat.name)}
+            />
+          ))}
+        </div>
       </div>
 
-      <Tabs defaultActiveKey="1" items={tabItems} style={{ marginTop: '16px' }} />
-      
-      <Modal
-        title="Pengaturan Template Pesan WhatsApp"
-        open={isTemplateModalVisible}
-        onOk={() => {
-          setWaTemplate(tempTemplate);
-          setIsTemplateModalVisible(false);
-          message.success('Template pesan berhasil diperbarui');
-        }}
-        onCancel={() => setIsTemplateModalVisible(false)}
-        okText="Simpan"
-        cancelText="Batal"
-        width={600}
-      >
-        <div style={{ marginBottom: '16px' }}>
-          <Typography.Text type="secondary">
-            Gunakan placeholder berikut untuk mengganti data otomatis:<br/>
-            <code>[nama]</code> : Nama Santri<br/>
-            <code>[Subuh]</code>, <code>[Dzuhur]</code>, <code>[Ashar]</code>, <code>[Maghrib]</code>, <code>[Isya]</code> : Status Kehadiran
-          </Typography.Text>
+      <div className="dashboard-content">
+        <div className="custom-tabs">
+          <button className={activeTab === 'scan' ? 'active' : ''} onClick={() => setActiveTab('scan')}>Pemindaian Wajah</button>
+          <button className={activeTab === 'manual' ? 'active' : ''} onClick={() => setActiveTab('manual')}>Absensi Manual</button>
+          <button className={activeTab === 'wa' ? 'active' : ''} onClick={() => setActiveTab('wa')}>Laporan WhatsApp</button>
         </div>
-        <Input.TextArea
-          rows={10}
-          value={tempTemplate}
-          onChange={(e) => setTempTemplate(e.target.value)}
-        />
-      </Modal>
 
-      <Modal
-        open={successPopup.visible}
-        footer={null}
-        closable={false}
-        centered
-        width={450}
-        bodyStyle={{ padding: '0px', overflow: 'hidden', borderRadius: '24px' }}
-      >
-        <div style={{
-          background: '#ffffff',
-          color: '#1f2937',
-          padding: '32px',
-          textAlign: 'center',
-          position: 'relative',
-          border: '1px solid #e5e7eb'
-        }}>
-          <div style={{
-            position: 'absolute',
-            top: '16px',
-            right: '16px',
-            background: '#d1fae5',
-            color: '#047857',
-            padding: '6px 16px',
-            borderRadius: '20px',
-            fontSize: '14px',
-            fontWeight: '600'
-          }}>
-            Berhasil
-          </div>
-          
-          <div style={{ marginBottom: '20px', marginTop: '15px' }}>
-            <div style={{ marginBottom: '20px' }}>
-              {successPopup.photo ? (
-                <img
-                  src={`${API_BASE}${successPopup.photo}`}
-                  alt={successPopup.name}
-                  style={{
-                    width: '180px',
-                    height: '240px',
-                    borderRadius: '16px',
-                    objectFit: 'cover',
-                    border: '4px solid #10b981',
-                    boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)'
-                  }}
+        {activeTab === 'scan' && (
+          <div className="scan-layout">
+            <div className="camera-section">
+              <div className="camera-frame">
+                <Webcam
+                  audio={false}
+                  ref={webcamRef}
+                  screenshotFormat="image/jpeg"
+                  className="webcam-feed"
+                  videoConstraints={{ facingMode, width: 640, height: 480 }}
                 />
-              ) : (
-                <div style={{
-                  width: '180px',
-                  height: '240px',
-                  borderRadius: '16px',
-                  background: '#f3f4f6',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  margin: '0 auto',
-                  border: '4px solid #10b981',
-                  boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)'
-                }}>
-                  <CameraOutlined style={{ fontSize: '64px', color: '#9ca3af' }} />
+                
+                <div className="camera-overlay">
+                  <div className="corner-tl" />
+                  <div className="corner-tr" />
+                  <div className="corner-bl" />
+                  <div className="corner-br" />
+                  
+                  {isScanning && (
+                    <div className="scanning-indicator">
+                      <RefreshCw className="spin" size={32} />
+                      <span>Menganalisis...</span>
+                    </div>
+                  )}
+                </div>
+
+                <button className="btn-flip" onClick={toggleCamera}>
+                  <RefreshCw size={16} />
+                </button>
+              </div>
+              
+              <button className="btn-scan" onClick={handleScan} disabled={isScanning}>
+                <Camera size={20} />
+                {isScanning ? 'Memproses...' : 'Ambil Presensi Wajah'}
+              </button>
+
+              {scanResult && (
+                <div className={`scan-feedback ${scanResult.success ? 'success' : 'error'}`}>
+                  {scanResult.success ? <CheckCircle2 /> : <XCircle />}
+                  <span>{scanResult.success ? `Berhasil: ${scanResult.match.nama}` : scanResult.message}</span>
                 </div>
               )}
             </div>
-            
-            <Typography.Title level={3} style={{ color: '#111827', marginBottom: '8px', fontWeight: '700' }}>
-              {successPopup.name}
-            </Typography.Title>
-            
-            <Typography.Text style={{ color: '#4b5563', fontSize: '16px' }}>
-              Telah absen sholat <span style={{ color: '#10b981', fontWeight: 'bold' }}>{successPopup.sholat}</span>
-            </Typography.Text>
-            
-            <div style={{ marginTop: '20px' }}>
-              <CheckCircleOutlined style={{ fontSize: '48px', color: '#10b981' }} />
+
+            <div className="history-section">
+              <div className="section-header">
+                <h3>Riwayat {selectedSholat} Terakhir</h3>
+                <div className="search-box">
+                  <Search size={16} />
+                  <input 
+                    type="text" 
+                    placeholder="Cari santri..." 
+                    value={searchHistory}
+                    onChange={(e) => setSearchHistory(e.target.value)}
+                  />
+                </div>
+              </div>
+              <DataGrid 
+                data={filteredTodayAttendance.filter(a => a.sholat === selectedSholat)} 
+                columns={historyColumns} 
+                emptyText="Belum ada riwayat absensi"
+              />
             </div>
           </div>
+        )}
+
+        {activeTab === 'manual' && (
+          <div className="manual-layout">
+            <div className="filters-bar">
+              <div className="filter-group">
+                <label>Sholat:</label>
+                <Select value={selectedSholatManual} onChange={setSelectedSholatManual} style={{ width: 120 }}>
+                  {sholatOptions.map(s => <Option key={s} value={s}>{s}</Option>)}
+                </Select>
+              </div>
+              <div className="filter-group">
+                <label>Pencarian:</label>
+                <Input prefix={<Search size={14}/>} placeholder="Nama..." value={searchManual} onChange={e => setSearchManual(e.target.value)} />
+              </div>
+              <div className="filter-group">
+                <label>Kelas:</label>
+                <Select placeholder="Semua" allowClear value={filterKelasManual} onChange={setFilterKelasManual} style={{ width: 120 }}>
+                  {kelasList.map(k => <Option key={k.id} value={k.id}>{k.nama}</Option>)}
+                </Select>
+              </div>
+              <div className="filter-group">
+                <label>Kamar:</label>
+                <Select placeholder="Semua" allowClear value={filterKamarManual} onChange={setFilterKamarManual} style={{ width: 120 }}>
+                  {kamarList.map(k => <Option key={k.id} value={k.id}>{k.nama}</Option>)}
+                </Select>
+              </div>
+              <div className="spacer" />
+              <button className="btn-danger" onClick={handleMarkAllAsAlfa} disabled={filteredUnattendedSantri.length === 0 || loadingUnattended}>
+                Tandai Alfa Semua ({filteredUnattendedSantri.length})
+              </button>
+            </div>
+            
+            <div className="table-container">
+              <DataGrid data={filteredUnattendedSantri} columns={manualColumns} emptyText="Semua santri sudah diabsen" />
+            </div>
+          </div>
+        )}
+
+        {activeTab === 'wa' && (
+          <div className="wa-layout">
+            <div className="wa-header">
+              <div className="wa-info">
+                <h3>Pusat Komunikasi Orang Tua</h3>
+                <p>Kirim rekap absensi harian langsung via WhatsApp</p>
+              </div>
+              <button className="btn-outline" onClick={() => { setTempTemplate(waTemplate); setIsTemplateModalVisible(true); }}>
+                <Settings size={16} /> Pengaturan Pesan
+              </button>
+            </div>
+
+            <div className="table-container">
+              <table className="custom-table">
+                <thead>
+                  <tr>
+                    <th>Santri</th>
+                    <th>Subuh</th>
+                    <th>Dzuhur</th>
+                    <th>Ashar</th>
+                    <th>Maghrib</th>
+                    <th>Isya</th>
+                    <th>Aksi</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {waDataSource.map(row => {
+                    const noHp = row.no_hp_ibu || row.no_hp_ayah;
+                    const isSent = sentSantriIds.includes(row.santri_id);
+                    return (
+                      <tr key={row.santri_id}>
+                        <td>
+                          <strong>{row.nama}</strong><br/>
+                          <small>{row.kelas}</small>
+                        </td>
+                        <td><StatusPill status={row.rekap.Subuh} active={row.rekap.Subuh!=='-'}/></td>
+                        <td><StatusPill status={row.rekap.Dzuhur} active={row.rekap.Dzuhur!=='-'}/></td>
+                        <td><StatusPill status={row.rekap.Ashar} active={row.rekap.Ashar!=='-'}/></td>
+                        <td><StatusPill status={row.rekap.Maghrib} active={row.rekap.Maghrib!=='-'}/></td>
+                        <td><StatusPill status={row.rekap.Isya} active={row.rekap.Isya!=='-'}/></td>
+                        <td>
+                          <button 
+                            className={`btn-wa ${isSent ? 'sent' : ''}`}
+                            disabled={!noHp}
+                            onClick={() => handleSendWA(row)}
+                          >
+                            {isSent ? <CheckCircle2 size={16}/> : <Send size={16}/>}
+                            {isSent ? 'Terkirim' : 'Kirim'}
+                          </button>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                  {waDataSource.length === 0 && (
+                    <tr><td colSpan={7} className="empty-state">Belum ada data absensi hari ini</td></tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
+      </div>
+
+      <CustomModal
+        open={isTemplateModalVisible}
+        onClose={() => setIsTemplateModalVisible(false)}
+        title="Template Pesan WhatsApp"
+        width={600}
+      >
+        <div className="wa-template-editor">
+          <div className="hint">
+            <strong>Placeholder yang didukung:</strong> <code>[nama]</code>, <code>[Subuh]</code>, <code>[Dzuhur]</code>, dll.
+          </div>
+          <textarea 
+            rows={10} 
+            value={tempTemplate} 
+            onChange={e => setTempTemplate(e.target.value)}
+            className="modern-textarea"
+          />
+          <div className="modal-actions">
+            <button className="btn-outline" onClick={() => setIsTemplateModalVisible(false)}>Batal</button>
+            <button className="btn-primary" onClick={() => { setWaTemplate(tempTemplate); setIsTemplateModalVisible(false); message.success('Template disimpan'); }}>
+              Simpan Template
+            </button>
+          </div>
         </div>
-      </Modal>
+      </CustomModal>
+
+      <AttendanceSuccessOverlay
+        visible={successPopup.visible}
+        name={successPopup.name}
+        kelas={successPopup.kelas}
+        sholat={successPopup.sholat}
+        photo={successPopup.photo}
+        onDismiss={() => setSuccessPopup(prev => ({...prev, visible: false}))}
+      />
     </div>
   );
 }

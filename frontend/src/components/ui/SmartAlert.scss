@@ -1,0 +1,55 @@
+@import '../../styles/variables-light.scss';
+
+.smart-alert {
+  display: flex;
+  align-items: center;
+  gap: $lt-space-2;
+  padding: $lt-space-3 $lt-space-4;
+  border-radius: $lt-radius-md;
+  font-size: $lt-text-sm;
+  font-weight: 500;
+  border: 1px solid transparent;
+
+  &__icon {
+    flex-shrink: 0;
+  }
+
+  &--warning {
+    background: $lt-warning-light;
+    color: darken($lt-warning, 15%);
+    border-color: $lt-warning-border;
+    .smart-alert__icon { color: $lt-warning; }
+  }
+
+  &--error {
+    background: $lt-error-light;
+    color: darken($lt-error, 15%);
+    border-color: $lt-error-border;
+    .smart-alert__icon { color: $lt-error; }
+  }
+
+  &--info {
+    background: $lt-info-light;
+    color: darken($lt-info, 15%);
+    border-color: $lt-info-border;
+    .smart-alert__icon { color: $lt-info; }
+  }
+
+  &.dark {
+    &.smart-alert--warning {
+      background: rgba(245, 158, 11, 0.1);
+      color: #FCD34D;
+      border-color: rgba(245, 158, 11, 0.2);
+    }
+    &.smart-alert--error {
+      background: rgba(239, 68, 68, 0.1);
+      color: #FCA5A5;
+      border-color: rgba(239, 68, 68, 0.2);
+    }
+    &.smart-alert--info {
+      background: rgba(59, 130, 246, 0.1);
+      color: #93C5FD;
+      border-color: rgba(59, 130, 246, 0.2);
+    }
+  }
+}

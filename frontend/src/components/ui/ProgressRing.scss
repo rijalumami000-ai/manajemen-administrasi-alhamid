@@ -1,0 +1,30 @@
+@import '../../styles/variables-light.scss';
+
+.ui-progress-ring {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+
+  svg {
+    transform: rotate(-90deg);
+  }
+
+  .progress-ring__bg {
+    fill: none;
+    stroke: $lt-border-light;
+  }
+
+  .progress-ring__fill {
+    fill: none;
+    stroke-linecap: round;
+  }
+
+  .progress-ring__text {
+    position: absolute;
+    font-family: $lt-font-sans;
+    font-size: 10px;
+    font-weight: 700;
+    line-height: 1;
+  }
+}

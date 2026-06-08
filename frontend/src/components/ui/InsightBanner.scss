@@ -1,0 +1,90 @@
+@import '../../styles/variables-light.scss';
+
+.ui-insight-banner {
+  background: $lt-gradient-primary-soft;
+  border: 1px solid $lt-primary-border;
+  border-radius: $lt-radius-xl;
+  padding: $lt-space-5 $lt-space-6;
+  margin-bottom: $lt-space-6;
+
+  .insight-banner__header {
+    display: flex;
+    align-items: center;
+    gap: $lt-space-2;
+    margin-bottom: $lt-space-4;
+
+    .insight-banner__icon {
+      font-size: 18px;
+    }
+
+    .insight-banner__title {
+      font-size: $lt-text-base;
+      font-weight: 600;
+      color: $lt-text-primary;
+      letter-spacing: -0.01em;
+    }
+  }
+
+  .insight-banner__items {
+    display: flex;
+    flex-wrap: wrap;
+    gap: $lt-space-3;
+  }
+}
+
+.insight-item {
+  display: inline-flex;
+  align-items: center;
+  gap: $lt-space-2;
+  padding: $lt-space-2 $lt-space-3;
+  border-radius: $lt-radius-full;
+  font-size: $lt-text-sm;
+  font-weight: 500;
+  transition: transform $lt-transition-fast;
+
+  &:hover {
+    transform: translateY(-1px);
+  }
+
+  &--success {
+    background: $lt-success-light;
+    color: darken($lt-success, 8%);
+    border: 1px solid $lt-success-border;
+  }
+
+  &--warning {
+    background: $lt-warning-light;
+    color: darken($lt-warning, 15%);
+    border: 1px solid $lt-warning-border;
+  }
+
+  &--info {
+    background: $lt-info-light;
+    color: darken($lt-info, 8%);
+    border: 1px solid $lt-info-border;
+  }
+
+  &--error {
+    background: $lt-error-light;
+    color: darken($lt-error, 8%);
+    border: 1px solid $lt-error-border;
+  }
+
+  .insight-item__icon {
+    font-size: 14px;
+    line-height: 1;
+  }
+
+  .insight-item__text {
+    line-height: 1.3;
+  }
+}
+
+@media (max-width: 768px) {
+  .ui-insight-banner {
+    padding: $lt-space-4;
+  }
+  .insight-banner__items {
+    flex-direction: column;
+  }
+}

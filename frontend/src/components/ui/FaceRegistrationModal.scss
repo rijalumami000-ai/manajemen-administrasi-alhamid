@@ -1,0 +1,217 @@
+@import '../../styles/variables-light.scss';
+
+.face-reg-modal {
+  display: flex;
+  flex-direction: column;
+  gap: $lt-space-5;
+}
+
+.camera-container {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 4/3;
+  background: #000;
+  border-radius: $lt-radius-lg;
+  overflow: hidden;
+
+  .webcam-feed {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+}
+
+.camera-overlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+}
+
+.face-guide-frame {
+  position: relative;
+  width: 60%;
+  height: 70%;
+  border-radius: 50%;
+  border: 2px dashed rgba(255, 255, 255, 0.4);
+
+  .corner {
+    position: absolute;
+    width: 30px;
+    height: 30px;
+    border: 3px solid $lt-primary;
+    
+    &.top-left { top: -10%; left: -10%; border-right: none; border-bottom: none; border-top-left-radius: 12px; }
+    &.top-right { top: -10%; right: -10%; border-left: none; border-bottom: none; border-top-right-radius: 12px; }
+    &.bottom-left { bottom: -10%; left: -10%; border-right: none; border-top: none; border-bottom-left-radius: 12px; }
+    &.bottom-right { bottom: -10%; right: -10%; border-left: none; border-top: none; border-bottom-right-radius: 12px; }
+  }
+}
+
+.btn-camera-flip {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: rgba(0,0,0,0.4);
+  backdrop-filter: blur(4px);
+  border: 1px solid rgba(255,255,255,0.2);
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all $lt-transition-fast;
+
+  &:hover {
+    background: rgba(0,0,0,0.6);
+  }
+}
+
+.processing-overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(0,0,0,0.7);
+  backdrop-filter: blur(2px);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: $lt-space-3;
+  color: white;
+  font-weight: 500;
+}
+
+.progress-timeline {
+  position: relative;
+  display: flex;
+  justify-content: space-between;
+  margin: $lt-space-2 0;
+  padding: 0 $lt-space-4;
+
+  .timeline-line {
+    position: absolute;
+    top: 6px;
+    left: $lt-space-6;
+    right: $lt-space-6;
+    height: 2px;
+    background: $lt-border-medium;
+    z-index: 1;
+
+    .timeline-progress {
+      height: 100%;
+      background: $lt-primary;
+      transition: width $lt-transition-smooth;
+    }
+  }
+
+  .timeline-step {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: $lt-space-2;
+    z-index: 2;
+
+    .step-dot {
+      width: 14px;
+      height: 14px;
+      border-radius: 50%;
+      background: $lt-bg-muted;
+      border: 2px solid $lt-border-medium;
+      transition: all $lt-transition-smooth;
+    }
+
+    .step-label {
+      font-size: 11px;
+      font-weight: 600;
+      color: $lt-text-tertiary;
+    }
+
+    &.active {
+      .step-dot {
+        border-color: $lt-primary;
+        background: white;
+        box-shadow: 0 0 0 3px $lt-primary-light;
+      }
+      .step-label {
+        color: $lt-primary;
+      }
+    }
+
+    &.completed {
+      .step-dot {
+        background: $lt-primary;
+        border-color: $lt-primary;
+      }
+    }
+  }
+}
+
+.instruction-box {
+  background: $lt-bg-muted;
+  border-radius: $lt-radius-md;
+  padding: $lt-space-3;
+  text-align: center;
+  border: 1px solid $lt-border-light;
+
+  h4 {
+    margin: 0 0 $lt-space-1;
+    font-size: $lt-text-sm;
+    color: $lt-text-secondary;
+  }
+  p {
+    margin: 0;
+    font-size: $lt-text-base;
+    font-weight: 600;
+    color: $lt-primary;
+  }
+}
+
+.full-width {
+  width: 100%;
+}
+
+.success-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  padding: $lt-space-8 0;
+
+  .success-icon {
+    color: $lt-success;
+    margin-bottom: $lt-space-4;
+  }
+
+  h3 {
+    font-size: $lt-text-xl;
+    color: $lt-text-primary;
+    margin: 0 0 $lt-space-2;
+  }
+
+  p {
+    color: $lt-text-secondary;
+    margin: 0 0 $lt-space-6;
+  }
+}
+
+.loading-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 300px;
+  gap: $lt-space-4;
+  color: $lt-text-secondary;
+
+  .loading-spinner.large {
+    width: 32px;
+    height: 32px;
+    border-color: $lt-primary-light;
+    border-top-color: $lt-primary;
+  }
+}
