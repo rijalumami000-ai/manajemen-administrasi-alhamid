@@ -1,4 +1,4 @@
-const db = require('./src/database/db');
+const db = require('./db');
 
 async function fixMapelTingkatConstraint() {
   try {
