@@ -4,6 +4,7 @@ import { Header } from './Header';
 import { Sidebar } from './Sidebar';
 import MobileMenu from './MobileMenu';
 import { BottomNav } from './BottomNav';
+import { FloatingRadioBubble } from './FloatingRadioBubble';
 import { useResponsive } from '../../hooks/useResponsive';
 import { useAuth } from '../../context/AuthContext';
 import './Layout.scss';
@@ -49,6 +50,9 @@ export function Layout() {
         onClose={() => setMobileMenuOpen(false)} 
         onLogout={logout}
       />
+
+      <FloatingRadioBubble />
     </div>
   );
 }
+

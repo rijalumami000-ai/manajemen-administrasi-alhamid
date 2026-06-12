@@ -523,6 +523,7 @@ class NilaiService {
       const tahunAjaranName = taRes.rows[0]?.nama || '';
 
       // 6. Get Nilai for this santri specifically with mapel details
+      const tingkatParam = (kelasData.nama === 'SP' && kelasData.tingkat === 1) ? 99 : kelasData.tingkat;
       const nilaiRes = await db.query(`
         SELECT n.*, m.nama as mapel_nama, m.nama_arab as mapel_arab, m.jenis as mapel_jenis
         FROM nilai_santri n
@@ -538,7 +539,7 @@ class NilaiService {
                 AND (mt.kategori_evaluasi_id = $3 OR mt.kategori_evaluasi_id IS NULL)
             )
           )
-      `, [santriId, tahunAjaranId, kategoriId, kelasData.tingkat]);
+      `, [santriId, tahunAjaranId, kategoriId, tingkatParam]);
       const nilaiList = nilaiRes.rows;
 
       // 7. Get Rekap Data to find Peringkat and Total (Call existing method)

@@ -1,19 +1,27 @@
 import React from 'react';
 import { Drawer, Menu } from 'antd';
 import {
-  DashboardOutlined,
-  TeamOutlined,
-  UserOutlined,
-  BookOutlined,
-  HomeOutlined,
-  TrophyOutlined,
-  SafetyOutlined,
-  SettingOutlined,
-  BankOutlined,
-  EditOutlined,
-  LogoutOutlined,
-  IdcardOutlined,
-} from '@ant-design/icons';
+  LayoutDashboard,
+  Users,
+  BookOpen,
+  Home,
+  Camera,
+  ClipboardList,
+  Award,
+  School,
+  Contact,
+  Sliders,
+  Edit,
+  Scan,
+  FileSpreadsheet,
+  FileText,
+  IdCard,
+  GraduationCap,
+  ShieldCheck,
+  User,
+  LogOut,
+  Radio
+} from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import './MobileMenu.scss';
@@ -21,39 +29,68 @@ import './MobileMenu.scss';
 const MobileMenu = ({ open, onClose, onLogout }) => {
   const navigate = useNavigate();
   const location = useLocation();
-  const { isAdmin } = useAuth();
+  const { isAdmin, isStaff } = useAuth();
 
   const menuItems = [
-    { key: '/', icon: <DashboardOutlined />, label: 'Dashboard' },
+    { key: '/', icon: <LayoutDashboard size={18} />, label: 'Dashboard', disabled: isStaff() },
+    { key: '/radio', icon: <Radio size={18} />, label: 'Radio & Musik' },
     {
       key: 'grp-pesantren',
-      label: 'Pesantren',
+      label: 'Kepesantrenan',
       type: 'group',
       children: [
-        { key: '/santri', icon: <TeamOutlined />, label: 'Data Santri' },
-        { key: '/buku-induk', icon: <BookOutlined />, label: 'Buku Induk' },
-        { key: '/kamar', icon: <HomeOutlined />, label: 'Data Kamar' },
-        { key: '/pelanggaran-prestasi', icon: <TrophyOutlined />, label: 'Pelanggaran & Prestasi' },
+        { key: '/santri', icon: <Users size={18} />, label: 'Data Santri' },
+        { key: '/buku-induk', icon: <BookOpen size={18} />, label: 'Buku Induk' },
+        { key: '/kamar', icon: <Home size={18} />, label: 'Data Kamar' },
+        { key: '/absensi-sholat', icon: <Camera size={18} />, label: 'Absensi Sholat' },
+        { key: '/rekap-absensi-sholat', icon: <ClipboardList size={18} />, label: 'Rekap Absensi' },
+        { key: '/pelanggaran-prestasi', icon: <Award size={18} />, label: 'Pelanggaran & Prestasi' },
       ],
     },
     {
       key: 'grp-diniyah',
-      label: 'Madrasah Diniyah',
+      label: 'Akademik Diniyah',
       type: 'group',
+      disabled: isStaff(),
       children: [
-        { key: '/kelas', icon: <BookOutlined />, label: 'Data Kelas' },
-        { key: '/guru', icon: <UserOutlined />, label: 'Data Guru' },
-        { key: '/nilai', icon: <EditOutlined />, label: 'Input Penilaian' },
-        { key: '/nilai-rekap', icon: <BookOutlined />, label: 'Rekap & Rapot' },
-        { key: '/laporan-muhafadzoh', icon: <BookOutlined />, label: 'Laporan Muhafadzoh' },
-        { key: '/nilai-pengaturan', icon: <SettingOutlined />, label: 'Pengaturan' },
-        { key: '/kartu-ujian-semester', icon: <IdcardOutlined />, label: 'Kartu Ujian Semester' },
+        { key: '/kelas', icon: <School size={18} />, label: 'Data Kelas', disabled: isStaff() },
+        { key: '/guru', icon: <Contact size={18} />, label: 'Data Guru', disabled: isStaff() },
+        { key: '/nilai-pengaturan', icon: <Sliders size={18} />, label: 'Pengaturan & Jadwal', disabled: isStaff() },
+        { key: '/nilai', icon: <Edit size={18} />, label: 'Input Penilaian', disabled: isStaff() },
+        { key: '/scan-nilai', icon: <Scan size={18} />, label: 'Scan Nilai', disabled: isStaff() },
+        { key: '/nilai-rekap', icon: <FileSpreadsheet size={18} />, label: 'Rekap & Rapor', disabled: isStaff() },
+        { key: '/laporan-ujian-khusus', icon: <FileText size={18} />, label: 'Laporan Ujian Khusus', disabled: isStaff() },
+        { key: '/kartu-ujian-semester', icon: <IdCard size={18} />, label: 'Kartu Ujian Semester', disabled: isStaff() },
+        { key: '/lembar-ujian', icon: <FileText size={18} />, label: 'Lembar Ujian', disabled: isStaff() },
       ],
     },
-    { key: '/alumni', icon: <TeamOutlined />, label: 'Alumni' },
-    ...(isAdmin() ? [{ key: '/users', icon: <SafetyOutlined />, label: 'User Management' }] : []),
-    { key: '/profile', icon: <SettingOutlined />, label: 'Profile' },
+    { key: '/alumni', icon: <GraduationCap size={18} />, label: 'Alumni', disabled: isStaff() },
+    ...(isAdmin() || isStaff() ? [{ 
+      key: '/users', 
+      icon: <ShieldCheck size={18} />, 
+      label: 'User Management',
+      disabled: isStaff()
+    }] : []),
+    { key: '/profile', icon: <User size={18} />, label: 'Profile', disabled: isStaff() },
   ];
+
+  // Helper to filter disabled items for staff
+  const getFilteredItems = (items) => {
+    return items.map(item => {
+      if (item.type === 'group') {
+        if (item.disabled) return null;
+        const filteredChildren = item.children.filter(child => !child.disabled);
+        if (filteredChildren.length === 0) return null;
+        return {
+          ...item,
+          children: filteredChildren
+        };
+      }
+      return item.disabled ? null : item;
+    }).filter(Boolean);
+  };
+
+  const visibleMenuItems = getFilteredItems(menuItems);
 
   const handleMenuClick = ({ key }) => {
     if (key === 'logout') {
@@ -71,35 +108,36 @@ const MobileMenu = ({ open, onClose, onLogout }) => {
           <div style={{ 
             width: '32px', 
             height: '32px', 
-            background: '#0052FF', 
+            background: 'linear-gradient(135deg, #2F81F7 0%, #8A2BE2 100%)', 
             borderRadius: '8px',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
             color: '#fff',
-            fontWeight: 'bold'
+            fontWeight: 'bold',
+            boxShadow: '0 0 10px rgba(47, 129, 247, 0.3)'
           }}>SI</div>
-          <span>Sekolah Info</span>
+          <span style={{ color: '#fff', fontSize: '16px', fontWeight: 'bold' }}>Sekolah Info</span>
         </div>
       }
       placement="left"
       onClose={onClose}
       open={open}
       className="mobile-menu-drawer"
-      width={280}
+      width={290}
     >
       <div className="mobile-menu-content">
         <Menu
           mode="inline"
           selectedKeys={[location.pathname]}
-          items={menuItems}
+          items={visibleMenuItems}
           onClick={handleMenuClick}
           className="mobile-menu"
         />
 
         <div className="mobile-menu-footer">
           <button className="logout-btn" onClick={() => { onLogout(); onClose(); }}>
-            <LogoutOutlined /> Logout
+            <LogOut size={16} /> Logout
           </button>
         </div>
       </div>
