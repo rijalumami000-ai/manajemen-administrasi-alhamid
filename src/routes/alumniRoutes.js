@@ -10,8 +10,8 @@ function registerAlumniRoutes(app) {
    * GET /api/alumni/search - Search alumni by query and year
    */
   app.get('/api/alumni/search', asyncHandler(async (req, res) => {
-    const { q, tahun } = req.query;
-    const alumni = await alumniService.searchAlumni(q, tahun);
+    const { q, tahun, tipe, tahun_ajaran_id } = req.query;
+    const alumni = await alumniService.searchAlumni(q, tahun, tipe, tahun_ajaran_id);
     res.json(alumni);
   }));
 
@@ -19,7 +19,8 @@ function registerAlumniRoutes(app) {
    * GET /api/alumni - Get all alumni
    */
   app.get('/api/alumni', asyncHandler(async (req, res) => {
-    const alumni = await alumniService.getAllAlumni();
+    const { tipe, tahun_ajaran_id } = req.query;
+    const alumni = await alumniService.getAllAlumni(tipe, tahun_ajaran_id);
     res.json(alumni);
   }));
 
@@ -73,6 +74,15 @@ function registerAlumniRoutes(app) {
     const { id } = req.params;
     const detail = await alumniService.getAlumniDetail(id);
     res.json(detail);
+  }));
+
+  /**
+   * POST /api/alumni/:id/reactivate - Reactivate alumni back to active year
+   */
+  app.post('/api/alumni/:id/reactivate', asyncHandler(async (req, res) => {
+    const { id } = req.params;
+    const result = await alumniService.reactivateAlumni(id);
+    res.json(result);
   }));
 }
 

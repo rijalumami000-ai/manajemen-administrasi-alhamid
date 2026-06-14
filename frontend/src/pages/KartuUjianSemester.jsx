@@ -30,9 +30,23 @@ async function apiFetch(url, options = {}) {
 }
 
 // ─── Tab 1: Generate Nomor Peserta ───────────────────────────────────────────
-function TabGenerateNomor({ tahunAjaranList }) {
+function TabGenerateNomor({ tahunAjaranList, activeTahunAjaranId, activeSemester }) {
   const [tahunAjaranId, setTahunAjaranId] = useState(null);
   const [semester, setSemester] = useState(null);
+
+  // Auto-select active tahun ajaran when list is available
+  useEffect(() => {
+    if (activeTahunAjaranId && !tahunAjaranId) {
+      setTahunAjaranId(activeTahunAjaranId);
+    }
+  }, [activeTahunAjaranId]);
+
+  // Auto-select active semester when available
+  useEffect(() => {
+    if (activeSemester && !semester) {
+      setSemester(activeSemester);
+    }
+  }, [activeSemester]);
   const [pesertaList, setPesertaList] = useState([]);
   const [loading, setLoading] = useState(false);
   const [generating, setGenerating] = useState(false);
@@ -376,9 +390,23 @@ function TabKartuBelakang({ settings, onRefresh, pesertaList }) {
 }
 
 // ─── Tab 3: Filter & kontrol cetak (tanpa area kartu) ────────────────────────
-function TabCetakKartu({ tahunAjaranList, settings, onPesertaChange, pesertaList }) {
+function TabCetakKartu({ tahunAjaranList, settings, onPesertaChange, pesertaList, activeTahunAjaranId, activeSemester }) {
   const [tahunAjaranId, setTahunAjaranId] = useState(null);
   const [semester, setSemester] = useState(null);
+
+  // Auto-select active tahun ajaran when list is available
+  useEffect(() => {
+    if (activeTahunAjaranId && !tahunAjaranId) {
+      setTahunAjaranId(activeTahunAjaranId);
+    }
+  }, [activeTahunAjaranId]);
+
+  // Auto-select active semester when available
+  useEffect(() => {
+    if (activeSemester && !semester) {
+      setSemester(activeSemester);
+    }
+  }, [activeSemester]);
   const [kelasList, setKelasList] = useState([]);
   const [kelasDiniyahId, setKelasDiniyahId] = useState(null);
   const [loading, setLoading] = useState(false);
@@ -711,6 +739,7 @@ function KartuUjianBelakang({ settings }) {
 // ─── Komponen Utama ───────────────────────────────────────────────────────────
 export function KartuUjianSemester() {
   const [tahunAjaranList, setTahunAjaranList] = useState([]);
+  const [activeTahunAjaranId, setActiveTahunAjaranId] = useState(null);
   const [settings, setSettings] = useState({});
   const [activeTab, setActiveTab] = useState('generate');
 
@@ -725,6 +754,9 @@ export function KartuUjianSemester() {
       ]);
       setTahunAjaranList(taData);
       setSettings(settingsData);
+      // Auto-select active year (always prefer server's active year after migration)
+      const activeTA = Array.isArray(taData) ? taData.find(ta => ta.is_active) : null;
+      if (activeTA) setActiveTahunAjaranId(activeTA.id);
     } catch (err) { console.error('Failed to load meta:', err); }
   }, []);
 
@@ -738,7 +770,7 @@ export function KartuUjianSemester() {
     {
       key: 'generate',
       label: <span><ThunderboltOutlined /> Generate Nomor</span>,
-      children: <TabGenerateNomor tahunAjaranList={tahunAjaranList} />,
+      children: <TabGenerateNomor tahunAjaranList={tahunAjaranList} activeTahunAjaranId={activeTahunAjaranId} activeSemester={settings?.active_semester} />,
     },
     {
       key: 'cetak',
@@ -749,6 +781,8 @@ export function KartuUjianSemester() {
           settings={settings}
           onPesertaChange={handlePesertaChange}
           pesertaList={printData.pesertaList}
+          activeTahunAjaranId={activeTahunAjaranId}
+          activeSemester={settings?.active_semester}
         />
       ),
     },

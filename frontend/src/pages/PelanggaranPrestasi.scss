@@ -3,43 +3,257 @@
 
 .pelanggaran-prestasi-page {
   @include fade-in;
+  padding: $spacing-lg;
+
+  @include respond-to(md) {
+    padding: $spacing-md;
+  }
 
   .pelanggaran-prestasi-content {
-    padding: $spacing-lg;
-
-    @include respond-to(md) {
-      padding: $spacing-md;
-    }
+    margin-top: $spacing-lg;
   }
 
   .pelanggaran-prestasi-tabs {
     .ant-tabs-nav {
-      margin-bottom: $spacing-lg;
-    }
+      margin-bottom: $spacing-lg !important;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.06) !important;
 
-    .ant-tabs-tab {
-      font-weight: $font-weight-medium;
-      font-size: $font-size-base;
-
-      .anticon {
-        margin-right: $spacing-xs;
+      &::before {
+        border-bottom: none !important;
       }
-    }
 
-    .ant-tabs-tab-active {
-      .ant-tabs-tab-btn {
-        color: $primary-600;
-        font-weight: $font-weight-semibold;
+      .ant-tabs-tab {
+        padding: 12px 4px !important;
+        font-weight: 600;
+        font-size: 14px;
+        color: rgba(255, 255, 255, 0.45) !important;
+        transition: all 0.2s ease;
+
+        &:hover {
+          color: #ffffff !important;
+        }
+
+        &.ant-tabs-tab-active {
+          .ant-tabs-tab-btn {
+            color: #fbbf24 !important;
+          }
+        }
+      }
+
+      .ant-tabs-ink-bar {
+        background: #fbbf24 !important;
+        height: 3px !important;
+        border-radius: 3px 3px 0 0;
       }
     }
 
     .ant-tabs-extra-content {
+      .ant-btn {
+        height: 38px;
+        border-radius: 8px;
+        background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%);
+        border: none;
+        color: #1e293b;
+        font-weight: 700;
+        box-shadow: 0 4px 12px rgba(245, 158, 11, 0.2);
+        transition: all 0.2s ease;
+
+        &:hover {
+          background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+          transform: translateY(-2px);
+          box-shadow: 0 6px 16px rgba(245, 158, 11, 0.3);
+          color: #ffffff;
+        }
+      }
+
       @include respond-to(sm) {
         width: 100%;
         margin-top: $spacing-md;
 
         .ant-btn {
           width: 100%;
+        }
+      }
+    }
+
+    [data-theme="light"] & {
+      .ant-tabs-nav {
+        border-bottom-color: #e2e8f0 !important;
+
+        .ant-tabs-tab {
+          color: #64748b !important;
+
+          &:hover {
+            color: #0f172a !important;
+          }
+
+          &.ant-tabs-tab-active {
+            .ant-tabs-tab-btn {
+              color: #b45309 !important;
+            }
+          }
+        }
+
+        .ant-tabs-ink-bar {
+          background: #b45309 !important;
+        }
+      }
+
+      .ant-tabs-extra-content {
+        .ant-btn {
+          background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+          color: #ffffff;
+          box-shadow: 0 4px 12px rgba(217, 119, 6, 0.2);
+
+          &:hover {
+            background: linear-gradient(135deg, #d97706 0%, #b45309 100%);
+          }
+        }
+      }
+    }
+  }
+
+  // Customize Ant Design Table
+  .ant-table-wrapper {
+    background: rgba(20, 24, 33, 0.4);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 16px;
+    overflow: hidden;
+    backdrop-filter: blur(12px);
+
+    .ant-table {
+      background: transparent !important;
+      color: rgba(255, 255, 255, 0.85) !important;
+    }
+
+    .ant-table-thead > tr > th {
+      background: rgba(255, 255, 255, 0.03) !important;
+      color: rgba(255, 255, 255, 0.5) !important;
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.08) !important;
+      padding: 14px 16px !important;
+    }
+
+    .ant-table-tbody > tr > td {
+      border-bottom: 1px solid rgba(255, 255, 255, 0.05) !important;
+      padding: 14px 16px !important;
+      font-size: 13px;
+      color: rgba(255, 255, 255, 0.8) !important;
+    }
+
+    .ant-table-tbody > tr {
+      transition: background 0.2s ease;
+      &:hover > td {
+        background: rgba(255, 255, 255, 0.02) !important;
+      }
+    }
+
+    // Buttons inside action column
+    .ant-btn-link {
+      color: #38bdf8 !important;
+      font-weight: 600;
+      font-size: 13px;
+      padding: 0 4px !important;
+
+      &:hover {
+        color: #7dd3fc !important;
+      }
+
+      &.ant-btn-dangerous {
+        color: #f87171 !important;
+
+        &:hover {
+          color: #fca5a5 !important;
+        }
+      }
+    }
+
+    // Pagination overrides
+    .ant-pagination {
+      margin: 16px !important;
+
+      .ant-pagination-item, 
+      .ant-pagination-prev, 
+      .ant-pagination-next {
+        background: rgba(255, 255, 255, 0.04) !important;
+        border: 1px solid rgba(255, 255, 255, 0.08) !important;
+        border-radius: 6px;
+
+        a {
+          color: rgba(255, 255, 255, 0.6) !important;
+        }
+
+        &:hover {
+          border-color: rgba(255, 255, 255, 0.2) !important;
+          a { color: #ffffff !important; }
+        }
+
+        &.ant-pagination-item-active {
+          border-color: #fbbf24 !important;
+          background: rgba(251, 191, 36, 0.1) !important;
+          a { color: #fbbf24 !important; }
+        }
+      }
+    }
+
+    [data-theme="light"] & {
+      background: #ffffff;
+      border-color: #e2e8f0;
+      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+
+      .ant-table-thead > tr > th {
+        background: #f8fafc !important;
+        color: #475569 !important;
+        border-bottom-color: #e2e8f0 !important;
+      }
+
+      .ant-table-tbody > tr > td {
+        border-bottom-color: #f1f5f9 !important;
+        color: #1e293b !important;
+      }
+
+      .ant-table-tbody > tr:hover > td {
+        background: #f8fafc !important;
+      }
+
+      .ant-btn-link {
+        color: #2563eb !important;
+
+        &:hover {
+          color: #1d4ed8 !important;
+        }
+
+        &.ant-btn-dangerous {
+          color: #dc2626 !important;
+
+          &:hover {
+            color: #b91c1c !important;
+          }
+        }
+      }
+
+      .ant-pagination {
+        .ant-pagination-item, 
+        .ant-pagination-prev, 
+        .ant-pagination-next {
+          background: #ffffff !important;
+          border-color: #cbd5e1 !important;
+
+          a { color: #475569 !important; }
+
+          &:hover {
+            border-color: #94a3b8 !important;
+            a { color: #0f172a !important; }
+          }
+
+          &.ant-pagination-item-active {
+            border-color: #d97706 !important;
+            background: #fffbeb !important;
+            a { color: #b45309 !important; }
+          }
         }
       }
     }

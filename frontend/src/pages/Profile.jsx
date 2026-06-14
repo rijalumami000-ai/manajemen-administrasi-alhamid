@@ -12,7 +12,8 @@ import {
   message,
   Upload,
   Form,
-  Input
+  Input,
+  Select
 } from 'antd';
 import {
   UserOutlined,
@@ -33,6 +34,7 @@ import './Profile.scss';
 import { settingsService } from '../services/settingsService';
 
 const { Title, Text } = Typography;
+const { Option } = Select;
 
 export function Profile() {
   const navigate = useNavigate();
@@ -52,6 +54,7 @@ export function Profile() {
   
   // Settings State
   const [appNameState, setAppNameState] = useState('Alhamid Cintamulya');
+  const [activeSemesterState, setActiveSemesterState] = useState('Ganjil');
   const [fileList, setFileList] = useState([]);
   const [settingsLoading, setSettingsLoading] = useState(false);
 
@@ -66,6 +69,7 @@ export function Profile() {
       setSettingsLoading(true);
       const settings = await settingsService.fetchSettings();
       if (settings.app_name) setAppNameState(settings.app_name);
+      if (settings.active_semester) setActiveSemesterState(settings.active_semester);
       if (settings.app_logo) {
         setFileList([{
           uid: '-1',
@@ -103,6 +107,7 @@ export function Profile() {
     try {
       setSettingsLoading(true);
       await settingsService.updateSetting('app_name', values.app_name);
+      await settingsService.updateSetting('active_semester', values.active_semester);
       
       if (fileList.length > 0 && fileList[0].originFileObj) {
         const base64 = await new Promise((resolve, reject) => {
@@ -405,10 +410,10 @@ export function Profile() {
       {isAdmin() && (
         <Card className="profile-card" title="Pengaturan Sistem" style={{ marginTop: 16 }}>
           <Form 
-            key={appNameState}
+            key={`${appNameState}-${activeSemesterState}`}
             layout="vertical" 
             onFinish={handleSaveSettings}
-            initialValues={{ app_name: appNameState }}
+            initialValues={{ app_name: appNameState, active_semester: activeSemesterState }}
           >
             <Form.Item 
               label="Nama Aplikasi" 
@@ -416,6 +421,16 @@ export function Profile() {
               rules={[{ required: true, message: 'Nama aplikasi wajib diisi!' }]}
             >
               <Input placeholder="Masukkan nama aplikasi" />
+            </Form.Item>
+            <Form.Item 
+              label="Semester Aktif" 
+              name="active_semester"
+              rules={[{ required: true, message: 'Semester aktif wajib diisi!' }]}
+            >
+              <Select placeholder="Pilih semester aktif">
+                <Option value="Ganjil">Semester Ganjil</Option>
+                <Option value="Genap">Semester Genap</Option>
+              </Select>
             </Form.Item>
             <Form.Item label="Logo Aplikasi">
               <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>

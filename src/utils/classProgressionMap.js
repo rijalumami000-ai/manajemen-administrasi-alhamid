@@ -71,12 +71,7 @@ function getNextDiniyahTingkat(currentTingkat, currentNama) {
 
   // Special case: tingkat 1 (Kelas 1 or SP)
   if (currentTingkat === 1) {
-    // If current class is SP, advance to tingkat 2
-    if (currentNama && currentNama.toUpperCase().includes('SP')) {
-      return 2;
-    }
-    // If current class is Kelas 1, stay at tingkat 1 (advance to SP)
-    return 1;
+    return 2; // Directly promote to tingkat 2, bypassing SP
   }
 
   // Standard progression: tingkat + 1

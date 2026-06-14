@@ -1,0 +1,151 @@
+@import '../../styles/variables.scss';
+@import '../../styles/mixins.scss';
+
+.premium-alumni-stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: $spacing-lg;
+  margin-bottom: $spacing-xl;
+
+  .alumni-stat-card {
+    position: relative;
+    background: rgba(20, 24, 33, 0.6) !important;
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid rgba(255, 255, 255, 0.08) !important;
+    border-radius: 16px;
+    padding: 20px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    overflow: hidden;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+    transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+
+    .card-glow-effect {
+      position: absolute;
+      top: -30px;
+      right: -30px;
+      width: 90px;
+      height: 90px;
+      border-radius: 50%;
+      filter: blur(30px);
+      opacity: 0.12;
+      transition: all 0.5s ease;
+      pointer-events: none;
+    }
+
+    .stat-content {
+      z-index: 2;
+      display: flex;
+      flex-direction: column;
+
+      .stat-label {
+        font-size: 11px;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.8px;
+        color: rgba(255, 255, 255, 0.45);
+        margin-bottom: 4px;
+      }
+
+      .stat-number {
+        font-size: 32px;
+        font-weight: 800;
+        color: #ffffff;
+        margin: 0 0 2px 0;
+        line-height: 1.1;
+      }
+
+      .stat-desc {
+        font-size: 10px;
+        color: rgba(255, 255, 255, 0.35);
+      }
+    }
+
+    .stat-icon-wrapper {
+      z-index: 2;
+      width: 48px;
+      height: 48px;
+      border-radius: 12px;
+      @include flex-center;
+      transition: all 0.3s ease;
+    }
+
+    // Color configurations
+    &.card-gold {
+      .card-glow-effect { background: #f59e0b; }
+      .stat-icon-wrapper { background: rgba(245, 158, 11, 0.1); color: #fbbf24; border: 1px solid rgba(245, 158, 11, 0.2); }
+      &:hover {
+        border-color: rgba(245, 158, 11, 0.3) !important;
+        box-shadow: 0 10px 25px rgba(245, 158, 11, 0.1) !important;
+        .stat-icon-wrapper { background: rgba(245, 158, 11, 0.2); color: #ffffff; }
+      }
+    }
+
+    &.card-blue {
+      .card-glow-effect { background: #3b82f6; }
+      .stat-icon-wrapper { background: rgba(59, 130, 246, 0.1); color: #60a5fa; border: 1px solid rgba(59, 130, 246, 0.2); }
+      &:hover {
+        border-color: rgba(59, 130, 246, 0.3) !important;
+        box-shadow: 0 10px 25px rgba(59, 130, 246, 0.1) !important;
+        .stat-icon-wrapper { background: rgba(59, 130, 246, 0.2); color: #ffffff; }
+      }
+    }
+
+    &.card-green {
+      .card-glow-effect { background: #10b981; }
+      .stat-icon-wrapper { background: rgba(16, 185, 129, 0.1); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.2); }
+      &:hover {
+        border-color: rgba(16, 185, 129, 0.3) !important;
+        box-shadow: 0 10px 25px rgba(16, 185, 129, 0.1) !important;
+        .stat-icon-wrapper { background: rgba(16, 185, 129, 0.2); color: #ffffff; }
+      }
+    }
+
+    &:hover {
+      transform: translateY(-4px);
+    }
+  }
+
+  // ============================================
+  // LIGHT MODE OVERRIDES
+  // ============================================
+  [data-theme="light"] & {
+    .alumni-stat-card {
+      background: #ffffff !important;
+      border-color: #e2e8f0 !important;
+      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03) !important;
+
+      .stat-content {
+        .stat-label { color: #64748b; }
+        .stat-number { color: #0f172a; }
+        .stat-desc { color: #94a3b8; }
+      }
+
+      &.card-gold {
+        .stat-icon-wrapper { background: #fffbeb; color: #d97706; border-color: #fde68a; }
+        &:hover {
+          border-color: #f59e0b !important;
+          .stat-icon-wrapper { background: #f59e0b; color: #ffffff; }
+        }
+      }
+
+      &.card-blue {
+        .stat-icon-wrapper { background: #eff6ff; color: #1d4ed8; border-color: #bfdbfe; }
+        &:hover {
+          border-color: #3b82f6 !important;
+          .stat-icon-wrapper { background: #3b82f6; color: #ffffff; }
+        }
+      }
+
+      &.card-green {
+        .stat-icon-wrapper { background: #ecfdf5; color: #047857; border-color: #a7f3d0; }
+        &:hover {
+          border-color: #10b981 !important;
+          .stat-icon-wrapper { background: #10b981; color: #ffffff; }
+        }
+      }
+    }
+  }
+}

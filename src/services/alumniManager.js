@@ -90,7 +90,7 @@ class AlumniManager {
    * Identify santri at graduation points (tingkat 6, 9, 12)
    *
    * NEW RULES:
-   * - Alumni ONLY if: Diniyah 6 AND Sekolah 12 (both completed)
+   * - Alumni ONLY if: Diniyah 6 OR MA 12
    * - Otherwise: Mark as "Lulus" but NOT alumni
    *
    * @param {Object} santri - Santri with kelas info (includes tingkat from JOIN)
@@ -113,26 +113,25 @@ class AlumniManager {
     const isMtsComplete = sekolahTingkat === 9;
     const isMaComplete = sekolahTingkat === 12;
 
-    // Rule: Alumni ONLY if both Diniyah 6 AND Sekolah 12
-    if (isDiniyahComplete && isMaComplete) {
+    // Rule: Alumni if Diniyah 6 OR Sekolah 12 (or both)
+    if (isDiniyahComplete || isMaComplete) {
       shouldBecomeAlumni = true;
-      alumniStatus = 'Alumni - Lulus Diniyah & MA';
-      graduationNotes.push('Lulus Diniyah');
-      graduationNotes.push('Lulus MA');
-    }
-    // Otherwise, just mark as "Lulus" but NOT alumni
-    else {
-      // Check individual completions
-      if (isDiniyahComplete) {
+      if (isDiniyahComplete && isMaComplete) {
+        alumniStatus = 'Alumni - Lulus Diniyah & MA';
         graduationNotes.push('Lulus Diniyah');
+        graduationNotes.push('Lulus MA');
+      } else if (isDiniyahComplete) {
+        alumniStatus = 'Alumni - Lulus Diniyah';
+        graduationNotes.push('Lulus Diniyah');
+      } else {
+        alumniStatus = 'Alumni - Lulus MA';
+        graduationNotes.push('Lulus MA');
       }
-
+    }
+    // Otherwise, just check other milestones
+    else {
       if (isMtsComplete) {
         graduationNotes.push('Lulus MTs');
-      }
-
-      if (isMaComplete) {
-        graduationNotes.push('Lulus MA');
       }
     }
 
@@ -167,12 +166,22 @@ class AlumniManager {
     console.log(`   📝 Creating alumni record for santri ${santri.santri_id}`);
 
     try {
+      const kelasArray = [];
+      if (santri.kelas_diniyah_nama) kelasArray.push(santri.kelas_diniyah_nama);
+      if (santri.kelas_sekolah_nama) kelasArray.push(santri.kelas_sekolah_nama);
+      const kelasTerakhir = kelasArray.join(' / ') || null;
+
       const result = await client.query(
         `INSERT INTO alumni (
           santri_id, nis, nik, nama, tempat_lahir, tanggal_lahir,
-          tahun_lulus, kelas_terakhir, alamat, keterangan
-        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
-        ON CONFLICT (santri_id) DO NOTHING
+          tahun_lulus, kelas_terakhir, alamat, keterangan, tahun_ajaran_id, tipe
+        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
+        ON CONFLICT (santri_id) DO UPDATE SET
+          tahun_lulus = EXCLUDED.tahun_lulus,
+          kelas_terakhir = EXCLUDED.kelas_terakhir,
+          keterangan = EXCLUDED.keterangan,
+          tahun_ajaran_id = EXCLUDED.tahun_ajaran_id,
+          tipe = EXCLUDED.tipe
         RETURNING id`,
         [
           santri.santri_id,
@@ -182,16 +191,16 @@ class AlumniManager {
           santri.tempat_lahir,
           santri.tanggal_lahir,
           sourceYear.tahun_selesai,
-          graduationStatus.status,
+          kelasTerakhir,
           santri.alamat,
-          `Lulus pada tahun ajaran ${sourceYear.kode}`
+          `${graduationStatus.status} | Lulus pada tahun ajaran ${sourceYear.kode}`,
+          sourceYear.id,
+          'alumni'
         ]
       );
 
       if (result.rows.length > 0) {
-        console.log(`   ✅ Alumni record created with ID: ${result.rows[0].id}`);
-      } else {
-        console.log(`   ℹ️  Alumni record already exists (conflict ignored)`);
+        console.log(`   ✅ Alumni record created/updated with ID: ${result.rows[0].id}`);
       }
     } catch (error) {
       console.error(`   ❌ Error creating alumni record:`, error.message);

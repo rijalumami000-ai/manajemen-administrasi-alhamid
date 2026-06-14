@@ -1,18 +1,280 @@
-@import '../styles/variables';
-@import '../styles/mixins';
+@import '../styles/variables.scss';
+@import '../styles/mixins.scss';
 
 .alumni-page {
-  @include container;
-  padding-top: $spacing-lg;
-  padding-bottom: $spacing-lg;
+  @include fade-in;
+  padding: $spacing-lg;
+
+  @include respond-to(md) {
+    padding: $spacing-md;
+  }
 
   .alumni-content {
-    @include card;
-    padding: $spacing-lg;
     margin-top: $spacing-lg;
+  }
 
-    @include respond-to(md) {
-      padding: $spacing-md;
+  // Filter Bar
+  .alumni-filter-bar {
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+    margin-bottom: $spacing-lg;
+    align-items: center;
+    background: rgba(255, 255, 255, 0.02);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    padding: 14px;
+    border-radius: 12px;
+    backdrop-filter: blur(8px);
+
+    .ant-input-affix-wrapper,
+    .ant-select-selector {
+      background: rgba(20, 24, 33, 0.4) !important;
+      border: 1px solid rgba(255, 255, 255, 0.08) !important;
+      color: #ffffff !important;
+      border-radius: 8px !important;
+      height: 38px !important;
+      display: flex;
+      align-items: center;
+
+      .ant-input {
+        background: transparent !important;
+        color: #ffffff !important;
+      }
+
+      .ant-select-selection-search-input {
+        height: 36px !important;
+      }
+
+      .ant-select-selection-placeholder {
+        color: rgba(255, 255, 255, 0.3) !important;
+      }
+
+      .ant-select-selection-item {
+        color: #ffffff !important;
+      }
+    }
+
+    .ant-btn {
+      height: 38px;
+      border-radius: 8px;
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      color: rgba(255, 255, 255, 0.85);
+      font-weight: 500;
+      transition: all 0.2s ease;
+
+      &:hover {
+        background: rgba(255, 255, 255, 0.08);
+        border-color: rgba(255, 255, 255, 0.15);
+        color: #ffffff;
+      }
+    }
+
+    [data-theme="light"] & {
+      background: #ffffff;
+      border-color: #e2e8f0;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.02);
+
+      .ant-input-affix-wrapper,
+      .ant-select-selector {
+        background: #f8fafc !important;
+        border-color: #cbd5e1 !important;
+        color: #0f172a !important;
+
+        .ant-input {
+          color: #0f172a !important;
+        }
+
+        .ant-select-selection-placeholder {
+          color: #94a3b8 !important;
+        }
+
+        .ant-select-selection-item {
+          color: #0f172a !important;
+        }
+      }
+
+      .ant-btn {
+        background: #f8fafc;
+        border-color: #cbd5e1;
+        color: #475569;
+
+        &:hover {
+          background: #f1f5f9;
+          border-color: #94a3b8;
+          color: #0f172a;
+        }
+      }
+    }
+  }
+
+  // Ant Design Tabs overrides
+  .alumni-tabs {
+    .ant-tabs-nav {
+      margin-bottom: $spacing-lg !important;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.06) !important;
+
+      &::before {
+        border-bottom: none !important;
+      }
+
+      .ant-tabs-tab {
+        padding: 12px 4px !important;
+        font-weight: 600;
+        font-size: 14px;
+        color: rgba(255, 255, 255, 0.45) !important;
+        transition: all 0.2s ease;
+
+        &:hover {
+          color: #ffffff !important;
+        }
+
+        &.ant-tabs-tab-active {
+          .ant-tabs-tab-btn {
+            color: #f59e0b !important;
+          }
+        }
+      }
+
+      .ant-tabs-ink-bar {
+        background: #f59e0b !important;
+        height: 3px !important;
+        border-radius: 3px 3px 0 0;
+      }
+    }
+
+    [data-theme="light"] & {
+      .ant-tabs-nav {
+        border-bottom-color: #e2e8f0 !important;
+
+        .ant-tabs-tab {
+          color: #64748b !important;
+
+          &:hover {
+            color: #0f172a !important;
+          }
+
+          &.ant-tabs-tab-active {
+            .ant-tabs-tab-btn {
+              color: #d97706 !important;
+            }
+          }
+        }
+
+        .ant-tabs-ink-bar {
+          background: #d97706 !important;
+        }
+      }
+    }
+  }
+
+  // Table customization for "Siswa Pindah"
+  .ant-table-wrapper {
+    background: rgba(20, 24, 33, 0.4);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 16px;
+    overflow: hidden;
+    backdrop-filter: blur(12px);
+
+    .ant-table {
+      background: transparent !important;
+      color: rgba(255, 255, 255, 0.85) !important;
+    }
+
+    .ant-table-thead > tr > th {
+      background: rgba(255, 255, 255, 0.03) !important;
+      color: rgba(255, 255, 255, 0.5) !important;
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.08) !important;
+      padding: 14px 16px !important;
+    }
+
+    .ant-table-tbody > tr > td {
+      border-bottom: 1px solid rgba(255, 255, 255, 0.05) !important;
+      padding: 14px 16px !important;
+      font-size: 13px;
+      color: rgba(255, 255, 255, 0.8) !important;
+    }
+
+    .ant-table-tbody > tr {
+      transition: background 0.2s ease;
+      &:hover > td {
+        background: rgba(255, 255, 255, 0.02) !important;
+      }
+    }
+
+    // Pagination overrides
+    .ant-pagination {
+      margin: 16px !important;
+
+      .ant-pagination-item, 
+      .ant-pagination-prev, 
+      .ant-pagination-next {
+        background: rgba(255, 255, 255, 0.04) !important;
+        border: 1px solid rgba(255, 255, 255, 0.08) !important;
+        border-radius: 6px;
+
+        a {
+          color: rgba(255, 255, 255, 0.6) !important;
+        }
+
+        &:hover {
+          border-color: rgba(255, 255, 255, 0.2) !important;
+          a { color: #ffffff !important; }
+        }
+
+        &.ant-pagination-item-active {
+          border-color: #f59e0b !important;
+          background: rgba(245, 158, 11, 0.1) !important;
+          a { color: #fbbf24 !important; }
+        }
+      }
+    }
+
+    [data-theme="light"] & {
+      background: #ffffff;
+      border-color: #e2e8f0;
+      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+
+      .ant-table-thead > tr > th {
+        background: #f8fafc !important;
+        color: #475569 !important;
+        border-bottom-color: #e2e8f0 !important;
+      }
+
+      .ant-table-tbody > tr > td {
+        border-bottom-color: #f1f5f9 !important;
+        color: #1e293b !important;
+      }
+
+      .ant-table-tbody > tr:hover > td {
+        background: #f8fafc !important;
+      }
+
+      .ant-pagination {
+        .ant-pagination-item, 
+        .ant-pagination-prev, 
+        .ant-pagination-next {
+          background: #ffffff !important;
+          border-color: #cbd5e1 !important;
+
+          a { color: #475569 !important; }
+
+          &:hover {
+            border-color: #94a3b8 !important;
+            a { color: #0f172a !important; }
+          }
+
+          &.ant-pagination-item-active {
+            border-color: #d97706 !important;
+            background: #fffbeb !important;
+            a { color: #b45309 !important; }
+          }
+        }
+      }
     }
   }
 }

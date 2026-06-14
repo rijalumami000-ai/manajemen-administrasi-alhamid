@@ -267,11 +267,13 @@ function registerSantriRoutes(app) {
       if (!req.file) {
         return res.status(400).json({ error: 'File tidak ditemukan.' });
       }
-      if (!tahun_ajaran_id) {
-        return res.status(400).json({ error: 'Tahun ajaran wajib dipilih.' });
+      const parsedTahunAjaranId = Number(tahun_ajaran_id);
+      if (!tahun_ajaran_id || isNaN(parsedTahunAjaranId) || parsedTahunAjaranId <= 0) {
+        return res.status(400).json({ error: 'Tahun ajaran wajib dipilih dan harus valid.' });
       }
 
-      const stats = await santriExcelService.importFromExcel(req.file.buffer, Number(tahun_ajaran_id));
+      const stats = await santriExcelService.importFromExcel(req.file.buffer, parsedTahunAjaranId);
+
       res.json(stats);
     } catch (error) {
       console.error('Import error:', error);

@@ -1,5 +1,4 @@
-import { Card, Tag, Button, Progress, Descriptions } from 'antd';
-import { EditOutlined, DeleteOutlined, HomeOutlined, TeamOutlined, ToolOutlined } from '@ant-design/icons';
+import { Home, Users, Building, Layers, Wrench, Edit, Trash2, BedDouble } from 'lucide-react';
 import './KamarCard.scss';
 
 export function KamarCard({ kamar, onEdit, onDelete }) {
@@ -7,89 +6,126 @@ export function KamarCard({ kamar, onEdit, onDelete }) {
     ? Math.round((kamar.terisi / kamar.kapasitas) * 100)
     : 0;
 
-  const statusColor =
-    kamar.status === 'Penuh' ? 'error' :
-    kamar.status === 'Maintenance' ? 'warning' :
-    'success';
+  const isPutra = kamar.jenis === 'Putra';
+  const themeClass = isPutra ? 'theme-putra' : 'theme-putri';
 
-  const jenisColor = kamar.jenis === 'Putra' ? 'blue' : 'magenta';
+  // Capacity color logic
+  const getCapacityColor = () => {
+    if (persenTerisi >= 90) return 'cap-critical';
+    if (persenTerisi >= 70) return 'cap-warning';
+    return 'cap-normal';
+  };
 
-  const progressColor =
-    persenTerisi >= 90 ? '#f44336' :
-    persenTerisi >= 70 ? '#ff9800' :
-    '#4caf50';
+  // Status styling
+  const getStatusClass = () => {
+    if (kamar.status === 'Penuh') return 'status-full';
+    if (kamar.status === 'Maintenance') return 'status-maintenance';
+    return 'status-available';
+  };
 
   return (
-    <Card
-      className="kamar-card"
-      hoverable
-      actions={[
-        <Button
-          key="edit"
-          type="link"
-          icon={<EditOutlined />}
-          onClick={() => onEdit(kamar)}
-        >
-          Edit
-        </Button>,
-        <Button
-          key="delete"
-          type="link"
-          danger
-          icon={<DeleteOutlined />}
-          onClick={() => onDelete(kamar.id, kamar.nama)}
-        >
-          Hapus
-        </Button>
-      ]}
-    >
-      <div className="kamar-card-header">
-        <div className="kamar-info">
-          <h4 className="kamar-nama">
-            <HomeOutlined /> {kamar.nama || '-'}
-          </h4>
-          <Tag color={jenisColor} className="kamar-jenis-tag">
-            {kamar.jenis || 'Kamar'}
-          </Tag>
+    <div className={`premium-kamar-card ${themeClass}`}>
+      {/* Background glow */}
+      <div className="card-glow-effect"></div>
+
+      {/* Header Section */}
+      <div className="card-header-section">
+        <div className="room-badge-circle">
+          <BedDouble size={20} />
         </div>
-        <Tag color={statusColor} className="kamar-status-tag">
-          {kamar.status || 'Tersedia'}
-        </Tag>
+        <div className="room-title-info">
+          <span className="room-type-pill">{kamar.jenis || 'Kamar'}</span>
+          <h4 className="room-name" title={kamar.nama || '-'}>
+            {kamar.nama || '-'}
+          </h4>
+        </div>
+        <span className={`room-status-dot ${getStatusClass()}`} title={kamar.status || 'Tersedia'}>
+          <span className="dot-indicator"></span>
+          <span className="status-text">{kamar.status || 'Tersedia'}</span>
+        </span>
       </div>
 
-      <Descriptions column={1} size="small" className="kamar-details">
+      {/* Body Info Section */}
+      <div className="card-body-section">
+        {/* Capacity Bar - Hero Element */}
+        <div className="capacity-hero">
+          <div className="capacity-header-row">
+            <span className="capacity-label">
+              <Users size={13} />
+              Kapasitas
+            </span>
+            <span className="capacity-numbers">
+              <strong>{kamar.terisi || 0}</strong> / {kamar.kapasitas || 0}
+            </span>
+          </div>
+          <div className="capacity-bar-track">
+            <div
+              className={`capacity-bar-fill ${getCapacityColor()}`}
+              style={{ width: `${Math.min(persenTerisi, 100)}%` }}
+            ></div>
+          </div>
+          <span className={`capacity-percent ${getCapacityColor()}`}>{persenTerisi}%</span>
+        </div>
+
+        {/* Detail Items */}
         {kamar.gedung && (
-          <Descriptions.Item label="Gedung">
-            {kamar.gedung}
-          </Descriptions.Item>
+          <div className="info-item">
+            <div className="info-icon-wrapper">
+              <Building size={14} />
+            </div>
+            <div className="info-text">
+              <span className="info-label">Gedung</span>
+              <span className="info-value">{kamar.gedung}</span>
+            </div>
+          </div>
         )}
 
         {kamar.lantai && (
-          <Descriptions.Item label="Lantai">
-            Lantai {kamar.lantai}
-          </Descriptions.Item>
-        )}
-
-        <Descriptions.Item label={<><TeamOutlined /> Kapasitas</>}>
-          <div className="kapasitas-info">
-            <span className="kapasitas-text">
-              {kamar.terisi} / {kamar.kapasitas} orang
-            </span>
-            <Progress
-              percent={persenTerisi}
-              size="small"
-              strokeColor={progressColor}
-              showInfo={false}
-            />
+          <div className="info-item">
+            <div className="info-icon-wrapper">
+              <Layers size={14} />
+            </div>
+            <div className="info-text">
+              <span className="info-label">Lantai</span>
+              <span className="info-value">Lantai {kamar.lantai}</span>
+            </div>
           </div>
-        </Descriptions.Item>
+        )}
 
         {kamar.fasilitas && (
-          <Descriptions.Item label={<><ToolOutlined /> Fasilitas</>}>
-            {kamar.fasilitas}
-          </Descriptions.Item>
+          <div className="info-item">
+            <div className="info-icon-wrapper">
+              <Wrench size={14} />
+            </div>
+            <div className="info-text">
+              <span className="info-label">Fasilitas</span>
+              <span className="info-value" title={kamar.fasilitas}>{kamar.fasilitas}</span>
+            </div>
+          </div>
         )}
-      </Descriptions>
-    </Card>
+      </div>
+
+      {/* Action Buttons Footer */}
+      <div className="card-actions-section">
+        <button
+          type="button"
+          className="action-btn edit-btn"
+          onClick={() => onEdit(kamar)}
+          title="Ubah data kamar"
+        >
+          <Edit size={13} />
+          <span>Edit</span>
+        </button>
+        <button
+          type="button"
+          className="action-btn delete-btn"
+          onClick={() => onDelete(kamar.id, kamar.nama)}
+          title="Hapus kamar"
+        >
+          <Trash2 size={13} />
+          <span>Hapus</span>
+        </button>
+      </div>
+    </div>
   );
 }

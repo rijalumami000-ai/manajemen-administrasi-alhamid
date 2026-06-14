@@ -2,8 +2,15 @@ import { apiGet, apiPost, apiPut, apiDelete } from './apiClient';
 
 export const alumniService = {
   // Alumni CRUD
-  async fetchAlumni() {
-    return apiGet('/alumni', { noCache: true });
+  async fetchAlumni(tipe = null, tahunAjaranId = null) {
+    let url = '/alumni';
+    const query = [];
+    if (tipe) query.push(`tipe=${tipe}`);
+    if (tahunAjaranId) query.push(`tahun_ajaran_id=${tahunAjaranId}`);
+    if (query.length > 0) {
+      url += `?${query.join('&')}`;
+    }
+    return apiGet(url, { noCache: true });
   },
 
   async createAlumni(data) {
@@ -31,5 +38,10 @@ export const alumniService = {
   // Get active santri for migration
   async fetchActiveSantri() {
     return apiGet('/santri/active', { noCache: true });
+  },
+
+  // Reactivate student back to active year
+  async reactivateAlumni(id) {
+    return apiPost(`/alumni/${id}/reactivate`, {});
   }
 };

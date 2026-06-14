@@ -131,10 +131,11 @@ export function LembarUjian() {
   const fetchMeta = useCallback(async () => {
     setLoading(true);
     try {
-      const [taData, mapelData, katData] = await Promise.all([
+      const [taData, mapelData, katData, systemSettings] = await Promise.all([
         apiFetch('/api/tahun-ajaran'),
         apiFetch('/api/mata-pelajaran'),
-        apiFetch('/api/nilai/kategori')
+        apiFetch('/api/nilai/kategori'),
+        apiFetch('/api/settings').catch(() => ({}))
       ]);
       
       setTahunAjaranList(taData);
@@ -149,11 +150,21 @@ export function LembarUjian() {
         setKategoriUjianId(katUjian.id);
       }
       
+      const activeSemester = systemSettings.active_semester || 'Ganjil';
+      setSelectedSemester(activeSemester);
+      
       const activeTA = taData.find(ta => ta.is_active);
       if (activeTA) {
         setSelectedTahunAjaran(activeTA.id);
-        formKop.setFieldsValue({ tahunAjaranId: activeTA.id });
-        setPreviewData(prev => ({ ...prev, tahunAjaran: `Tahun Ajaran ${activeTA.kode} M` }));
+        formKop.setFieldsValue({ 
+          tahunAjaranId: activeTA.id,
+          semester: activeSemester
+        });
+        setPreviewData(prev => ({ 
+          ...prev, 
+          tahunAjaran: `Tahun Ajaran ${activeTA.kode} M`,
+          judul: `PENILAIAN AKHIR SEMESTER ${activeSemester.toUpperCase()}`
+        }));
       }
     } catch (err) {
       message.error('Gagal memuat data referensi: ' + err.message);

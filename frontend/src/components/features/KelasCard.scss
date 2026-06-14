@@ -1,127 +1,228 @@
 @import '../../styles/variables.scss';
 @import '../../styles/mixins.scss';
 
-.kelas-card {
-  height: 100%;
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
-  background: $bg-card !important;
-  border: 1px solid $border-light !important;
-  border-radius: $radius-xl !important;
-  overflow: hidden;
+.premium-kelas-card {
   position: relative;
-  
-  // Neon Top Border Override
-  &::before {
-    content: '';
+  background: rgba(20, 24, 33, 0.6) !important;
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.08) !important;
+  border-radius: 16px !important;
+  padding: 20px;
+  overflow: hidden;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 16px;
+  transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+
+  // Background glow element
+  .card-glow-effect {
     position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 3px;
-    background: $gradient-primary !important;
-    opacity: 0.8;
-    transition: all $transition-base;
+    top: -50px;
+    right: -50px;
+    width: 120px;
+    height: 120px;
+    border-radius: 50%;
+    filter: blur(40px);
+    opacity: 0.12;
+    transition: all 0.5s ease;
     z-index: 1;
+    pointer-events: none;
+  }
+
+  // Theme-specific variables/gradients
+  &.theme-diniyah {
+    .card-glow-effect {
+      background: #3b82f6;
+    }
+    .class-badge-circle {
+      background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
+      box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+    }
+    .class-type-pill {
+      background: rgba(59, 130, 246, 0.1);
+      color: #60a5fa;
+      border: 1px solid rgba(59, 130, 246, 0.25);
+    }
+    &:hover {
+      border-color: rgba(59, 130, 246, 0.4) !important;
+      box-shadow: 0 12px 30px rgba(0, 0, 0, 0.4), 0 0 20px rgba(59, 130, 246, 0.15) !important;
+      .card-glow-effect {
+        opacity: 0.22;
+        transform: scale(1.2);
+      }
+    }
+  }
+
+  &.theme-sekolah {
+    .card-glow-effect {
+      background: #a855f7;
+    }
+    .class-badge-circle {
+      background: linear-gradient(135deg, #a855f7 0%, #7c3aed 100%);
+      box-shadow: 0 4px 12px rgba(168, 85, 247, 0.3);
+    }
+    .class-type-pill {
+      background: rgba(168, 85, 247, 0.1);
+      color: #c084fc;
+      border: 1px solid rgba(168, 85, 247, 0.25);
+    }
+    &:hover {
+      border-color: rgba(168, 85, 247, 0.4) !important;
+      box-shadow: 0 12px 30px rgba(0, 0, 0, 0.4), 0 0 20px rgba(168, 85, 247, 0.15) !important;
+      .card-glow-effect {
+        opacity: 0.22;
+        transform: scale(1.2);
+      }
+    }
   }
 
   &:hover {
-    transform: translateY(-5px) !important;
-    border-color: rgba($primary-500, 0.4) !important;
-    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.5), 0 0 20px rgba($primary-500, 0.15) !important;
-
-    &::before {
-      height: 4px;
-      opacity: 1;
-      box-shadow: 0 0 15px rgba($primary-500, 0.6);
-    }
-
-    .kelas-icon {
-      transform: scale(1.1);
-      text-shadow: 0 0 15px rgba($primary-500, 0.5);
-    }
+    transform: translateY(-6px);
   }
 
-  .ant-card-body {
-    padding: $spacing-lg !important;
-    position: relative;
+  // Header Section
+  .card-header-section {
+    display: flex;
+    align-items: center;
+    gap: 14px;
     z-index: 2;
-    background: transparent !important;
-  }
 
-  .kelas-card-content {
-    @include flex-column;
-    gap: $spacing-lg;
-    min-height: 90px;
-
-    .kelas-jenis-tag {
-      align-self: flex-start;
-      font-weight: 700;
-      font-size: $font-size-xs;
-      padding: 4px 14px;
-      border-radius: $radius-full;
-      border: none;
-      background: rgba($primary-500, 0.1);
-      color: $primary-400;
-      letter-spacing: 0.5px;
-      text-transform: uppercase;
-      box-shadow: inset 0 0 0 1px rgba($primary-500, 0.2);
-    }
-
-    .kelas-nama {
-      @include flex-start;
-      gap: $spacing-md;
-      flex: 1;
+    .class-badge-circle {
+      width: 44px;
+      height: 44px;
+      border-radius: 12px;
+      display: flex;
       align-items: center;
+      justify-content: center;
+      color: #ffffff;
+      font-weight: 800;
+      font-size: 20px;
+      flex-shrink: 0;
+    }
 
-      .kelas-icon {
-        font-size: 24px;
-        color: $primary-500;
-        transition: all $transition-base;
-        background: rgba($primary-500, 0.1);
-        padding: 10px;
-        border-radius: $radius-md;
+    .class-title-info {
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
+      overflow: hidden;
+
+      .class-type-pill {
+        align-self: flex-start;
+        font-size: 9px;
+        font-weight: 700;
+        padding: 1px 8px;
+        border-radius: 100px;
+        text-transform: uppercase;
+        letter-spacing: 0.8px;
       }
 
-      h4 {
+      .class-name {
         margin: 0;
-        color: $text-primary;
-        font-size: $font-size-xl;
+        color: #ffffff;
+        font-size: 17px;
         font-weight: 700;
-        letter-spacing: -0.5px;
+        letter-spacing: -0.3px;
+        white-space: nowrap;
+        text-overflow: ellipsis;
+        overflow: hidden;
       }
     }
   }
 
-  .ant-card-actions {
-    background: rgba($bg-main, 0.6) !important;
-    border-top: 1px solid rgba(255, 255, 255, 0.05) !important;
-    position: relative;
+  // Body Metadata Info Section
+  .card-body-section {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    padding: 4px 0;
     z-index: 2;
 
-    > li {
-      margin: 12px 0 !important;
-      
-      &:not(:last-child) {
-        border-right: 1px solid rgba(255, 255, 255, 0.05) !important;
+    .info-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+
+      .info-icon-wrapper {
+        width: 28px;
+        height: 28px;
+        border-radius: 8px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: rgba(255, 255, 255, 0.04);
+        color: rgba(255, 255, 255, 0.5);
+        border: 1px solid rgba(255, 255, 255, 0.05);
+        flex-shrink: 0;
+      }
+
+      .info-text {
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+
+        .info-label {
+          font-size: 10px;
+          font-weight: 600;
+          color: rgba(255, 255, 255, 0.4);
+          text-transform: uppercase;
+          letter-spacing: 0.3px;
+        }
+
+        .info-value {
+          font-size: 12px;
+          font-weight: 600;
+          color: rgba(255, 255, 255, 0.85);
+          white-space: nowrap;
+          text-overflow: ellipsis;
+          overflow: hidden;
+        }
       }
     }
+  }
 
-    .ant-btn-link {
-      font-size: $font-size-sm;
+  // Action Buttons Footer Section
+  .card-actions-section {
+    display: flex;
+    gap: 8px;
+    border-top: 1px solid rgba(255, 255, 255, 0.06);
+    padding-top: 14px;
+    margin-top: auto;
+    z-index: 2;
+
+    .action-btn {
+      flex: 1;
+      height: 32px;
+      border-radius: 8px;
+      border: 1px solid rgba(255, 255, 255, 0.06);
+      background: rgba(255, 255, 255, 0.02);
+      color: rgba(255, 255, 255, 0.7);
+      font-size: 12px;
       font-weight: 600;
-      color: $text-secondary;
-      transition: all $transition-fast;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      cursor: pointer;
+      transition: all 0.2s ease;
 
       &:hover {
-        transform: scale(1.05);
-        color: $primary-400;
+        background: rgba(255, 255, 255, 0.06);
       }
-      
-      &.ant-btn-dangerous {
-        &:hover {
-          color: $error-400;
-          text-shadow: 0 0 10px rgba($error-500, 0.3);
-        }
+
+      &.edit-btn:hover {
+        color: #3b82f6;
+        border-color: rgba(59, 130, 246, 0.3);
+        background: rgba(59, 130, 246, 0.05);
+      }
+
+      &.delete-btn:hover {
+        color: #f87171;
+        border-color: rgba(248, 113, 113, 0.3);
+        background: rgba(248, 113, 113, 0.05);
       }
     }
   }
@@ -132,33 +233,84 @@
   [data-theme="light"] & {
     background: #ffffff !important;
     border-color: #e2e8f0 !important;
-    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06) !important;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03) !important;
+
+    &.theme-diniyah {
+      .class-type-pill {
+        background: #eff6ff;
+        color: #1d4ed8;
+        border-color: #bfdbfe;
+      }
+      &:hover {
+        border-color: #3b82f6 !important;
+        box-shadow: 0 10px 25px rgba(59, 130, 246, 0.12) !important;
+      }
+    }
+
+    &.theme-sekolah {
+      .class-type-pill {
+        background: #f5f3ff;
+        color: #6d28d9;
+        border-color: #ddd6fe;
+      }
+      &:hover {
+        border-color: #a855f7 !important;
+        box-shadow: 0 10px 25px rgba(168, 85, 247, 0.12) !important;
+      }
+    }
 
     &:hover {
-      box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05) !important;
-      border-color: #cbd5e1 !important;
+      box-shadow: 0 10px 20px rgba(0, 0, 0, 0.05) !important;
     }
 
-    .kelas-card-content {
-      .kelas-nama h4 {
-        color: #0f172a !important;
+    .card-header-section {
+      .class-title-info {
+        .class-name {
+          color: #0f172a !important;
+        }
       }
     }
 
-    .ant-card-actions {
-      background: #f8fafc !important;
-      border-top: 1px solid #e2e8f0 !important;
-
-      > li {
-        border-right: 1px solid #e2e8f0 !important;
+    .card-body-section {
+      .info-item {
+        .info-icon-wrapper {
+          background: #f8fafc;
+          border-color: #e2e8f0;
+          color: #64748b;
+        }
+        .info-text {
+          .info-label {
+            color: #64748b;
+          }
+          .info-value {
+            color: #1e293b;
+          }
+        }
       }
+    }
 
-      .ant-btn-link {
-        color: #475569 !important;
-        &:hover { color: #0284c7 !important; }
-        &.ant-btn-dangerous:hover {
-          color: #dc2626 !important;
-          text-shadow: none !important;
+    .card-actions-section {
+      border-top-color: #f1f5f9;
+
+      .action-btn {
+        border-color: #e2e8f0;
+        background: #f8fafc;
+        color: #475569;
+
+        &:hover {
+          background: #f1f5f9;
+        }
+
+        &.edit-btn:hover {
+          color: #1d4ed8;
+          border-color: #bfdbfe;
+          background: #eff6ff;
+        }
+
+        &.delete-btn:hover {
+          color: #dc2626;
+          border-color: #fca5a5;
+          background: #fef2f2;
         }
       }
     }

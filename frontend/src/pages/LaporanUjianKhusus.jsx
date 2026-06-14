@@ -2,6 +2,7 @@ import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { Table, Button, Space, Typography, Card, Spin, Empty, Tag, Radio, Select, Tabs } from 'antd';
 import { BookOutlined, PrinterOutlined, ShareAltOutlined, CheckCircleOutlined, CloseCircleOutlined, SearchOutlined, BarChartOutlined, UndoOutlined, ExportOutlined, FilePdfOutlined, FileExcelOutlined } from '@ant-design/icons';
 import { nilaiService } from '../services/nilaiService';
+import { settingsService } from '../services/settingsService';
 import { useResponsive } from '../hooks/useResponsive';
 import { useLocation } from 'react-router-dom';
 import { BottomNav } from '../components/layout/BottomNav';
@@ -39,26 +40,18 @@ export const LaporanUjianKhusus = () => {
     const init = async () => {
       setLoading(true);
       try {
-        const [taData, kelasData, mapelData, katData] = await Promise.all([
+        const [taData, kelasData, mapelData, katData, systemSettings] = await Promise.all([
           nilaiService.fetchTahunAjaran(),
           nilaiService.fetchKelas(),
           nilaiService.fetchMataPelajaran(),
-          nilaiService.fetchKategori()
+          nilaiService.fetchKategori(),
+          settingsService.fetchSettings().catch(() => ({}))
         ]);
 
         setTahunAjaranList(Array.isArray(taData) ? taData : []);
 
-        const savedTA = localStorage.getItem('sekolah_info_selected_tahun_ajaran');
-        let activeTA = null;
-        
-        if (savedTA && Array.isArray(taData) && taData.some(ta => ta.id === Number(savedTA))) {
-          activeTA = taData.find(ta => ta.id === Number(savedTA));
-        } else if (Array.isArray(taData)) {
-          activeTA = taData.find(ta => ta.is_active);
-          if (activeTA) {
-            localStorage.setItem('sekolah_info_selected_tahun_ajaran', activeTA.id);
-          }
-        }
+        // Selalu gunakan tahun ajaran aktif dari server — tidak perlu localStorage
+        const activeTA = Array.isArray(taData) ? taData.find(ta => ta.is_active) : null;
         setTahunAjaran(activeTA);
 
         const diniyahKelas = Array.isArray(kelasData) ? kelasData.filter(k => k.jenis === 'Diniyah').map(k => {
@@ -89,9 +82,13 @@ export const LaporanUjianKhusus = () => {
             initialKategoriId = Number(kategoriIdParam);
             setSelectedKategori(initialKategoriId);
           } else {
-            const ganjil = katData.find(k => k.nama?.toLowerCase().includes('ganjil'));
-            if (ganjil) {
-              initialKategoriId = ganjil.id;
+            const activeSemester = systemSettings.active_semester || 'Ganjil';
+            const defaultKat = katData.find(k => k.nama?.toLowerCase().includes(activeSemester.toLowerCase()));
+            if (defaultKat) {
+              initialKategoriId = defaultKat.id;
+              setSelectedKategori(initialKategoriId);
+            } else if (katData.length > 0) {
+              initialKategoriId = katData[0].id;
               setSelectedKategori(initialKategoriId);
             }
           }
@@ -1286,7 +1283,7 @@ export const LaporanUjianKhusus = () => {
   const handleTahunAjaranChange = (val) => {
     const selected = tahunAjaranList.find(t => t.id === val);
     setTahunAjaran(selected);
-    localStorage.setItem('sekolah_info_selected_tahun_ajaran', val);
+    // Tidak disimpan ke localStorage — pilihan user hanya berlaku sesi ini
   };
 
   const handleShare = () => {

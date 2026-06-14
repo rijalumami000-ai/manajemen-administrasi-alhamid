@@ -32,6 +32,20 @@ async function initDatabase() {
   } else {
     console.log('⚠ Lembar Ujian schema file not found');
   }
+
+  // Run performance_indexes.sql (idempotent — all IF NOT EXISTS)
+  const indexPath = path.join(__dirname, '..', '..', 'sql', 'performance_indexes.sql');
+  if (fs.existsSync(indexPath)) {
+    // Strip the SELECT at end (not valid in batch query context)
+    let indexSql = fs.readFileSync(indexPath, 'utf8');
+    // Remove everything from SELECT onwards (verification query — not needed on init)
+    const selectIdx = indexSql.indexOf('SELECT\n    schemaname');
+    if (selectIdx !== -1) indexSql = indexSql.substring(0, selectIdx);
+    await db.query(indexSql);
+    console.log('✓ Performance indexes applied');
+  } else {
+    console.log('⚠ Performance indexes file not found');
+  }
 }
 
 module.exports = initDatabase;

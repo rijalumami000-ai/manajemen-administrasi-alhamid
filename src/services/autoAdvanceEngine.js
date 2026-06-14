@@ -67,15 +67,7 @@ class AutoAdvanceEngine {
       return null;
     }
 
-    // Special case: Kelas 1 → SP (both have tingkat 1)
-    // Need to find SP class specifically
-    if (currentKelas.tingkat === 1 && !currentKelas.nama.toUpperCase().includes('SP')) {
-      const spKelas = this.findMatchingKelas(availableClasses, 'Diniyah', 1, true);
-      if (spKelas) {
-        return spKelas.id;
-      }
-      // If no SP class exists, fall through to find any tingkat 1 class
-    }
+    // Special case no longer needed, progresses directly to tingkat 2
 
     // Find matching class in target year
     const nextKelas = this.findMatchingKelas(availableClasses, 'Diniyah', nextTingkat);

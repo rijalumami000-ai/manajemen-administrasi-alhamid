@@ -198,14 +198,6 @@ export function Sidebar({ collapsed, onCollapse }) {
         { key: '/laporan-ujian-khusus', icon: 'FileText', label: 'Laporan Ujian Khusus', disabled: isStaff() },
         { key: '/kartu-ujian-semester', icon: 'IdCard', label: 'Kartu Ujian Semester', disabled: isStaff() },
         { key: '/lembar-ujian', icon: 'FileText', label: 'Lembar Ujian', disabled: isStaff() },
-      ]
-    },
-    {
-      id: 'alumni-group',
-      label: 'Alumni',
-      icon: 'GraduationCap',
-      collapsible: false,
-      items: [
         { key: '/alumni', icon: 'GraduationCap', label: 'Alumni', disabled: isStaff() }
       ]
     },

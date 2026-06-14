@@ -137,10 +137,11 @@ CREATE INDEX IF NOT EXISTS idx_alumni_nama ON alumni(nama);
 CREATE INDEX IF NOT EXISTS idx_alumni_tahun_lulus ON alumni(tahun_lulus DESC);
 CREATE INDEX IF NOT EXISTS idx_alumni_nis ON alumni(nis);
 
--- Tambah kolom santri_id ke tabel alumni untuk link ke data santri
 ALTER TABLE alumni ADD COLUMN IF NOT EXISTS santri_id INTEGER REFERENCES santri(id);
 ALTER TABLE alumni ADD COLUMN IF NOT EXISTS status_pernikahan VARCHAR(40);
 ALTER TABLE alumni ADD COLUMN IF NOT EXISTS alamat_sekarang TEXT;
+ALTER TABLE alumni ADD COLUMN IF NOT EXISTS tahun_ajaran_id INTEGER REFERENCES tahun_ajaran(id) ON DELETE SET NULL;
+ALTER TABLE alumni ADD COLUMN IF NOT EXISTS tipe VARCHAR(50) NOT NULL DEFAULT 'alumni';
 ALTER TABLE santri ADD COLUMN IF NOT EXISTS kamar_id INTEGER REFERENCES kamar(id);
 ALTER TABLE santri ADD COLUMN IF NOT EXISTS jenis_kelamin VARCHAR(20);
 
@@ -298,3 +299,32 @@ INSERT INTO kategori_evaluasi (nama, jenis) VALUES
 ('Semester Genap', 'Semester'),
 ('Harian / Tugas', 'Harian')
 ON CONFLICT (nama) DO NOTHING;
+
+-- Global key-value settings table (used by kartu ujian, rapor, buku induk, etc.)
+CREATE TABLE IF NOT EXISTS system_settings (
+  key VARCHAR(255) PRIMARY KEY,
+  value TEXT,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Scoping class homeroom teacher (mustahiq) and book settings per academic year
+CREATE TABLE IF NOT EXISTS kelas_tahun_ajaran (
+  id SERIAL PRIMARY KEY,
+  kelas_id INTEGER NOT NULL REFERENCES kelas(id) ON DELETE CASCADE,
+  tahun_ajaran_id INTEGER NOT NULL REFERENCES tahun_ajaran(id) ON DELETE CASCADE,
+  mustahiq_id INTEGER REFERENCES guru(id) ON DELETE SET NULL,
+  muhafadzoh_mapel_id INTEGER REFERENCES mata_pelajaran(id) ON DELETE SET NULL,
+  qiroatul_mapel_id INTEGER REFERENCES mata_pelajaran(id) ON DELETE SET NULL,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  UNIQUE (kelas_id, tahun_ajaran_id)
+);
+
+-- Copy baseline settings for active academic year from legacy columns on kelas
+INSERT INTO kelas_tahun_ajaran (kelas_id, tahun_ajaran_id, mustahiq_id, muhafadzoh_mapel_id, qiroatul_mapel_id)
+SELECT k.id, ta.id, k.mustahiq_id, k.muhafadzoh_mapel_id, k.qiroatul_mapel_id
+FROM kelas k
+CROSS JOIN tahun_ajaran ta
+WHERE ta.is_active = TRUE
+  AND (k.mustahiq_id IS NOT NULL OR k.muhafadzoh_mapel_id IS NOT NULL OR k.qiroatul_mapel_id IS NOT NULL)
+ON CONFLICT (kelas_id, tahun_ajaran_id) DO NOTHING;

@@ -1,19 +1,17 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { Button, Space, Alert, message as antMessage, Modal, Form, Select, Input, Dropdown } from 'antd';
-import { SwapOutlined, RollbackOutlined, FileExcelOutlined, FilePdfOutlined, DownOutlined } from '@ant-design/icons';
+import { SwapOutlined, RollbackOutlined, FileExcelOutlined, FilePdfOutlined, DownOutlined, BarChartOutlined, LineChartOutlined, InfoCircleOutlined } from '@ant-design/icons';
+import { Sparkles, Users, Award, Home, Activity, CheckCircle, HelpCircle } from 'lucide-react';
 import { santriService } from '../services/santriService';
 import { SantriTable } from '../components/features/SantriTable';
 import { SantriFilters } from '../components/features/SantriFilters';
 import { MigrationModal } from '../components/features/MigrationModal';
 import { TahunAjaranBoard } from '../components/features/TahunAjaranBoard';
 import { PageHeader, LoadingState, ErrorState, PasswordConfirmModal } from '../components/common';
-import { usePagination } from '../hooks/usePagination';
 import { exportToExcel, exportToPDF } from '../utils/exportUtils';
 import './Santri.scss';
 
 const { Option } = Select;
-
-const PAGE_SIZE = 30;
 
 export function Santri() {
   // State
@@ -23,6 +21,7 @@ export function Santri() {
   const [tahunAjaranList, setTahunAjaranList] = useState([]);
   const [activeTahunAjaran, setActiveTahunAjaran] = useState(null);
   const [selectedTahunAjaranId, setSelectedTahunAjaranId] = useState('');
+  const [showAnalytics, setShowAnalytics] = useState(false);
 
   // Filters
   const [searchKeyword, setSearchKeyword] = useState('');
@@ -47,7 +46,6 @@ export function Santri() {
   const [passwordAction, setPasswordAction] = useState(null); // 'rollback' | 'migration'
   const [passwordModalConfig, setPasswordModalConfig] = useState({ title: '', message: '' });
 
-
   // Messages
   const [modalError, setModalError] = useState('');
 
@@ -60,12 +58,15 @@ export function Santri() {
     loadInitialData();
   }, []);
 
-  // Load santri when tahun ajaran changes
+  // Load santri when user manually switches tahun ajaran (after initial load)
+  // Note: we DO NOT trigger this on initial mount because loadInitialData already
+  // fetches santri. Without this guard, the stale closure on tahunAjaranList
+  // could cause loadSantri to skip silently (tahunAjaranList still [] in closure).
+  const hasLoadedInitially = useRef(false);
   useEffect(() => {
-    if (tahunAjaranList.length > 0) {
-      loadSantri();
-    }
-  }, [selectedTahunAjaranId]);
+    if (!hasLoadedInitially.current) return;
+    loadSantri();
+  }, [selectedTahunAjaranId]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const loadInitialData = async () => {
     try {
@@ -83,7 +84,12 @@ export function Santri() {
 
       const active = tahunAjaranData.find(ta => ta.is_active);
       setActiveTahunAjaran(active);
-      setSelectedTahunAjaranId(active ? String(active.id) : '');
+      const activeId = active ? String(active.id) : '';
+      setSelectedTahunAjaranId(activeId);
+
+      // Load santri immediately with the resolved yearId (avoids stale-closure race)
+      await loadSantriForYear(activeId, active);
+      hasLoadedInitially.current = true;
 
     } catch (err) {
       console.error('Failed to load initial data:', err);
@@ -93,18 +99,16 @@ export function Santri() {
     }
   };
 
-  const loadSantri = async () => {
+  // Accepts explicit yearId & activeTahunAjaran to avoid stale closure issues
+  const loadSantriForYear = async (yearId, activeYear) => {
     try {
-      const yearId = selectedTahunAjaranId || (activeTahunAjaran ? activeTahunAjaran.id : null);
-      const isActiveYear = isSelectedYearActive();
+      const isActiveYear = !yearId || (activeYear && String(yearId) === String(activeYear?.id));
 
-      // Fetch santri and alumni
       const [santriData, alumniData] = await Promise.all([
-        santriService.fetchSantri(yearId),
+        santriService.fetchSantri(yearId || null),
         santriService.fetchAlumni()
       ]);
 
-      // Filter out alumni from santri list if viewing active year
       let filteredSantri = santriData;
       if (isActiveYear) {
         const alumniSantriIds = new Set(
@@ -113,7 +117,6 @@ export function Santri() {
         const alumniNis = new Set(
           alumniData.map(a => a.nis).filter(Boolean)
         );
-
         filteredSantri = santriData.filter(
           s => !alumniSantriIds.has(Number(s.id)) && !alumniNis.has(s.nis)
         );
@@ -124,6 +127,11 @@ export function Santri() {
       console.error('Failed to load santri:', err);
       antMessage.error(err.message || 'Gagal memuat data santri');
     }
+  };
+
+  const loadSantri = async () => {
+    const yearId = selectedTahunAjaranId || (activeTahunAjaran ? String(activeTahunAjaran.id) : '');
+    await loadSantriForYear(yearId, activeTahunAjaran);
   };
 
   const handleUpdateSemesterStatus = async (id, statusData) => {
@@ -163,7 +171,7 @@ export function Santri() {
   const canEdit = yearStatus === 'active'; // Hanya tahun berjalan yang bisa edit/delete
   const canAdd = yearStatus !== 'coming'; // Bisa tambah di active dan archive, tapi tidak di coming soon
 
-  // Filter santri
+  // Extended search matching Name, NIS, Parents, Class, Room, Phone Number
   const filteredSantri = useMemo(() => {
     return santriList.filter(santri => {
       const keyword = searchKeyword.toLowerCase();
@@ -173,8 +181,11 @@ export function Santri() {
         santri.nama,
         santri.nama_ayah,
         santri.nama_ibu,
+        santri.no_hp_ayah,
+        santri.no_hp_ibu,
         santri.nama_diniyah,
-        santri.nama_sekolah
+        santri.nama_sekolah,
+        santri.nama_kamar
       ].join(' ').toLowerCase();
 
       return (
@@ -186,20 +197,6 @@ export function Santri() {
       );
     });
   }, [santriList, searchKeyword, filterDiniyah, filterSekolah, filterGender, filterStatus]);
-
-  // Pagination
-  const {
-    currentPage,
-    totalPages,
-    paginatedItems,
-    goToPage,
-    reset: resetPagination
-  } = usePagination(filteredSantri, PAGE_SIZE);
-
-  // Reset pagination when filters change
-  useEffect(() => {
-    resetPagination();
-  }, [searchKeyword, filterDiniyah, filterSekolah, filterGender, filterStatus]);
 
   // Get unique filter options
   const diniyahOptions = useMemo(() => {
@@ -250,7 +247,6 @@ export function Santri() {
 
   const handleTahunAjaranSelect = (id) => {
     setSelectedTahunAjaranId(String(id));
-    resetPagination();
   };
 
   const handleMigrateClick = async () => {
@@ -258,12 +254,10 @@ export function Santri() {
       antMessage.error('Tahun ajaran berjalan belum tersedia');
       return;
     }
-
-    // Open migration modal
     setIsMigrationModalOpen(true);
   };
 
-  const handleMigrationConfirm = async (excludedSantriIds) => {
+  const handleMigrationConfirm = async (excludedSantriIds, promotions = []) => {
     if (!activeTahunAjaran) {
       antMessage.error('Tahun ajaran berjalan belum tersedia');
       return;
@@ -271,7 +265,7 @@ export function Santri() {
 
     const nextKode = `${activeTahunAjaran.tahun_selesai}-${activeTahunAjaran.tahun_selesai + 1}`;
 
-    setMigrationPayload({ nextKode, excludedSantriIds });
+    setMigrationPayload({ nextKode, excludedSantriIds, promotions });
     setPasswordModalConfig({
       title: 'Konfirmasi Keamanan: Migrasi',
       message: `Apakah Anda yakin ingin melakukan Migrasi ke Tahun Ajaran ${nextKode}? \n\nTindakan ini akan menaikkan kelas semua santri, menjadikan kelas akhir sebagai alumni, dan merupakan tindakan permanen.`
@@ -283,13 +277,12 @@ export function Santri() {
 
   const executeMigration = async () => {
     if (!migrationPayload) return;
-    const { nextKode, excludedSantriIds } = migrationPayload;
-    
+    const { nextKode, excludedSantriIds, promotions } = migrationPayload;
+
     try {
       setIsMigrating(true);
-      const result = await santriService.migrateTahunAjaran(nextKode, excludedSantriIds);
+      const result = await santriService.migrateTahunAjaran(nextKode, excludedSantriIds, promotions);
 
-      // Enhanced success message with detailed statistics
       const successMessage = [
         `${result.message}`,
         `✅ ${result.migrated || 0} santri naik kelas`,
@@ -302,7 +295,7 @@ export function Santri() {
         successMessage.push(`ℹ️ ${result.existing_alumni_excluded} alumni sudah ada (tidak diproses)`);
       }
 
-      antMessage.success(successMessage.join('\n'), 8); // Show for 8 seconds
+      antMessage.success(successMessage.join('\n'), 8);
 
       setIsMigrationModalOpen(false);
       await loadInitialData();
@@ -321,7 +314,6 @@ export function Santri() {
       return;
     }
 
-    // Enhanced rollback confirmation with alumni warning
     const confirmMessage = [
       `Apakah Anda yakin ingin membatalkan migrasi dan kembali ke tahun ajaran sebelumnya?`,
       ``,
@@ -346,7 +338,6 @@ export function Santri() {
       setIsMigrating(true);
       const result = await santriService.rollbackMigration();
 
-      // Enhanced success message with detailed statistics
       const successMessage = [
         `${result.message}`,
         `🗑️ ${result.deletedCount || 0} data santri dihapus`,
@@ -354,7 +345,7 @@ export function Santri() {
         `🎓 ${result.alumni_deleted || 0} record alumni dihapus`,
       ];
 
-      antMessage.success(successMessage.join('\n'), 8); // Show for 8 seconds
+      antMessage.success(successMessage.join('\n'), 8);
 
       await loadInitialData();
     } catch (err) {
@@ -389,12 +380,12 @@ export function Santri() {
       statusLabel = ' (Arsip)';
     }
 
-    return `Data Santri Tahun Ajaran ${selectedYear.kode}${statusLabel}`;
+    return `Tahun Ajaran ${selectedYear.kode}${statusLabel}`;
   };
 
   const handleExportExcel = (type) => {
     let sourceData = filteredSantri;
-    
+
     if (type === 'ganjil') {
       sourceData = filteredSantri.filter(s => s.aktif_ganjil);
     } else if (type === 'genap') {
@@ -427,28 +418,10 @@ export function Santri() {
       'Nama Ibu': s.nama_ibu,
       'Alamat': s.alamat
     }));
-    
+
     const typeLabel = type === 'ganjil' ? 'Ganjil_' : type === 'genap' ? 'Genap_' : '';
     exportToExcel(dataToExport, `Data_Santri_${typeLabel}${selectedYear?.kode || 'Export'}.xlsx`);
   };
-
-  const exportExcelItems = [
-    {
-      key: 'ganjil',
-      label: 'Ekspor Ganjil',
-      onClick: () => handleExportExcel('ganjil')
-    },
-    {
-      key: 'genap',
-      label: 'Ekspor Genap',
-      onClick: () => handleExportExcel('genap')
-    },
-    {
-      key: 'global',
-      label: 'Ekspor Global',
-      onClick: () => handleExportExcel('global')
-    }
-  ];
 
   const handleExportPDF = () => {
     const columns = [
@@ -462,6 +435,135 @@ export function Santri() {
     ];
     exportToPDF(filteredSantri, columns, `Data Santri - Tahun Ajaran ${selectedYear?.kode}`, `Data_Santri_${selectedYear?.kode || 'Export'}.pdf`);
   };
+
+  // Dynamic KPI Card Calculations
+  const totalStudents = useMemo(() => santriList.length, [santriList]);
+  
+  const totalBoys = useMemo(() => {
+    return santriList.filter(s => s.jenis_kelamin === 'Laki-laki').length;
+  }, [santriList]);
+
+  const totalGirls = useMemo(() => {
+    return santriList.filter(s => s.jenis_kelamin === 'Perempuan').length;
+  }, [santriList]);
+
+  const totalClasses = useMemo(() => {
+    const diniyahClasses = new Set(santriList.map(s => s.nama_diniyah).filter(Boolean));
+    const sekolahClasses = new Set(santriList.map(s => s.nama_sekolah).filter(Boolean));
+    return diniyahClasses.size + sekolahClasses.size;
+  }, [santriList]);
+
+  const totalRooms = useMemo(() => {
+    const rooms = new Set(santriList.map(s => s.nama_kamar).filter(Boolean));
+    return rooms.size;
+  }, [santriList]);
+
+  const roomAssignedPct = useMemo(() => {
+    if (totalStudents === 0) return 0;
+    const assigned = santriList.filter(s => s.kamar_id).length;
+    return Math.round((assigned / totalStudents) * 100);
+  }, [santriList, totalStudents]);
+
+  // Densest Class Finder
+  const densestClass = useMemo(() => {
+    const counts = {};
+    santriList.forEach(s => {
+      if (s.nama_diniyah) counts[s.nama_diniyah] = (counts[s.nama_diniyah] || 0) + 1;
+      if (s.nama_sekolah) counts[s.nama_sekolah] = (counts[s.nama_sekolah] || 0) + 1;
+    });
+    let name = '-';
+    let count = 0;
+    Object.entries(counts).forEach(([k, v]) => {
+      if (v > count) {
+        name = k;
+        count = v;
+      }
+    });
+    return { name, count };
+  }, [santriList]);
+
+  // Year-over-Year Growth Comparison Data
+  const comparisonData = useMemo(() => {
+    if (!selectedYear || tahunAjaranList.length === 0) return null;
+    const sorted = [...tahunAjaranList].sort((a, b) => {
+      const yearA = parseInt(a.kode.split('-')[0]) || 0;
+      const yearB = parseInt(b.kode.split('-')[0]) || 0;
+      return yearA - yearB;
+    });
+    const currIdx = sorted.findIndex(ta => Number(ta.id) === Number(selectedYear.id));
+    if (currIdx <= 0) return null;
+    const prevYear = sorted[currIdx - 1];
+
+    const currCount = Number(selectedYear.jumlah_santri || 0);
+    const prevCount = Number(prevYear.jumlah_santri || 0);
+    const diff = currCount - prevCount;
+    const pct = prevCount > 0 ? Math.round((diff / prevCount) * 100) : 0;
+
+    return {
+      prevYearCode: prevYear.kode,
+      prevCount,
+      currCount,
+      diff,
+      pct,
+      isGrowth: diff >= 0
+    };
+  }, [selectedYear, tahunAjaranList]);
+
+  // Class & Room Distribution Lists for Analytics
+  const classDistribution = useMemo(() => {
+    const dist = {};
+    santriList.forEach(s => {
+      const cls = s.nama_diniyah || s.nama_sekolah || 'Tanpa Kelas';
+      dist[cls] = (dist[cls] || 0) + 1;
+    });
+    return Object.entries(dist)
+      .map(([name, count]) => ({ name, count }))
+      .sort((a, b) => b.count - a.count)
+      .slice(0, 5); // top 5
+  }, [santriList]);
+
+  const roomDistribution = useMemo(() => {
+    const dist = {};
+    santriList.forEach(s => {
+      const rm = s.nama_kamar || 'Tanpa Kamar';
+      dist[rm] = (dist[rm] || 0) + 1;
+    });
+    return Object.entries(dist)
+      .map(([name, count]) => ({ name, count }))
+      .sort((a, b) => b.count - a.count)
+      .slice(0, 5); // top 5
+  }, [santriList]);
+
+  // Export Center items
+  const exportCenterItems = [
+    {
+      key: 'excel-ganjil',
+      label: 'Ekspor Excel (Ganjil)',
+      icon: <FileExcelOutlined style={{ color: '#10b981' }} />,
+      onClick: () => handleExportExcel('ganjil')
+    },
+    {
+      key: 'excel-genap',
+      label: 'Ekspor Excel (Genap)',
+      icon: <FileExcelOutlined style={{ color: '#10b981' }} />,
+      onClick: () => handleExportExcel('genap')
+    },
+    {
+      key: 'excel-global',
+      label: 'Ekspor Excel (Global)',
+      icon: <FileExcelOutlined style={{ color: '#10b981' }} />,
+      onClick: () => handleExportExcel('global')
+    },
+    {
+      type: 'divider'
+    },
+    {
+      key: 'pdf-global',
+      label: 'Ekspor PDF Laporan',
+      icon: <FilePdfOutlined style={{ color: '#ef4444' }} />,
+      onClick: handleExportPDF
+    }
+  ];
 
   const yearLabel = getYearLabel();
 
@@ -483,24 +585,24 @@ export function Santri() {
   }
 
   return (
-    <div className="santri-page">
+    <div className="santri-page-center">
       <PageHeader
-        title="Manajemen Data Santri"
+        title="Pusat Data Santri & Akademik"
         subtitle={yearLabel}
         extra={
-          <Space>
-            <Dropdown menu={{ items: exportExcelItems }} disabled={filteredSantri.length === 0} trigger={['click']}>
-              <Button icon={<FileExcelOutlined />}>
-                Ekspor Excel <DownOutlined />
+          <Space size="middle">
+            <Button
+              icon={<BarChartOutlined />}
+              onClick={() => setShowAnalytics(!showAnalytics)}
+              className={showAnalytics ? 'analytics-active-btn' : ''}
+            >
+              Analisis & Statistik
+            </Button>
+            <Dropdown menu={{ items: exportCenterItems }} disabled={filteredSantri.length === 0} trigger={['click']}>
+              <Button icon={<FileExcelOutlined />} type="default">
+                Ekspor Laporan <DownOutlined />
               </Button>
             </Dropdown>
-            <Button
-              icon={<FilePdfOutlined />}
-              onClick={handleExportPDF}
-              disabled={filteredSantri.length === 0}
-            >
-              Ekspor PDF
-            </Button>
             <Button
               icon={<RollbackOutlined />}
               onClick={handleRollbackClick}
@@ -513,8 +615,9 @@ export function Santri() {
               icon={<SwapOutlined />}
               onClick={handleMigrateClick}
               disabled={!canEdit || !activeTahunAjaran}
+              type="primary"
             >
-              Migrasi
+              Migrasi Kelas
             </Button>
           </Space>
         }
@@ -526,11 +629,188 @@ export function Santri() {
         onSelect={handleTahunAjaranSelect}
       />
 
-      <div className="santri-content">
+      {/* Academic Summary Dashboard */}
+      <div className="academic-stats-dashboard">
+        <div className="stats-grid">
+          {/* Card 1: Total Students */}
+          <div className="summary-kpi-card accent-blue">
+            <div className="kpi-card-inner">
+              <div className="kpi-icon-wrap">
+                <Users size={20} className="kpi-icon" />
+              </div>
+              <div className="kpi-info">
+                <span className="kpi-label">Total Santri Terdaftar</span>
+                <span className="kpi-value">{totalStudents}</span>
+                <span className="kpi-subtext">
+                  👨 {totalBoys} Laki-laki &bull; 🧕 {totalGirls} Perempuan
+                </span>
+              </div>
+            </div>
+          </div>
+
+          {/* Card 2: Total Classes */}
+          <div className="summary-kpi-card accent-amber">
+            <div className="kpi-card-inner">
+              <div className="kpi-icon-wrap">
+                <Award size={20} className="kpi-icon" />
+              </div>
+              <div className="kpi-info">
+                <span className="kpi-label">Total Kelas Aktif</span>
+                <span className="kpi-value">{totalClasses}</span>
+                <span className="kpi-subtext">Diniyah &amp; Sekolah formal</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Card 3: Total Rooms */}
+          <div className="summary-kpi-card accent-purple">
+            <div className="kpi-card-inner">
+              <div className="kpi-icon-wrap">
+                <Home size={20} className="kpi-icon" />
+              </div>
+              <div className="kpi-info">
+                <span className="kpi-label">Kamar Asrama Terisi</span>
+                <span className="kpi-value">{totalRooms}</span>
+                <span className="kpi-subtext">{roomAssignedPct}% Penempatan Kamar</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Card 4: Active Year details */}
+          <div className="summary-kpi-card accent-green">
+            <div className="kpi-card-inner">
+              <div className="kpi-icon-wrap">
+                <Activity size={20} className="kpi-icon" />
+              </div>
+              <div className="kpi-info">
+                <span className="kpi-label">Status Periode Terpilih</span>
+                <span className="kpi-value">{selectedYear?.kode || '-'}</span>
+                <span className="kpi-subtext">
+                  {yearStatus === 'active' ? '🟢 Periode Berjalan' : yearStatus === 'coming' ? '⏳ Coming Soon' : '📁 Diarsip'}
+                </span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Academic Insights Panel */}
+      <div className="academic-insights-banner">
+        <div className="insights-header">
+          <Sparkles size={16} className="insight-header-icon" />
+          <span>Analisis Cerdas Sistem</span>
+        </div>
+        <div className="insights-grid">
+          <div className="insight-bullet">
+            <span className="bullet-dot bg-blue"></span>
+            <span>Tahun ajaran terpilih menampung sebanyak <strong>{totalStudents} santri</strong> terdaftar secara keseluruhan.</span>
+          </div>
+          <div className="insight-bullet">
+            <span className="bullet-dot bg-amber"></span>
+            <span>Kelas terpadat saat ini adalah <strong>{densestClass.name}</strong> dengan jumlah santri <strong>{densestClass.count} santri</strong>.</span>
+          </div>
+          <div className="insight-bullet">
+            <span className="bullet-dot bg-purple"></span>
+            <span>Tingkat keberhasilan pemetaan kamar santri mencapai <strong>{roomAssignedPct}%</strong> dari seluruh kapasitas terdaftar.</span>
+          </div>
+        </div>
+      </div>
+
+      {/* Collapsible Analytics Pane */}
+      {showAnalytics && (
+        <div className="collapsible-analytics-panel animate-slide-down">
+          <div className="analytics-pane-grid">
+            
+            {/* Year-over-Year Comparison */}
+            <div className="analytics-pane-card">
+              <h4>Perbandingan Tahun Ajaran</h4>
+              {comparisonData ? (
+                <div className="comparison-content">
+                  <div className="comparison-row">
+                    <div className="comparison-year-box">
+                      <span className="comp-label">Tahun Sebelumnya ({comparisonData.prevYearCode})</span>
+                      <span className="comp-val">{comparisonData.prevCount} Santri</span>
+                    </div>
+                    <div className="comparison-arrow-indicator">&rarr;</div>
+                    <div className="comparison-year-box highlight-blue">
+                      <span className="comp-label">Selected Year ({selectedYear?.kode})</span>
+                      <span className="comp-val">{comparisonData.currCount} Santri</span>
+                    </div>
+                  </div>
+                  <div className="comparison-result-bar">
+                    <span className="result-diff-text">
+                      Selisih: <strong>{comparisonData.diff >= 0 ? `+${comparisonData.diff}` : comparisonData.diff} santri</strong> ({comparisonData.pct}% pertumbuhan)
+                    </span>
+                    <div className={`diff-tag ${comparisonData.isGrowth ? 'growth' : 'shrink'}`}>
+                      {comparisonData.isGrowth ? 'Growth ↑' : 'Shrink ↓'}
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <div className="analytics-empty-state">
+                  <InfoCircleOutlined />
+                  <span>Tidak ada data tahun ajaran sebelumnya untuk perbandingan.</span>
+                </div>
+              )}
+            </div>
+
+            {/* Class Distribution Charts */}
+            <div className="analytics-pane-card">
+              <h4>Distribusi Kelas Terpadat</h4>
+              <div className="dist-list">
+                {classDistribution.length > 0 ? (
+                  classDistribution.map((item, index) => (
+                    <div key={index} className="dist-item">
+                      <div className="dist-label-row">
+                        <span className="dist-name">{item.name}</span>
+                        <span className="dist-count">{item.count} Santri</span>
+                      </div>
+                      <div className="dist-progress-bg">
+                        <div className="dist-progress-fill bg-blue" style={{ width: `${Math.min(100, (item.count / totalStudents) * 100)}%` }}></div>
+                      </div>
+                    </div>
+                  ))
+                ) : (
+                  <div className="analytics-empty-state">
+                    <span>Belum ada data distribusi kelas.</span>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Room Distribution Charts */}
+            <div className="analytics-pane-card">
+              <h4>Distribusi Kamar Asrama Terpadat</h4>
+              <div className="dist-list">
+                {roomDistribution.length > 0 ? (
+                  roomDistribution.map((item, index) => (
+                    <div key={index} className="dist-item">
+                      <div className="dist-label-row">
+                        <span className="dist-name">{item.name}</span>
+                        <span className="dist-count">{item.count} Santri</span>
+                      </div>
+                      <div className="dist-progress-bg">
+                        <div className="dist-progress-fill bg-purple" style={{ width: `${Math.min(100, (item.count / totalStudents) * 100)}%` }}></div>
+                      </div>
+                    </div>
+                  ))
+                ) : (
+                  <div className="analytics-empty-state">
+                    <span>Belum ada data distribusi kamar.</span>
+                  </div>
+                )}
+              </div>
+            </div>
+
+          </div>
+        </div>
+      )}
+
+      <div className="santri-content-layout">
         {yearStatus === 'archive' && (
           <Alert
-            message="Mode Arsip"
-            description="Anda sedang melihat data arsip. Data yang ditambahkan akan masuk ke tahun ajaran ini. Edit dan hapus tidak tersedia untuk data arsip."
+            message="Mode Data Arsip"
+            description="Periode akademik ini telah selesai. Anda hanya dapat melihat data santri di arsip ini. Modifikasi data dinonaktifkan."
             type="info"
             showIcon
             closable
@@ -539,8 +819,8 @@ export function Santri() {
         )}
         {yearStatus === 'coming' && (
           <Alert
-            message="Tahun Ajaran Coming Soon"
-            description="Tahun ajaran ini belum dimulai. Anda hanya bisa melihat data. Untuk menambah santri, lakukan migrasi dari tahun ajaran berjalan."
+            message="Periode Akademik Mendatang"
+            description="Tahun ajaran ini belum berjalan aktif. Gunakan fungsi Migrasi Kelas untuk mendaftarkan dan menaikkan kelas santri ke tahun ajaran ini."
             type="warning"
             showIcon
             closable
@@ -567,27 +847,24 @@ export function Santri() {
         />
 
         <SantriTable
-          data={paginatedItems}
-          total={filteredSantri.length}
-          currentPage={currentPage}
-          pageSize={PAGE_SIZE}
-          onPageChange={goToPage}
+          data={filteredSantri}
           onEdit={handleEditClick}
           canEdit={canEdit}
           onUpdateSemesterStatus={handleUpdateSemesterStatus}
         />
       </div>
 
-      {/* Modal Edit Penempatan (hanya Kelas, Kamar, Status) */}
+      {/* Modal Edit Penempatan (Kelas, Kamar, Status) */}
       <Modal
         open={isModalOpen}
-        title={`Ubah Penempatan: ${editingData?.nama || ''}`}
+        title={`Ubah Penempatan Santri: ${editingData?.nama || ''}`}
         onCancel={() => { setIsModalOpen(false); setModalError(''); }}
         onOk={handleModalSubmit}
         confirmLoading={isSubmitting}
-        okText="Simpan"
+        okText="Simpan Perubahan"
         cancelText="Batal"
         destroyOnClose
+        className="academic-modal"
       >
         {modalError && <Alert message={modalError} type="error" showIcon style={{ marginBottom: 16 }} />}
         <Form form={editForm} layout="vertical" disabled={isSubmitting}
@@ -599,31 +876,29 @@ export function Santri() {
             catatan_tahun_ajaran: editingData?.catatan_tahun_ajaran || '',
           }}
         >
-          <Form.Item name="kelas_diniyah_id" label="Kelas Diniyah">
-            <Select placeholder="Pilih" allowClear>
+          <Form.Item name="kelas_diniyah_id" label="Kelas Kurikulum Diniyah">
+            <Select placeholder="Pilih Kelas" allowClear>
               {kelasList.filter(k => k.jenis === 'Diniyah').map(k => <Option key={k.id} value={k.id}>{k.nama}</Option>)}
             </Select>
           </Form.Item>
-          <Form.Item name="kelas_sekolah_id" label="Kelas Sekolah">
-            <Select placeholder="Pilih" allowClear>
+          <Form.Item name="kelas_sekolah_id" label="Kelas Kurikulum Sekolah">
+            <Select placeholder="Pilih Kelas" allowClear>
               {kelasList.filter(k => k.jenis === 'Sekolah').map(k => <Option key={k.id} value={k.id}>{k.nama}</Option>)}
             </Select>
           </Form.Item>
-          <Form.Item name="kamar_id" label="Kamar Asrama">
-            <Select placeholder="Pilih" allowClear>
+          <Form.Item name="kamar_id" label="Kamar Asrama Santri">
+            <Select placeholder="Pilih Kamar" allowClear>
               {kamarList.map(k => <Option key={k.id} value={k.id}>{k.nama} ({k.jenis})</Option>)}
             </Select>
           </Form.Item>
-          <Form.Item name="status_tahun_ajaran" label="Status">
+          <Form.Item name="status_tahun_ajaran" label="Status Akademik Periode">
             <Select>
               <Option value="aktif">Aktif</Option>
-              <Option value="tidak_naik">Tidak Naik</Option>
-              <Option value="pindah">Pindah</Option>
-              <Option value="keluar">Keluar</Option>
+              <Option value="pindah">Pindah / Migrasi</Option>
             </Select>
           </Form.Item>
-          <Form.Item name="catatan_tahun_ajaran" label="Catatan">
-            <Input.TextArea rows={2} placeholder="Catatan (opsional)" />
+          <Form.Item name="catatan_tahun_ajaran" label="Catatan Riwayat Akademik">
+            <Input.TextArea rows={2} placeholder="Masukkan catatan opsional..." />
           </Form.Item>
         </Form>
       </Modal>
@@ -632,10 +907,11 @@ export function Santri() {
         isOpen={isMigrationModalOpen}
         onClose={() => setIsMigrationModalOpen(false)}
         onConfirm={handleMigrationConfirm}
-        santriList={santriList}
+        santriList={santriList.filter(s => s.aktif_genap)}
         sourceYear={activeTahunAjaran}
         targetYear={nextYearKode}
         isSubmitting={isMigrating}
+        kelasList={kelasList}
       />
 
       <PasswordConfirmModal
@@ -646,8 +922,6 @@ export function Santri() {
         message={passwordModalConfig.message}
         actionType={passwordAction}
       />
-
-
     </div>
   );
 }

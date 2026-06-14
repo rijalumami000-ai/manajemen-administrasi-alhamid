@@ -62,9 +62,9 @@ const MobileMenu = ({ open, onClose, onLogout }) => {
         { key: '/laporan-ujian-khusus', icon: <FileText size={18} />, label: 'Laporan Ujian Khusus', disabled: isStaff() },
         { key: '/kartu-ujian-semester', icon: <IdCard size={18} />, label: 'Kartu Ujian Semester', disabled: isStaff() },
         { key: '/lembar-ujian', icon: <FileText size={18} />, label: 'Lembar Ujian', disabled: isStaff() },
+        { key: '/alumni', icon: <GraduationCap size={18} />, label: 'Alumni', disabled: isStaff() },
       ],
     },
-    { key: '/alumni', icon: <GraduationCap size={18} />, label: 'Alumni', disabled: isStaff() },
     ...(isAdmin() || isStaff() ? [{ 
       key: '/users', 
       icon: <ShieldCheck size={18} />, 

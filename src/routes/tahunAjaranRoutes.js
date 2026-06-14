@@ -13,7 +13,19 @@ function registerTahunAjaranRoutes(app) {
       const result = await db.query(`
         SELECT
           ta.*,
-          COUNT(sta.id)::INTEGER AS jumlah_santri
+          COUNT(sta.id) FILTER (WHERE sta.status = 'aktif')::INTEGER AS jumlah_santri,
+          (
+            SELECT COALESCE(COUNT(DISTINCT class_id), 0)::INTEGER
+            FROM (
+              SELECT kelas_diniyah_id AS class_id
+              FROM santri_tahun_ajaran
+              WHERE tahun_ajaran_id = ta.id AND status = 'aktif' AND kelas_diniyah_id IS NOT NULL
+              UNION
+              SELECT kelas_sekolah_id AS class_id
+              FROM santri_tahun_ajaran
+              WHERE tahun_ajaran_id = ta.id AND status = 'aktif' AND kelas_sekolah_id IS NOT NULL
+            ) uc
+          ) AS jumlah_kelas
         FROM tahun_ajaran ta
         LEFT JOIN santri_tahun_ajaran sta ON sta.tahun_ajaran_id = ta.id
         GROUP BY ta.id
@@ -197,6 +209,7 @@ function registerTahunAjaranRoutes(app) {
         LEFT JOIN kelas ks ON sta.kelas_sekolah_id = ks.id
         WHERE sta.tahun_ajaran_id = $1
           AND sta.status = 'aktif'
+          AND sta.aktif_genap = TRUE
         ORDER BY sta.nama
       `, [source.id]);
 
@@ -214,6 +227,17 @@ function registerTahunAjaranRoutes(app) {
       // ===== STEP 7: Process Each Santri =====
       console.log('🔄 Processing santri for migration...');
 
+      // Convert promotions list to a map for fast lookup
+      const customPromotions = {};
+      if (req.body.promotions && Array.isArray(req.body.promotions)) {
+        req.body.promotions.forEach(p => {
+          customPromotions[Number(p.santri_id)] = {
+            kelas_diniyah_id: p.kelas_diniyah_id,
+            kelas_sekolah_id: p.kelas_sekolah_id
+          };
+        });
+      }
+
       let migratedCount = 0;
       let alumniCreatedCount = 0;
       let mtsGraduatesCount = 0;
@@ -221,9 +245,48 @@ function registerTahunAjaranRoutes(app) {
 
       for (const santri of sourceSantri) {
         try {
-          // Skip excluded santri
+          // Process excluded (non-promoted) santri: migrate them but keep them in the same class
           if (excludedSantriIds.includes(santri.santri_id)) {
-            console.log(`   ⏭️  Skipping excluded santri: ${santri.nama} (ID: ${santri.santri_id})`);
+            console.log(`   📌 Processing non-promoted santri: ${santri.nama} (ID: ${santri.santri_id})`);
+            
+            const advancedClasses = {
+              kelas_diniyah_id: santri.kelas_diniyah_id,
+              kelas_sekolah_id: santri.kelas_sekolah_id
+            };
+            
+            const catatanNote = `Migrasi dari ${source.kode} | Tidak naik (mengulang)`;
+            
+            await client.query(`
+              INSERT INTO santri_tahun_ajaran (
+                tahun_ajaran_id, santri_id, kelas_diniyah_id, kelas_sekolah_id, kamar_id, status, catatan,
+                nis, nik, nama, jenis_kelamin, tempat_lahir, tanggal_lahir, alamat,
+                nama_ayah, nama_ibu, pekerjaan_ayah, pekerjaan_ibu, no_hp_ayah, no_hp_ibu
+              ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20)
+            `, [
+              target.id,
+              santri.santri_id,
+              advancedClasses.kelas_diniyah_id,
+              advancedClasses.kelas_sekolah_id,
+              santri.kamar_id,
+              'aktif',
+              catatanNote,
+              santri.nis,
+              santri.nik,
+              santri.nama,
+              santri.jenis_kelamin,
+              santri.tempat_lahir,
+              santri.tanggal_lahir,
+              santri.alamat,
+              santri.nama_ayah,
+              santri.nama_ibu,
+              santri.pekerjaan_ayah,
+              santri.pekerjaan_ibu,
+              santri.no_hp_ayah,
+              santri.no_hp_ibu
+            ]);
+            
+            migratedCount++;
+            console.log(`   ✅ Non-promoted santri migrated in same class`);
             continue;
           }
 
@@ -260,12 +323,26 @@ function registerTahunAjaranRoutes(app) {
           }
 
           // ===== STEP 7.2: Auto-Advance Class Levels =====
-          const advancedClasses = await autoAdvanceEngine.advanceSantri(santri, availableClasses);
+          let advancedClasses = { kelas_diniyah_id: null, kelas_sekolah_id: null };
+          const customPromo = customPromotions[Number(santri.santri_id)];
 
-          console.log(`   📚 Advanced classes:`, {
-            diniyah: advancedClasses.kelas_diniyah_id,
-            sekolah: advancedClasses.kelas_sekolah_id
-          });
+          if (customPromo) {
+            // Run default auto-advance as fallback values
+            const autoAdvanced = await autoAdvanceEngine.advanceSantri(santri, availableClasses);
+            
+            advancedClasses.kelas_diniyah_id = customPromo.kelas_diniyah_id !== undefined 
+              ? (customPromo.kelas_diniyah_id === null ? null : Number(customPromo.kelas_diniyah_id)) 
+              : autoAdvanced.kelas_diniyah_id;
+              
+            advancedClasses.kelas_sekolah_id = customPromo.kelas_sekolah_id !== undefined 
+              ? (customPromo.kelas_sekolah_id === null ? null : Number(customPromo.kelas_sekolah_id)) 
+              : autoAdvanced.kelas_sekolah_id;
+              
+            console.log(`   📚 Custom promotion applied (with auto-advance fallback):`, advancedClasses);
+          } else {
+            advancedClasses = await autoAdvanceEngine.advanceSantri(santri, availableClasses);
+            console.log(`   📚 Auto-advanced classes:`, advancedClasses);
+          }
 
           // Build catatan note
           let catatanNote = `Migrasi dari ${source.kode}`;
@@ -322,6 +399,64 @@ function registerTahunAjaranRoutes(app) {
           throw error; // Rollback entire transaction on any error
         }
       }
+
+      // ===== STEP 7.5: Process Non-Migrated Students (Pindah/Keluar/Inactive Semesters) =====
+      console.log('🔄 Processing non-migrated santri (pindah/inactive)...');
+      const nonMigratedResult = await client.query(`
+        SELECT
+          sta.santri_id,
+          sta.nis,
+          sta.nik,
+          sta.nama,
+          sta.tempat_lahir,
+          sta.tanggal_lahir,
+          sta.alamat,
+          sta.status,
+          sta.catatan,
+          kd.nama AS kelas_diniyah,
+          ks.nama AS kelas_sekolah
+        FROM santri_tahun_ajaran sta
+        LEFT JOIN kelas kd ON sta.kelas_diniyah_id = kd.id
+        LEFT JOIN kelas ks ON sta.kelas_sekolah_id = ks.id
+        WHERE sta.tahun_ajaran_id = $1
+          AND (sta.status IN ('pindah', 'keluar') OR sta.aktif_ganjil = FALSE OR sta.aktif_genap = FALSE)
+      `, [source.id]);
+
+      let nonMigratedPindahCount = 0;
+      for (const row of nonMigratedResult.rows) {
+        const kelasArray = [];
+        if (row.kelas_diniyah) kelasArray.push(row.kelas_diniyah);
+        if (row.kelas_sekolah) kelasArray.push(row.kelas_sekolah);
+        const kelasTerakhir = kelasArray.join(' / ') || null;
+
+        await client.query(`
+          INSERT INTO alumni (
+            santri_id, nis, nik, nama, tempat_lahir, tanggal_lahir,
+            tahun_lulus, kelas_terakhir, alamat, keterangan, tahun_ajaran_id, tipe
+          ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
+          ON CONFLICT (santri_id) DO UPDATE SET
+            tahun_lulus = EXCLUDED.tahun_lulus,
+            kelas_terakhir = EXCLUDED.kelas_terakhir,
+            keterangan = EXCLUDED.keterangan,
+            tahun_ajaran_id = EXCLUDED.tahun_ajaran_id,
+            tipe = EXCLUDED.tipe
+        `, [
+          row.santri_id,
+          row.nis,
+          row.nik,
+          row.nama,
+          row.tempat_lahir,
+          row.tanggal_lahir,
+          source.tahun_selesai,
+          kelasTerakhir,
+          row.alamat,
+          row.catatan || `Pindah/keluar pada tahun ajaran ${source.kode}`,
+          source.id,
+          'pindah'
+        ]);
+        nonMigratedPindahCount++;
+      }
+      console.log(`   ✅ Processed ${nonMigratedPindahCount} non-migrated santri to alumni table as 'pindah'`);
 
       console.log('\n📊 Migration Summary:');
       console.log(`   Migrated: ${migratedCount}`);
@@ -452,9 +587,8 @@ function registerTahunAjaranRoutes(app) {
       const deleteResult = await client.query(`
         DELETE FROM santri_tahun_ajaran
         WHERE tahun_ajaran_id = $1
-          AND catatan LIKE $2
         RETURNING santri_id
-      `, [currentYear.id, `%Migrasi dari ${sourceYear.kode}%`]);
+      `, [currentYear.id]);
       console.log('✅ Deleted migrated data:', deleteResult.rowCount, 'rows');
 
       // Restore "alumni" status back to "aktif" in source year (for santri who became alumni)
@@ -499,9 +633,8 @@ function registerTahunAjaranRoutes(app) {
       console.log('🔄 Deleting alumni records created during migration...');
       const deleteAlumniResult = await client.query(`
         DELETE FROM alumni
-        WHERE santri_id = ANY($1::int[])
-          AND tahun_lulus = $2
-      `, [migratedSantriIds, sourceYear.tahun_selesai]);
+        WHERE tahun_ajaran_id = $1
+      `, [sourceYear.id]);
       console.log('✅ Deleted alumni records:', deleteAlumniResult.rowCount, 'rows');
 
       // Restore year statuses

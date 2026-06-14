@@ -2,8 +2,9 @@ import { apiGet, apiPost, apiPut, apiDelete } from './apiClient';
 
 export const kelasService = {
   // Fetch all kelas
-  async fetchKelas() {
-    return apiGet('/kelas', { noCache: true });
+  async fetchKelas(tahunAjaranId) {
+    const query = tahunAjaranId ? `?tahun_ajaran_id=${tahunAjaranId}` : '';
+    return apiGet(`/kelas${query}`, { noCache: true });
   },
 
   // Create new kelas

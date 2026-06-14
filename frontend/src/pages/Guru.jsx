@@ -362,6 +362,7 @@ export function Guru() {
             emptyLabel="Tambahkan mata pelajaran pertama dari tombol di atas."
             onEdit={handleEditMapelClick}
             onDelete={handleDeleteMapelClick}
+            type="mapel"
           />
         </div>
       )
@@ -383,6 +384,7 @@ export function Guru() {
             emptyLabel="Tambahkan jabatan pertama dari tombol di atas."
             onEdit={handleEditJabatanClick}
             onDelete={handleDeleteJabatanClick}
+            type="jabatan"
           />
         </div>
       )

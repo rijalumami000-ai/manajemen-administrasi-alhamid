@@ -153,13 +153,21 @@ export function BukuInduk() {
   // Filtering Logic
   const filteredData = useMemo(() => {
     return santriList.filter(s => {
-      // Search
-      const matchSearch = !searchText || 
-        s.nama?.toLowerCase().includes(searchText.toLowerCase()) || 
-        s.nis?.toLowerCase().includes(searchText.toLowerCase());
+      // Search — join all searchable fields into a safe string to avoid TypeError
+      // when fields are null, undefined, or non-string (e.g. numeric NIS)
+      const keyword = searchText.toLowerCase();
+      const searchable = [
+        s.nis,
+        s.nik,
+        s.nama,
+        s.kelas_diniyah,
+        s.kelas_sekolah,
+        s.nama_kamar,
+      ].join(' ').toLowerCase();
+      const matchSearch = !keyword || searchable.includes(keyword);
       
       // Filter Tahun
-      const matchTahun = !filterTahun || s.tahun_masuk?.toString() === filterTahun.toString();
+      const matchTahun = !filterTahun || String(s.tahun_masuk ?? '') === String(filterTahun);
       
       // Filter Kelamin
       const matchKelamin = !filterKelamin || s.jenis_kelamin === filterKelamin;

@@ -12,6 +12,7 @@ import {
   AuditOutlined, ReadOutlined, FileSearchOutlined, ArrowLeftOutlined, ArrowRightOutlined, TableOutlined, PrinterOutlined, FilePdfOutlined
 } from '@ant-design/icons';
 import { nilaiService } from '../services/nilaiService';
+import { settingsService } from '../services/settingsService';
 import { PageHeader, LoadingState, ErrorState } from '../components/common';
 import { RaporSantriForms } from '../components/features/RaporSantriForms';
 import { RaporSettingsTab } from '../components/features/RaporSettingsTab';
@@ -39,10 +40,7 @@ export const ManajemenNilai = ({ mode = 'input' }) => {
   const [selectedTingkat, setSelectedTingkat] = useState(null);
   const [selectedKelasDetail, setSelectedKelasDetail] = useState(null);
   const [selectedMapel, setSelectedMapel] = useState(null);
-  const [selectedKategori, setSelectedKategori] = useState(() => {
-    const saved = localStorage.getItem('sekolah_info_selected_kategori');
-    return saved ? Number(saved) : null;
-  });
+  const [selectedKategori, setSelectedKategori] = useState(null);
   const [jadwalMapelIds, setJadwalMapelIds] = useState([]);
   const [activeCollapseKeys, setActiveCollapseKeys] = useState(['semester']);
   
@@ -119,11 +117,12 @@ export const ManajemenNilai = ({ mode = 'input' }) => {
   const loadInitialData = async () => {
     try {
       setLoading(true);
-      const [kelasData, mapelData, katData, taData] = await Promise.all([
+      const [kelasData, mapelData, katData, taData, systemSettings] = await Promise.all([
         nilaiService.fetchKelas(),
         nilaiService.fetchMataPelajaran(),
         nilaiService.fetchKategori(),
-        nilaiService.fetchTahunAjaran()
+        nilaiService.fetchTahunAjaran(),
+        settingsService.fetchSettings().catch(() => ({}))
       ]);
       
       const diniyahKelas = Array.isArray(kelasData) ? kelasData.filter(k => k.jenis === 'Diniyah').map(k => {
@@ -139,31 +138,17 @@ export const ManajemenNilai = ({ mode = 'input' }) => {
       
       setTahunAjaranList(Array.isArray(taData) ? taData : []);
 
-      const savedTA = localStorage.getItem('sekolah_info_selected_tahun_ajaran');
-      let activeTA = null;
-      
-      if (savedTA && Array.isArray(taData) && taData.some(ta => ta.id === Number(savedTA))) {
-        activeTA = taData.find(ta => ta.id === Number(savedTA));
-      } else if (Array.isArray(taData)) {
-        activeTA = taData.find(ta => ta.is_active);
-        if (activeTA) {
-          localStorage.setItem('sekolah_info_selected_tahun_ajaran', activeTA.id);
-        }
-      }
+      // Selalu gunakan tahun ajaran aktif dari server — tidak perlu localStorage
+      const activeTA = Array.isArray(taData) ? taData.find(ta => ta.is_active) : null;
       setTahunAjaran(activeTA);
       
       if (Array.isArray(katData)) {
-        const savedKategori = localStorage.getItem('sekolah_info_selected_kategori');
-        if (savedKategori && katData.some(k => k.id === Number(savedKategori))) {
-          setSelectedKategori(Number(savedKategori));
-        } else {
-          const defaultKat = katData.find(k => k.nama?.toLowerCase().includes('ganjil'));
-          if (defaultKat) {
-            setSelectedKategori(defaultKat.id);
-            localStorage.setItem('sekolah_info_selected_kategori', defaultKat.id);
-          } else if (katData.length > 0) {
-            setSelectedKategori(katData[0].id);
-          }
+        const activeSemester = systemSettings.active_semester || 'Ganjil';
+        const defaultKat = katData.find(k => k.nama?.toLowerCase().includes(activeSemester.toLowerCase()));
+        if (defaultKat) {
+          setSelectedKategori(defaultKat.id);
+        } else if (katData.length > 0) {
+          setSelectedKategori(katData[0].id);
         }
       }
 
@@ -192,7 +177,7 @@ export const ManajemenNilai = ({ mode = 'input' }) => {
   const handleTahunAjaranChange = (val) => {
     const selected = tahunAjaranList.find(ta => ta.id === val);
     setTahunAjaran(selected);
-    localStorage.setItem('sekolah_info_selected_tahun_ajaran', val);
+    // Tidak disimpan ke localStorage — pilihan user hanya berlaku sesi ini
   };
 
   const mapelCategories = useMemo(() => {

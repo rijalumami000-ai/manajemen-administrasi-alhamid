@@ -73,11 +73,6 @@ export function Header({ onToggleSidebar, collapsed, isMobile }) {
             {collapsed ? <MenuUnfoldOutlined /> : <MenuFoldOutlined />}
           </button>
         )}
-        {!isMobile && (
-          <div className="header-search">
-            <input type="text" placeholder="Search..." className="search-input" />
-          </div>
-        )}
       </div>
 
       <div className="header-right">

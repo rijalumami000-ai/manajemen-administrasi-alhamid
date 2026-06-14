@@ -1,127 +1,148 @@
-import { Card, Tag, Button, Space, Descriptions } from 'antd';
-import {
-  UserOutlined,
-  PhoneOutlined,
-  MailOutlined,
-  HomeOutlined,
-  TrophyOutlined,
-  CalendarOutlined,
-  EyeOutlined,
-  EditOutlined,
-  DeleteOutlined
-} from '@ant-design/icons';
+import { User, Phone, Mail, MapPin, Trophy, Calendar, Briefcase, GraduationCap, Eye, Edit, Trash2 } from 'lucide-react';
 import { formatDate } from '../../utils/formatters';
 import './AlumniCard.scss';
 
 export function AlumniCard({ alumni, onDetail, onEdit, onDelete }) {
+  // Get initials for avatar
+  const getInitials = (name) => {
+    if (!name) return 'AL';
+    return name
+      .split(' ')
+      .slice(0, 2)
+      .map(n => n[0])
+      .join('')
+      .toUpperCase();
+  };
+
   return (
-    <Card
-      className="alumni-card"
-      hoverable
-      actions={[
-        <Button
-          key="detail"
-          type="link"
-          icon={<EyeOutlined />}
-          onClick={() => onDetail(alumni.id)}
-        >
-          Detail
-        </Button>,
-        <Button
-          key="edit"
-          type="link"
-          icon={<EditOutlined />}
-          onClick={() => onEdit(alumni)}
-        >
-          Edit
-        </Button>,
-        <Button
-          key="delete"
-          type="link"
-          danger
-          icon={<DeleteOutlined />}
-          onClick={() => onDelete(alumni.id, alumni.nama)}
-        >
-          Hapus
-        </Button>
-      ]}
-    >
-      <div className="alumni-card-header">
-        <div className="alumni-info">
-          <h3 className="alumni-name">
-            <UserOutlined /> {alumni.nama}
-          </h3>
-          <p className="alumni-nis">NIS: {alumni.nis}</p>
+    <div className="premium-alumni-card">
+      {/* Background glow effect */}
+      <div className="card-glow-effect"></div>
+
+      {/* Header section */}
+      <div className="card-header-section">
+        <div className="alumni-avatar-circle">
+          <span>{getInitials(alumni.nama)}</span>
         </div>
-        <Tag color="blue" icon={<CalendarOutlined />} className="alumni-year-tag">
-          Lulus {alumni.tahun_lulus}
-        </Tag>
+        
+        <div className="alumni-title-info">
+          <h4 className="alumni-name" title={alumni.nama}>
+            {alumni.nama}
+          </h4>
+          <span className="alumni-nis">NIS: {alumni.nis || '-'}</span>
+        </div>
+
+        <div className="alumni-year-badge">
+          <GraduationCap size={12} />
+          <span>Lulus {alumni.tahun_lulus}</span>
+        </div>
       </div>
 
-      <Descriptions column={1} size="small" className="alumni-details">
-        {(alumni.tempat_lahir || alumni.tanggal_lahir) && (
-          <Descriptions.Item label="Lahir">
-            {alumni.tempat_lahir || ''}{alumni.tempat_lahir && alumni.tanggal_lahir ? ', ' : ''}
-            {alumni.tanggal_lahir ? formatDate(alumni.tanggal_lahir) : ''}
-          </Descriptions.Item>
-        )}
-
-        {alumni.tahun_masuk && (
-          <Descriptions.Item label="Tahun Masuk">
-            {alumni.tahun_masuk}
-          </Descriptions.Item>
-        )}
-
+      {/* Body Section */}
+      <div className="card-body-section">
+        {/* Kelas Terakhir */}
         {alumni.kelas_terakhir && (
-          <Descriptions.Item label="Kelas Terakhir">
-            {alumni.kelas_terakhir}
-          </Descriptions.Item>
+          <div className="info-item">
+            <div className="info-icon-wrapper">
+              <GraduationCap size={14} />
+            </div>
+            <div className="info-text">
+              <span className="info-label">Kelas Terakhir</span>
+              <span className="info-value">{alumni.kelas_terakhir}</span>
+            </div>
+          </div>
         )}
 
+        {/* Pekerjaan / Instansi */}
+        {(alumni.pekerjaan || alumni.instansi) && (
+          <div className="info-item">
+            <div className="info-icon-wrapper">
+              <Briefcase size={14} />
+            </div>
+            <div className="info-text">
+              <span className="info-label">Pekerjaan</span>
+              <span className="info-value">
+                {alumni.pekerjaan || ''}
+                {alumni.pekerjaan && alumni.instansi ? ` di ${alumni.instansi}` : (alumni.instansi || '')}
+              </span>
+            </div>
+          </div>
+        )}
+
+        {/* No HP / Kontak */}
         {alumni.no_hp && (
-          <Descriptions.Item label={<><PhoneOutlined /> No. HP</>}>
-            {alumni.no_hp}
-          </Descriptions.Item>
+          <div className="info-item">
+            <div className="info-icon-wrapper">
+              <Phone size={14} />
+            </div>
+            <div className="info-text">
+              <span className="info-label">No. HP</span>
+              <span className="info-value">{alumni.no_hp}</span>
+            </div>
+          </div>
         )}
 
-        {alumni.email && (
-          <Descriptions.Item label={<><MailOutlined /> Email</>}>
-            {alumni.email}
-          </Descriptions.Item>
-        )}
-
-        {alumni.pekerjaan && (
-          <Descriptions.Item label="Pekerjaan">
-            {alumni.pekerjaan}
-          </Descriptions.Item>
-        )}
-
-        {alumni.status_pernikahan && (
-          <Descriptions.Item label="Status">
-            <Tag color={alumni.status_pernikahan === 'Sudah Menikah' ? 'green' : 'default'}>
-              {alumni.status_pernikahan}
-            </Tag>
-          </Descriptions.Item>
-        )}
-
+        {/* Alamat Sekarang */}
         {alumni.alamat_sekarang && (
-          <Descriptions.Item label={<><HomeOutlined /> Alamat Sekarang</>}>
-            {alumni.alamat_sekarang}
-          </Descriptions.Item>
+          <div className="info-item">
+            <div className="info-icon-wrapper">
+              <MapPin size={14} />
+            </div>
+            <div className="info-text">
+              <span className="info-label">Alamat Sekarang</span>
+              <span className="info-value" title={alumni.alamat_sekarang}>
+                {alumni.alamat_sekarang}
+              </span>
+            </div>
+          </div>
         )}
 
-        {alumni.instansi && (
-          <Descriptions.Item label="Instansi">
-            {alumni.instansi}
-          </Descriptions.Item>
-        )}
-
+        {/* Prestasi Utama */}
         {alumni.prestasi_utama && (
-          <Descriptions.Item label={<><TrophyOutlined /> Prestasi</>}>
-            {alumni.prestasi_utama}
-          </Descriptions.Item>
+          <div className="info-item">
+            <div className="info-icon-wrapper text-gold">
+              <Trophy size={14} />
+            </div>
+            <div className="info-text">
+              <span className="info-label">Prestasi Utama</span>
+              <span className="info-value text-gold-value" title={alumni.prestasi_utama}>
+                {alumni.prestasi_utama}
+              </span>
+            </div>
+          </div>
         )}
-      </Descriptions>
-    </Card>
+      </div>
+
+      {/* Actions Section */}
+      <div className="card-actions-section">
+        <button
+          type="button"
+          className="action-btn detail-btn"
+          onClick={() => onDetail(alumni.id)}
+          title="Lihat detail lengkap"
+        >
+          <Eye size={13} />
+          <span>Detail</span>
+        </button>
+        <button
+          type="button"
+          className="action-btn edit-btn"
+          onClick={() => onEdit(alumni)}
+          title="Ubah data alumni"
+        >
+          <Edit size={13} />
+          <span>Edit</span>
+        </button>
+        <button
+          type="button"
+          className="action-btn delete-btn"
+          onClick={() => onDelete(alumni.id, alumni.nama)}
+          title="Hapus data alumni"
+        >
+          <Trash2 size={13} />
+          <span>Hapus</span>
+        </button>
+      </div>
+    </div>
   );
 }

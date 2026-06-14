@@ -1,20 +1,132 @@
-@import '../../styles/variables';
-@import '../../styles/mixins';
+@import '../../styles/variables.scss';
+@import '../../styles/mixins.scss';
 
-.guru-filters {
-  margin-bottom: $spacing-lg;
+.guru-filters-panel {
+  margin-bottom: 24px;
+  background: rgba(20, 24, 33, 0.4);
+  backdrop-filter: blur(8px);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 16px;
+  padding: 16px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
 
-  @include respond-to(md) {
-    .ant-space {
-      width: 100%;
+  .filters-main-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 16px;
+    flex-wrap: wrap;
 
-      .ant-space-item {
+    .search-input-wrapper {
+      flex: 1;
+      min-width: 300px;
+      position: relative;
+      display: flex;
+      align-items: center;
+
+      .search-icon {
+        position: absolute;
+        left: 14px;
+        color: rgba(255, 255, 255, 0.35);
+        pointer-events: none;
+      }
+
+      .modern-search-input {
         width: 100%;
+        height: 42px;
+        padding: 0 40px;
+        border-radius: 12px;
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        background: rgba(255, 255, 255, 0.02);
+        color: #ffffff;
+        font-size: 13.5px;
+        font-weight: 500;
+        transition: all 0.2s ease;
 
-        .ant-input-affix-wrapper,
-        .ant-select {
-          width: 100% !important;
-          min-width: 100% !important;
+        &:focus {
+          outline: none;
+          background: rgba(255, 255, 255, 0.04);
+          border-color: rgba(59, 130, 246, 0.4);
+          box-shadow: 0 0 12px rgba(59, 130, 246, 0.15);
+        }
+
+        &::placeholder {
+          color: rgba(255, 255, 255, 0.35);
+        }
+      }
+
+      .clear-search-btn {
+        position: absolute;
+        right: 14px;
+        background: transparent;
+        border: none;
+        color: rgba(255, 255, 255, 0.4);
+        font-size: 18px;
+        cursor: pointer;
+        transition: color 0.15s ease;
+
+        &:hover {
+          color: #ffffff;
+        }
+      }
+    }
+
+    .filters-quick-actions {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      flex-wrap: wrap;
+
+      @media (max-width: 640px) {
+        width: 100%;
+        .select-container {
+          flex: 1;
+          .modern-select {
+            width: 100% !important;
+          }
+        }
+      }
+
+      .select-container {
+        display: flex;
+        align-items: center;
+      }
+    }
+  }
+
+  // ============================================
+  // LIGHT MODE OVERRIDES
+  // ============================================
+  [data-theme="light"] & {
+    background: #ffffff;
+    border-color: #e2e8f0;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+
+    .filters-main-row {
+      .search-input-wrapper {
+        .search-icon {
+          color: #64748b;
+        }
+        .modern-search-input {
+          border-color: #cbd5e1;
+          background: #f8fafc;
+          color: #0f172a;
+
+          &:focus {
+            background: #ffffff;
+            border-color: #3b82f6;
+            box-shadow: 0 0 10px rgba(59, 130, 246, 0.12);
+          }
+
+          &::placeholder {
+            color: #64748b;
+          }
+        }
+        .clear-search-btn {
+          color: #64748b;
+          &:hover {
+            color: #0f172a;
+          }
         }
       }
     }

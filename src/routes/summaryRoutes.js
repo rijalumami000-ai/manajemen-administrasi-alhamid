@@ -21,9 +21,14 @@ function registerSummaryRoutes(app) {
             )
         `);
         const guruCount = await db.query('SELECT COUNT(*) FROM guru');
+        const alumniCount = await db.query('SELECT COUNT(*) FROM alumni');
+        const kelasCount = await db.query('SELECT COUNT(*) FROM kelas');
+        
         res.json({
           santri: parseInt(santriCount.rows[0].count, 10),
           guru: parseInt(guruCount.rows[0].count, 10),
+          alumni: parseInt(alumniCount.rows[0].count, 10),
+          kelas: parseInt(kelasCount.rows[0].count, 10),
         });
       } catch (error) {
         console.error(error);

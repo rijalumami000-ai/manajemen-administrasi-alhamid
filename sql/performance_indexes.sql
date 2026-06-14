@@ -34,8 +34,11 @@ CREATE INDEX IF NOT EXISTS idx_sta_tahun_ajaran_id ON santri_tahun_ajaran(tahun_
 -- Index on status (frequently used for filtering)
 CREATE INDEX IF NOT EXISTS idx_sta_status ON santri_tahun_ajaran(status);
 
--- Index on kelas_id (foreign key, frequently joined)
-CREATE INDEX IF NOT EXISTS idx_sta_kelas_id ON santri_tahun_ajaran(kelas_id);
+-- Index on kelas_diniyah_id (foreign key, frequently joined)
+CREATE INDEX IF NOT EXISTS idx_sta_kelas_diniyah_id ON santri_tahun_ajaran(kelas_diniyah_id);
+
+-- Index on kelas_sekolah_id (foreign key, frequently joined)
+CREATE INDEX IF NOT EXISTS idx_sta_kelas_sekolah_id ON santri_tahun_ajaran(kelas_sekolah_id);
 
 -- Index on kamar_id (foreign key, frequently joined)
 CREATE INDEX IF NOT EXISTS idx_sta_kamar_id ON santri_tahun_ajaran(kamar_id);
@@ -49,9 +52,6 @@ CREATE INDEX IF NOT EXISTS idx_sta_tahun_status ON santri_tahun_ajaran(tahun_aja
 
 -- Index on nama (frequently used for search)
 CREATE INDEX IF NOT EXISTS idx_guru_nama ON guru(nama);
-
--- Index on nik (frequently used for search and unique constraint)
-CREATE INDEX IF NOT EXISTS idx_guru_nik ON guru(nik);
 
 -- Index on status (frequently used for filtering)
 CREATE INDEX IF NOT EXISTS idx_guru_status ON guru(status);

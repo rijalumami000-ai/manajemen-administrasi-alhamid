@@ -14,12 +14,24 @@ const {
 /**
  * Get all alumni
  */
-async function getAllAlumni() {
+async function getAllAlumni(tipe = null, tahunAjaranId = null) {
   try {
-    const result = await db.query(`
-      SELECT * FROM alumni
-      ORDER BY tahun_lulus DESC, nama
-    `);
+    let query = 'SELECT * FROM alumni WHERE 1=1';
+    const params = [];
+
+    if (tipe) {
+      params.push(tipe);
+      query += ` AND tipe = $${params.length}`;
+    }
+
+    if (tahunAjaranId) {
+      params.push(parseInt(tahunAjaranId, 10));
+      query += ` AND tahun_ajaran_id = $${params.length}`;
+    }
+
+    query += ' ORDER BY tahun_lulus DESC, nama';
+
+    const result = await db.query(query, params);
     return result.rows;
   } catch (error) {
     handleDatabaseError(error);
@@ -29,7 +41,7 @@ async function getAllAlumni() {
 /**
  * Search alumni by query and year
  */
-async function searchAlumni(searchQuery, tahunLulus) {
+async function searchAlumni(searchQuery, tahunLulus, tipe = null, tahunAjaranId = null) {
   try {
     let query = 'SELECT * FROM alumni WHERE 1=1';
     const params = [];
@@ -42,6 +54,16 @@ async function searchAlumni(searchQuery, tahunLulus) {
     if (tahunLulus) {
       params.push(parseInt(tahunLulus, 10));
       query += ` AND tahun_lulus = $${params.length}`;
+    }
+
+    if (tipe) {
+      params.push(tipe);
+      query += ` AND tipe = $${params.length}`;
+    }
+
+    if (tahunAjaranId) {
+      params.push(parseInt(tahunAjaranId, 10));
+      query += ` AND tahun_ajaran_id = $${params.length}`;
     }
 
     query += ' ORDER BY tahun_lulus DESC, nama';
@@ -86,15 +108,17 @@ async function createAlumni(data) {
   const instansi = normalizeText(data.instansi);
   const prestasi_utama = normalizeText(data.prestasi_utama);
   const keterangan = normalizeText(data.keterangan);
+  const tipe = normalizeText(data.tipe) || 'alumni';
+  const tahun_ajaran_id = data.tahun_ajaran_id ? parseInt(data.tahun_ajaran_id, 10) : null;
 
   try {
     const result = await db.query(
       `INSERT INTO alumni (nis, nik, nama, tempat_lahir, tanggal_lahir, tahun_masuk, tahun_lulus,
-       kelas_terakhir, alamat, no_hp, email, pekerjaan, status_pernikahan, alamat_sekarang, instansi, prestasi_utama, keterangan)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17)
+       kelas_terakhir, alamat, no_hp, email, pekerjaan, status_pernikahan, alamat_sekarang, instansi, prestasi_utama, keterangan, tipe, tahun_ajaran_id)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19)
        RETURNING *`,
       [nis, nik, nama, tempat_lahir, tanggal_lahir, tahun_masuk, tahun_lulus,
-       kelas_terakhir, alamat, no_hp, email, pekerjaan, status_pernikahan, alamat_sekarang, instansi, prestasi_utama, keterangan]
+       kelas_terakhir, alamat, no_hp, email, pekerjaan, status_pernikahan, alamat_sekarang, instansi, prestasi_utama, keterangan, tipe, tahun_ajaran_id]
     );
 
     return result.rows[0];
@@ -136,6 +160,8 @@ async function updateAlumni(id, data) {
   const instansi = normalizeText(data.instansi);
   const prestasi_utama = normalizeText(data.prestasi_utama);
   const keterangan = normalizeText(data.keterangan);
+  const tipe = normalizeText(data.tipe) || 'alumni';
+  const tahun_ajaran_id = data.tahun_ajaran_id ? parseInt(data.tahun_ajaran_id, 10) : null;
 
   try {
     const result = await db.query(
@@ -143,11 +169,12 @@ async function updateAlumni(id, data) {
        SET nis = $1, nik = $2, nama = $3, tempat_lahir = $4, tanggal_lahir = $5,
            tahun_masuk = $6, tahun_lulus = $7, kelas_terakhir = $8, alamat = $9,
            no_hp = $10, email = $11, pekerjaan = $12, status_pernikahan = $13,
-           alamat_sekarang = $14, instansi = $15, prestasi_utama = $16, keterangan = $17
-       WHERE id = $18
+           alamat_sekarang = $14, instansi = $15, prestasi_utama = $16, keterangan = $17,
+           tipe = $18, tahun_ajaran_id = $19
+       WHERE id = $20
        RETURNING *`,
       [nis, nik, nama, tempat_lahir, tanggal_lahir, tahun_masuk, tahun_lulus,
-       kelas_terakhir, alamat, no_hp, email, pekerjaan, status_pernikahan, alamat_sekarang, instansi, prestasi_utama, keterangan, id]
+       kelas_terakhir, alamat, no_hp, email, pekerjaan, status_pernikahan, alamat_sekarang, instansi, prestasi_utama, keterangan, tipe, tahun_ajaran_id, id]
     );
 
     if (!result.rows.length) {
@@ -411,6 +438,53 @@ async function getAlumniDetail(id) {
   }
 }
 
+/**
+ * Reactivate a student who is in the alumni/pindah list back to active status
+ */
+async function reactivateAlumni(id) {
+  const client = await db.pool.connect();
+  try {
+    await client.query('BEGIN');
+
+    // 1. Get alumni record
+    const alumniResult = await client.query('SELECT * FROM alumni WHERE id = $1', [id]);
+    if (alumniResult.rows.length === 0) {
+      throw new NotFoundError('Data alumni tidak ditemukan.');
+    }
+    const alumni = alumniResult.rows[0];
+
+    if (!alumni.santri_id) {
+      throw new ValidationError('Siswa ini dibuat manual di alumni tanpa santri_id. Daftarkan baru via Buku Induk.');
+    }
+
+    // 2. Get active academic year
+    const activeYearResult = await client.query('SELECT * FROM tahun_ajaran WHERE is_active = TRUE LIMIT 1');
+    if (activeYearResult.rows.length === 0) {
+      throw new ValidationError('Tahun ajaran berjalan belum disetel.');
+    }
+    const activeYear = activeYearResult.rows[0];
+
+    // 3. Upsert into santri_tahun_ajaran for the active year with status = 'aktif'
+    const { syncSantriToSpecificTahunAjaran } = require('./tahunAjaranService');
+    await syncSantriToSpecificTahunAjaran(alumni.santri_id, activeYear.id, {
+      status_tahun_ajaran: 'aktif',
+      catatan_tahun_ajaran: `Reaktivasi dari alumni/pindah pada tahun ajaran ${activeYear.kode}`
+    }, client);
+
+    // 4. Delete from alumni table
+    await client.query('DELETE FROM alumni WHERE id = $1', [id]);
+
+    await client.query('COMMIT');
+    return { message: 'Siswa berhasil diaktifkan kembali dan dimasukkan ke tahun ajaran aktif.' };
+  } catch (error) {
+    await client.query('ROLLBACK');
+    console.error('Error reactivateAlumni:', error);
+    throw error;
+  } finally {
+    client.release();
+  }
+}
+
 module.exports = {
   getAllAlumni,
   searchAlumni,
@@ -419,5 +493,6 @@ module.exports = {
   deleteAlumni,
   getActiveSantri,
   migrateSantriToAlumni,
-  getAlumniDetail
+  getAlumniDetail,
+  reactivateAlumni
 };

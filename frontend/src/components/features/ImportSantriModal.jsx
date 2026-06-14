@@ -18,11 +18,18 @@ export function ImportSantriModal({ isOpen, onClose, onSuccess, tahunAjaranId, t
       return;
     }
 
+    // Guard: prevent sending "undefined" or NaN as tahun_ajaran_id
+    const parsedId = Number(tahunAjaranId);
+    if (!tahunAjaranId || isNaN(parsedId) || parsedId <= 0) {
+      alert('Tahun ajaran belum tersedia. Pastikan tahun ajaran aktif sudah disetel sebelum mengimpor data.');
+      return;
+    }
+
     setIsUploading(true);
     try {
       const formData = new FormData();
       formData.append('file', file);
-      formData.append('tahun_ajaran_id', tahunAjaranId);
+      formData.append('tahun_ajaran_id', parsedId);
 
       const res = await santriService.importExcel(formData);
       setResult(res);

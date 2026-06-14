@@ -3,6 +3,7 @@ import { Button, Select, Row, Col, message as antMessage, Divider } from 'antd';
 import { PlusOutlined, BookOutlined, SortAscendingOutlined } from '@ant-design/icons';
 import { kelasService } from '../services/kelasService';
 import { guruService } from '../services/guruService';
+import { santriService } from '../services/santriService';
 import { KelasCard } from '../components/features/KelasCard';
 import { KelasModal } from '../components/features/KelasModal';
 import { PageHeader, LoadingState, ErrorState, EmptyState } from '../components/common';
@@ -14,6 +15,8 @@ export function Kelas() {
   const [kelasList, setKelasList] = useState([]);
   const [guruList, setGuruList] = useState([]);
   const [mapelList, setMapelList] = useState([]);
+  const [tahunAjaranList, setTahunAjaranList] = useState([]);
+  const [selectedTahunAjaranId, setSelectedTahunAjaranId] = useState(null);
   const [sortBy, setSortBy] = useState('nama-asc');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingData, setEditingData] = useState(null);
@@ -23,21 +26,45 @@ export function Kelas() {
   const [error, setError] = useState(null);
 
   useEffect(() => {
-    loadKelas();
+    loadInitialData();
   }, []);
 
-  const loadKelas = async () => {
+  const loadInitialData = async () => {
     try {
       setLoading(true);
       setError(null);
+
+      // Fetch tahun ajaran first
+      const years = await santriService.fetchTahunAjaran();
+      setTahunAjaranList(years);
+
+      const active = years.find(y => y.is_active);
+      const activeId = active ? String(active.id) : null;
+      setSelectedTahunAjaranId(activeId);
+
       const [data, gurus, mapels] = await Promise.all([
-        kelasService.fetchKelas(),
+        kelasService.fetchKelas(activeId),
         guruService.fetchGuru(),
         guruService.fetchMataPelajaran()
       ]);
+
       setKelasList(data);
       setGuruList(gurus);
       setMapelList(mapels);
+    } catch (err) {
+      console.error('Gagal memuat data kelas:', err);
+      setError(err.message || 'Gagal memuat data kelas');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const loadKelas = async (tahunAjaranId) => {
+    try {
+      setLoading(true);
+      setError(null);
+      const data = await kelasService.fetchKelas(tahunAjaranId);
+      setKelasList(data);
     } catch (err) {
       console.error('Gagal memuat data kelas:', err);
       setError(err.message || 'Gagal memuat data kelas');
@@ -64,7 +91,7 @@ export function Kelas() {
     try {
       await kelasService.deleteKelas(id);
       antMessage.success('Data kelas berhasil dihapus');
-      await loadKelas();
+      await loadKelas(selectedTahunAjaranId);
     } catch (err) {
       antMessage.error(err.message || 'Gagal menghapus kelas');
     }
@@ -75,21 +102,31 @@ export function Kelas() {
     setModalError('');
 
     try {
+      const payload = {
+        ...data,
+        tahun_ajaran_id: selectedTahunAjaranId ? Number(selectedTahunAjaranId) : null
+      };
+
       if (editingData) {
-        await kelasService.updateKelas(editingData.id, data);
+        await kelasService.updateKelas(editingData.id, payload);
         antMessage.success('Data kelas berhasil diperbarui');
       } else {
-        await kelasService.createKelas(data);
+        await kelasService.createKelas(payload);
         antMessage.success('Data kelas berhasil disimpan');
       }
 
       setIsModalOpen(false);
-      await loadKelas();
+      await loadKelas(selectedTahunAjaranId);
     } catch (err) {
       setModalError(err.message || 'Gagal menyimpan data');
     } finally {
       setIsSubmitting(false);
     }
+  };
+
+  const handleTahunAjaranChange = (value) => {
+    setSelectedTahunAjaranId(value);
+    loadKelas(value);
   };
 
   // Sort kelas
@@ -155,7 +192,7 @@ export function Kelas() {
     return (
       <ErrorState
         message={error}
-        onRetry={loadKelas}
+        onRetry={() => loadKelas(selectedTahunAjaranId)}
       />
     );
   }
@@ -167,6 +204,19 @@ export function Kelas() {
         subtitle="Kelola daftar kelas Diniyah dan Sekolah"
         extra={
           <div className="kelas-header-actions">
+            <Select
+              value={selectedTahunAjaranId}
+              onChange={handleTahunAjaranChange}
+              style={{ width: 180 }}
+              placeholder="Pilih Tahun Ajaran"
+              className="year-select"
+            >
+              {tahunAjaranList.map(option => (
+                <Option key={option.id} value={String(option.id)}>
+                  {option.kode}{option.is_active ? ' (Berjalan)' : ''}
+                </Option>
+              ))}
+            </Select>
             <Select
               value={sortBy}
               onChange={setSortBy}

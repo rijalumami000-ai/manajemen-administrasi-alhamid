@@ -490,17 +490,21 @@ class NilaiService {
 
   async getCetakRapor(tahunAjaranId, kelasId, kategoriId, santriId) {
     try {
-      // 1. Get Kelas Data
       const kelasRes = await db.query(`
-        SELECT k.*, g.nama as mustahiq_nama, g.ttd_url as mustahiq_ttd_url,
+        SELECT k.id, k.jenis, k.nama, k.tingkat, k.created_at,
+               COALESCE(kta.mustahiq_id, k.mustahiq_id) as mustahiq_id,
+               COALESCE(kta.muhafadzoh_mapel_id, k.muhafadzoh_mapel_id) as muhafadzoh_mapel_id,
+               COALESCE(kta.qiroatul_mapel_id, k.qiroatul_mapel_id) as qiroatul_mapel_id,
+               g.nama as mustahiq_nama, g.ttd_url as mustahiq_ttd_url,
                m.nama as muhafadzoh_nama, m.nama_arab as muhafadzoh_arab,
                q.nama as qiroatul_nama, q.nama_arab as qiroatul_arab
         FROM kelas k
-        LEFT JOIN guru g ON k.mustahiq_id = g.id
-        LEFT JOIN mata_pelajaran m ON k.muhafadzoh_mapel_id = m.id
-        LEFT JOIN mata_pelajaran q ON k.qiroatul_mapel_id = q.id
+        LEFT JOIN kelas_tahun_ajaran kta ON k.id = kta.kelas_id AND kta.tahun_ajaran_id = $2
+        LEFT JOIN guru g ON COALESCE(kta.mustahiq_id, k.mustahiq_id) = g.id
+        LEFT JOIN mata_pelajaran m ON COALESCE(kta.muhafadzoh_mapel_id, k.muhafadzoh_mapel_id) = m.id
+        LEFT JOIN mata_pelajaran q ON COALESCE(kta.qiroatul_mapel_id, k.qiroatul_mapel_id) = q.id
         WHERE k.id = $1
-      `, [kelasId]);
+      `, [kelasId, tahunAjaranId]);
       const kelasData = kelasRes.rows[0];
 
       // 2. Get Santri Data

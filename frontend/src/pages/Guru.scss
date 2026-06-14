@@ -5,23 +5,140 @@
   @include container;
   padding-top: $spacing-lg;
   padding-bottom: $spacing-lg;
+  @include fade-in;
 
   .guru-content {
-    @include card;
-    padding: $spacing-lg;
+    background: rgba(20, 24, 33, 0.4) !important;
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid rgba(255, 255, 255, 0.06) !important;
+    border-radius: 20px !important;
+    padding: 24px !important;
     margin-top: $spacing-lg;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
 
     @include respond-to(md) {
-      padding: $spacing-md;
+      padding: 16px !important;
+    }
+
+    // Modern Tabs Styling
+    .ant-tabs {
+      color: rgba(255, 255, 255, 0.85);
+
+      .ant-tabs-nav {
+        margin-bottom: 24px;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.06) !important;
+
+        &::before {
+          border-bottom: none !important;
+        }
+      }
+
+      .ant-tabs-tab {
+        color: rgba(255, 255, 255, 0.45);
+        font-weight: 600;
+        font-size: 14px;
+        padding: 12px 16px;
+        transition: color 0.25s ease;
+
+        &:hover {
+          color: #3b82f6 !important;
+        }
+
+        &.ant-tabs-tab-active .ant-tabs-tab-btn {
+          color: #3b82f6 !important;
+          text-shadow: 0 0 10px rgba(59, 130, 246, 0.2);
+        }
+
+        .ant-badge {
+          .ant-badge-count {
+            background: rgba(255, 255, 255, 0.06);
+            color: rgba(255, 255, 255, 0.65);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            box-shadow: none;
+            font-size: 10px;
+            font-weight: 700;
+            margin-left: 4px;
+          }
+        }
+
+        &.ant-tabs-tab-active .ant-badge-count {
+          background: #3b82f6 !important;
+          color: #ffffff !important;
+          border-color: #3b82f6 !important;
+        }
+      }
+
+      .ant-tabs-ink-bar {
+        background: #3b82f6 !important;
+        height: 3px !important;
+        border-radius: 99px;
+      }
     }
 
     .guru-tab-content {
-      margin-top: $spacing-md;
+      margin-top: 0;
 
       .tab-description {
-        color: $text-secondary;
-        margin-bottom: $spacing-lg;
-        font-size: $font-size-sm;
+        color: rgba(255, 255, 255, 0.45);
+        margin-bottom: 20px;
+        font-size: 13px;
+        font-weight: 500;
+      }
+    }
+  }
+
+  // ============================================
+  // LIGHT MODE OVERRIDES
+  // ============================================
+  [data-theme="light"] & {
+    .guru-content {
+      background: #ffffff !important;
+      border-color: #e2e8f0 !important;
+      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05) !important;
+
+      .ant-tabs {
+        color: #1e293b;
+
+        .ant-tabs-nav {
+          border-color: #e2e8f0 !important;
+        }
+
+        .ant-tabs-tab {
+          color: #64748b;
+
+          &:hover {
+            color: #1d4ed8 !important;
+          }
+
+          &.ant-tabs-tab-active .ant-tabs-tab-btn {
+            color: #1d4ed8 !important;
+          }
+
+          .ant-badge {
+            .ant-badge-count {
+              background: #f1f5f9;
+              color: #475569;
+              border-color: #cbd5e1;
+            }
+          }
+
+          &.ant-tabs-tab-active .ant-badge-count {
+            background: #1d4ed8 !important;
+            color: #ffffff !important;
+            border-color: #1d4ed8 !important;
+          }
+        }
+
+        .ant-tabs-ink-bar {
+          background: #1d4ed8 !important;
+        }
+      }
+
+      .guru-tab-content {
+        .tab-description {
+          color: #64748b;
+        }
       }
     }
   }

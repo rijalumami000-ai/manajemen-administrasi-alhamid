@@ -35,10 +35,11 @@ export const santriService = {
   },
 
   // Migrate tahun ajaran
-  async migrateTahunAjaran(targetKode, excludedSantriIds = []) {
+  async migrateTahunAjaran(targetKode, excludedSantriIds = [], promotions = []) {
     return apiPost('/tahun-ajaran/migrate', {
       target_kode: targetKode,
-      excluded_santri_ids: excludedSantriIds
+      excluded_santri_ids: excludedSantriIds,
+      promotions: promotions
     });
   },
 

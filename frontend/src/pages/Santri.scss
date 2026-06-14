@@ -1,18 +1,419 @@
 @import '../styles/variables';
 @import '../styles/mixins';
 
-.santri-page {
+.santri-page-center {
   @include container;
   padding-top: $spacing-lg;
-  padding-bottom: $spacing-lg;
+  padding-bottom: $spacing-xl;
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-md;
 
-  .santri-content {
-    @include card;
-    padding: $spacing-lg;
-    margin-top: $spacing-lg;
+  // Header tweaks
+  .analytics-active-btn {
+    background: #eff6ff !important;
+    border-color: #3b82f6 !important;
+    color: #3b82f6 !important;
+  }
+}
 
-    @include respond-to(md) {
-      padding: $spacing-md;
+// ============================================
+// KPI STATISTICS DASHBOARD
+// ============================================
+.academic-stats-dashboard {
+  margin-bottom: $spacing-md;
+
+  .stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    gap: $spacing-md;
+  }
+
+  .summary-kpi-card {
+    background: #ffffff;
+    border: 1px solid rgba(0, 0, 0, 0.05);
+    border-radius: $radius-lg;
+    padding: $spacing-md;
+    box-shadow: 0 4px 18px rgba(15, 23, 42, 0.02);
+    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    position: relative;
+    overflow: hidden;
+
+    &::before {
+      content: '';
+      position: absolute;
+      left: 0;
+      top: 0;
+      bottom: 0;
+      width: 4px;
+      background: transparent;
+      transition: background $transition-base;
+    }
+
+    &:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 24px rgba(15, 23, 42, 0.05);
+      border-color: rgba(0, 0, 0, 0.08);
+      
+      &.accent-blue::before { background: #3b82f6; }
+      &.accent-amber::before { background: #f59e0b; }
+      &.accent-purple::before { background: #8b5cf6; }
+      &.accent-green::before { background: #10b981; }
+    }
+
+    .kpi-card-inner {
+      display: flex;
+      align-items: center;
+      gap: $spacing-md;
+    }
+
+    .kpi-icon-wrap {
+      width: 42px;
+      height: 42px;
+      border-radius: $radius-md;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+
+    .kpi-info {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+
+    .kpi-label {
+      font-size: 12px;
+      font-weight: $font-weight-semibold;
+      color: #64748b; // slate tertiary
+    }
+
+    .kpi-value {
+      font-size: $font-size-2xl;
+      font-weight: $font-weight-bold;
+      color: #0f172a;
+      line-height: 1.1;
+    }
+
+    .kpi-subtext {
+      font-size: 11px;
+      color: #94a3b8;
+    }
+
+    // Color theme variants
+    &.accent-blue {
+      .kpi-icon-wrap {
+        background: rgba(59, 130, 246, 0.08);
+        color: #3b82f6;
+      }
+    }
+    
+    &.accent-amber {
+      .kpi-icon-wrap {
+        background: rgba(245, 158, 11, 0.08);
+        color: #f59e0b;
+      }
+    }
+
+    &.accent-purple {
+      .kpi-icon-wrap {
+        background: rgba(139, 92, 246, 0.08);
+        color: #8b5cf6;
+      }
+    }
+
+    &.accent-green {
+      .kpi-icon-wrap {
+        background: rgba(16, 185, 129, 0.08);
+        color: #10b981;
+      }
+    }
+  }
+}
+
+// ============================================
+// ACADEMIC INSIGHTS BANNER
+// ============================================
+.academic-insights-banner {
+  background: linear-gradient(135deg, #f8fafc, #f1f5f9);
+  border: 1px solid #e2e8f0;
+  border-radius: $radius-lg;
+  padding: $spacing-md;
+  margin-bottom: $spacing-sm;
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-sm;
+
+  .insights-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 13px;
+    font-weight: $font-weight-bold;
+    color: #1e293b;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+
+    .insight-header-icon {
+      color: #eab308; // yellow sparks
+    }
+  }
+
+  .insights-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: $spacing-sm;
+  }
+
+  .insight-bullet {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    font-size: 13px;
+    color: #475569;
+    line-height: 1.4;
+
+    .bullet-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: $radius-full;
+      margin-top: 6px;
+      flex-shrink: 0;
+
+      &.bg-blue { background: #3b82f6; }
+      &.bg-amber { background: #f59e0b; }
+      &.bg-purple { background: #8b5cf6; }
+    }
+
+    strong {
+      color: #0f172a;
+    }
+  }
+}
+
+// ============================================
+// COLLAPSIBLE ANALYTICS PANEL
+// ============================================
+.collapsible-analytics-panel {
+  background: #ffffff;
+  border: 1px solid rgba(0, 0, 0, 0.06);
+  border-radius: $radius-lg;
+  padding: $spacing-lg;
+  margin-bottom: $spacing-md;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.02);
+
+  .analytics-pane-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: $spacing-lg;
+  }
+
+  .analytics-pane-card {
+    display: flex;
+    flex-direction: column;
+    gap: $spacing-md;
+
+    h4 {
+      font-size: 14px;
+      font-weight: $font-weight-bold;
+      color: #0f172a;
+      margin: 0;
+      border-bottom: 1px solid #f1f5f9;
+      padding-bottom: $spacing-xs;
+    }
+  }
+
+  // Year Comparison details
+  .comparison-content {
+    display: flex;
+    flex-direction: column;
+    gap: $spacing-md;
+    background: #f8fafc;
+    padding: $spacing-md;
+    border-radius: $radius-md;
+    border: 1px solid #e2e8f0;
+
+    .comparison-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: $spacing-sm;
+    }
+
+    .comparison-year-box {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: $spacing-xs;
+      border-radius: $radius-sm;
+      background: #ffffff;
+      border: 1px solid #e2e8f0;
+
+      .comp-label {
+        font-size: 10px;
+        font-weight: $font-weight-semibold;
+        color: #94a3b8;
+        text-transform: uppercase;
+        margin-bottom: 2px;
+      }
+
+      .comp-val {
+        font-size: 14px;
+        font-weight: $font-weight-bold;
+        color: #334155;
+      }
+
+      &.highlight-blue {
+        border-color: rgba(0, 82, 255, 0.2);
+        background: rgba(0, 82, 255, 0.02);
+        
+        .comp-val {
+          color: #0052FF;
+        }
+      }
+    }
+
+    .comparison-arrow-indicator {
+      font-size: 18px;
+      color: #cbd5e1;
+      font-weight: bold;
+    }
+
+    .comparison-result-bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-size: 13px;
+      color: #475569;
+
+      .diff-tag {
+        font-size: 11px;
+        font-weight: $font-weight-bold;
+        padding: 2px 8px;
+        border-radius: $radius-full;
+        text-transform: uppercase;
+        
+        &.growth {
+          background: #d1fae5;
+          color: #065f46;
+        }
+
+        &.shrink {
+          background: #fef2f2;
+          color: #b91c1c;
+        }
+      }
+    }
+  }
+
+  // Distribution chart bar list
+  .dist-list {
+    display: flex;
+    flex-direction: column;
+    gap: $spacing-sm;
+  }
+
+  .dist-item {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+
+    .dist-label-row {
+      display: flex;
+      justify-content: space-between;
+      font-size: 12px;
+      font-weight: $font-weight-medium;
+
+      .dist-name {
+        color: #334155;
+      }
+      .dist-count {
+        color: #64748b;
+        font-weight: $font-weight-bold;
+      }
+    }
+
+    .dist-progress-bg {
+      height: 6px;
+      background: #e2e8f0;
+      border-radius: $radius-full;
+      overflow: hidden;
+    }
+
+    .dist-progress-fill {
+      height: 100%;
+      border-radius: $radius-full;
+      transition: width 0.8s ease;
+
+      &.bg-blue { background: #3b82f6; }
+      &.bg-purple { background: #8b5cf6; }
+    }
+  }
+
+  .analytics-empty-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    height: 120px;
+    color: #94a3b8;
+    font-size: 12px;
+    text-align: center;
+    
+    svg {
+      font-size: 20px;
+    }
+  }
+}
+
+// Layout adjustments
+.santri-content-layout {
+  background: #ffffff;
+  border-radius: $radius-xl;
+  border: 1px solid rgba(0, 0, 0, 0.05);
+  padding: $spacing-lg;
+  box-shadow: 0 4px 24px rgba(15, 23, 42, 0.01);
+
+  @include respond-to(md) {
+    padding: $spacing-md;
+  }
+}
+
+// ============================================
+// ANTD FORM MODALS LIGHT STYLING OVERRIDES
+// ============================================
+.academic-modal {
+  .ant-modal-content {
+    border-radius: $radius-lg !important;
+    padding: $spacing-xl !important;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.08) !important;
+  }
+
+  .ant-modal-title {
+    font-size: 16px !important;
+    font-weight: $font-weight-bold !important;
+    color: #0f172a !important;
+  }
+
+  .ant-form-item-label > label {
+    font-size: 12px !important;
+    font-weight: $font-weight-semibold !important;
+    color: #475569 !important;
+  }
+
+  .ant-select-selector, .ant-input, .ant-input-textarea {
+    border-radius: $radius-md !important;
+    border-color: #cbd5e1 !important;
+
+    &:hover {
+      border-color: #94a3b8 !important;
+    }
+    &:focus {
+      border-color: #0052FF !important;
+      box-shadow: 0 0 0 3px rgba(0, 82, 255, 0.08) !important;
     }
   }
 }
