@@ -8,6 +8,7 @@ import { GuruModal } from '../components/features/GuruModal';
 import { MasterList } from '../components/features/MasterList';
 import { MasterModal } from '../components/features/MasterModal';
 import { GuruTtdModal } from '../components/features/GuruTtdModal';
+import { GuruFotoModal } from '../components/features/GuruFotoModal';
 import { PageHeader, LoadingState, ErrorState } from '../components/common';
 import { usePagination } from '../hooks/usePagination';
 import './Guru.scss';
@@ -34,9 +35,11 @@ export function Guru() {
   const [isMapelModalOpen, setIsMapelModalOpen] = useState(false);
   const [isJabatanModalOpen, setIsJabatanModalOpen] = useState(false);
   const [isTtdModalOpen, setIsTtdModalOpen] = useState(false);
+  const [isFotoModalOpen, setIsFotoModalOpen] = useState(false);
 
   const [editingGuru, setEditingGuru] = useState(null);
   const [activeTtdGuru, setActiveTtdGuru] = useState(null);
+  const [activeFotoGuru, setActiveFotoGuru] = useState(null);
   const [editingMapel, setEditingMapel] = useState(null);
   const [editingJabatan, setEditingJabatan] = useState(null);
 
@@ -161,6 +164,11 @@ export function Guru() {
   const handleUploadTtdClick = (guru) => {
     setActiveTtdGuru(guru);
     setIsTtdModalOpen(true);
+  };
+
+  const handleUploadFotoClick = (guru) => {
+    setActiveFotoGuru(guru);
+    setIsFotoModalOpen(true);
   };
 
   const handleDeleteGuruClick = async (id) => {
@@ -341,6 +349,7 @@ export function Guru() {
             onEdit={handleEditGuruClick}
             onDelete={handleDeleteGuruClick}
             onUploadTtd={handleUploadTtdClick}
+            onUploadFoto={handleUploadFotoClick}
           />
         </div>
       )
@@ -484,6 +493,13 @@ export function Guru() {
         isOpen={isTtdModalOpen}
         onClose={() => setIsTtdModalOpen(false)}
         guru={activeTtdGuru}
+        onSuccess={loadGuru}
+      />
+
+      <GuruFotoModal
+        isOpen={isFotoModalOpen}
+        onClose={() => setIsFotoModalOpen(false)}
+        guru={activeFotoGuru}
         onSuccess={loadGuru}
       />
     </div>

@@ -1,5 +1,5 @@
 import { Table, Tag, Tooltip, Pagination } from 'antd';
-import { Edit, Trash2, Award } from 'lucide-react';
+import { Edit, Trash2, Award, Camera } from 'lucide-react';
 import { EmptyState } from '../common';
 import './GuruTable.scss';
 
@@ -40,7 +40,7 @@ const getInitials = (name) => {
   return (parts[0][0] + parts[1][0]).toUpperCase();
 };
 
-export function GuruTable({ data, total, currentPage, pageSize, onPageChange, onEdit, onDelete, onUploadTtd }) {
+export function GuruTable({ data, total, currentPage, pageSize, onPageChange, onEdit, onDelete, onUploadTtd, onUploadFoto }) {
   const columns = [
     {
       title: 'NIP',
@@ -54,14 +54,23 @@ export function GuruTable({ data, total, currentPage, pageSize, onPageChange, on
       dataIndex: 'nama',
       key: 'nama',
       width: 250,
-      render: (text) => {
+      render: (text, record) => {
         const initials = getInitials(text);
         const avatarStyle = getAvatarStyle(text || '');
         return (
           <div className="guru-profile-cell">
-            <div className="avatar-circle-sm" style={avatarStyle}>
-              {initials}
-            </div>
+            {record.foto_url ? (
+              <img 
+                src={record.foto_url} 
+                alt={text} 
+                className="avatar-circle-sm" 
+                style={{ objectFit: 'cover', border: '1px solid #cbd5e1' }}
+              />
+            ) : (
+              <div className="avatar-circle-sm" style={avatarStyle}>
+                {initials}
+              </div>
+            )}
             <span className="guru-name">{text || '-'}</span>
           </div>
         );
@@ -111,7 +120,7 @@ export function GuruTable({ data, total, currentPage, pageSize, onPageChange, on
       title: 'Aksi',
       key: 'action',
       fixed: 'right',
-      width: 160,
+      width: 190,
       align: 'center',
       render: (_, record) => (
         <div className="guru-action-cell">
@@ -122,6 +131,16 @@ export function GuruTable({ data, total, currentPage, pageSize, onPageChange, on
               onClick={() => onEdit(record)}
             >
               <Edit size={14} />
+            </button>
+          </Tooltip>
+          <Tooltip title="Upload Foto Profil">
+            <button
+              type="button"
+              className="action-icon-btn photo-btn"
+              onClick={() => onUploadFoto(record)}
+              style={{ color: '#8b5cf6' }}
+            >
+              <Camera size={14} />
             </button>
           </Tooltip>
           <Tooltip title="Upload Tandatangan Digital">

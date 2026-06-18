@@ -36,6 +36,37 @@ const uploadTtd = multer({
   limits: { fileSize: 2 * 1024 * 1024 }, // max 2MB
 });
 
+// ===== GURU PHOTO STORAGE CONFIG =====
+const fotoStorage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    const dir = path.join(__dirname, '../../public/uploads/foto-guru');
+    if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+    cb(null, dir);
+  },
+  filename: (req, file, cb) => {
+    const guruId = req.params.id;
+    const ext = path.extname(file.originalname).toLowerCase();
+    const filename = `guru_foto_${guruId}_${Date.now()}${ext}`;
+    cb(null, filename);
+  },
+});
+
+const fotoFilter = (req, file, cb) => {
+  const allowed = ['.jpg', '.jpeg', '.png', '.webp'];
+  const ext = path.extname(file.originalname).toLowerCase();
+  if (allowed.includes(ext)) {
+    cb(null, true);
+  } else {
+    cb(new Error('Format file tidak didukung. Gunakan JPG, PNG, atau WEBP.'));
+  }
+};
+
+const uploadFoto = multer({
+  storage: fotoStorage,
+  fileFilter: fotoFilter,
+  limits: { fileSize: 4 * 1024 * 1024 }, // max 4MB
+});
+
 function registerGuruRoutes(app) {
   // ===== GURU API =====
   app.get('/api/guru', async (req, res) => {
@@ -53,6 +84,7 @@ function registerGuruRoutes(app) {
           g.alamat,
           g.status,
           g.ttd_url,
+          g.foto_url,
           g.created_at
         FROM guru g
         LEFT JOIN mata_pelajaran mp ON g.mata_pelajaran_id = mp.id
@@ -205,6 +237,49 @@ function registerGuruRoutes(app) {
     } catch (err) {
       console.error('Error delete ttd guru:', err);
       res.status(500).json({ error: 'Gagal menghapus tanda tangan guru.' });
+    }
+  });
+
+  // ===== GURU PHOTO UPLOAD =====
+  app.post('/api/guru/:id/foto', uploadFoto.single('foto'), async (req, res) => {
+    const { id } = req.params;
+    if (!req.file) return res.status(400).json({ error: 'File foto tidak ditemukan.' });
+
+    const fotoUrl = `/uploads/foto-guru/${req.file.filename}`;
+    try {
+      // Hapus foto lama jika ada
+      const old = await db.query('SELECT foto_url FROM guru WHERE id = $1', [id]);
+      if (old.rows[0]?.foto_url) {
+        const oldPath = path.join(__dirname, '../../public', old.rows[0].foto_url);
+        if (fs.existsSync(oldPath)) fs.unlinkSync(oldPath);
+      }
+
+      const result = await db.query(
+        `UPDATE guru SET foto_url = $1 WHERE id = $2 RETURNING id, nama, foto_url`,
+        [fotoUrl, id]
+      );
+      
+      if (!result.rows.length) return res.status(404).json({ error: 'Data guru tidak ditemukan.' });
+      res.json({ ...result.rows[0], foto_url: fotoUrl });
+    } catch (err) {
+      console.error('Error upload foto guru:', err);
+      res.status(500).json({ error: 'Gagal menyimpan foto guru.' });
+    }
+  });
+
+  app.delete('/api/guru/:id/foto', async (req, res) => {
+    const { id } = req.params;
+    try {
+      const old = await db.query('SELECT foto_url FROM guru WHERE id = $1', [id]);
+      if (old.rows[0]?.foto_url) {
+        const oldPath = path.join(__dirname, '../../public', old.rows[0].foto_url);
+        if (fs.existsSync(oldPath)) fs.unlinkSync(oldPath);
+      }
+      await db.query(`UPDATE guru SET foto_url = NULL WHERE id = $1`, [id]);
+      res.json({ message: 'Foto guru berhasil dihapus.' });
+    } catch (err) {
+      console.error('Error delete foto guru:', err);
+      res.status(500).json({ error: 'Gagal menghapus foto guru.' });
     }
   });
 }

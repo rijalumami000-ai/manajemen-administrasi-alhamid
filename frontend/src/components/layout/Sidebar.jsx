@@ -222,6 +222,8 @@ export function Sidebar({ collapsed, onCollapse }) {
       items: [
         { key: '/kelas', icon: 'School', label: 'Data Kelas', disabled: isStaff() },
         { key: '/guru', icon: 'Contact', label: 'Data Guru', disabled: isStaff() },
+        { key: '/struktur-organisasi', icon: 'Users', label: 'Struktur Organisasi', disabled: isStaff() },
+        { key: '/jadwal-pelajaran', icon: 'Clock', label: 'Jadwal Harian', disabled: isStaff() },
         { key: '/nilai-pengaturan', icon: 'Sliders', label: 'Pengaturan & Jadwal', disabled: isStaff() },
         { key: '/nilai', icon: 'Edit', label: 'Input Penilaian', disabled: isStaff() },
         { key: '/scan-nilai', icon: 'Scan', label: 'Scan Nilai', disabled: isStaff() },

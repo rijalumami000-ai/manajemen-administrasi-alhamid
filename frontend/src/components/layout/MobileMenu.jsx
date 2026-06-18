@@ -25,7 +25,8 @@ import {
   BarChart3,
   Zap,
   ShieldAlert,
-  Settings
+  Settings,
+  Clock
 } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
@@ -60,6 +61,8 @@ const MobileMenu = ({ open, onClose, onLogout }) => {
       children: [
         { key: '/kelas', icon: <School size={18} />, label: 'Data Kelas', disabled: isStaff() },
         { key: '/guru', icon: <Contact size={18} />, label: 'Data Guru', disabled: isStaff() },
+        { key: '/struktur-organisasi', icon: <Users size={18} />, label: 'Struktur Organisasi', disabled: isStaff() },
+        { key: '/jadwal-pelajaran', icon: <Clock size={18} />, label: 'Jadwal Harian', disabled: isStaff() },
         { key: '/nilai-pengaturan', icon: <Sliders size={18} />, label: 'Pengaturan & Jadwal', disabled: isStaff() },
         { key: '/nilai', icon: <Edit size={18} />, label: 'Input Penilaian', disabled: isStaff() },
         { key: '/scan-nilai', icon: <Scan size={18} />, label: 'Scan Nilai', disabled: isStaff() },

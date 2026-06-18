@@ -84,6 +84,7 @@ CREATE TABLE IF NOT EXISTS guru (
   no_hp VARCHAR(60) NOT NULL,
   alamat TEXT NOT NULL,
   status VARCHAR(80) NOT NULL,
+  foto_url VARCHAR(255),
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 

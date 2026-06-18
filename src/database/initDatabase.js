@@ -57,6 +57,16 @@ async function initDatabase() {
     console.log('⚠ Keuangan schema file not found');
   }
 
+  // Run struktur_dan_jadwal.sql — Struktur Organisasi & Jadwal Pelajaran
+  const strukturJadwalPath = path.join(__dirname, '..', '..', 'sql', 'struktur_dan_jadwal.sql');
+  if (fs.existsSync(strukturJadwalPath)) {
+    const strukturJadwalSql = fs.readFileSync(strukturJadwalPath, 'utf8');
+    await db.query(strukturJadwalSql);
+    console.log('✓ Struktur Organisasi & Jadwal Pelajaran schema initialized');
+  } else {
+    console.log('⚠ Struktur Organisasi & Jadwal Pelajaran schema file not found');
+  }
+
   // Migrasi role bendahara & madrasah_diniyah
   await db.query(`
     DO $$

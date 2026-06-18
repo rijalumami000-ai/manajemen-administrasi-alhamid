@@ -69,5 +69,15 @@ export const guruService = {
   // Delete Tanda Tangan Guru
   async deleteTtd(id) {
     return apiDelete(`/guru/${id}/ttd`);
+  },
+
+  // Upload Foto Guru
+  async uploadFoto(id, formData) {
+    return apiPost(`/guru/${id}/foto`, formData);
+  },
+
+  // Delete Foto Guru
+  async deleteFoto(id) {
+    return apiDelete(`/guru/${id}/foto`);
   }
 };
