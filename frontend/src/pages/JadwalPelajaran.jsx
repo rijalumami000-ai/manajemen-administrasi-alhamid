@@ -40,7 +40,8 @@ const LIST_MALAM = [
   'Malam Senin',
   'Malam Selasa',
   'Malam Rabu',
-  'Malam Kamis'
+  'Malam Kamis',
+  'Malam Sabtu'
 ];
 
 export function JadwalPelajaran() {
