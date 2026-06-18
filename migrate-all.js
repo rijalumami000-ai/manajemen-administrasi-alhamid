@@ -22,6 +22,7 @@ const migrations = [
   { name: 'add_type_and_year_to_alumni',         fn: require('./migrations/add_type_and_year_to_alumni') },
   { name: 'add_buku_induk_kartu_ujian',          fn: require('./migrations/add_buku_induk_kartu_ujian') },
   { name: 'alter_nilai_angka_type',              fn: require('./migrations/alter_nilai_angka_type') },
+  { name: 'add_struktur_dan_jadwal_pelajaran',   fn: require('./migrations/add_struktur_dan_jadwal_pelajaran') },
 ];
 
 async function runAll() {
