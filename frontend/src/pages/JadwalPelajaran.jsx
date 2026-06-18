@@ -36,13 +36,11 @@ import './JadwalPelajaran.scss';
 const { TabPane } = Tabs;
 
 const LIST_MALAM = [
-  'Malam Sabtu',
   'Malam Ahad',
   'Malam Senin',
   'Malam Selasa',
   'Malam Rabu',
-  'Malam Kamis',
-  'Malam Jumat'
+  'Malam Kamis'
 ];
 
 export function JadwalPelajaran() {
@@ -87,9 +85,31 @@ export function JadwalPelajaran() {
         // Fetch Diniyah classes
         const classes = await nilaiService.fetchKelas();
         const diniyahClasses = classes.filter(k => k.jenis === 'Diniyah');
-        setKelasList(diniyahClasses);
-        if (diniyahClasses.length > 0) {
-          setSelectedKelasId(diniyahClasses[0].id);
+
+        const getTingkatOrder = (k) => {
+          const name = (k.nama || '').toLowerCase();
+          if (name.includes('sifir')) return 0;
+          if (name.startsWith('1') || name.includes('kelas 1')) return 1;
+          if (name === 'sp' || name.startsWith('sp') || name.includes('sp ')) return 1.5;
+          if (name.startsWith('2') || name.includes('kelas 2')) return 2;
+          if (name.startsWith('3') || name.includes('kelas 3')) return 3;
+          if (name.startsWith('4') || name.includes('kelas 4')) return 4;
+          if (name.startsWith('5') || name.includes('kelas 5')) return 5;
+          if (name.startsWith('6') || name.includes('kelas 6')) return 6;
+          if (k.tingkat === 99) return 1.5;
+          return k.tingkat ?? 999;
+        };
+
+        const sortedClasses = diniyahClasses.sort((a, b) => {
+          const orderA = getTingkatOrder(a);
+          const orderB = getTingkatOrder(b);
+          if (orderA !== orderB) return orderA - orderB;
+          return a.nama.localeCompare(b.nama, 'id', { numeric: true, sensitivity: 'base' });
+        });
+
+        setKelasList(sortedClasses);
+        if (sortedClasses.length > 0) {
+          setSelectedKelasId(sortedClasses[0].id);
         }
 
         // Fetch Guru

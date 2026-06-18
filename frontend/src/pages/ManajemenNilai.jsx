@@ -254,9 +254,8 @@ export const ManajemenNilai = ({ mode = 'input' }) => {
   useEffect(() => {
     if (mode === 'input-ujian' && kelas.length > 0) {
       const levels = [...new Set(kelas.map(k => k.tingkat))].sort((a, b) => {
-        if (a === 99) return 1;
-        if (b === 99) return -1;
-        return a - b;
+        const order = { 0: 0, 1: 1, 99: 2, 2: 3, 3: 4, 4: 5, 5: 6, 6: 7 };
+        return (order[a] ?? 999) - (order[b] ?? 999);
       });
       if (selectedTingkat === null && levels.length > 0) {
         // Coba cari Kelas 1 (tingkat 1) terlebih dahulu agar sesuai screenshot
@@ -571,7 +570,10 @@ export const ManajemenNilai = ({ mode = 'input' }) => {
     setSelectedMapel(targetMapel.id);
 
     // 3. Smart Seeker: Cari kelas yang BENAR-BENAR ada santrinya
-    const allTingkat = [...new Set(kelas.map(k => k.tingkat))].sort((a, b) => a - b);
+    const allTingkat = [...new Set(kelas.map(k => k.tingkat))].sort((a, b) => {
+      const order = { 0: 0, 1: 1, 99: 2, 2: 3, 3: 4, 4: 5, 5: 6, 6: 7 };
+      return (order[a] ?? 999) - (order[b] ?? 999);
+    });
     let foundKelasId = null;
     let foundTingkat = null;
 
@@ -919,10 +921,8 @@ export const ManajemenNilai = ({ mode = 'input' }) => {
 
   const renderTingkatSelection = (isSettings = false) => {
     const levels = [...new Set(kelas.map(k => k.tingkat))].sort((a, b) => {
-      // Custom sort: Sifir (0), then 1-6, then SP (99)
-      if (a === 99) return 1;
-      if (b === 99) return -1;
-      return a - b;
+      const order = { 0: 0, 1: 1, 99: 2, 2: 3, 3: 4, 4: 5, 5: 6, 6: 7 };
+      return (order[a] ?? 999) - (order[b] ?? 999);
     });
     if (isSettings) {
       return (
@@ -1754,7 +1754,7 @@ export const ManajemenNilai = ({ mode = 'input' }) => {
                 <div className="selector-row">
                   <div className="selector-label">Tingkat:</div>
                   <div className="selector-items">
-                    {[0, 1, 2, 3, 4, 5, 6, 99].map(t => (
+                    {[0, 1, 99, 2, 3, 4, 5, 6].map(t => (
                       <div 
                         key={t} 
                         className={`selector-dot ${selectedTingkat === t ? 'active' : ''}`}
