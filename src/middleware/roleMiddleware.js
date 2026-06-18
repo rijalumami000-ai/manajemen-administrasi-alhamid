@@ -41,12 +41,12 @@ const requireAdmin = requireRole(['admin']);
 /**
  * Middleware to require admin or guru role
  */
-const requireAdminOrGuru = requireRole(['admin', 'guru']);
+const requireAdminOrGuru = requireRole(['admin', 'madrasah_diniyah']);
 
 /**
  * Middleware to require any authenticated user
  */
-const requireAnyRole = requireRole(['admin', 'guru', 'staff']);
+const requireAnyRole = requireRole(['admin', 'madrasah_diniyah', 'bendahara']);
 
 /**
  * Middleware to check if user owns the resource or is admin

@@ -1,0 +1,86 @@
+@import '../styles/keuangan-tokens';
+
+.audit-keuangan-page {
+  font-family: $k-font;
+
+  .active-row {
+    background: rgba($k-primary, 0.03);
+  }
+
+  // Badges for different audit actions
+  .log-badge {
+    display: inline-block;
+    padding: 3px 8px;
+    border-radius: 4px;
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+
+    &--generate_tagihan_massal { background: #E0F2FE; color: #0369A1; }
+    &--catat_pembayaran { background: #DCFCE7; color: #15803D; }
+    &--void_pembayaran { background: #FEE2E2; color: #B91C1C; }
+    &--set_tarif { background: #FEF3C7; color: #B45309; }
+    &--set_tarif_bulanan { background: #F5F3FF; color: #6D28D9; }
+    &--delete_tarif_bulanan { background: #F1F5F9; color: #475569; }
+    &--set_pengecualian { background: #ECFDF5; color: #047857; }
+    &--cabut_pengecualian { background: #FFF1F2; color: #BE123C; }
+    &--catat_pengeluaran { background: #FEF2F2; color: #991B1B; }
+    &--void_pengeluaran { background: #E0F2FE; color: #075985; }
+  }
+
+  .log-keterangan {
+    max-width: 300px;
+    font-size: 12.5px;
+    color: $k-text-main;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  // Expanded details row
+  .log-detail-row {
+    background: #F8FAFC;
+    
+    td {
+      padding: 16px 24px;
+      border-top: none;
+    }
+  }
+
+  .log-diff-view {
+    display: flex;
+    gap: 16px;
+    
+    @media (max-width: 768px) {
+      flex-direction: column;
+    }
+
+    .diff-panel {
+      flex: 1;
+      background: #FFFFFF;
+      border: 1px solid $k-border-color;
+      border-radius: $k-radius-sm;
+      padding: 12px;
+      
+      h6 {
+        font-size: 11.5px;
+        font-weight: 600;
+        margin: 0 0 8px 0;
+        color: $k-text-muted;
+        text-transform: uppercase;
+      }
+
+      pre {
+        margin: 0;
+        font-family: monospace;
+        font-size: 11.5px;
+        color: #475569;
+        white-space: pre-wrap;
+        word-break: break-all;
+        max-height: 200px;
+        overflow-y: auto;
+        line-height: 1.4;
+      }
+    }
+  }
+}

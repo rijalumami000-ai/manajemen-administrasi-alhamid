@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Navigate, useNavigate } from 'react-router-dom';
-import { Form, Input, Button, Card, Typography, Space, Alert } from 'antd';
+import { Form, Input, Button, Card, Typography, Space, Alert, Select } from 'antd';
 import { UserOutlined, LockOutlined, LoginOutlined } from '@ant-design/icons';
 import { useAuth } from '../context/AuthContext';
 import { LoadingState } from '../components/common';
@@ -28,7 +28,7 @@ export function Login() {
     setError('');
     setIsSubmitting(true);
 
-    const result = await login(values.username, values.password);
+    const result = await login(values.username, values.password, values.role);
 
     if (result.success) {
       navigate('/', { replace: true });
@@ -93,6 +93,21 @@ export function Login() {
               size="large"
               autoComplete="off"
             >
+              <Form.Item
+                name="role"
+                rules={[{ required: true, message: 'Silakan pilih role Anda!' }]}
+              >
+                <select
+                  className="login-select"
+                  disabled={isSubmitting}
+                >
+                  <option value="" disabled hidden>Mau login sebagai apa?</option>
+                  <option value="admin">Admin</option>
+                  <option value="madrasah_diniyah">Madrasah Diniyah</option>
+                  <option value="bendahara">Bendahara</option>
+                </select>
+              </Form.Item>
+
               <Form.Item
                 name="username"
                 rules={[

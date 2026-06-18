@@ -9,7 +9,10 @@
     "migrate": "node migrate-all.js",
     "frontend": "cd frontend && npm run dev",
     "backend": "npm run dev",
-    "dev:all": "concurrently \"npm run backend\" \"npm run frontend\""
+    "keuangan:build": "cd keuangan && npx tsc",
+    "keuangan:watch": "cd keuangan && npx tsc --watch",
+    "keuangan:typecheck": "cd keuangan && npx tsc --noEmit",
+    "dev:all": "concurrently \"npm run keuangan:watch\" \"npm run backend\" \"npm run frontend\""
   },
   "dependencies": {
     "@tensorflow/tfjs": "^4.22.0",

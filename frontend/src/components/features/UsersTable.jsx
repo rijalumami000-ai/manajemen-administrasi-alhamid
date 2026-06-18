@@ -5,17 +5,17 @@ export function UsersTable({ users, onEdit, onDeactivate, onActivate, onDelete }
   const getRoleColor = (role) => {
     const colors = {
       admin: 'red',
-      guru: 'blue',
-      staff: 'green'
+      madrasah_diniyah: 'blue',
+      bendahara: 'green'
     };
     return colors[role] || 'default';
   };
 
   const getRoleLabel = (role) => {
     const labels = {
-      admin: 'Administrator',
-      guru: 'Guru',
-      staff: 'Staff'
+      admin: 'Admin',
+      madrasah_diniyah: 'Madrasah Diniyah',
+      bendahara: 'Bendahara'
     };
     return labels[role] || role;
   };
@@ -49,9 +49,9 @@ export function UsersTable({ users, onEdit, onDeactivate, onActivate, onDelete }
         </Tag>
       ),
       filters: [
-        { text: 'Administrator', value: 'admin' },
-        { text: 'Guru', value: 'guru' },
-        { text: 'Staff', value: 'staff' },
+        { text: 'Admin', value: 'admin' },
+        { text: 'Madrasah Diniyah', value: 'madrasah_diniyah' },
+        { text: 'Bendahara', value: 'bendahara' },
       ],
       onFilter: (value, record) => record.role === value,
     },

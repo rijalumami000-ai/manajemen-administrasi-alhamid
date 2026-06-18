@@ -1,0 +1,938 @@
+// ╔══════════════════════════════════════════════════════════════════════════╗
+// ║  DESIGN TOKENS — SISTEM KEUANGAN AL-HAMID                              ║
+// ║  Premium Light — referensi: Vercel · Mercury Bank · Wise               ║
+// ║  Import di setiap .scss keuangan: @import './keuangan-tokens';         ║
+// ╚══════════════════════════════════════════════════════════════════════════╝
+
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;1,400&display=swap');
+
+// ── Basis Warna (Premium Light) ────────────────────────────────────────────
+$k-bg-base:         #F7F8FC;   // Latar halaman — abu sangat soft
+$k-bg-surface:      #FFFFFF;   // Card, panel utama
+$k-bg-surface-2:    #F1F3F9;   // Input, area sekunder
+$k-bg-surface-3:    #E8EAEF;   // Hover, divider
+
+$k-border:          #E2E6F0;   // Border halus
+$k-border-strong:   #C8D0E0;   // Border tegas
+
+// ── Teks ────────────────────────────────────────────────────────────────────
+$k-text-primary:    #0F1724;   // Teks utama
+$k-text-secondary:  #5B6780;   // Label, keterangan
+$k-text-muted:      #94A3B8;   // Placeholder, disabled
+$k-text-link:       #3B6FE8;   // Link aktif
+
+// ── Aksen Utama (Biru Trust) ────────────────────────────────────────────────
+$k-primary:         #3B6FE8;   // Primary action
+$k-primary-light:   #EEF3FD;   // Background ringan
+$k-primary-hover:   #2D5CD4;   // Hover state
+$k-primary-dark:    #1E42A8;   // Pressed / deep
+
+// ── Status Keuangan ─────────────────────────────────────────────────────────
+$k-success:         #10A05B;   // Lunas → hijau teal
+$k-success-light:   #ECFBF3;
+$k-success-text:    #0A7A44;
+$k-success-border:  #A7F3D0;
+
+$k-warning:         #E07B10;   // Sebagian → oranye hangat
+$k-warning-light:   #FEF5E7;
+$k-warning-text:    #B85E08;
+$k-warning-border:  #FCD29B;
+
+$k-danger:          #DC3545;   // Belum lunas / tunggakan → merah
+$k-danger-light:    #FFF0F1;
+$k-danger-text:     #A71E2A;
+$k-danger-border:   #FECDD3;
+
+$k-neutral:         #64748B;   // Dibebaskan → abu
+$k-neutral-light:   #F1F5F9;
+$k-neutral-text:    #475569;
+$k-neutral-border:  #CBD5E1;
+
+// ── Uang ────────────────────────────────────────────────────────────────────
+$k-money-positive:  #10A05B;   // Terkumpul / saldo masuk
+$k-money-negative:  #DC3545;   // Tunggakan / saldo kurang
+$k-money-neutral:   #3B6FE8;   // Target / proyeksi
+
+// ── Shadows (Soft & Premium) ────────────────────────────────────────────────
+$k-shadow-xs: 0 1px 2px rgba(15, 23, 42, 0.04);
+$k-shadow-sm: 0 2px 8px rgba(15, 23, 42, 0.06), 0 0 1px rgba(15, 23, 42, 0.04);
+$k-shadow-md: 0 4px 16px rgba(15, 23, 42, 0.08), 0 0 1px rgba(15, 23, 42, 0.04);
+$k-shadow-lg: 0 8px 32px rgba(15, 23, 42, 0.10), 0 0 1px rgba(15, 23, 42, 0.04);
+$k-shadow-focus: 0 0 0 3px rgba(59, 111, 232, 0.20);
+
+// ── Radius ──────────────────────────────────────────────────────────────────
+$k-radius-sm:   6px;
+$k-radius-md:   10px;
+$k-radius-lg:   14px;
+$k-radius-xl:   20px;
+$k-radius-pill: 100px;
+
+// ── Spacing ─────────────────────────────────────────────────────────────────
+$k-space-1: 4px;
+$k-space-2: 8px;
+$k-space-3: 12px;
+$k-space-4: 16px;
+$k-space-5: 20px;
+$k-space-6: 24px;
+$k-space-8: 32px;
+
+// ── Tipografi ────────────────────────────────────────────────────────────────
+$k-font:       'Plus Jakarta Sans', 'Inter', system-ui, sans-serif;
+$k-font-mono:  'JetBrains Mono', 'Fira Code', ui-monospace, monospace;
+
+// ── Transition ──────────────────────────────────────────────────────────────
+$k-trans-fast: 120ms cubic-bezier(0.4, 0, 0.2, 1);
+$k-trans-base: 220ms cubic-bezier(0.4, 0, 0.2, 1);
+$k-trans-slow: 350ms cubic-bezier(0.4, 0, 0.2, 1);
+
+// ── Aliases untuk kompatibilitas halaman ──────────────────────────────────────
+$k-card-bg:         $k-bg-surface;
+$k-text-main:       $k-text-primary;
+$k-border-color:    $k-border;
+
+// ════════════════════════════════════════════════════════════════════════════
+// ANIMASI KEYFRAMES
+// ════════════════════════════════════════════════════════════════════════════
+
+@keyframes k-slide-up {
+  from { opacity: 0; transform: translateY(14px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes k-fade-in {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+@keyframes k-badge-pop {
+  0%   { transform: scale(0.75); opacity: 0; }
+  60%  { transform: scale(1.08); }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+@keyframes k-shimmer {
+  0%   { background-position: -400px 0; }
+  100% { background-position: 400px 0; }
+}
+
+@keyframes k-progress-fill {
+  from { width: 0%; }
+  to   { width: var(--progress-target); }
+}
+
+@keyframes k-spin {
+  to { transform: rotate(360deg); }
+}
+
+// ════════════════════════════════════════════════════════════════════════════
+// MIXINS
+// ════════════════════════════════════════════════════════════════════════════
+
+@mixin k-card {
+  background: $k-bg-surface;
+  border: 1px solid $k-border;
+  border-radius: $k-radius-lg;
+  box-shadow: $k-shadow-sm;
+}
+
+@mixin k-card-hover {
+  transition: box-shadow $k-trans-base, transform $k-trans-base, border-color $k-trans-base;
+  &:hover {
+    box-shadow: $k-shadow-md;
+    transform: translateY(-2px);
+    border-color: $k-border-strong;
+  }
+}
+
+@mixin k-button-primary {
+  background: $k-primary;
+  color: #FFFFFF;
+  border: none;
+  border-radius: $k-radius-md;
+  padding: 9px 18px;
+  font-family: $k-font;
+  font-size: 13.5px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background $k-trans-fast, transform $k-trans-fast, box-shadow $k-trans-fast;
+  &:hover {
+    background: $k-primary-hover;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(59, 111, 232, 0.30);
+  }
+  &:active { transform: translateY(0); box-shadow: none; }
+  &:disabled { opacity: 0.5; pointer-events: none; }
+}
+
+@mixin k-button-ghost {
+  background: transparent;
+  color: $k-text-secondary;
+  border: 1px solid $k-border;
+  border-radius: $k-radius-md;
+  padding: 8px 16px;
+  font-family: $k-font;
+  font-size: 13.5px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all $k-trans-fast;
+  &:hover {
+    background: $k-bg-surface-2;
+    color: $k-text-primary;
+    border-color: $k-border-strong;
+  }
+}
+
+@mixin k-input {
+  background: $k-bg-surface;
+  border: 1.5px solid $k-border;
+  border-radius: $k-radius-md;
+  padding: 9px 12px;
+  font-family: $k-font;
+  font-size: 14px;
+  color: $k-text-primary;
+  width: 100%;
+  box-sizing: border-box;
+  transition: border-color $k-trans-fast, box-shadow $k-trans-fast;
+  outline: none;
+  &::placeholder { color: $k-text-muted; }
+  &:focus {
+    border-color: $k-primary;
+    box-shadow: $k-shadow-focus;
+  }
+  &:hover:not(:focus) {
+    border-color: $k-border-strong;
+  }
+}
+
+@mixin k-skeleton {
+  background: linear-gradient(90deg, $k-bg-surface-2 25%, $k-bg-surface-3 50%, $k-bg-surface-2 75%);
+  background-size: 800px 100%;
+  animation: k-shimmer 1.4s infinite;
+  border-radius: $k-radius-sm;
+}
+
+// ════════════════════════════════════════════════════════════════════════════
+// UTILITY CLASSES
+// ════════════════════════════════════════════════════════════════════════════
+
+.k-page {
+  font-family: $k-font;
+  background: $k-bg-base;
+  min-height: 100vh;
+  padding: $k-space-6;
+  animation: k-fade-in 0.2s ease-out;
+
+  &__header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: $k-space-6;
+    flex-wrap: wrap;
+    gap: $k-space-4;
+
+    h1 {
+      font-size: 22px;
+      font-weight: 800;
+      color: $k-text-primary;
+      margin: 0;
+      letter-spacing: -0.4px;
+    }
+
+    p {
+      font-size: 13px;
+      color: $k-text-secondary;
+      margin: 4px 0 0;
+    }
+  }
+}
+
+// Tabel keuangan standar
+.k-table-wrap {
+  overflow-x: auto;
+  border-radius: $k-radius-lg;
+  border: 1px solid $k-border;
+  box-shadow: $k-shadow-xs;
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-family: $k-font;
+
+    thead {
+      background: $k-bg-surface-2;
+      position: sticky;
+      top: 0;
+      z-index: 2;
+
+      th {
+        padding: 11px 14px;
+        text-align: left;
+        font-size: 11.5px;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        color: $k-text-secondary;
+        border-bottom: 1.5px solid $k-border;
+        white-space: nowrap;
+
+        &.right { text-align: right; }
+        &.center { text-align: center; }
+      }
+    }
+
+    tbody {
+      tr {
+        border-bottom: 1px solid $k-border;
+        transition: background $k-trans-fast;
+
+        &:last-child { border-bottom: none; }
+        &:hover { background: rgba(59, 111, 232, 0.025); }
+
+        &.row-void {
+          opacity: 0.5;
+          text-decoration: line-through;
+          background: $k-bg-surface-2;
+        }
+      }
+
+      td {
+        padding: 11px 14px;
+        font-size: 13.5px;
+        color: $k-text-primary;
+        background: $k-bg-surface;
+
+        &.right {
+          text-align: right;
+          font-variant-numeric: tabular-nums;
+          font-family: $k-font-mono;
+        }
+        &.center { text-align: center; }
+        &.muted { color: $k-text-muted; font-style: italic; }
+      }
+    }
+
+    tfoot {
+      tr {
+        background: $k-bg-surface-2;
+        border-top: 2px solid $k-border-strong;
+
+        td {
+          padding: 12px 14px;
+          font-size: 13.5px;
+          font-weight: 700;
+          color: $k-text-primary;
+          background: $k-bg-surface-2;
+
+          &.right {
+            text-align: right;
+            font-variant-numeric: tabular-nums;
+            font-family: $k-font-mono;
+          }
+        }
+      }
+    }
+  }
+}
+
+// Angka Rupiah
+.k-money {
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum";
+
+  &--positive { color: $k-money-positive; font-weight: 600; }
+  &--negative { color: $k-money-negative; font-weight: 600; }
+  &--neutral  { color: $k-money-neutral; }
+  &--muted    { color: $k-text-muted; }
+}
+
+// Badge status
+.k-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 9px;
+  border-radius: $k-radius-pill;
+  font-size: 11.5px;
+  font-weight: 600;
+  white-space: nowrap;
+  animation: k-badge-pop 0.2s ease-out;
+
+  &::before {
+    content: '';
+    display: block;
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+
+  &--lunas {
+    background: $k-success-light;
+    color: $k-success-text;
+    border: 1px solid $k-success-border;
+    &::before { background: $k-success; }
+  }
+
+  &--sebagian {
+    background: $k-warning-light;
+    color: $k-warning-text;
+    border: 1px solid $k-warning-border;
+    &::before { background: $k-warning; }
+  }
+
+  &--belum-lunas, &--belum_lunas {
+    background: $k-danger-light;
+    color: $k-danger-text;
+    border: 1px solid $k-danger-border;
+    &::before { background: $k-danger; }
+  }
+
+  &--dibebaskan {
+    background: $k-neutral-light;
+    color: $k-neutral-text;
+    border: 1px solid $k-neutral-border;
+    &::before { background: $k-neutral; }
+  }
+}
+
+// Progress bar realisasi
+.k-progress {
+  &__bar-wrap {
+    background: $k-bg-surface-3;
+    border-radius: $k-radius-pill;
+    height: 6px;
+    overflow: hidden;
+    margin: 4px 0;
+  }
+
+  &__bar {
+    height: 100%;
+    border-radius: $k-radius-pill;
+    animation: k-progress-fill 0.8s ease-out;
+    transition: width 0.8s ease-out;
+
+    &[data-pct="100"]  { background: $k-success; }
+    &.pct-danger  { background: $k-danger; }  // < 50%
+    &.pct-warning { background: $k-warning; } // 50-79%
+    &.pct-good    { background: $k-primary; } // 80-99%
+    &.pct-done    { background: $k-success; } // 100%
+  }
+
+  &__label {
+    font-size: 12px;
+    font-weight: 600;
+    color: $k-text-secondary;
+  }
+}
+
+// Skeleton loading
+.k-skeleton {
+  @include k-skeleton;
+  height: 14px;
+  &--sm { height: 10px; width: 60%; }
+  &--lg { height: 32px; width: 40%; }
+  &--circle { width: 40px; height: 40px; border-radius: 50%; }
+}
+
+// Loading spinner kecil
+.k-spinner {
+  width: 18px;
+  height: 18px;
+  border: 2px solid $k-primary-light;
+  border-top-color: $k-primary;
+  border-radius: 50%;
+  animation: k-spin 0.7s linear infinite;
+  display: inline-block;
+}
+
+// ── Standard Button Classes (Global Keuangan UI) ──────────────────────────
+.k-btn-primary {
+  @include k-button-primary;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  text-decoration: none !important;
+}
+
+.k-btn-ghost {
+  @include k-button-ghost;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  text-decoration: none !important;
+}
+
+.k-btn-secondary {
+  background: $k-bg-surface-2;
+  color: $k-text-secondary;
+  border: 1px solid $k-border;
+  border-radius: $k-radius-md;
+  padding: 8px 16px;
+  font-family: $k-font;
+  font-size: 13.5px;
+  font-weight: 500;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  transition: all $k-trans-fast;
+  &:hover {
+    background: $k-bg-surface-3;
+    color: $k-text-primary;
+    border-color: $k-border-strong;
+  }
+  &:disabled { opacity: 0.5; pointer-events: none; }
+}
+
+.k-btn-icon {
+  background: transparent;
+  color: $k-text-secondary;
+  border: 1px solid $k-border;
+  border-radius: $k-radius-md;
+  width: 36px;
+  height: 36px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all $k-trans-fast;
+  &:hover {
+    background: $k-bg-surface-2;
+    color: $k-text-primary;
+    border-color: $k-border-strong;
+  }
+  &:disabled { opacity: 0.5; pointer-events: none; }
+}
+
+// ── Tabs Keuangan (Premium Vercel/Linear style) ─────────────────────────
+.k-tabs {
+  display: inline-flex;
+  gap: 4px;
+  background: $k-bg-surface-2;
+  padding: 4px;
+  border-radius: $k-radius-md;
+  border: 1px solid $k-border;
+  width: fit-content;
+  box-sizing: border-box;
+
+  .k-tab {
+    background: transparent;
+    color: $k-text-secondary;
+    border: none;
+    border-radius: $k-radius-sm;
+    padding: 6px 14px;
+    font-family: $k-font;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all $k-trans-fast;
+    outline: none;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    box-sizing: border-box;
+
+    &:hover:not(.k-tab--active) {
+      color: $k-text-primary;
+      background: rgba(15, 23, 36, 0.05);
+    }
+
+    &--active {
+      background: $k-bg-surface;
+      color: $k-primary;
+      box-shadow: $k-shadow-xs;
+      border: 1px solid rgba(0, 0, 0, 0.01);
+    }
+  }
+}
+
+// ── Global Input Style ──────────────────────────────────────────────────
+.k-input {
+  @include k-input;
+}
+
+// ── Global Select Style ──────────────────────────────────────────────────
+.k-select {
+  background: $k-bg-surface;
+  border: 1.5px solid $k-border;
+  border-radius: $k-radius-md;
+  padding: 9px 36px 9px 12px;
+  font-family: $k-font;
+  font-size: 14px;
+  color: $k-text-primary;
+  height: 38px;
+  width: 100%;
+  outline: none;
+  transition: border-color $k-trans-fast, box-shadow $k-trans-fast;
+  cursor: pointer;
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  
+  // Custom chevron arrow using SVG
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='%235B6780' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><polyline points='6 9 12 15 18 9'></polyline></svg>");
+  background-repeat: no-repeat;
+  background-position: right 12px center;
+  background-size: 16px;
+
+  &:focus {
+    border-color: $k-primary;
+    box-shadow: $k-shadow-focus;
+  }
+  
+  &:hover:not(:focus) {
+    border-color: $k-border-strong;
+  }
+
+  &::-ms-expand {
+    display: none;
+  }
+
+  &:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    background-color: $k-bg-surface-2;
+  }
+}
+
+// ── Form Row Style (Side by Side Groups) ──────────────────────────────────
+.k-form-row {
+  display: flex;
+  gap: $k-space-4;
+  align-items: flex-end;
+  
+  .k-form-group {
+    flex: 1;
+    min-width: 0;
+  }
+}
+
+// ── Standardize Input and Select Heights ─────────────────────────────────
+input.k-input,
+select.k-select,
+.k-select,
+.k-input-prefix input {
+  height: 38px !important;
+  box-sizing: border-box !important;
+}
+
+// ── Header/Toolbar Select Overrides ──────────────────────────────────────
+.k-page__header-actions .k-select,
+.tagihan-toolbar .k-select,
+.tagihan-toolbar__left .k-select,
+.tagihan-toolbar__right .k-select,
+.k-quick-actions-list .k-select {
+  width: auto !important;
+  min-width: 160px !important;
+}
+
+// ── Global Search Box Style ──────────────────────────────────────────────
+.k-search-box {
+  display: flex;
+  align-items: center;
+  gap: $k-space-2;
+  background: $k-bg-surface;
+  border: 1.5px solid $k-border;
+  border-radius: $k-radius-md;
+  padding: 0 12px;
+  min-width: 200px;
+  height: 38px;
+  box-sizing: border-box;
+  transition: border-color $k-trans-fast, box-shadow $k-trans-fast;
+
+  svg { color: $k-text-muted; flex-shrink: 0; }
+  input { 
+    border: none !important; 
+    box-shadow: none !important; 
+    padding: 0 !important; 
+    width: 100% !important; 
+    height: 100% !important; 
+    background: transparent !important;
+    outline: none !important;
+    font-family: $k-font;
+    font-size: 13.5px;
+    color: $k-text-primary;
+    
+    &::placeholder {
+      color: $k-text-muted;
+    }
+  }
+  &:focus-within { border-color: $k-primary; box-shadow: $k-shadow-focus; }
+}
+
+// ── Global Modal Style ──────────────────────────────────────────────────
+.k-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.45);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: $k-space-4;
+  animation: k-fade-in 0.15s ease-out;
+}
+
+.k-modal {
+  background: $k-bg-surface;
+  border-radius: $k-radius-xl;
+  box-shadow: $k-shadow-lg;
+  width: 100%;
+  max-width: 480px;
+  animation: k-slide-up 0.2s ease-out;
+  overflow: hidden;
+
+  &__header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: $k-space-5 $k-space-5 $k-space-4;
+    border-bottom: 1px solid $k-border;
+  }
+
+  &__title {
+    display: flex;
+    align-items: center;
+    gap: $k-space-2;
+    h3 { margin: 0; font-size: 16px; font-weight: 800; color: $k-text-primary; }
+  }
+
+  &__close {
+    width: 32px; height: 32px;
+    border: none;
+    background: $k-bg-surface-2;
+    border-radius: $k-radius-md;
+    color: $k-text-muted;
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    transition: all $k-trans-fast;
+    &:hover { background: $k-danger-light; color: $k-danger; }
+  }
+
+  &__info {
+    background: $k-bg-surface-2;
+    padding: $k-space-4 $k-space-5;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  &__info-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 13px;
+    span { color: $k-text-secondary; }
+    strong { color: $k-text-primary; font-weight: 600; }
+    .text-muted { color: $k-text-muted; font-weight: 400; }
+
+    &--sisa {
+      padding-top: 8px;
+      border-top: 1px solid $k-border;
+      strong { font-size: 16px; font-weight: 800; }
+    }
+  }
+
+  &__form {
+    padding: $k-space-5;
+    display: flex;
+    flex-direction: column;
+    gap: $k-space-4;
+  }
+
+  &__actions {
+    display: flex;
+    gap: $k-space-3;
+    justify-content: flex-end;
+    padding-top: $k-space-2;
+    border-top: 1px solid $k-border;
+    margin-top: $k-space-2;
+  }
+}
+
+// ── Global Form Controls ─────────────────────────────────────────────────
+.k-form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+
+  label {
+    font-size: 12.5px;
+    font-weight: 600;
+    color: $k-text-secondary;
+    .required { color: $k-danger; }
+    .optional  { color: $k-text-muted; font-weight: 400; }
+  }
+
+  // Ensure children select elements take full width in form groups
+  .k-select {
+    width: 100%;
+  }
+}
+
+.k-input-prefix {
+  display: flex;
+  align-items: center;
+  border: 1.5px solid $k-border;
+  border-radius: $k-radius-md;
+  overflow: hidden;
+  transition: border-color $k-trans-fast, box-shadow $k-trans-fast;
+  &:focus-within { border-color: $k-primary; box-shadow: $k-shadow-focus; }
+
+  span {
+    padding: 0 12px;
+    background: $k-bg-surface-2;
+    color: $k-text-secondary;
+    font-size: 14px;
+    font-weight: 600;
+    border-right: 1px solid $k-border;
+    align-self: stretch;
+    display: flex;
+    align-items: center;
+  }
+
+  input {
+    border: none !important;
+    box-shadow: none !important;
+    border-radius: 0 !important;
+    flex: 1;
+    font-size: 16px;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+  }
+}
+
+.k-shortcut-btns {
+  display: flex;
+  gap: $k-space-2;
+  flex-wrap: wrap;
+
+  button {
+    padding: 4px 10px;
+    border: 1px solid $k-border;
+    border-radius: $k-radius-pill;
+    background: $k-bg-surface-2;
+    color: $k-text-secondary;
+    font-size: 11.5px;
+    font-family: $k-font;
+    cursor: pointer;
+    transition: all $k-trans-fast;
+
+    &:hover {
+      background: $k-primary-light;
+      color: $k-primary;
+      border-color: rgba(59,111,232,0.3);
+    }
+    &:first-child {
+      background: $k-success-light;
+      color: $k-success-text;
+      border-color: $k-success-border;
+      font-weight: 600;
+    }
+  }
+}
+
+.k-metode-pills {
+  display: flex;
+  gap: $k-space-2;
+
+  input[type="radio"] { display: none; }
+}
+
+.k-pill {
+  padding: 6px 16px;
+  border: 1.5px solid $k-border;
+  border-radius: $k-radius-pill;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  color: $k-text-secondary;
+  transition: all $k-trans-fast;
+  font-family: $k-font;
+  user-select: none;
+
+  &--active {
+    background: $k-primary;
+    color: #fff;
+    border-color: $k-primary;
+    font-weight: 700;
+    box-shadow: 0 2px 8px rgba(59,111,232,0.25);
+  }
+  &:hover:not(&--active) { border-color: $k-primary; color: $k-primary; }
+}
+
+// ── Modal → Form Body Padding ────────────────────────────────────────────
+.k-modal > form {
+  padding: $k-space-5;
+  display: flex;
+  flex-direction: column;
+  gap: $k-space-4;
+}
+
+// ── Global Alert Styles ─────────────────────────────────────────────────
+.k-alert {
+  display: flex;
+  align-items: center;
+  gap: $k-space-2;
+  padding: 12px 14px;
+  border-radius: $k-radius-md;
+  font-size: 13.5px;
+  font-weight: 500;
+  font-family: $k-font;
+
+  &--success {
+    background: $k-success-light;
+    color: $k-success-text;
+    border: 1px solid $k-success-border;
+  }
+
+  &--warning {
+    background: $k-warning-light;
+    color: $k-warning-text;
+    border: 1px solid $k-warning-border;
+  }
+
+  &--danger {
+    background: $k-danger-light;
+    color: $k-danger-text;
+    border: 1px solid $k-danger-border;
+  }
+}
+
+// ── Global Action Button (Table Row Actions) ────────────────────────────
+.k-action-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 5px 10px;
+  border-radius: $k-radius-sm;
+  font-size: 12px;
+  font-weight: 600;
+  font-family: $k-font;
+  cursor: pointer;
+  border: 1px solid;
+  transition: all $k-trans-fast;
+
+  &--pay {
+    background: $k-success-light;
+    color: $k-success-text;
+    border-color: $k-success-border;
+    &:hover { background: $k-success; color: #fff; transform: translateY(-1px); }
+  }
+
+  &--print {
+    background: $k-bg-surface-2;
+    color: $k-text-secondary;
+    border-color: $k-border;
+    &:hover { background: $k-primary-light; color: $k-primary; border-color: rgba(59,111,232,0.3); }
+  }
+
+  &--void {
+    background: $k-danger-light;
+    color: $k-danger-text;
+    border-color: $k-danger-border;
+    &:hover { background: $k-danger; color: #fff; transform: translateY(-1px); }
+  }
+}
+

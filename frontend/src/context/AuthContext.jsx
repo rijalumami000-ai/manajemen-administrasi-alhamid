@@ -45,12 +45,12 @@ export function AuthProvider({ children }) {
     }
   };
 
-  const login = async (username, password) => {
+  const login = async (username, password, role) => {
     try {
       const response = await fetch('/api/auth/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ username, password })
+        body: JSON.stringify({ username, password, role })
       });
 
       if (response.ok) {
@@ -137,8 +137,16 @@ export function AuthProvider({ children }) {
     return user?.role === 'admin';
   };
 
+  const isDiniyah = () => {
+    return user?.role === 'madrasah_diniyah';
+  };
+
+  const isBendahara = () => {
+    return user?.role === 'bendahara';
+  };
+
   const isStaff = () => {
-    return user?.role === 'staff';
+    return user?.role === 'bendahara';
   };
 
   const updateUser = (updates) => {
@@ -152,6 +160,8 @@ export function AuthProvider({ children }) {
     loading,
     isAdmin,
     isStaff,
+    isDiniyah,
+    isBendahara,
     updateUser,
     verifyPassword,
     magicLogin

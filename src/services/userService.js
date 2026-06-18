@@ -81,8 +81,8 @@ async function createUser(data) {
   if (data.phone) validateField('Phone', data.phone, validators.phone);
 
   // Validate role
-  const validRoles = ['admin', 'guru', 'staff'];
-  if (!validRoles.includes(data.role)) {
+  const validRoles = ['admin', 'madrasah_diniyah', 'bendahara'];
+  if (!data.role || !validRoles.includes(data.role)) {
     throw new ValidationError(`Role harus salah satu dari: ${validRoles.join(', ')}`);
   }
 
@@ -139,7 +139,7 @@ async function updateUser(id, data) {
 
   // Validate role if provided
   if (data.role) {
-    const validRoles = ['admin', 'guru', 'staff'];
+    const validRoles = ['admin', 'madrasah_diniyah', 'bendahara'];
     if (!validRoles.includes(data.role)) {
       throw new ValidationError(`Role harus salah satu dari: ${validRoles.join(', ')}`);
     }

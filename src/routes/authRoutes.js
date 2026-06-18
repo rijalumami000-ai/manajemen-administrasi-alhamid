@@ -11,11 +11,11 @@ function registerAuthRoutes(app) {
    * Returns: { user, accessToken, refreshToken }
    */
   app.post('/api/auth/login', asyncHandler(async (req, res) => {
-    const { username, password } = req.body;
+    const { username, password, role } = req.body;
     const ipAddress = req.ip || req.connection.remoteAddress;
     const userAgent = req.headers['user-agent'];
 
-    const result = await authService.login(username, password, ipAddress, userAgent);
+    const result = await authService.login(username, password, role, ipAddress, userAgent);
 
     res.json(result);
   }));

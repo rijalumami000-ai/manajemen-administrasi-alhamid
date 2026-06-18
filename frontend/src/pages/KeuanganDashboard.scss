@@ -1,0 +1,402 @@
+@import '../styles/keuangan-tokens';
+
+// ─── Page Base ────────────────────────────────────────────────────────────
+.keuangan-dashboard {
+  font-family: $k-font;
+  padding: $k-space-6;
+  background: $k-bg-base;
+  min-height: 100vh;
+}
+
+// ─── Metric Cards Grid ────────────────────────────────────────────────────
+.k-metrics-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: $k-space-4;
+  margin-bottom: $k-space-6;
+
+  @media (max-width: 1100px) { grid-template-columns: repeat(2, 1fr); }
+  @media (max-width: 600px)  { grid-template-columns: 1fr; }
+}
+
+.k-metric-card {
+  @include k-card;
+  padding: $k-space-5;
+  animation: k-slide-up 0.3s ease-out;
+  position: relative;
+  overflow: hidden;
+
+  // Subtle glow di kanan atas
+  &::after {
+    content: '';
+    position: absolute;
+    top: -20px; right: -20px;
+    width: 80px; height: 80px;
+    border-radius: 50%;
+    opacity: 0.06;
+    pointer-events: none;
+  }
+
+  &--green::after  { background: #10A05B; }
+  &--red::after    { background: #DC3545; }
+  &--blue::after   { background: #3B6FE8; }
+  &--orange::after { background: #E07B10; }
+
+  &__top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: $k-space-3;
+  }
+
+  &__label {
+    font-size: 12px;
+    font-weight: 600;
+    color: $k-text-secondary;
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+  }
+
+  &__icon-wrap {
+    width: 34px; height: 34px;
+    border-radius: $k-radius-md;
+    display: flex; align-items: center; justify-content: center;
+
+    &--green  { background: #ECFBF3; color: #10A05B; }
+    &--red    { background: #FFF0F1; color: #DC3545; }
+    &--blue   { background: #EEF3FD; color: #3B6FE8; }
+    &--orange { background: #FEF5E7; color: #E07B10; }
+  }
+
+  &__value {
+    font-size: 26px;
+    font-weight: 800;
+    color: $k-text-primary;
+    letter-spacing: -0.8px;
+    font-variant-numeric: tabular-nums;
+    line-height: 1.1;
+    margin-bottom: 4px;
+  }
+
+  &__sub {
+    font-size: 11.5px;
+    color: $k-text-muted;
+    margin-bottom: $k-space-2;
+  }
+
+  &__trend {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 12px;
+    font-weight: 600;
+
+    &.good { color: $k-success; }
+    &.bad  { color: $k-danger; }
+  }
+}
+
+// ─── Dashboard Body (2 kolom) ─────────────────────────────────────────────
+.k-dashboard-body {
+  display: grid;
+  grid-template-columns: 1fr 360px;
+  gap: $k-space-5;
+
+  @media (max-width: 1100px) { grid-template-columns: 1fr; }
+}
+
+.k-dashboard-left,
+.k-dashboard-right {
+  display: flex;
+  flex-direction: column;
+  gap: $k-space-5;
+}
+
+// ─── Section Card ─────────────────────────────────────────────────────────
+.k-section-card {
+  @include k-card;
+  padding: $k-space-5;
+  animation: k-slide-up 0.3s ease-out;
+
+  &__header {
+    display: flex;
+    align-items: center;
+    gap: $k-space-2;
+    margin-bottom: $k-space-4;
+    padding-bottom: $k-space-3;
+    border-bottom: 1px solid $k-border;
+
+    h3 {
+      font-size: 14px;
+      font-weight: 700;
+      color: $k-text-primary;
+      margin: 0;
+      flex: 1;
+    }
+
+    svg { color: $k-text-secondary; flex-shrink: 0; }
+
+    &__total {
+      font-size: 13px;
+      font-weight: 700;
+      font-variant-numeric: tabular-nums;
+    }
+  }
+}
+
+// ─── Quick Actions ────────────────────────────────────────────────────────
+.k-quick-actions-list {
+  display: flex;
+  flex-direction: column;
+  gap: $k-space-2;
+}
+
+.k-quick-action {
+  display: flex;
+  align-items: center;
+  gap: $k-space-3;
+  width: 100%;
+  padding: 11px 12px;
+  background: transparent;
+  border: 1px solid $k-border;
+  border-radius: $k-radius-md;
+  cursor: pointer;
+  text-align: left;
+  transition: all $k-trans-fast;
+
+  &:hover {
+    background: $k-primary-light;
+    border-color: rgba(59, 111, 232, 0.3);
+    transform: translateX(2px);
+
+    .k-quick-action__arrow { color: $k-primary; transform: translateX(3px); }
+  }
+
+  &__icon {
+    width: 36px; height: 36px;
+    border-radius: $k-radius-md;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+    transition: all $k-trans-fast;
+  }
+
+  &__text {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+
+  &__label {
+    font-size: 13.5px;
+    font-weight: 600;
+    color: $k-text-primary;
+  }
+
+  &__desc {
+    font-size: 11.5px;
+    color: $k-text-muted;
+  }
+
+  &__arrow {
+    color: $k-border-strong;
+    transition: all $k-trans-fast;
+    flex-shrink: 0;
+  }
+}
+
+// ─── Breakdown Progress ───────────────────────────────────────────────────
+.k-breakdown-list {
+  display: flex;
+  flex-direction: column;
+  gap: $k-space-3;
+}
+
+.k-breakdown-row {
+  &__header {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 5px;
+  }
+
+  &__label {
+    font-size: 12.5px;
+    color: $k-text-secondary;
+    font-weight: 500;
+  }
+
+  &__value {
+    font-size: 12.5px;
+    font-weight: 700;
+    color: $k-text-primary;
+    font-variant-numeric: tabular-nums;
+  }
+
+  &__pct {
+    font-size: 11px;
+    color: $k-text-muted;
+    margin-top: 3px;
+  }
+}
+
+.k-progress__bar-wrap {
+  background: $k-bg-surface-3;
+  border-radius: $k-radius-pill;
+  height: 6px;
+  overflow: hidden;
+}
+
+.k-progress__bar {
+  height: 100%;
+  border-radius: $k-radius-pill;
+}
+
+// ─── Nav Links ────────────────────────────────────────────────────────────
+.k-nav-links {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.k-nav-link {
+  display: flex;
+  align-items: center;
+  gap: $k-space-3;
+  width: 100%;
+  padding: 10px 10px;
+  background: transparent;
+  border: none;
+  border-radius: $k-radius-md;
+  cursor: pointer;
+  text-align: left;
+  transition: background $k-trans-fast;
+
+  &:hover {
+    background: $k-bg-surface-2;
+    .k-nav-link__arrow { color: $k-primary; }
+  }
+
+  &__icon {
+    width: 30px; height: 30px;
+    background: $k-bg-surface-2;
+    border-radius: $k-radius-sm;
+    display: flex; align-items: center; justify-content: center;
+    color: $k-text-secondary;
+    flex-shrink: 0;
+  }
+
+  &__text {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+  }
+
+  &__label {
+    font-size: 13px;
+    font-weight: 600;
+    color: $k-text-primary;
+  }
+
+  &__desc {
+    font-size: 11px;
+    color: $k-text-muted;
+  }
+
+  &__arrow {
+    color: $k-border-strong;
+    transition: color $k-trans-fast;
+  }
+}
+
+// ─── Tunggakan List ───────────────────────────────────────────────────────
+.k-tunggakan-list {
+  display: flex;
+  flex-direction: column;
+}
+
+.k-tunggakan-row {
+  display: flex;
+  align-items: center;
+  gap: $k-space-3;
+  padding: 9px 0;
+  border-bottom: 1px solid $k-border;
+  transition: background $k-trans-fast;
+
+  &:last-child { border-bottom: none; }
+  &:hover { background: $k-bg-surface-2; margin: 0 -$k-space-3; padding: 9px $k-space-3; border-radius: $k-radius-sm; }
+}
+
+.k-tunggakan-rank {
+  width: 22px; height: 22px;
+  border-radius: 50%;
+  background: $k-bg-surface-3;
+  color: $k-text-muted;
+  font-size: 11px;
+  font-weight: 700;
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+}
+
+.k-tunggakan-info {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.k-tunggakan-nama {
+  font-size: 13px;
+  font-weight: 600;
+  color: $k-text-primary;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.k-tunggakan-nis {
+  font-size: 11px;
+  color: $k-text-muted;
+}
+
+.k-tunggakan-nominal {
+  font-size: 13px;
+  font-weight: 700;
+  color: $k-danger;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+// ─── Page-specific Utilities ────────────────────────────────────────────
+
+.spinning { animation: k-spin 0.7s linear infinite; }
+
+.k-text-btn {
+  background: none;
+  border: none;
+  color: $k-primary;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 0;
+  font-family: $k-font;
+  margin-left: auto;
+  &:hover { text-decoration: underline; }
+}
+
+.k-empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: $k-space-2;
+  padding: $k-space-6 0;
+  p { font-size: 13px; color: $k-text-muted; margin: 0; }
+}
+
+.k-skeleton-list {
+  display: flex;
+  flex-direction: column;
+  gap: $k-space-2;
+}

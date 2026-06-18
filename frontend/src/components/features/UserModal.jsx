@@ -137,9 +137,9 @@ export function UserModal({ isOpen, onClose, onSubmit, editData, isSubmitting, e
             ]}
           >
             <Select placeholder="-- Pilih Role --" disabled={isSubmitting}>
-              <Option value="admin">Administrator</Option>
-              <Option value="guru">Guru</Option>
-              <Option value="staff">Staff</Option>
+              <Option value="admin">Admin</Option>
+              <Option value="madrasah_diniyah">Madrasah Diniyah</Option>
+              <Option value="bendahara">Bendahara</Option>
             </Select>
           </Form.Item>
 

@@ -1,0 +1,399 @@
+@import '../styles/keuangan-tokens';
+
+// ─── Page Layout ──────────────────────────────────────────────────────────
+.kwitansi-page {
+  background: #E8EAEF;
+  min-height: 100vh;
+  font-family: $k-font;
+}
+
+// ─── Toolbar ─────────────────────────────────────────────────────────────
+.kwitansi-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 24px;
+  background: $k-bg-surface;
+  border-bottom: 1px solid $k-border;
+  box-shadow: $k-shadow-sm;
+  position: sticky;
+  top: 0;
+  z-index: 10;
+
+  &__info {
+    display: flex;
+    align-items: center;
+    gap: $k-space-4;
+  }
+
+  &__actions {
+    display: flex;
+    gap: $k-space-3;
+  }
+}
+
+.kwitansi-status {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 12px;
+  border-radius: $k-radius-pill;
+  font-size: 12px;
+  font-weight: 700;
+
+  &--valid {
+    background: $k-success-light;
+    color: $k-success-text;
+    border: 1px solid $k-success-border;
+  }
+  &--void {
+    background: $k-danger-light;
+    color: $k-danger-text;
+    border: 1px solid $k-danger-border;
+  }
+}
+
+.kwitansi-no {
+  font-size: 13px;
+  font-weight: 600;
+  color: $k-text-muted;
+  font-variant-numeric: tabular-nums;
+}
+
+// ─── Preview Area (A4/3 Pre-cut Sheet: 210mm x 99mm) ──────────────────────
+.kwitansi-preview {
+  width: 210mm;
+  height: 99mm;
+  background: $k-bg-surface;
+  border: 1px solid $k-border;
+  border-radius: $k-radius-md;
+  box-shadow: $k-shadow-md;
+  margin: 24px auto;
+  padding: 8mm 10mm;
+  position: relative;
+  box-sizing: border-box;
+}
+
+.kwitansi-void-watermark {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%) rotate(-25deg);
+  font-size: 80px;
+  font-weight: 950;
+  color: rgba(220, 53, 69, 0.15);
+  pointer-events: none;
+  z-index: 100;
+  white-space: nowrap;
+  letter-spacing: 12px;
+}
+
+// ─── Kwitansi Document (3-Col Horizontal, fills pre-cut preview) ───────────
+.kwitansi-doc {
+  background: transparent;
+  border: none;
+  box-shadow: none;
+  width: 100%;
+  height: 100%;
+  padding: 0;
+  box-sizing: border-box;
+  position: relative;
+  display: flex;
+  gap: 16px;
+  overflow: hidden;
+  font-family: $k-font;
+}
+
+// ─── Columns ─────────────────────────────────────────────────────────────
+.kwitansi-col {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  height: 100%;
+
+  &--left {
+    width: 25%;
+    border-right: 1.5px solid $k-border;
+    padding-right: 12px;
+  }
+
+  &--center {
+    width: 48%;
+    border-right: 1.5px solid $k-border;
+    padding-right: 12px;
+  }
+
+  &--right {
+    width: 27%;
+    padding-left: 4px;
+  }
+}
+
+// ─── Kolom 1 (Header/Logo/Lembaga) ───────────────────────────────────────
+.kwitansi-header-logo-group {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.kwitansi-header__logo-circle {
+  width: 38px;
+  height: 38px;
+  background: linear-gradient(135deg, #3B6FE8, #2D5CD4);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  box-shadow: 0 2px 6px rgba(59,111,232,0.25);
+
+  span {
+    color: #fff;
+    font-size: 13px;
+    font-weight: 800;
+    letter-spacing: 0.5px;
+  }
+}
+
+.kwitansi-header__lembaga {
+  h1 {
+    font-size: 12px;
+    font-weight: 800;
+    color: $k-text-primary;
+    margin: 0;
+    line-height: 1.2;
+    letter-spacing: -0.2px;
+  }
+  .address {
+    font-size: 9px;
+    color: $k-text-secondary;
+    margin: 2px 0 0 0;
+    line-height: 1.2;
+  }
+}
+
+.kwitansi-doc-title-box {
+  .doc-title {
+    font-size: 13px;
+    font-weight: 900;
+    color: $k-primary;
+    margin: 0;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+}
+
+.kwitansi-no-info {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  background: $k-bg-surface-2;
+  padding: 6px 10px;
+  border-radius: $k-radius-sm;
+  width: fit-content;
+
+  &__row {
+    display: flex;
+    gap: 8px;
+    font-size: 9.5px;
+    line-height: 1;
+
+    .label {
+      color: $k-text-secondary;
+      width: 42px;
+    }
+    .val {
+      color: $k-text-primary;
+      font-weight: 700;
+      font-variant-numeric: tabular-nums;
+    }
+  }
+}
+
+// ─── Kolom 2 (Rincian Pembayaran) ─────────────────────────────────────────
+.kwitansi-row {
+  display: flex;
+  align-items: baseline;
+  padding: 3px 0;
+  border-bottom: 1px dotted $k-border;
+  line-height: 1.2;
+
+  &:last-child {
+    border-bottom: none;
+  }
+
+  span {
+    width: 90px;
+    font-size: 11px;
+    color: $k-text-secondary;
+    flex-shrink: 0;
+    &::after {
+      content: ':';
+      float: right;
+      margin-right: 4px;
+    }
+  }
+
+  strong {
+    flex: 1;
+    font-size: 11px;
+    color: $k-text-primary;
+    font-weight: 600;
+  }
+}
+
+.kwitansi-row-group {
+  display: flex;
+  gap: 8px;
+
+  .half {
+    width: 50%;
+    border-bottom: none;
+    span {
+      width: 48px;
+    }
+  }
+}
+
+// ─── Kolom 3 (Nominal & TTD) ─────────────────────────────────────────────
+.kwitansi-nominal-box {
+  border: 1.5px solid $k-primary;
+  border-radius: $k-radius-md;
+  padding: 5px 10px;
+  background: $k-primary-light;
+  text-align: center;
+  line-height: 1.1;
+
+  &__label {
+    font-size: 7.5px;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: $k-primary;
+    margin-bottom: 2px;
+  }
+
+  &__value {
+    font-size: 18px;
+    font-weight: 900;
+    color: $k-primary-dark;
+    font-variant-numeric: tabular-nums;
+  }
+}
+
+.kwitansi-nominal-terbilang {
+  font-size: 9px;
+  color: $k-text-secondary;
+  line-height: 1.2;
+  word-break: break-word;
+
+  span {
+    font-weight: 600;
+    margin-right: 3px;
+  }
+  em {
+    font-style: italic;
+  }
+}
+
+.kwitansi-signature {
+  text-align: right;
+  font-size: 9.5px;
+  line-height: 1.2;
+
+  &__space {
+    height: 38px; // compact signature height
+  }
+  &__name {
+    font-weight: 700;
+    color: $k-text-primary;
+    text-decoration: underline;
+  }
+  &__role {
+    color: $k-text-muted;
+  }
+}
+
+.kwitansi-copy-badge {
+  position: absolute;
+  top: 8px;
+  right: 12px;
+  font-size: 7.5px;
+  font-weight: 800;
+  color: $k-text-muted;
+  border: 1px solid $k-border;
+  padding: 1px 6px;
+  border-radius: $k-radius-pill;
+  letter-spacing: 0.5px;
+  background: #FFF;
+}
+
+// ─── States ──────────────────────────────────────────────────────────────
+.kwitansi-loading,
+.kwitansi-error {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 60vh;
+  gap: $k-space-4;
+  font-family: $k-font;
+
+  p { color: $k-text-secondary; margin: 0; }
+  h2 { color: $k-text-primary; margin: 0; font-size: 20px; }
+}
+
+// ─── PRINT STYLES (Pre-cut paper: 210mm x 99mm) ─────────────────────────
+@media print {
+  @page {
+    size: 210mm 99mm; // Custom pre-cut size
+    margin: 0;
+  }
+
+  body {
+    margin: 0;
+    padding: 0;
+    background: white;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  .no-print {
+    display: none !important;
+  }
+
+  .kwitansi-page {
+    background: white;
+    min-height: auto;
+  }
+
+  .kwitansi-preview {
+    margin: 0;
+    padding: 6mm 8mm; // safe margins for pre-cut paper printing
+    width: 210mm;
+    height: 99mm;
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-start;
+    border: none !important;
+    box-shadow: none !important;
+    background: white !important;
+  }
+
+  .kwitansi-doc {
+    box-shadow: none;
+    border: none;
+    border-radius: 0;
+    width: 100%;
+    height: 100%;
+    page-break-inside: avoid;
+    break-inside: avoid;
+    background: transparent !important;
+  }
+
+  .kwitansi-nominal-box {
+    border: 1.5px solid #111 !important;
+    background: #EEE !important;
+  }
+}

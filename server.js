@@ -150,6 +150,16 @@ app.use(express.static(path.join(__dirname, 'frontend/dist'), {
 // ─── API Routes ─────────────────────────────────────────────────
 registerApiRoutes(app);
 
+// ─── Keuangan Module Routes ──────────────────────────────────────
+// Diregister setelah compile TypeScript (npm run keuangan:build) - reload compiled routes
+try {
+  const { registerKeuanganRoutes } = require('./keuangan/dist/routes/index');
+  registerKeuanganRoutes(app);
+} catch (e) {
+  console.warn('⚠️  Modul keuangan belum dikompilasi. Jalankan: npm run keuangan:build');
+}
+
+
 // ─── SPA Fallback ───────────────────────────────────────────────
 app.get('*', (req, res) => {
   res.sendFile(path.join(__dirname, 'frontend/dist', 'index.html'));

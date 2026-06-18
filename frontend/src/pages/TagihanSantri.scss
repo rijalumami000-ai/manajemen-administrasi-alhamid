@@ -1,0 +1,199 @@
+@import '../styles/keuangan-tokens';
+
+.tagihan-page {
+  font-family: $k-font;
+
+  // ── TABS ────────────────────────────────────────────────────
+  .k-tabs {
+    display: flex;
+    gap: 2px;
+    margin-bottom: $k-space-4;
+    background: $k-bg-surface-2;
+    padding: 4px;
+    border-radius: $k-radius-md;
+    border: 1px solid $k-border;
+    width: fit-content;
+  }
+
+  .k-tab {
+    padding: 7px 16px;
+    border: none;
+    border-radius: $k-radius-sm;
+    background: transparent;
+    color: $k-text-secondary;
+    font-family: $k-font;
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all $k-trans-fast;
+
+    &--active {
+      background: $k-bg-surface;
+      color: $k-text-primary;
+      font-weight: 700;
+      box-shadow: $k-shadow-xs;
+    }
+    &:hover:not(&--active) { color: $k-text-primary; background: rgba(255,255,255,0.5); }
+  }
+
+  // ── KELAS CHIPS (MINIMALIST CARDS) ─────────────────────────
+  .kelas-chips-scroll {
+    display: flex;
+    gap: $k-space-2;
+    overflow-x: auto;
+    padding: 4px 2px $k-space-3;
+    margin-bottom: $k-space-3;
+    -webkit-overflow-scrolling: touch;
+    
+    &::-webkit-scrollbar {
+      height: 4px;
+    }
+    &::-webkit-scrollbar-track {
+      background: transparent;
+    }
+    &::-webkit-scrollbar-thumb {
+      background: $k-border;
+      border-radius: $k-radius-pill;
+    }
+  }
+
+  .kelas-chip {
+    padding: 6px 14px;
+    border: 1.5px solid $k-border;
+    border-radius: $k-radius-md;
+    background: $k-bg-surface;
+    color: $k-text-secondary;
+    font-family: $k-font;
+    font-size: 12.5px;
+    font-weight: 500;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: all $k-trans-fast;
+    box-shadow: $k-shadow-xs;
+
+    &--active {
+      background: $k-primary-light;
+      color: $k-primary;
+      border-color: $k-primary;
+      font-weight: 700;
+      box-shadow: 0 2px 8px rgba(59, 111, 232, 0.15);
+    }
+
+    &:hover:not(&--active) {
+      border-color: $k-primary;
+      color: $k-primary;
+      background: $k-primary-light;
+    }
+  }
+
+  // ── Event Generate Wrap ───────────────────────────────────
+  .event-generate-wrap {
+    display: flex;
+    align-items: center;
+    gap: $k-space-2;
+  }
+
+  // ── TOOLBAR ─────────────────────────────────────────────────
+  .tagihan-toolbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: $k-space-3;
+    margin-bottom: $k-space-3;
+    flex-wrap: wrap;
+
+    &__left {
+      display: flex;
+      align-items: center;
+      gap: $k-space-2;
+      flex-wrap: wrap;
+      flex: 1;
+    }
+
+    &__right {
+      display: flex;
+      gap: $k-space-2;
+    }
+  }
+
+  .k-search-box {
+    display: flex;
+    align-items: center;
+    gap: $k-space-2;
+    background: $k-bg-surface;
+    border: 1.5px solid $k-border;
+    border-radius: $k-radius-md;
+    padding: 0 12px;
+    min-width: 200px;
+
+    svg { color: $k-text-muted; flex-shrink: 0; }
+    input { border: none !important; box-shadow: none !important; padding-left: 0 !important; width: 100%; }
+    &:focus-within { border-color: $k-primary; box-shadow: $k-shadow-focus; }
+  }
+
+  .k-btn-generate {
+    @include k-button-primary;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    white-space: nowrap;
+    background: linear-gradient(135deg, #3B6FE8, #2D5CD4);
+    box-shadow: 0 2px 8px rgba(59,111,232,0.25);
+
+    &:hover {
+      box-shadow: 0 4px 16px rgba(59,111,232,0.35);
+      transform: translateY(-1px);
+    }
+  }
+
+  // ── SUMMARY CHIPS ────────────────────────────────────────────
+  .tagihan-summary-chips {
+    display: flex;
+    gap: $k-space-3;
+    margin-bottom: $k-space-4;
+    flex-wrap: wrap;
+  }
+
+  .tagihan-chip {
+    @include k-card;
+    padding: 10px 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 140px;
+    animation: k-slide-up 0.25s ease-out;
+
+    span { font-size: 11px; color: $k-text-secondary; font-weight: 500; text-transform: uppercase; letter-spacing: 0.3px; }
+    strong { font-size: 15px; font-weight: 800; font-variant-numeric: tabular-nums; color: $k-text-primary; }
+
+    &--dibayar strong { color: $k-success; }
+    &--sisa    strong { color: $k-danger; }
+    &--pct     strong { color: $k-primary; }
+  }
+
+  // ── TABLE CELLS ──────────────────────────────────────────────
+  .tagihan-santri-cell {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+  .tagihan-santri-nama { font-size: 13.5px; font-weight: 600; color: $k-text-primary; }
+  .tagihan-santri-nis  { font-size: 11.5px; color: $k-text-muted; }
+
+  .k-table-empty {
+    text-align: center;
+    padding: 32px;
+    color: $k-text-muted;
+    font-size: 14px;
+  }
+
+  .k-pagination {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: $k-space-4;
+    margin-top: $k-space-4;
+    font-size: 13px;
+    color: $k-text-secondary;
+  }
+}

@@ -2,16 +2,34 @@
 -- Created: 2026-05-02
 -- Purpose: User management, roles, and authentication
 
--- ============================================================================
--- TABLE: users
--- ============================================================================
+-- Migrasi data & constraint sebelum tabel didefinisikan jika sudah ada
+DO $$
+BEGIN
+  IF EXISTS (
+    SELECT 1 FROM information_schema.tables WHERE table_name = 'users'
+  ) THEN
+    -- 1. Drop old constraint first
+    ALTER TABLE users DROP CONSTRAINT IF EXISTS users_role_check;
+    ALTER TABLE users DROP CONSTRAINT IF EXISTS users_role_check1;
+
+    -- 2. Update existing users roles (no constraint checks will block this now)
+    UPDATE users SET role = 'madrasah_diniyah' WHERE role = 'guru';
+    UPDATE users SET role = 'bendahara' WHERE role = 'staff';
+
+    -- 3. Add the new constraint
+    ALTER TABLE users ADD CONSTRAINT users_role_check
+      CHECK (role IN ('admin', 'madrasah_diniyah', 'bendahara'));
+  END IF;
+END
+$$;
+
 CREATE TABLE IF NOT EXISTS users (
   id SERIAL PRIMARY KEY,
   username VARCHAR(50) UNIQUE NOT NULL,
   password VARCHAR(255) NOT NULL,  -- bcrypt hashed
   email VARCHAR(100) UNIQUE,
   full_name VARCHAR(100) NOT NULL,
-  role VARCHAR(20) NOT NULL CHECK (role IN ('admin', 'guru', 'staff')),
+  role VARCHAR(20) NOT NULL CHECK (role IN ('admin', 'madrasah_diniyah', 'bendahara')),
   phone VARCHAR(20),
   photo_url VARCHAR(255),
   is_active BOOLEAN DEFAULT TRUE,
@@ -69,6 +87,7 @@ CREATE INDEX IF NOT EXISTS idx_activity_logs_created_at ON activity_logs(created
 -- ============================================================================
 -- Default password: 'admin123' (hashed with bcrypt, cost factor 10)
 -- IMPORTANT: Change this password after first login!
+-- User Admin must be present
 INSERT INTO users (username, password, email, full_name, role, is_active)
 VALUES (
   'admin',
@@ -83,28 +102,28 @@ ON CONFLICT (username) DO NOTHING;
 -- ============================================================================
 -- SAMPLE DATA: Additional Users (Optional)
 -- ============================================================================
--- Sample Guru user
+-- Sample Madrasah Diniyah user
 -- Password: 'guru123'
 INSERT INTO users (username, password, email, full_name, role, is_active)
 VALUES (
-  'guru1',
+  'diniyah1',
   '$2b$10$RkL7bzy5s8hRCnHD67u9b.y4J6iOklCqk/5WXoPpm7bhF1pEHeOFW',  -- 'guru123'
-  'guru1@sekolah.com',
-  'Guru Contoh',
-  'guru',
+  'diniyah1@sekolah.com',
+  'Madrasah Diniyah Contoh',
+  'madrasah_diniyah',
   TRUE
 )
 ON CONFLICT (username) DO NOTHING;
 
--- Sample Staff user
+-- Sample Bendahara user
 -- Password: 'staff123'
 INSERT INTO users (username, password, email, full_name, role, is_active)
 VALUES (
-  'staff1',
+  'bendahara1',
   '$2b$10$9tkPvV7/.O2j/lZwtZ5K6OZmjUr4BHSY4hM2SBhS5lG/Il62IP2dS',  -- 'staff123'
-  'staff1@sekolah.com',
-  'Staff Contoh',
-  'staff',
+  'bendahara1@sekolah.com',
+  'Bendahara Contoh',
+  'bendahara',
   TRUE
 )
 ON CONFLICT (username) DO NOTHING;

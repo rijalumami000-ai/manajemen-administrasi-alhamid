@@ -20,7 +20,12 @@ import {
   ShieldCheck,
   User,
   LogOut,
-  Radio
+  Radio,
+  Wallet,
+  BarChart3,
+  Zap,
+  ShieldAlert,
+  Settings
 } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
@@ -29,7 +34,7 @@ import './MobileMenu.scss';
 const MobileMenu = ({ open, onClose, onLogout }) => {
   const navigate = useNavigate();
   const location = useLocation();
-  const { isAdmin, isStaff } = useAuth();
+  const { isAdmin, isStaff, isDiniyah, isBendahara } = useAuth();
 
   const menuItems = [
     { key: '/', icon: <LayoutDashboard size={18} />, label: 'Dashboard', disabled: isStaff() },
@@ -65,29 +70,40 @@ const MobileMenu = ({ open, onClose, onLogout }) => {
         { key: '/alumni', icon: <GraduationCap size={18} />, label: 'Alumni', disabled: isStaff() },
       ],
     },
-    ...(isAdmin() || isStaff() ? [{ 
+    {
+      key: 'grp-keuangan',
+      label: 'Keuangan',
+      type: 'group',
+      children: [
+        { key: '/keuangan', icon: <LayoutDashboard size={18} />, label: 'Dashboard Keuangan' },
+        { key: '/keuangan/tagihan', icon: <FileText size={18} />, label: 'Tagihan Santri' },
+        { key: '/keuangan/laporan/spp', icon: <BarChart3 size={18} />, label: 'Laporan SPP' },
+        { key: '/keuangan/laporan/daftar-ulang', icon: <Users size={18} />, label: 'Laporan Daftar Ulang' },
+        { key: '/keuangan/laporan/event', icon: <Zap size={18} />, label: 'Laporan Event' },
+        { key: '/keuangan/kas', icon: <BookOpen size={18} />, label: 'Buku Kas Keluar' },
+        ...(isAdmin() ? [
+          { key: '/keuangan/setup', icon: <Settings size={18} />, label: 'Setup Keuangan' },
+          { key: '/keuangan/audit', icon: <ShieldAlert size={18} />, label: 'Log Audit Keuangan' }
+        ] : [])
+      ]
+    },
+    ...(isAdmin() ? [{ 
       key: '/users', 
       icon: <ShieldCheck size={18} />, 
       label: 'User Management',
-      disabled: isStaff()
+      disabled: false
     }] : []),
-    { key: '/profile', icon: <User size={18} />, label: 'Profile', disabled: isStaff() },
+    { key: '/profile', icon: <User size={18} />, label: 'Profile', disabled: !isAdmin() },
   ];
 
-  // Helper to filter disabled items for staff
+  // Helper to filter items based on user role
   const getFilteredItems = (items) => {
-    return items.map(item => {
-      if (item.type === 'group') {
-        if (item.disabled) return null;
-        const filteredChildren = item.children.filter(child => !child.disabled);
-        if (filteredChildren.length === 0) return null;
-        return {
-          ...item,
-          children: filteredChildren
-        };
-      }
-      return item.disabled ? null : item;
-    }).filter(Boolean);
+    return items.filter(item => {
+      if (isAdmin()) return true;
+      if (isDiniyah()) return item.key === 'grp-diniyah';
+      if (isBendahara()) return item.key === 'grp-keuangan';
+      return false;
+    });
   };
 
   const visibleMenuItems = getFilteredItems(menuItems);

@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
+import { Modal } from 'antd';
 import { settingsService } from '../../services/settingsService';
 import {
   LayoutDashboard,
@@ -29,7 +30,11 @@ import {
   Clock,
   LogOut,
   ChevronLeft,
-  Radio
+  Radio,
+  Wallet,
+  BarChart3,
+  Zap,
+  ShieldAlert
 } from 'lucide-react';
 import './Sidebar.scss';
 
@@ -61,7 +66,11 @@ const IconMap = {
   Clock,
   LogOut,
   ChevronLeft,
-  Radio
+  Radio,
+  Wallet,
+  BarChart3,
+  Zap,
+  ShieldAlert
 };
 
 const renderIcon = (name, props = {}) => {
@@ -73,7 +82,7 @@ const renderIcon = (name, props = {}) => {
 export function Sidebar({ collapsed, onCollapse }) {
   const navigate = useNavigate();
   const location = useLocation();
-  const { user, isAdmin, isStaff, logout } = useAuth();
+  const { user, isAdmin, isStaff, isDiniyah, isBendahara, logout } = useAuth();
   
   const [appName, setAppName] = useState('Sekolah Info');
   const [appLogo, setAppLogo] = useState(null);
@@ -85,10 +94,22 @@ export function Sidebar({ collapsed, onCollapse }) {
   const [recents, setRecents] = useState([]);
   
   // Custom state for expanded accordion groups
-  const [expandedGroups, setExpandedGroups] = useState({
-    'sub-pesantren': true,
-    'sub-diniyah': false,
-    'system': false
+  const [expandedGroups, setExpandedGroups] = useState(() => {
+    try {
+      const saved = localStorage.getItem('sidebar_expanded_groups');
+      if (saved) {
+        return {
+          ...JSON.parse(saved),
+          'sub-keuangan': true // Keuangan always open by default
+        };
+      }
+    } catch (e) {}
+    return {
+      'sub-pesantren': true,
+      'sub-diniyah': false,
+      'sub-keuangan': true,
+      'system': false
+    };
   });
 
   // Collapsed hover states for tooltips and floating submenus
@@ -148,13 +169,23 @@ export function Sidebar({ collapsed, onCollapse }) {
   // Set initial expanded keys based on collapsed state and role
   useEffect(() => {
     if (!collapsed) {
-      setExpandedGroups({
-        'sub-pesantren': true,
-        'sub-diniyah': !isStaff(),
-        'system': false
+      setExpandedGroups(prev => {
+        try {
+          const saved = localStorage.getItem('sidebar_expanded_groups');
+          if (saved) {
+            return {
+              ...JSON.parse(saved),
+              'sub-keuangan': true // Keuangan always open by default
+            };
+          }
+        } catch (e) {}
+        return {
+          ...prev,
+          'sub-keuangan': true // Keuangan always open by default
+        };
       });
     }
-  }, [collapsed, isStaff]);
+  }, [collapsed, user]);
 
   // Menu structure definition matching roles
   const groups = [
@@ -202,6 +233,24 @@ export function Sidebar({ collapsed, onCollapse }) {
       ]
     },
     {
+      id: 'sub-keuangan',
+      label: 'Keuangan',
+      icon: 'Wallet',
+      collapsible: true,
+      // Hanya admin dan bendahara (staff bisa lihat laporan)
+      disabled: false,
+      items: [
+        { key: '/keuangan', icon: 'LayoutDashboard', label: 'Dashboard Keuangan' },
+        { key: '/keuangan/tagihan', icon: 'FileText', label: 'Tagihan Santri' },
+        { key: '/keuangan/laporan/spp', icon: 'BarChart3', label: 'Laporan SPP' },
+        { key: '/keuangan/laporan/daftar-ulang', icon: 'Users', label: 'Laporan Daftar Ulang' },
+        { key: '/keuangan/laporan/event', icon: 'Zap', label: 'Laporan Event' },
+        { key: '/keuangan/kas', icon: 'BookOpen', label: 'Buku Kas Keluar' },
+        { key: '/keuangan/setup', icon: 'Settings', label: 'Setup Keuangan', disabled: !isAdmin() },
+        { key: '/keuangan/audit', icon: 'ShieldAlert', label: 'Log Audit Keuangan', disabled: !isAdmin() }
+      ]
+    },
+    {
       id: 'system',
       label: 'Sistem',
       icon: 'Settings',
@@ -216,7 +265,12 @@ export function Sidebar({ collapsed, onCollapse }) {
         { key: '/profile', icon: 'User', label: 'Profile', disabled: isStaff() }
       ]
     }
-  ];
+  ].filter(group => {
+    if (isAdmin()) return true;
+    if (isDiniyah()) return group.id === 'sub-diniyah';
+    if (isBendahara()) return group.id === 'sub-keuangan';
+    return false;
+  });
 
   // Helper to find a menu item details by key
   const getMenuItemByKey = (key) => {
@@ -262,10 +316,14 @@ export function Sidebar({ collapsed, onCollapse }) {
     const group = groups.find(g => g.id === groupId);
     if (group && group.disabled) return;
     
-    setExpandedGroups(prev => ({
-      ...prev,
-      [groupId]: !prev[groupId]
-    }));
+    setExpandedGroups(prev => {
+      const newState = {
+        ...prev,
+        [groupId]: !prev[groupId]
+      };
+      localStorage.setItem('sidebar_expanded_groups', JSON.stringify(newState));
+      return newState;
+    });
   };
 
   // Handle click on menu item
@@ -275,10 +333,17 @@ export function Sidebar({ collapsed, onCollapse }) {
   };
 
   // Handle user logout
-  const handleLogout = async () => {
-    if (confirm('Apakah Anda yakin ingin logout?')) {
-      await logout();
-    }
+  const handleLogout = () => {
+    Modal.confirm({
+      title: 'Konfirmasi Logout',
+      content: 'Apakah Anda yakin ingin logout?',
+      okText: 'Logout',
+      cancelText: 'Batal',
+      okType: 'danger',
+      onOk: async () => {
+        await logout();
+      }
+    });
   };
 
   // Filter groups based on search query
@@ -515,7 +580,7 @@ export function Sidebar({ collapsed, onCollapse }) {
             className="collapsed-profile-btn"
             onMouseEnter={() => setHoveredTooltip('profile-footer')}
             onMouseLeave={() => setHoveredTooltip(null)}
-            onClick={() => handleItemClick('/profile', isStaff())}
+            onClick={() => handleItemClick('/profile', !isAdmin())}
           >
             <div className="profile-avatar">
               {user?.username ? user.username.slice(0, 2).toUpperCase() : 'AD'}
@@ -523,7 +588,9 @@ export function Sidebar({ collapsed, onCollapse }) {
             {hoveredTooltip === 'profile-footer' && (
               <div className="floating-tooltip">
                 <div className="tooltip-name">{user?.nama || user?.username || 'Admin'}</div>
-                <div className="tooltip-role">{user?.role || 'Administrator'}</div>
+                <div className="tooltip-role">
+                  {user?.role === 'admin' ? 'Admin' : user?.role === 'madrasah_diniyah' ? 'Madrasah Diniyah' : user?.role === 'bendahara' ? 'Bendahara' : (user?.role || 'Administrator')}
+                </div>
                 <div className="tooltip-action" onClick={handleLogout}>Click to Logout</div>
               </div>
             )}
@@ -541,7 +608,7 @@ export function Sidebar({ collapsed, onCollapse }) {
                 {user?.nama || user?.username || 'Admin'}
               </span>
               <span className="user-role-badge">
-                {user?.role || 'Administrator'}
+                {user?.role === 'admin' ? 'Admin' : user?.role === 'madrasah_diniyah' ? 'Madrasah Diniyah' : user?.role === 'bendahara' ? 'Bendahara' : (user?.role || 'Administrator')}
               </span>
               {lastLogin && (
                 <span className="last-login-text">
@@ -550,14 +617,15 @@ export function Sidebar({ collapsed, onCollapse }) {
               )}
             </div>
             <div className="footer-actions">
-              <button 
-                className="footer-icon-btn settings-btn" 
-                title="Profile & Settings"
-                onClick={() => handleItemClick('/profile', isStaff())}
-                disabled={isStaff()}
-              >
-                <Settings size={16} />
-              </button>
+              {isAdmin() && (
+                <button 
+                  className="footer-icon-btn settings-btn" 
+                  title="Profile & Settings"
+                  onClick={() => handleItemClick('/profile', false)}
+                >
+                  <Settings size={16} />
+                </button>
+              )}
               <button 
                 className="footer-icon-btn logout-btn" 
                 title="Logout System"

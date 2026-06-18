@@ -46,6 +46,42 @@ async function initDatabase() {
   } else {
     console.log('⚠ Performance indexes file not found');
   }
+
+  // Run keuangan_schema.sql — Sistem Keuangan Pesantren
+  const keuanganPath = path.join(__dirname, '..', '..', 'sql', 'keuangan_schema.sql');
+  if (fs.existsSync(keuanganPath)) {
+    const keuanganSql = fs.readFileSync(keuanganPath, 'utf8');
+    await db.query(keuanganSql);
+    console.log('✓ Keuangan schema initialized');
+  } else {
+    console.log('⚠ Keuangan schema file not found');
+  }
+
+  // Migrasi role bendahara & madrasah_diniyah
+  await db.query(`
+    DO $$
+    BEGIN
+      -- Tambah bendahara_level column jika belum ada
+      IF NOT EXISTS (
+        SELECT 1 FROM information_schema.columns
+        WHERE table_name = 'users' AND column_name = 'bendahara_level'
+      ) THEN
+        ALTER TABLE users ADD COLUMN bendahara_level INTEGER DEFAULT NULL;
+      END IF;
+
+      -- Update existing users roles first to prevent constraint violations
+      UPDATE users SET role = 'madrasah_diniyah' WHERE role = 'guru';
+      UPDATE users SET role = 'bendahara' WHERE role = 'staff';
+
+      -- Re-create role constraint to enforce only admin, madrasah_diniyah, bendahara
+      ALTER TABLE users DROP CONSTRAINT IF EXISTS users_role_check;
+      ALTER TABLE users DROP CONSTRAINT IF EXISTS users_role_check1;
+      ALTER TABLE users ADD CONSTRAINT users_role_check
+        CHECK (role IN ('admin', 'madrasah_diniyah', 'bendahara'));
+    END
+    $$;
+  `);
+  console.log('✓ Role bendahara tersedia di tabel users');
 }
 
 module.exports = initDatabase;

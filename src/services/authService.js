@@ -23,7 +23,7 @@ const {
  * @param {string} userAgent - Client user agent
  * @returns {Promise<Object>} - { user, accessToken, refreshToken }
  */
-async function login(username, password, ipAddress = null, userAgent = null) {
+async function login(username, password, role = null, ipAddress = null, userAgent = null) {
   // Validate required fields
   validateRequiredFields({ username, password }, ['username', 'password']);
 
@@ -43,6 +43,11 @@ async function login(username, password, ipAddress = null, userAgent = null) {
     // Check if user is active
     if (!user.is_active) {
       throw new ValidationError('Akun tidak aktif. Hubungi administrator.');
+    }
+
+    // Verify role if provided
+    if (role && user.role !== role) {
+      throw new ValidationError('Role yang dipilih tidak cocok dengan akun Anda');
     }
 
     // Verify password

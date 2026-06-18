@@ -38,6 +38,19 @@ const UjianMenu = lazy(() => import('./pages/UjianMenu').then(m => ({ default: m
 const ScanNilai = lazy(() => import('./pages/ScanNilai').then(m => ({ default: m.ScanNilai })));
 const RadioPlayer = lazy(() => import('./pages/RadioPlayer').then(m => ({ default: m.RadioPlayer })));
 
+// ── Modul Keuangan (lazy loaded) ──────────────────────────────────────────
+const KeuanganDashboard = lazy(() => import('./pages/KeuanganDashboard'));
+const TagihanSantri = lazy(() => import('./pages/TagihanSantri'));
+const LaporanSPP = lazy(() => import('./pages/LaporanSPP'));
+const BukuKas = lazy(() => import('./pages/BukuKas'));
+const CetakKwitansi = lazy(() => import('./pages/CetakKwitansi'));
+const LaporanDaftarUlang = lazy(() => import('./pages/LaporanDaftarUlang'));
+const LaporanEvent = lazy(() => import('./pages/LaporanEvent'));
+const SetupKeuangan = lazy(() => import('./pages/SetupKeuangan'));
+const AuditKeuangan = lazy(() => import('./pages/AuditKeuangan'));
+
+
+
 function App() {
   const { isDarkMode } = useTheme();
 
@@ -106,7 +119,24 @@ function App() {
                     <Route path="ujian" element={<UjianMenu />} />
                     <Route path="scan-nilai" element={<ScanNilai />} />
                     <Route path="radio" element={<RadioPlayer />} />
+
+                    {/* ── Keuangan ─────────────────────────────────────── */}
+                    <Route path="keuangan" element={<KeuanganDashboard />} />
+                    <Route path="keuangan/tagihan" element={<TagihanSantri />} />
+                    <Route path="keuangan/laporan/spp" element={<LaporanSPP />} />
+                    <Route path="keuangan/laporan/daftar-ulang" element={<LaporanDaftarUlang />} />
+                    <Route path="keuangan/laporan/event" element={<LaporanEvent />} />
+                    <Route path="keuangan/kas" element={<BukuKas />} />
+                    <Route path="keuangan/setup" element={<SetupKeuangan />} />
+                    <Route path="keuangan/audit" element={<AuditKeuangan />} />
                   </Route>
+
+                  {/* Kwitansi: tab baru, luar Layout */}
+                  <Route path="/keuangan/kwitansi/:id" element={
+                    <ProtectedRoute>
+                      <CetakKwitansi />
+                    </ProtectedRoute>
+                  } />
 
                   <Route path="*" element={<Navigate to="/" replace />} />
                 </Routes>

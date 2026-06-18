@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import { Dropdown } from 'antd';
+import { Dropdown, Modal } from 'antd';
 import {
   MenuFoldOutlined,
   MenuUnfoldOutlined,
@@ -27,10 +27,17 @@ export function Header({ onToggleSidebar, collapsed, isMobile }) {
     }
   }, [isMobile, isDarkMode, toggleTheme]);
 
-  const handleLogout = async () => {
-    if (confirm('Apakah Anda yakin ingin logout?')) {
-      await logout();
-    }
+  const handleLogout = () => {
+    Modal.confirm({
+      title: 'Konfirmasi Logout',
+      content: 'Apakah Anda yakin ingin logout?',
+      okText: 'Logout',
+      cancelText: 'Batal',
+      okType: 'danger',
+      onOk: async () => {
+        await logout();
+      }
+    });
   };
 
   const handleProfile = () => {
