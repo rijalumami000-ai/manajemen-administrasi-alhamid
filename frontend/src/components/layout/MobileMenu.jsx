@@ -95,6 +95,11 @@ const MobileMenu = ({ open, onClose, onLogout }) => {
       icon: <ShieldCheck size={18} />, 
       label: 'User Management',
       disabled: false
+    }, {
+      key: '/mymustahiq-settings',
+      icon: <Settings size={18} />,
+      label: 'Setelan MyMustahiq',
+      disabled: false
     }] : []),
     { key: '/profile', icon: <User size={18} />, label: 'Profile', disabled: !isAdmin() },
   ];

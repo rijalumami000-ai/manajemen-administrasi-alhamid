@@ -20,6 +20,7 @@ const Kelas = lazy(() => import('./pages/Kelas').then(m => ({ default: m.Kelas }
 const Kamar = lazy(() => import('./pages/Kamar').then(m => ({ default: m.Kamar })));
 const PelanggaranPrestasi = lazy(() => import('./pages/PelanggaranPrestasi').then(m => ({ default: m.PelanggaranPrestasi })));
 const Users = lazy(() => import('./pages/Users').then(m => ({ default: m.Users })));
+const MyMustahiqSettings = lazy(() => import('./pages/MyMustahiqSettings').then(m => ({ default: m.MyMustahiqSettings })));
 const Profile = lazy(() => import('./pages/Profile').then(m => ({ default: m.Profile })));
 const ManajemenNilai = lazy(() => import('./pages/ManajemenNilai').then(m => ({ default: m.ManajemenNilai })));
 
@@ -106,6 +107,7 @@ function App() {
                     <Route path="kamar" element={<Kamar />} />
                     <Route path="pelanggaran-prestasi" element={<PelanggaranPrestasi />} />
                     <Route path="users" element={<Users />} />
+                    <Route path="mymustahiq-settings" element={<MyMustahiqSettings />} />
                      <Route path="profile" element={<Profile />} />
                     <Route path="nilai" element={<ManajemenNilai mode="input" key="input" />} />
                     <Route path="input-nilai-ujian" element={<ManajemenNilai mode="input-ujian" key="input-ujian" />} />

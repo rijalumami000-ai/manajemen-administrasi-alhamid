@@ -264,6 +264,12 @@ export function Sidebar({ collapsed, onCollapse }) {
           label: 'User Management',
           disabled: isStaff()
         }] : []),
+        ...(isAdmin() ? [{
+          key: '/mymustahiq-settings',
+          icon: 'Settings',
+          label: 'Setelan MyMustahiq',
+          disabled: false
+        }] : []),
         { key: '/profile', icon: 'User', label: 'Profile', disabled: isStaff() }
       ]
     }

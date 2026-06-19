@@ -96,7 +96,8 @@ function createUserPayload(user) {
     email: user.email,
     full_name: user.full_name,
     role: user.role,
-    is_active: user.is_active
+    is_active: user.is_active,
+    guru_id: user.guru_id
   };
 }
 
