@@ -579,6 +579,9 @@ function registerMyMustahiqRoutes(app) {
       );
     }
 
+    res.json({ success: true, message: 'Kredensial login MyMustahiq berhasil diperbarui.' });
+  }));
+
   /**
    * GET /api/my-mustahiq/mustahiq
    * Returns list of all Mustahiq (teachers with jabatan_id = 1)
