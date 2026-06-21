@@ -4,6 +4,7 @@ import '../services/theme_manager.dart';
 import 'jadwal_pelajaran_screen.dart';
 import 'santri_explorer_screen.dart';
 import 'struktur_organisasi_screen.dart';
+import 'teacher_list_screen.dart';
 
 class TabAkademik extends StatelessWidget {
   const TabAkademik({super.key});
@@ -30,8 +31,8 @@ class TabAkademik extends StatelessWidget {
       'screen': const SantriExplorerScreen(),
     };
 
-    // Sub Items - Side by Side
-    final subItems = [
+    // Sub Items for Row 1
+    final subItemsRow1 = [
       {
         'title': 'Jadwal Pelajaran',
         'desc': 'Jadwal KBM harian & mingguan per kelas.',
@@ -66,6 +67,42 @@ class TabAkademik extends StatelessWidget {
       },
     ];
 
+    // Sub Items for Row 2 (NEW)
+    final subItemsRow2 = [
+      {
+        'title': 'Daftar Mustahiq',
+        'desc': 'Daftar asatidz/ustadzah wali kelas Diniyah.',
+        'icon': Icons.assignment_ind_rounded,
+        'colors': isDark
+            ? [const Color(0xFF4C1D95), const Color(0xFF0F172A)]
+            : [const Color(0xFFF5F3FF), const Color(0xFFEDE9FE)],
+        'borderColor': isDark
+            ? const Color(0xFF8B5CF6).withOpacity(0.25)
+            : const Color(0xFF8B5CF6).withOpacity(0.4),
+        'textColor': isDark ? const Color(0xFFA78BFA) : const Color(0xFF6D28D9),
+        'headingColor': isDark ? Colors.white : const Color(0xFF6D28D9),
+        'bodyColor': isDark ? Colors.white.withOpacity(0.5) : const Color(0xFF4C1D95).withOpacity(0.8),
+        'iconColor': isDark ? Colors.white : const Color(0xFF8B5CF6),
+        'screen': const TeacherListScreen(isMustahiq: true),
+      },
+      {
+        'title': 'Daftar Munawib',
+        'desc': 'Daftar ustadz pengawas ketertiban santri.',
+        'icon': Icons.security_rounded,
+        'colors': isDark
+            ? [const Color(0xFF115E59), const Color(0xFF0F172A)]
+            : [const Color(0xFFF0FDFA), const Color(0xFFCCFBF1)],
+        'borderColor': isDark
+            ? const Color(0xFF0D9488).withOpacity(0.25)
+            : const Color(0xFF0D9488).withOpacity(0.4),
+        'textColor': isDark ? const Color(0xFF2DD4BF) : const Color(0xFF0F766E),
+        'headingColor': isDark ? Colors.white : const Color(0xFF0F766E),
+        'bodyColor': isDark ? Colors.white.withOpacity(0.5) : const Color(0xFF115E59).withOpacity(0.8),
+        'iconColor': isDark ? Colors.white : const Color(0xFF0D9488),
+        'screen': const TeacherListScreen(isMustahiq: false),
+      },
+    ];
+
     return SingleChildScrollView(
       physics: const BouncingScrollPhysics(),
       child: Padding(
@@ -84,7 +121,7 @@ class TabAkademik extends StatelessWidget {
             ),
             const SizedBox(height: 6),
             Text(
-              "Akses portal data santri, jadwal pelajaran, dan struktur organisasi.",
+              "Akses portal data santri, jadwal pelajaran, dan asatidz pesantren.",
               style: GoogleFonts.outfit(
                 color: context.subTitleColor,
                 fontSize: 13,
@@ -187,110 +224,120 @@ class TabAkademik extends StatelessWidget {
                 ),
               ),
             ),
-            const SizedBox(height: 18),
+            const SizedBox(height: 16),
 
-            // 2. TWO SUB ITEMS (Side-by-Side)
+            // 2. SUB ITEMS ROW 1 (Jadwal & Struktur)
             Row(
-              children: subItems.map((item) {
-                return Expanded(
-                  child: GestureDetector(
-                    onTap: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(builder: (context) => item['screen'] as Widget),
-                      );
-                    },
-                    child: Container(
-                      margin: EdgeInsets.only(
-                        right: item == subItems.first ? 8.0 : 0.0,
-                        left: item == subItems.last ? 8.0 : 0.0,
-                      ),
-                      height: 180,
-                      decoration: BoxDecoration(
-                        gradient: LinearGradient(
-                          colors: item['colors'] as List<Color>,
-                          begin: Alignment.topLeft,
-                          end: Alignment.bottomRight,
-                        ),
-                        borderRadius: BorderRadius.circular(22),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withOpacity(isDark ? 0.25 : 0.03),
-                            blurRadius: 10,
-                            offset: const Offset(0, 4),
-                          ),
-                        ],
-                        border: Border.all(
-                          color: item['borderColor'] as Color,
-                          width: 1.2,
-                        ),
-                      ),
-                      padding: const EdgeInsets.all(16),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          // Icon
-                          Container(
-                            padding: const EdgeInsets.all(8),
-                            decoration: BoxDecoration(
-                              color: isDark ? Colors.white.withOpacity(0.06) : Colors.white.withOpacity(0.6),
-                              borderRadius: BorderRadius.circular(12),
-                              border: isDark ? null : Border.all(color: Colors.white, width: 1),
-                            ),
-                            child: Icon(
-                              item['icon'] as IconData,
-                              color: item['iconColor'] as Color,
-                              size: 20,
-                            ),
-                          ),
-                          const Spacer(),
-                          // Title
-                          Text(
-                            item['title'] as String,
-                            style: GoogleFonts.outfit(
-                              color: item['headingColor'] as Color,
-                              fontSize: 14,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                          const SizedBox(height: 4),
-                          // Desc
-                          Text(
-                            item['desc'] as String,
-                            style: GoogleFonts.outfit(
-                              color: item['bodyColor'] as Color,
-                              fontSize: 10,
-                              height: 1.3,
-                            ),
-                            maxLines: 2,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                          const SizedBox(height: 8),
-                          // Button
-                          Row(
-                            children: [
-                              Text(
-                                "Buka",
-                                style: GoogleFonts.outfit(
-                                  color: item['textColor'] as Color,
-                                  fontSize: 11,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                              const SizedBox(width: 4),
-                              Icon(
-                                Icons.arrow_forward_rounded,
-                                color: item['textColor'] as Color,
-                                size: 12,
-                              ),
-                            ],
-                          ),
-                        ],
-                      ),
-                    ),
+              children: [
+                Expanded(child: _buildSubItem(context, subItemsRow1[0], isDark, isLeft: true)),
+                const SizedBox(width: 14),
+                Expanded(child: _buildSubItem(context, subItemsRow1[1], isDark, isLeft: false)),
+              ],
+            ),
+            const SizedBox(height: 14),
+
+            // 3. SUB ITEMS ROW 2 (Mustahiq & Munawib - NEW)
+            Row(
+              children: [
+                Expanded(child: _buildSubItem(context, subItemsRow2[0], isDark, isLeft: true)),
+                const SizedBox(width: 14),
+                Expanded(child: _buildSubItem(context, subItemsRow2[1], isDark, isLeft: false)),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSubItem(BuildContext context, Map<String, dynamic> item, bool isDark, {required bool isLeft}) {
+    return GestureDetector(
+      onTap: () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(builder: (context) => item['screen'] as Widget),
+        );
+      },
+      child: Container(
+        height: 175,
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            colors: item['colors'] as List<Color>,
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+          borderRadius: BorderRadius.circular(22),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(isDark ? 0.25 : 0.03),
+              blurRadius: 10,
+              offset: const Offset(0, 4),
+            ),
+          ],
+          border: Border.all(
+            color: item['borderColor'] as Color,
+            width: 1.2,
+          ),
+        ),
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Icon
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: isDark ? Colors.white.withOpacity(0.06) : Colors.white.withOpacity(0.6),
+                borderRadius: BorderRadius.circular(12),
+                border: isDark ? null : Border.all(color: Colors.white, width: 1),
+              ),
+              child: Icon(
+                item['icon'] as IconData,
+                color: item['iconColor'] as Color,
+                size: 20,
+              ),
+            ),
+            const Spacer(),
+            // Title
+            Text(
+              item['title'] as String,
+              style: GoogleFonts.outfit(
+                color: item['headingColor'] as Color,
+                fontSize: 14,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            const SizedBox(height: 4),
+            // Desc
+            Text(
+              item['desc'] as String,
+              style: GoogleFonts.outfit(
+                color: item['bodyColor'] as Color,
+                fontSize: 10,
+                height: 1.3,
+              ),
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+            ),
+            const SizedBox(height: 8),
+            // Button
+            Row(
+              children: [
+                Text(
+                  "Buka",
+                  style: GoogleFonts.outfit(
+                    color: item['textColor'] as Color,
+                    fontSize: 11,
+                    fontWeight: FontWeight.bold,
                   ),
-                );
-              }).toList(),
+                ),
+                const SizedBox(width: 4),
+                Icon(
+                  Icons.arrow_forward_rounded,
+                  color: item['textColor'] as Color,
+                  size: 12,
+                ),
+              ],
             ),
           ],
         ),

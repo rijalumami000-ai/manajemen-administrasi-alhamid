@@ -85,7 +85,7 @@ class _TabKelaskuState extends State<TabKelasku> {
       case 3: return 'Malam Kamis';
       case 4: return 'Malam Jumat'; // Special
       case 5: return 'Malam Sabtu';
-      case 6: return 'Malam Minggu';
+      case 6: return 'Malam Ahad';
       case 7: return 'Malam Senin';
       default: return 'Malam Senin';
     }
@@ -565,12 +565,12 @@ class _TabKelaskuState extends State<TabKelasku> {
   List<Widget> _buildWeeklySchedule(
       BuildContext context, Map<String, List<dynamic>> jadwalMingguan, bool isMustahiq) {
     const orderMalam = [
-      'Malam Sabtu',
-      'Malam Minggu',
+      'Malam Ahad',
       'Malam Senin',
       'Malam Selasa',
       'Malam Rabu',
       'Malam Kamis',
+      'Malam Sabtu',
       'Malam Jumat'
     ];
 

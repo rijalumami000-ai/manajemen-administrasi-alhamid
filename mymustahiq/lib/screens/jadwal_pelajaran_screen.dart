@@ -108,12 +108,12 @@ class _JadwalPelajaranScreenState extends State<JadwalPelajaranScreen> {
   @override
   Widget build(BuildContext context) {
     final orderMalam = [
-      'Malam Sabtu',
-      'Malam Minggu',
+      'Malam Ahad',
       'Malam Senin',
       'Malam Selasa',
       'Malam Rabu',
       'Malam Kamis',
+      'Malam Sabtu',
       'Malam Jumat'
     ];
 

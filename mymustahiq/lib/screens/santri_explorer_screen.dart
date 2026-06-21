@@ -173,7 +173,7 @@ class _SantriExplorerScreenState extends State<SantriExplorerScreen> {
                 });
                 _fetchStudentsData();
               },
-              itemBuilder: (BuildContext context) {
+              itemBuilder: (BuildContext menuContext) {
                 return _availableClasses.map((kelas) {
                   return PopupMenuItem<int>(
                     value: kelas['id'],
@@ -487,7 +487,9 @@ class _SantriExplorerScreenState extends State<SantriExplorerScreen> {
                                               width: 56,
                                               height: 56,
                                               decoration: BoxDecoration(
-                                                color: Colors.white.withOpacity(0.05),
+                                                color: context.isDarkMode 
+                                                    ? Colors.white.withOpacity(0.05) 
+                                                    : const Color(0xFF10B981).withOpacity(0.08),
                                                 shape: BoxShape.circle,
                                                 border: Border.all(
                                                   color: const Color(0xFF10B981).withOpacity(0.3),

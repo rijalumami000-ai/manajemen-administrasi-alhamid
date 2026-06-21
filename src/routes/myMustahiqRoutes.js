@@ -149,12 +149,12 @@ function registerMyMustahiqRoutes(app) {
         WHERE j.guru_id = $1 AND j.tahun_ajaran_id = $2
         ORDER BY 
           CASE 
-            WHEN j.malam = 'Malam Sabtu' THEN 1
-            WHEN j.malam = 'Malam Minggu' THEN 2
-            WHEN j.malam = 'Malam Senin' THEN 3
-            WHEN j.malam = 'Malam Selasa' THEN 4
-            WHEN j.malam = 'Malam Rabu' THEN 5
-            WHEN j.malam = 'Malam Kamis' THEN 6
+            WHEN j.malam = 'Malam Ahad' THEN 1
+            WHEN j.malam = 'Malam Senin' THEN 2
+            WHEN j.malam = 'Malam Selasa' THEN 3
+            WHEN j.malam = 'Malam Rabu' THEN 4
+            WHEN j.malam = 'Malam Kamis' THEN 5
+            WHEN j.malam = 'Malam Sabtu' THEN 6
             WHEN j.malam = 'Malam Jumat' THEN 7
             ELSE 8
           END,
@@ -409,12 +409,12 @@ function registerMyMustahiqRoutes(app) {
       WHERE j.kelas_id = $1 AND j.tahun_ajaran_id = $2
       ORDER BY 
         CASE 
-          WHEN j.malam = 'Malam Sabtu' THEN 1
-          WHEN j.malam = 'Malam Minggu' THEN 2
-          WHEN j.malam = 'Malam Senin' THEN 3
-          WHEN j.malam = 'Malam Selasa' THEN 4
-          WHEN j.malam = 'Malam Rabu' THEN 5
-          WHEN j.malam = 'Malam Kamis' THEN 6
+          WHEN j.malam = 'Malam Ahad' THEN 1
+          WHEN j.malam = 'Malam Senin' THEN 2
+          WHEN j.malam = 'Malam Selasa' THEN 3
+          WHEN j.malam = 'Malam Rabu' THEN 4
+          WHEN j.malam = 'Malam Kamis' THEN 5
+          WHEN j.malam = 'Malam Sabtu' THEN 6
           WHEN j.malam = 'Malam Jumat' THEN 7
           ELSE 8
         END,
@@ -579,7 +579,48 @@ function registerMyMustahiqRoutes(app) {
       );
     }
 
-    res.json({ success: true, message: 'Kredensial login MyMustahiq berhasil diperbarui.' });
+  /**
+   * GET /api/my-mustahiq/mustahiq
+   * Returns list of all Mustahiq (teachers with jabatan_id = 1)
+   */
+  router.get('/mustahiq', asyncHandler(async (req, res) => {
+    const activeYear = await getActiveTahunAjaran();
+    const result = await db.query(`
+      SELECT 
+        g.id, 
+        g.nip, 
+        g.nama, 
+        g.no_hp, 
+        g.alamat, 
+        g.foto_url, 
+        k.nama AS kelas_binaan
+      FROM guru g
+      LEFT JOIN kelas_tahun_ajaran kta ON kta.mustahiq_id = g.id AND kta.tahun_ajaran_id = $1
+      LEFT JOIN kelas k ON kta.kelas_id = k.id
+      WHERE g.jabatan_id = 1
+      ORDER BY g.nama
+    `, [activeYear ? activeYear.id : null]);
+    res.json({ mustahiq: result.rows });
+  }));
+
+  /**
+   * GET /api/my-mustahiq/munawib
+   * Returns list of all Munawib (teachers with jabatan_id = 2)
+   */
+  router.get('/munawib', asyncHandler(async (req, res) => {
+    const result = await db.query(`
+      SELECT 
+        g.id, 
+        g.nip, 
+        g.nama, 
+        g.no_hp, 
+        g.alamat, 
+        g.foto_url
+      FROM guru g
+      WHERE g.jabatan_id = 2
+      ORDER BY g.nama
+    `);
+    res.json({ munawib: result.rows });
   }));
 
   app.use('/api/my-mustahiq', router);

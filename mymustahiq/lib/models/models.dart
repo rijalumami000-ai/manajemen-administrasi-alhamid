@@ -24,6 +24,8 @@ class Guru {
   final String status;
   final String? fotoUrl;
   final String jabatan;
+  final String? alamat;
+  final String? kelasBinaan;
 
   Guru({
     required this.id,
@@ -33,6 +35,8 @@ class Guru {
     required this.status,
     this.fotoUrl,
     required this.jabatan,
+    this.alamat,
+    this.kelasBinaan,
   });
 
   factory Guru.fromJson(Map<String, dynamic> json) {
@@ -44,6 +48,8 @@ class Guru {
       status: json['status'] ?? '',
       fotoUrl: json['foto_url'],
       jabatan: json['jabatan'] ?? 'Guru',
+      alamat: json['alamat'],
+      kelasBinaan: json['kelas_binaan'],
     );
   }
 }

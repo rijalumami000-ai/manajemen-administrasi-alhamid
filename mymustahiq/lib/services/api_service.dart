@@ -211,5 +211,31 @@ class ApiService {
       throw Exception('Tidak dapat terhubung ke server.');
     }
   }
+
+  // Get all Mustahiq list
+  Future<Map<String, dynamic>> getMustahiqList() async {
+    try {
+      final response = await _dio.get('/my-mustahiq/mustahiq');
+      if (response.statusCode == 200) {
+        return response.data;
+      }
+      throw Exception('Gagal mengambil daftar mustahiq.');
+    } catch (e) {
+      throw Exception('Tidak dapat memuat daftar mustahiq.');
+    }
+  }
+
+  // Get all Munawib list
+  Future<Map<String, dynamic>> getMunawibList() async {
+    try {
+      final response = await _dio.get('/my-mustahiq/munawib');
+      if (response.statusCode == 200) {
+        return response.data;
+      }
+      throw Exception('Gagal mengambil daftar munawib.');
+    } catch (e) {
+      throw Exception('Tidak dapat memuat daftar munawib.');
+    }
+  }
 }
 
