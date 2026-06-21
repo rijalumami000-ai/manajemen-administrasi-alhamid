@@ -140,6 +140,7 @@ class _TabKelaskuState extends State<TabKelasku> {
     final totalSantri = _data?['totalSantriKelas'] ?? 0;
     final listJadwal = _data?['jadwalMengajar'] as List<dynamic>? ?? [];
     final activeYear = _data?['tahunAjaran']?['kode'] ?? '-';
+    final semester = _data?['tahunAjaran']?['semester'] ?? 'Ganjil';
     
     final isMustahiq = kelasMustahiq != null;
     final malamHariIni = _getMalamHariIni();
@@ -240,7 +241,7 @@ class _TabKelaskuState extends State<TabKelasku> {
                         borderRadius: BorderRadius.circular(8),
                       ),
                       child: Text(
-                        "T.A $activeYear",
+                        "T.A $activeYear ($semester)",
                         style: GoogleFonts.outfit(
                           color: const Color(0xFF10B981),
                           fontSize: 11,

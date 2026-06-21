@@ -25,6 +25,8 @@ class _SantriExplorerScreenState extends State<SantriExplorerScreen> {
   List<Map<String, dynamic>> _availableClasses = [];
   int? _selectedKelasId;
   String _className = '';
+  String _activeYear = '';
+  String _activeSemester = '';
 
   @override
   void initState() {
@@ -39,6 +41,38 @@ class _SantriExplorerScreenState extends State<SantriExplorerScreen> {
     super.dispose();
   }
 
+  void _sortClasses(List<Map<String, dynamic>> classes) {
+    double getClassWeight(String name) {
+      final n = name.toLowerCase();
+      if (n.contains('sifir')) return 0.0;
+      if (n.startsWith('1') && !n.startsWith('10') && !n.startsWith('11') && !n.startsWith('12')) return 1.0;
+      if (n.startsWith('sp') || n.contains(' sp')) return 1.5;
+      if (n.startsWith('2')) return 2.0;
+      if (n.startsWith('3')) return 3.0;
+      if (n.startsWith('4')) return 4.0;
+      if (n.startsWith('5')) return 5.0;
+      if (n.startsWith('6')) return 6.0;
+      if (n.startsWith('7')) return 7.0;
+      if (n.startsWith('8')) return 8.0;
+      if (n.startsWith('9')) return 9.0;
+      if (n.startsWith('10')) return 10.0;
+      if (n.startsWith('11')) return 11.0;
+      if (n.startsWith('12')) return 12.0;
+      return 999.0;
+    }
+
+    classes.sort((a, b) {
+      final nameA = (a['nama'] ?? '').toString();
+      final nameB = (b['nama'] ?? '').toString();
+      final weightA = getClassWeight(nameA);
+      final weightB = getClassWeight(nameB);
+      if (weightA != weightB) {
+        return weightA.compareTo(weightB);
+      }
+      return nameA.compareTo(nameB);
+    });
+  }
+
   Future<void> _fetchStudentsData() async {
     setState(() {
       _isLoading = true;
@@ -49,9 +83,15 @@ class _SantriExplorerScreenState extends State<SantriExplorerScreen> {
       if (_selectedKelasId == null) {
         // Fetch all classes list for the grid selector
         final res = await _apiService.getClasses();
+        final activeYear = res['tahunAjaran'] ?? '';
+        final semester = res['semester'] ?? '';
         if (res['classes'] != null) {
+          final list = List<Map<String, dynamic>>.from(res['classes']);
+          _sortClasses(list);
           setState(() {
-            _availableClasses = List<Map<String, dynamic>>.from(res['classes']);
+            _availableClasses = list;
+            _activeYear = activeYear;
+            _activeSemester = semester;
             _isLoading = false;
           });
         } else if (res['kelas'] != null) {
@@ -64,6 +104,8 @@ class _SantriExplorerScreenState extends State<SantriExplorerScreen> {
                 'nama': singleKelas['nama'],
               }
             ];
+            _activeYear = activeYear;
+            _activeSemester = semester;
             _isLoading = false;
           });
         } else {
@@ -80,6 +122,8 @@ class _SantriExplorerScreenState extends State<SantriExplorerScreen> {
           _filteredStudents = students;
           _className = res['kelas']?['nama'] ?? '';
           _selectedKelasId = res['kelas']?['id'];
+          if (res['tahunAjaran'] != null) _activeYear = res['tahunAjaran'];
+          if (res['semester'] != null) _activeSemester = res['semester'];
           _isLoading = false;
         });
         
@@ -100,8 +144,12 @@ class _SantriExplorerScreenState extends State<SantriExplorerScreen> {
     try {
       final res = await _apiService.getClasses();
       if (res['classes'] != null && mounted) {
+        final list = List<Map<String, dynamic>>.from(res['classes']);
+        _sortClasses(list);
         setState(() {
-          _availableClasses = List<Map<String, dynamic>>.from(res['classes']);
+          _availableClasses = list;
+          if (res['tahunAjaran'] != null) _activeYear = res['tahunAjaran'];
+          if (res['semester'] != null) _activeSemester = res['semester'];
         });
       } else if (res['kelas'] != null && mounted) {
         setState(() {
@@ -111,6 +159,8 @@ class _SantriExplorerScreenState extends State<SantriExplorerScreen> {
               'nama': res['kelas']['nama'],
             }
           ];
+          if (res['tahunAjaran'] != null) _activeYear = res['tahunAjaran'];
+          if (res['semester'] != null) _activeSemester = res['semester'];
         });
       }
     } catch (_) {}
@@ -139,9 +189,20 @@ class _SantriExplorerScreenState extends State<SantriExplorerScreen> {
       appBar: AppBar(
         backgroundColor: context.isDarkMode ? const Color(0xFF0D1527) : Colors.white,
         elevation: 0,
-        title: Text(
-          hasClassLoaded ? "Santri Kelas $_className" : "Pilih Kelas Santri",
-          style: GoogleFonts.outfit(color: context.titleColor, fontWeight: FontWeight.bold, fontSize: 18),
+        title: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              hasClassLoaded ? "Santri Kelas $_className" : "Pilih Kelas Santri",
+              style: GoogleFonts.outfit(color: context.titleColor, fontWeight: FontWeight.bold, fontSize: 16),
+            ),
+            if (_activeYear.isNotEmpty)
+              Text(
+                "T.A $_activeYear ($_activeSemester)",
+                style: GoogleFonts.outfit(color: context.subTitleColor, fontSize: 11, fontWeight: FontWeight.w500),
+              ),
+          ],
         ),
         leading: IconButton(
           icon: Icon(Icons.arrow_back_ios_new_rounded, color: context.titleColor, size: 20),
@@ -232,13 +293,34 @@ class _SantriExplorerScreenState extends State<SantriExplorerScreen> {
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Text(
-                                "Pilih Kelas Santri",
-                                style: GoogleFonts.outfit(
-                                  color: context.titleColor,
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.bold,
-                                ),
+                              Row(
+                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                children: [
+                                  Text(
+                                    "Pilih Kelas Santri",
+                                    style: GoogleFonts.outfit(
+                                      color: context.titleColor,
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                  if (_activeYear.isNotEmpty)
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                                      decoration: BoxDecoration(
+                                        color: const Color(0xFF10B981).withOpacity(0.12),
+                                        borderRadius: BorderRadius.circular(6),
+                                      ),
+                                      child: Text(
+                                        "T.A $_activeYear ($_activeSemester)",
+                                        style: GoogleFonts.outfit(
+                                          color: const Color(0xFF10B981),
+                                          fontSize: 10,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      ),
+                                    ),
+                                ],
                               ),
                               const SizedBox(height: 6),
                               Text(

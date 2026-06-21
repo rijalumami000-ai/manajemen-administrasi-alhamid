@@ -21,11 +21,45 @@ class _JadwalPelajaranScreenState extends State<JadwalPelajaranScreen> {
   String _selectedKelasNama = '';
   
   Map<String, List<dynamic>> _weeklySchedule = {};
+  String _activeYear = '';
+  String _activeSemester = '';
 
   @override
   void initState() {
     super.initState();
     _fetchClasses();
+  }
+
+  void _sortClasses(List<Map<String, dynamic>> classes) {
+    double getClassWeight(String name) {
+      final n = name.toLowerCase();
+      if (n.contains('sifir')) return 0.0;
+      if (n.startsWith('1') && !n.startsWith('10') && !n.startsWith('11') && !n.startsWith('12')) return 1.0;
+      if (n.startsWith('sp') || n.contains(' sp')) return 1.5;
+      if (n.startsWith('2')) return 2.0;
+      if (n.startsWith('3')) return 3.0;
+      if (n.startsWith('4')) return 4.0;
+      if (n.startsWith('5')) return 5.0;
+      if (n.startsWith('6')) return 6.0;
+      if (n.startsWith('7')) return 7.0;
+      if (n.startsWith('8')) return 8.0;
+      if (n.startsWith('9')) return 9.0;
+      if (n.startsWith('10')) return 10.0;
+      if (n.startsWith('11')) return 11.0;
+      if (n.startsWith('12')) return 12.0;
+      return 999.0;
+    }
+
+    classes.sort((a, b) {
+      final nameA = (a['nama'] ?? '').toString();
+      final nameB = (b['nama'] ?? '').toString();
+      final weightA = getClassWeight(nameA);
+      final weightB = getClassWeight(nameB);
+      if (weightA != weightB) {
+        return weightA.compareTo(weightB);
+      }
+      return nameA.compareTo(nameB);
+    });
   }
 
   Future<void> _fetchClasses() async {
@@ -36,10 +70,16 @@ class _JadwalPelajaranScreenState extends State<JadwalPelajaranScreen> {
 
     try {
       final res = await _apiService.getClasses();
+      final activeYear = res['tahunAjaran'] ?? '';
+      final semester = res['semester'] ?? '';
+
       if (res['classes'] != null) {
         final list = List<Map<String, dynamic>>.from(res['classes']);
+        _sortClasses(list);
         setState(() {
           _classes = list;
+          _activeYear = activeYear;
+          _activeSemester = semester;
           _isLoadingClasses = false;
         });
       } else if (res['kelas'] != null) {
@@ -53,6 +93,8 @@ class _JadwalPelajaranScreenState extends State<JadwalPelajaranScreen> {
         ];
         setState(() {
           _classes = list;
+          _activeYear = activeYear;
+          _activeSemester = semester;
           _isLoadingClasses = false;
         });
       } else {
@@ -192,13 +234,34 @@ class _JadwalPelajaranScreenState extends State<JadwalPelajaranScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            "Pilih Kelas Diniyah",
-            style: GoogleFonts.outfit(
-              color: context.titleColor,
-              fontSize: 16,
-              fontWeight: FontWeight.bold,
-            ),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                "Pilih Kelas Diniyah",
+                style: GoogleFonts.outfit(
+                  color: context.titleColor,
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              if (_activeYear.isNotEmpty)
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF10B981).withOpacity(0.12),
+                    borderRadius: BorderRadius.circular(6),
+                  ),
+                  child: Text(
+                    "T.A $_activeYear ($_activeSemester)",
+                    style: GoogleFonts.outfit(
+                      color: const Color(0xFF10B981),
+                      fontSize: 10,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+            ],
           ),
           const SizedBox(height: 6),
           Text(

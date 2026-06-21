@@ -22,6 +22,8 @@ class _TeacherListScreenState extends State<TeacherListScreen> {
   String? _errorMessage;
   List<Guru> _allTeachers = [];
   List<Guru> _filteredTeachers = [];
+  String _activeYear = '';
+  String _activeSemester = '';
 
   @override
   void initState() {
@@ -33,6 +35,37 @@ class _TeacherListScreenState extends State<TeacherListScreen> {
   void dispose() {
     _searchController.dispose();
     super.dispose();
+  }
+
+  void _sortMustahiq(List<Guru> teachers) {
+    double getClassWeight(String? className) {
+      if (className == null) return 999.0;
+      final n = className.toLowerCase();
+      if (n.contains('sifir')) return 0.0;
+      if (n.startsWith('1') && !n.startsWith('10') && !n.startsWith('11') && !n.startsWith('12')) return 1.0;
+      if (n.startsWith('sp') || n.contains(' sp')) return 1.5;
+      if (n.startsWith('2')) return 2.0;
+      if (n.startsWith('3')) return 3.0;
+      if (n.startsWith('4')) return 4.0;
+      if (n.startsWith('5')) return 5.0;
+      if (n.startsWith('6')) return 6.0;
+      if (n.startsWith('7')) return 7.0;
+      if (n.startsWith('8')) return 8.0;
+      if (n.startsWith('9')) return 9.0;
+      if (n.startsWith('10')) return 10.0;
+      if (n.startsWith('11')) return 11.0;
+      if (n.startsWith('12')) return 12.0;
+      return 99.0;
+    }
+
+    teachers.sort((a, b) {
+      final weightA = getClassWeight(a.kelasBinaan);
+      final weightB = getClassWeight(b.kelasBinaan);
+      if (weightA != weightB) {
+        return weightA.compareTo(weightB);
+      }
+      return a.nama.compareTo(b.nama);
+    });
   }
 
   Future<void> _fetchTeachersData() async {
@@ -49,10 +82,18 @@ class _TeacherListScreenState extends State<TeacherListScreen> {
       final dataKey = widget.isMustahiq ? 'mustahiq' : 'munawib';
       final list = res[dataKey] as List<dynamic>? ?? [];
       final parsedList = list.map((item) => Guru.fromJson(item)).toList();
+      final activeYear = res['tahunAjaran'] ?? '';
+      final semester = res['semester'] ?? '';
+
+      if (widget.isMustahiq) {
+        _sortMustahiq(parsedList);
+      }
 
       setState(() {
         _allTeachers = parsedList;
         _filteredTeachers = parsedList;
+        _activeYear = activeYear;
+        _activeSemester = semester;
         _isLoading = false;
       });
     } catch (e) {
@@ -136,9 +177,20 @@ class _TeacherListScreenState extends State<TeacherListScreen> {
           icon: Icon(Icons.arrow_back_ios_new_rounded, color: context.titleColor, size: 20),
           onPressed: () => Navigator.pop(context),
         ),
-        title: Text(
-          title,
-          style: GoogleFonts.outfit(color: context.titleColor, fontWeight: FontWeight.bold, fontSize: 18),
+        title: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              title,
+              style: GoogleFonts.outfit(color: context.titleColor, fontWeight: FontWeight.bold, fontSize: 16),
+            ),
+            if (_activeYear.isNotEmpty)
+              Text(
+                "T.A $_activeYear ($_activeSemester)",
+                style: GoogleFonts.outfit(color: context.subTitleColor, fontSize: 11, fontWeight: FontWeight.w500),
+              ),
+          ],
         ),
       ),
       body: _isLoading

@@ -80,6 +80,9 @@ function registerMyMustahiqRoutes(app) {
       return res.status(404).json({ error: 'Tahun ajaran aktif tidak ditemukan.' });
     }
 
+    const semResult = await db.query("SELECT value FROM system_settings WHERE key = 'active_semester' LIMIT 1");
+    const activeSemester = semResult.rows[0] ? semResult.rows[0].value : 'Ganjil';
+
     let dashboardData = {
       user: {
         id: req.user.id,
@@ -89,7 +92,8 @@ function registerMyMustahiqRoutes(app) {
       },
       tahunAjaran: {
         id: activeYear.id,
-        kode: activeYear.kode
+        kode: activeYear.kode,
+        semester: activeSemester
       },
       guruInfo: null,
       kelasMustahiq: null,
@@ -203,14 +207,21 @@ function registerMyMustahiqRoutes(app) {
         ORDER BY k.nama
       `, [activeYear.id]);
       
+      const semResult = await db.query("SELECT value FROM system_settings WHERE key = 'active_semester' LIMIT 1");
+      const activeSemester = semResult.rows[0] ? semResult.rows[0].value : 'Ganjil';
+
       if (forceClasses) {
         return res.json({
+          tahunAjaran: activeYear.kode,
+          semester: activeSemester,
           classes: classesResult.rows
         });
       }
       
       return res.json({
         requires_class_selection: true,
+        tahunAjaran: activeYear.kode,
+        semester: activeSemester,
         classes: classesResult.rows
       });
     }
@@ -237,9 +248,13 @@ function registerMyMustahiqRoutes(app) {
       ORDER BY sta.nama
     `, [kelasId, activeYear.id]);
 
+    const semResult = await db.query("SELECT value FROM system_settings WHERE key = 'active_semester' LIMIT 1");
+    const activeSemester = semResult.rows[0] ? semResult.rows[0].value : 'Ganjil';
+
     res.json({
       kelas: classDetail.rows[0],
       tahunAjaran: activeYear.kode,
+      semester: activeSemester,
       santri: studentsResult.rows
     });
   }));
@@ -421,9 +436,13 @@ function registerMyMustahiqRoutes(app) {
         j.jam_ke
     `, [kelasId, activeTahunAjaran.id]);
 
+    const semResult = await db.query("SELECT value FROM system_settings WHERE key = 'active_semester' LIMIT 1");
+    const activeSemester = semResult.rows[0] ? semResult.rows[0].value : 'Ganjil';
+
     res.json({
       kelas_id: kelasId,
       tahun_ajaran: activeTahunAjaran.kode,
+      semester: activeSemester,
       jadwal: scheduleResult.rows
     });
   }));
@@ -603,7 +622,15 @@ function registerMyMustahiqRoutes(app) {
       WHERE g.jabatan_id = 1
       ORDER BY g.nama
     `, [activeYear ? activeYear.id : null]);
-    res.json({ mustahiq: result.rows });
+
+    const semResult = await db.query("SELECT value FROM system_settings WHERE key = 'active_semester' LIMIT 1");
+    const activeSemester = semResult.rows[0] ? semResult.rows[0].value : 'Ganjil';
+
+    res.json({ 
+      tahunAjaran: activeYear ? activeYear.kode : '-',
+      semester: activeSemester,
+      mustahiq: result.rows 
+    });
   }));
 
   /**
@@ -611,6 +638,7 @@ function registerMyMustahiqRoutes(app) {
    * Returns list of all Munawib (teachers with jabatan_id = 2)
    */
   router.get('/munawib', asyncHandler(async (req, res) => {
+    const activeYear = await getActiveTahunAjaran();
     const result = await db.query(`
       SELECT 
         g.id, 
@@ -623,7 +651,15 @@ function registerMyMustahiqRoutes(app) {
       WHERE g.jabatan_id = 2
       ORDER BY g.nama
     `);
-    res.json({ munawib: result.rows });
+
+    const semResult = await db.query("SELECT value FROM system_settings WHERE key = 'active_semester' LIMIT 1");
+    const activeSemester = semResult.rows[0] ? semResult.rows[0].value : 'Ganjil';
+
+    res.json({ 
+      tahunAjaran: activeYear ? activeYear.kode : '-',
+      semester: activeSemester,
+      munawib: result.rows 
+    });
   }));
 
   app.use('/api/my-mustahiq', router);
