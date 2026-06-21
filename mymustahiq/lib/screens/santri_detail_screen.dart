@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../services/api_service.dart';
+import '../services/theme_manager.dart';
 
 class SantriDetailScreen extends StatefulWidget {
   final int santriId;
@@ -65,17 +66,17 @@ class _SantriDetailScreenState extends State<SantriDetailScreen> with SingleTick
     final gender = profile?['jenis_kelamin'] ?? '';
 
     return Scaffold(
-      backgroundColor: const Color(0xFF070B13),
+      backgroundColor: context.scaffoldBg,
       appBar: AppBar(
-        backgroundColor: const Color(0xFF0D1527),
+        backgroundColor: context.isDarkMode ? const Color(0xFF0D1527) : Colors.white,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios_new_rounded, color: Colors.white, size: 20),
+          icon: Icon(Icons.arrow_back_ios_new_rounded, color: context.titleColor, size: 20),
           onPressed: () => Navigator.pop(context),
         ),
         title: Text(
           "Profil Santri",
-          style: GoogleFonts.outfit(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 18),
+          style: GoogleFonts.outfit(color: context.titleColor, fontWeight: FontWeight.bold, fontSize: 18),
         ),
       ),
       body: _isLoading
@@ -92,7 +93,7 @@ class _SantriDetailScreenState extends State<SantriDetailScreen> with SingleTick
                         Text(
                           _errorMessage!,
                           textAlign: TextAlign.center,
-                          style: GoogleFonts.outfit(color: Colors.white, fontSize: 15),
+                          style: GoogleFonts.outfit(color: context.titleColor, fontSize: 15),
                         ),
                         const SizedBox(height: 20),
                         ElevatedButton(
@@ -111,7 +112,7 @@ class _SantriDetailScreenState extends State<SantriDetailScreen> with SingleTick
                     // Student Header Card
                     Container(
                       padding: const EdgeInsets.fromLTRB(24, 16, 24, 24),
-                      color: const Color(0xFF0D1527),
+                      color: context.isDarkMode ? const Color(0xFF0D1527) : Colors.white,
                       child: Row(
                         children: [
                           Container(
@@ -128,7 +129,7 @@ class _SantriDetailScreenState extends State<SantriDetailScreen> with SingleTick
                             child: ClipOval(
                               child: fotoUrl != null
                                   ? Image.network(
-                                      "${ApiService.baseUrl}$fotoUrl",
+                                      _apiService.getFullImageUrl(fotoUrl),
                                       fit: BoxFit.cover,
                                       errorBuilder: (context, error, stackTrace) =>
                                           _buildDefaultAvatar(gender),
@@ -144,7 +145,7 @@ class _SantriDetailScreenState extends State<SantriDetailScreen> with SingleTick
                                 Text(
                                   studentName,
                                   style: GoogleFonts.outfit(
-                                    color: Colors.white,
+                                    color: context.titleColor,
                                     fontSize: 18,
                                     fontWeight: FontWeight.bold,
                                   ),
@@ -153,7 +154,7 @@ class _SantriDetailScreenState extends State<SantriDetailScreen> with SingleTick
                                 Text(
                                   "NIS: $nis",
                                   style: GoogleFonts.outfit(
-                                    color: const Color(0xFF94A3B8),
+                                    color: context.bodyColor,
                                     fontSize: 13,
                                   ),
                                 ),
@@ -167,7 +168,7 @@ class _SantriDetailScreenState extends State<SantriDetailScreen> with SingleTick
                                   child: Text(
                                     "Kelas $kelas",
                                     style: GoogleFonts.outfit(
-                                      color: const Color(0xFF34D399),
+                                      color: const Color(0xFF10B981),
                                       fontSize: 11,
                                       fontWeight: FontWeight.bold,
                                     ),
@@ -182,12 +183,19 @@ class _SantriDetailScreenState extends State<SantriDetailScreen> with SingleTick
 
                     // Custom Tab Bar
                     Container(
-                      color: const Color(0xFF0D1527),
+                      color: context.isDarkMode ? const Color(0xFF0D1527) : Colors.white,
+                      decoration: context.isDarkMode
+                          ? null
+                          : BoxDecoration(
+                              border: Border(
+                                bottom: BorderSide(color: context.borderColor),
+                              ),
+                            ),
                       child: TabBar(
                         controller: _tabController,
                         indicatorColor: const Color(0xFF10B981),
-                        labelColor: Colors.white,
-                        unselectedLabelColor: const Color(0xFF64748B),
+                        labelColor: const Color(0xFF10B981),
+                        unselectedLabelColor: context.subTitleColor,
                         labelStyle: GoogleFonts.outfit(fontWeight: FontWeight.bold, fontSize: 14),
                         unselectedLabelStyle: GoogleFonts.outfit(fontWeight: FontWeight.normal, fontSize: 14),
                         tabs: const [
@@ -239,9 +247,9 @@ class _SantriDetailScreenState extends State<SantriDetailScreen> with SingleTick
           Container(
             padding: const EdgeInsets.all(20),
             decoration: BoxDecoration(
-              color: const Color(0xFF131C2E),
+              color: context.cardBg,
               borderRadius: BorderRadius.circular(20),
-              border: Border.all(color: Colors.white.withOpacity(0.04)),
+              border: Border.all(color: context.borderColor),
             ),
             child: Column(
               children: [
@@ -269,9 +277,9 @@ class _SantriDetailScreenState extends State<SantriDetailScreen> with SingleTick
           Container(
             padding: const EdgeInsets.all(20),
             decoration: BoxDecoration(
-              color: const Color(0xFF131C2E),
+              color: context.cardBg,
               borderRadius: BorderRadius.circular(20),
-              border: Border.all(color: Colors.white.withOpacity(0.04)),
+              border: Border.all(color: context.borderColor),
             ),
             child: Column(
               children: [
@@ -297,7 +305,7 @@ class _SantriDetailScreenState extends State<SantriDetailScreen> with SingleTick
       return Center(
         child: Text(
           "Belum ada nilai terinput untuk santri ini.",
-          style: GoogleFonts.outfit(color: const Color(0xFF64748B), fontSize: 14),
+          style: GoogleFonts.outfit(color: context.subTitleColor, fontSize: 14),
         ),
       );
     }
@@ -362,9 +370,9 @@ class _SantriDetailScreenState extends State<SantriDetailScreen> with SingleTick
   Widget _buildGradesCardList(List<dynamic> group, Color themeColor) {
     return Container(
       decoration: BoxDecoration(
-        color: const Color(0xFF131C2E),
+        color: context.cardBg,
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: Colors.white.withOpacity(0.04)),
+        border: Border.all(color: context.borderColor),
       ),
       child: ListView.separated(
         shrinkWrap: true,
@@ -385,7 +393,7 @@ class _SantriDetailScreenState extends State<SantriDetailScreen> with SingleTick
                       Text(
                         item['mata_pelajaran'] ?? '-',
                         style: GoogleFonts.outfit(
-                          color: Colors.white,
+                          color: context.titleColor,
                           fontSize: 15,
                           fontWeight: FontWeight.bold,
                         ),
@@ -394,7 +402,7 @@ class _SantriDetailScreenState extends State<SantriDetailScreen> with SingleTick
                       Text(
                         "${item['kategori_evaluasi']} • Predikat: ${item['predikat'] ?? '-'}",
                         style: GoogleFonts.outfit(
-                          color: const Color(0xFF64748B),
+                          color: context.subTitleColor,
                           fontSize: 12,
                         ),
                       ),
@@ -403,7 +411,7 @@ class _SantriDetailScreenState extends State<SantriDetailScreen> with SingleTick
                         Text(
                           "Catatan: ${item['capaian']}",
                           style: GoogleFonts.inter(
-                            color: const Color(0xFF94A3B8),
+                            color: context.bodyColor,
                             fontSize: 12,
                             fontStyle: FontStyle.italic,
                           ),
@@ -444,7 +452,7 @@ class _SantriDetailScreenState extends State<SantriDetailScreen> with SingleTick
       return Center(
         child: Text(
           "Tidak ada catatan prestasi atau pelanggaran santri.",
-          style: GoogleFonts.outfit(color: const Color(0xFF64748B), fontSize: 14),
+          style: GoogleFonts.outfit(color: context.subTitleColor, fontSize: 14),
         ),
       );
     }
@@ -469,9 +477,11 @@ class _SantriDetailScreenState extends State<SantriDetailScreen> with SingleTick
                 return Container(
                   padding: const EdgeInsets.all(18),
                   decoration: BoxDecoration(
-                    color: const Color(0xFF131C2E),
+                    color: context.cardBg,
                     borderRadius: BorderRadius.circular(16),
-                    border: Border.all(color: const Color(0xFF10B981).withOpacity(0.15)),
+                    border: Border.all(
+                      color: const Color(0xFF10B981).withOpacity(context.isDarkMode ? 0.15 : 0.4),
+                    ),
                   ),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -482,7 +492,7 @@ class _SantriDetailScreenState extends State<SantriDetailScreen> with SingleTick
                           Text(
                             item['jenis'] ?? 'Prestasi',
                             style: GoogleFonts.outfit(
-                              color: const Color(0xFF34D399),
+                              color: const Color(0xFF10B981),
                               fontSize: 15,
                               fontWeight: FontWeight.bold,
                             ),
@@ -490,7 +500,7 @@ class _SantriDetailScreenState extends State<SantriDetailScreen> with SingleTick
                           Text(
                             item['tanggal'] ?? '',
                             style: GoogleFonts.outfit(
-                              color: const Color(0xFF64748B),
+                              color: context.subTitleColor,
                               fontSize: 12,
                             ),
                           ),
@@ -499,7 +509,7 @@ class _SantriDetailScreenState extends State<SantriDetailScreen> with SingleTick
                       const SizedBox(height: 8),
                       Text(
                         item['deskripsi'] ?? '-',
-                        style: GoogleFonts.inter(color: Colors.white, fontSize: 13, height: 1.4),
+                        style: GoogleFonts.inter(color: context.bodyColor, fontSize: 13, height: 1.4),
                       ),
                       if (item['penghargaan'] != null) ...[
                         const SizedBox(height: 10),
@@ -540,9 +550,11 @@ class _SantriDetailScreenState extends State<SantriDetailScreen> with SingleTick
                 return Container(
                   padding: const EdgeInsets.all(18),
                   decoration: BoxDecoration(
-                    color: const Color(0xFF131C2E),
+                    color: context.cardBg,
                     borderRadius: BorderRadius.circular(16),
-                    border: Border.all(color: Colors.redAccent.withOpacity(0.15)),
+                    border: Border.all(
+                      color: Colors.redAccent.withOpacity(context.isDarkMode ? 0.15 : 0.4),
+                    ),
                   ),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -561,7 +573,7 @@ class _SantriDetailScreenState extends State<SantriDetailScreen> with SingleTick
                           Text(
                             item['tanggal'] ?? '',
                             style: GoogleFonts.outfit(
-                              color: const Color(0xFF64748B),
+                              color: context.subTitleColor,
                               fontSize: 12,
                             ),
                           ),
@@ -570,7 +582,7 @@ class _SantriDetailScreenState extends State<SantriDetailScreen> with SingleTick
                       const SizedBox(height: 8),
                       Text(
                         item['deskripsi'] ?? '-',
-                        style: GoogleFonts.inter(color: Colors.white, fontSize: 13, height: 1.4),
+                        style: GoogleFonts.inter(color: context.bodyColor, fontSize: 13, height: 1.4),
                       ),
                       if (item['sanksi'] != null) ...[
                         const SizedBox(height: 10),
@@ -606,7 +618,7 @@ class _SantriDetailScreenState extends State<SantriDetailScreen> with SingleTick
     return Text(
       title,
       style: GoogleFonts.outfit(
-        color: const Color(0xFF475569),
+        color: context.subTitleColor,
         fontSize: 11,
         fontWeight: FontWeight.bold,
         letterSpacing: 1.5,
@@ -625,7 +637,7 @@ class _SantriDetailScreenState extends State<SantriDetailScreen> with SingleTick
             child: Text(
               label,
               style: GoogleFonts.outfit(
-                color: const Color(0xFF64748B),
+                color: context.subTitleColor,
                 fontSize: 13,
               ),
             ),
@@ -636,7 +648,7 @@ class _SantriDetailScreenState extends State<SantriDetailScreen> with SingleTick
             child: Text(
               value,
               style: GoogleFonts.outfit(
-                color: Colors.white,
+                color: context.titleColor,
                 fontSize: 14,
                 fontWeight: FontWeight.bold,
               ),
@@ -649,7 +661,7 @@ class _SantriDetailScreenState extends State<SantriDetailScreen> with SingleTick
 
   Widget _buildDivider() {
     return Divider(
-      color: Colors.white.withOpacity(0.04),
+      color: context.borderColor,
       height: 24,
       thickness: 1,
     );

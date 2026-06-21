@@ -4,8 +4,11 @@ import 'services/api_service.dart';
 import 'screens/login_screen.dart';
 import 'screens/dashboard_screen.dart';
 
-void main() {
+import 'services/theme_manager.dart';
+
+void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  await ThemeManager().init();
   runApp(const MyMustahiqApp());
 }
 
@@ -14,17 +17,32 @@ class MyMustahiqApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'MyMustahiq',
-      debugShowCheckedModeBanner: false,
-      theme: ThemeData(
-        brightness: Brightness.dark,
-        primaryColor: const Color(0xFF10B981),
-        scaffoldBackgroundColor: const Color(0xFF070B13),
-        textTheme: GoogleFonts.outfitTextTheme(ThemeData.dark().textTheme),
-        useMaterial3: true,
-      ),
-      home: const AuthenticationWrapper(),
+    return ListenableBuilder(
+      listenable: ThemeManager(),
+      builder: (context, _) {
+        return MaterialApp(
+          title: 'MyMustahiq',
+          debugShowCheckedModeBanner: false,
+          themeMode: ThemeManager().themeMode,
+          theme: ThemeData(
+            brightness: Brightness.light,
+            primaryColor: const Color(0xFF10B981),
+            scaffoldBackgroundColor: const Color(0xFFF8FAFC),
+            cardColor: Colors.white,
+            textTheme: GoogleFonts.outfitTextTheme(ThemeData.light().textTheme),
+            useMaterial3: true,
+          ),
+          darkTheme: ThemeData(
+            brightness: Brightness.dark,
+            primaryColor: const Color(0xFF10B981),
+            scaffoldBackgroundColor: const Color(0xFF070B13),
+            cardColor: const Color(0xFF131C2E),
+            textTheme: GoogleFonts.outfitTextTheme(ThemeData.dark().textTheme),
+            useMaterial3: true,
+          ),
+          home: const AuthenticationWrapper(),
+        );
+      },
     );
   }
 }
@@ -83,9 +101,9 @@ class _AuthenticationWrapperState extends State<AuthenticationWrapper> {
   @override
   Widget build(BuildContext context) {
     if (_checkingAuth) {
-      return const Scaffold(
-        backgroundColor: Color(0xFF070B13),
-        body: Center(
+      return Scaffold(
+        backgroundColor: context.scaffoldBg,
+        body: const Center(
           child: CircularProgressIndicator(
             color: Color(0xFF10B981),
           ),

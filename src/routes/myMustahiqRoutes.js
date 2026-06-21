@@ -180,9 +180,10 @@ function registerMyMustahiqRoutes(app) {
 
     let kelasId = req.query.kelas_id ? parseInt(req.query.kelas_id, 10) : null;
     const guruId = req.user.guru_id;
+    const forceClasses = req.query.force_classes === 'true';
 
     // If no class filter, try to fall back to the mustahiq class of this teacher
-    if (!kelasId && guruId) {
+    if (!kelasId && guruId && !forceClasses) {
       const mustahiqResult = await db.query(`
         SELECT kelas_id FROM kelas_tahun_ajaran 
         WHERE mustahiq_id = $1 AND tahun_ajaran_id = $2
@@ -192,8 +193,8 @@ function registerMyMustahiqRoutes(app) {
       }
     }
 
-    // If still no class is found/specified, we should return the list of classes so the user can pick one
-    if (!kelasId) {
+    // If still no class is found/specified, or if forceClasses is true, return the class list
+    if (!kelasId || forceClasses) {
       const classesResult = await db.query(`
         SELECT DISTINCT k.id, k.nama 
         FROM kelas k
@@ -201,6 +202,13 @@ function registerMyMustahiqRoutes(app) {
         WHERE kta.tahun_ajaran_id = $1
         ORDER BY k.nama
       `, [activeYear.id]);
+      
+      if (forceClasses) {
+        return res.json({
+          classes: classesResult.rows
+        });
+      }
+      
       return res.json({
         requires_class_selection: true,
         classes: classesResult.rows
@@ -448,6 +456,56 @@ function registerMyMustahiqRoutes(app) {
     `, [tipe]);
 
     res.json(result.rows);
+  }));
+
+  /**
+   * POST /api/my-mustahiq/change-password
+   * Mengganti password ustadz saat ini (Authenticated).
+   */
+  router.post('/change-password', asyncHandler(async (req, res) => {
+    const guruId = req.user.guru_id;
+    const { oldPassword, newPassword } = req.body;
+
+    if (!guruId) {
+      return res.status(400).json({ error: 'Data guru tidak ditemukan dalam sesi Anda.' });
+    }
+    if (!oldPassword || !newPassword) {
+      return res.status(400).json({ error: 'Password lama dan password baru wajib diisi.' });
+    }
+    if (newPassword.length < 6) {
+      return res.status(400).json({ error: 'Password baru minimal 6 karakter.' });
+    }
+
+    // Ambil data guru dari database
+    const result = await db.query(
+      'SELECT mymustahiq_password FROM guru WHERE id = $1',
+      [guruId]
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'Ustadz tidak ditemukan.' });
+    }
+
+    const currentHashed = result.rows[0].mymustahiq_password;
+    if (!currentHashed) {
+      return res.status(400).json({ error: 'Akun Anda belum diset passwordnya oleh Administrator.' });
+    }
+
+    // Bandingkan password lama
+    const { comparePassword, hashPassword } = require('../utils/authUtils');
+    const isMatch = await comparePassword(oldPassword, currentHashed);
+    if (!isMatch) {
+      return res.status(400).json({ error: 'Password lama yang Anda masukkan salah.' });
+    }
+
+    // Hash dan simpan password baru
+    const newHashed = await hashPassword(newPassword);
+    await db.query(
+      'UPDATE guru SET mymustahiq_password = $1 WHERE id = $2',
+      [newHashed, guruId]
+    );
+
+    res.json({ success: true, message: 'Password Anda berhasil diperbarui.' });
   }));
 
   /**

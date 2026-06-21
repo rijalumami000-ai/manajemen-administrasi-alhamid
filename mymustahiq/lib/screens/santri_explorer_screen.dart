@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../services/api_service.dart';
+import '../services/theme_manager.dart';
 import '../models/models.dart';
 import 'santri_detail_screen.dart';
 
@@ -45,14 +46,32 @@ class _SantriExplorerScreenState extends State<SantriExplorerScreen> {
     });
 
     try {
-      final res = await _apiService.getStudents(_selectedKelasId);
-      
-      if (res['requires_class_selection'] == true) {
-        setState(() {
-          _availableClasses = List<Map<String, dynamic>>.from(res['classes']);
-          _isLoading = false;
-        });
+      if (_selectedKelasId == null) {
+        // Fetch all classes list for the grid selector
+        final res = await _apiService.getClasses();
+        if (res['classes'] != null) {
+          setState(() {
+            _availableClasses = List<Map<String, dynamic>>.from(res['classes']);
+            _isLoading = false;
+          });
+        } else if (res['kelas'] != null) {
+          // Fallback to single homeroom class from older server responses
+          final singleKelas = res['kelas'];
+          setState(() {
+            _availableClasses = [
+              {
+                'id': singleKelas['id'],
+                'nama': singleKelas['nama'],
+              }
+            ];
+            _isLoading = false;
+          });
+        } else {
+          throw Exception('Gagal memuat daftar kelas.');
+        }
       } else {
+        // Fetch students of the selected class
+        final res = await _apiService.getStudents(_selectedKelasId);
         final list = res['santri'] as List<dynamic>? ?? [];
         final students = list.map((item) => Student.fromJson(item)).toList();
         
@@ -64,7 +83,7 @@ class _SantriExplorerScreenState extends State<SantriExplorerScreen> {
           _isLoading = false;
         });
         
-        // If we don't have available classes yet, fetch them for the picker
+        // Load available classes for quick switching (if not already loaded)
         if (_availableClasses.isEmpty) {
           _fetchClassesListOnly();
         }
@@ -79,11 +98,19 @@ class _SantriExplorerScreenState extends State<SantriExplorerScreen> {
 
   Future<void> _fetchClassesListOnly() async {
     try {
-      // Fetch without class_id to trigger selection and load available classes
-      final res = await _apiService.getStudents(null);
+      final res = await _apiService.getClasses();
       if (res['classes'] != null && mounted) {
         setState(() {
           _availableClasses = List<Map<String, dynamic>>.from(res['classes']);
+        });
+      } else if (res['kelas'] != null && mounted) {
+        setState(() {
+          _availableClasses = [
+            {
+              'id': res['kelas']['id'],
+              'nama': res['kelas']['nama'],
+            }
+          ];
         });
       }
     } catch (_) {}
@@ -108,23 +135,36 @@ class _SantriExplorerScreenState extends State<SantriExplorerScreen> {
     final hasClassLoaded = _selectedKelasId != null && _className.isNotEmpty;
 
     return Scaffold(
-      backgroundColor: const Color(0xFF070B13),
+      backgroundColor: context.scaffoldBg,
       appBar: AppBar(
-        backgroundColor: const Color(0xFF0D1527),
+        backgroundColor: context.isDarkMode ? const Color(0xFF0D1527) : Colors.white,
         elevation: 0,
         title: Text(
-          hasClassLoaded ? "Santri Kelas $_className" : "Pilih Kelas Diniyah",
-          style: GoogleFonts.outfit(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 18),
+          hasClassLoaded ? "Santri Kelas $_className" : "Pilih Kelas Santri",
+          style: GoogleFonts.outfit(color: context.titleColor, fontWeight: FontWeight.bold, fontSize: 18),
         ),
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios_new_rounded, color: Colors.white, size: 20),
-          onPressed: () => Navigator.pop(context),
+          icon: Icon(Icons.arrow_back_ios_new_rounded, color: context.titleColor, size: 20),
+          onPressed: () {
+            if (hasClassLoaded) {
+              setState(() {
+                _selectedKelasId = null;
+                _className = '';
+                _allStudents = [];
+                _filteredStudents = [];
+                _searchController.clear();
+              });
+              _fetchStudentsData();
+            } else {
+              Navigator.pop(context);
+            }
+          },
         ),
         actions: [
-          if (_availableClasses.isNotEmpty)
+          if (hasClassLoaded && _availableClasses.isNotEmpty)
             PopupMenuButton<int>(
               icon: const Icon(Icons.filter_list_rounded, color: Color(0xFF10B981)),
-              color: const Color(0xFF131B2E),
+              color: context.cardBg,
               tooltip: 'Pilih Kelas',
               onSelected: (int kelasId) {
                 setState(() {
@@ -140,7 +180,7 @@ class _SantriExplorerScreenState extends State<SantriExplorerScreen> {
                     child: Text(
                       "Kelas ${kelas['nama']}",
                       style: GoogleFonts.outfit(
-                        color: _selectedKelasId == kelas['id'] ? const Color(0xFF10B981) : Colors.white,
+                        color: _selectedKelasId == kelas['id'] ? const Color(0xFF10B981) : context.titleColor,
                         fontWeight: _selectedKelasId == kelas['id'] ? FontWeight.bold : FontWeight.normal,
                       ),
                     ),
@@ -156,7 +196,7 @@ class _SantriExplorerScreenState extends State<SantriExplorerScreen> {
                 color: Color(0xFF10B981),
               ),
             )
-          : _errorMessage != null
+          : _errorMessage != null && !hasClassLoaded
               ? Center(
                   child: Padding(
                     padding: const EdgeInsets.all(24.0),
@@ -168,7 +208,7 @@ class _SantriExplorerScreenState extends State<SantriExplorerScreen> {
                         Text(
                           _errorMessage!,
                           textAlign: TextAlign.center,
-                          style: GoogleFonts.outfit(color: Colors.white, fontSize: 15),
+                          style: GoogleFonts.outfit(color: context.titleColor, fontSize: 15),
                         ),
                         const SizedBox(height: 20),
                         ElevatedButton(
@@ -184,56 +224,170 @@ class _SantriExplorerScreenState extends State<SantriExplorerScreen> {
                 )
               : Column(
                   children: [
-                    // Class Selector (if no class loaded initially)
+                    // LANDING: Class Grid View Selector
                     if (!hasClassLoaded && _availableClasses.isNotEmpty)
                       Expanded(
-                        child: ListView.separated(
-                          padding: const EdgeInsets.all(24),
-                          itemCount: _availableClasses.length,
-                          separatorBuilder: (context, index) => const SizedBox(height: 16),
-                          itemBuilder: (context, index) {
-                            final kelas = _availableClasses[index];
-                            return ListTile(
-                              contentPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-                              tileColor: const Color(0xFF131C2E),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(16),
-                                side: BorderSide(color: Colors.white.withOpacity(0.04)),
-                              ),
-                              title: Text(
-                                "Kelas ${kelas['nama']}",
+                        child: Padding(
+                          padding: const EdgeInsets.all(20.0),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                "Pilih Kelas Santri",
                                 style: GoogleFonts.outfit(
-                                  color: Colors.white,
+                                  color: context.titleColor,
                                   fontSize: 16,
                                   fontWeight: FontWeight.bold,
                                 ),
                               ),
-                              trailing: const Icon(Icons.arrow_forward_ios_rounded, color: Color(0xFF10B981), size: 16),
-                              onTap: () {
-                                setState(() {
-                                  _selectedKelasId = kelas['id'];
-                                });
-                                _fetchStudentsData();
-                              },
-                            );
-                          },
+                              const SizedBox(height: 6),
+                              Text(
+                                "Pilih kelas di bawah untuk menjelajah data dan profil lengkap santri.",
+                                style: GoogleFonts.outfit(
+                                  color: context.subTitleColor,
+                                  fontSize: 12,
+                                ),
+                              ),
+                              const SizedBox(height: 20),
+                              Expanded(
+                                child: GridView.builder(
+                                  physics: const BouncingScrollPhysics(),
+                                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                                    crossAxisCount: 2,
+                                    crossAxisSpacing: 14,
+                                    mainAxisSpacing: 14,
+                                    childAspectRatio: 1.1,
+                                  ),
+                                  itemCount: _availableClasses.length,
+                                  itemBuilder: (context, index) {
+                                    final kelas = _availableClasses[index];
+                                    final namaKelas = kelas['nama'] ?? '';
+                                    
+                                    // Deterministic styling based on index and theme
+                                    final List<Color> cardColors = context.isDarkMode
+                                        ? (index % 3 == 0
+                                            ? [const Color(0xFF064E3B).withOpacity(0.4), const Color(0xFF022C22).withOpacity(0.6)]
+                                            : index % 3 == 1
+                                                ? [const Color(0xFF1E3A8A).withOpacity(0.4), const Color(0xFF172554).withOpacity(0.6)]
+                                                : [const Color(0xFF78350F).withOpacity(0.4), const Color(0xFF451A03).withOpacity(0.6)])
+                                        : (index % 3 == 0
+                                            ? [const Color(0xFFECFDF5), const Color(0xFFD1FAE5)]
+                                            : index % 3 == 1
+                                                ? [const Color(0xFFEFF6FF), const Color(0xFFDBEAFE)]
+                                                : [const Color(0xFFFFFBEB), const Color(0xFFFEF3C7)]);
+
+                                    final Color accentColor = index % 3 == 0
+                                        ? const Color(0xFF10B981)
+                                        : index % 3 == 1
+                                            ? const Color(0xFF3B82F6)
+                                            : const Color(0xFFF59E0B);
+
+                                    return GestureDetector(
+                                      onTap: () {
+                                        setState(() {
+                                          _selectedKelasId = kelas['id'];
+                                        });
+                                        _fetchStudentsData();
+                                      },
+                                      child: Container(
+                                        decoration: BoxDecoration(
+                                          gradient: LinearGradient(
+                                            colors: cardColors,
+                                            begin: Alignment.topLeft,
+                                            end: Alignment.bottomRight,
+                                          ),
+                                          borderRadius: BorderRadius.circular(20),
+                                          border: Border.all(
+                                            color: accentColor.withOpacity(context.isDarkMode ? 0.2 : 0.6),
+                                            width: 1.2,
+                                          ),
+                                          boxShadow: [
+                                            BoxShadow(
+                                              color: Colors.black.withOpacity(context.isDarkMode ? 0.2 : 0.04),
+                                              blurRadius: 6,
+                                              offset: const Offset(0, 3),
+                                            )
+                                          ],
+                                        ),
+                                        padding: const EdgeInsets.all(16),
+                                        child: Column(
+                                          crossAxisAlignment: CrossAxisAlignment.start,
+                                          children: [
+                                            Container(
+                                              padding: const EdgeInsets.all(8),
+                                              decoration: BoxDecoration(
+                                                color: context.isDarkMode ? Colors.white.withOpacity(0.06) : Colors.white,
+                                                borderRadius: BorderRadius.circular(10),
+                                                boxShadow: context.isDarkMode
+                                                    ? null
+                                                    : [
+                                                        BoxShadow(
+                                                          color: Colors.black.withOpacity(0.05),
+                                                          blurRadius: 4,
+                                                          offset: const Offset(0, 1),
+                                                        )
+                                                      ],
+                                              ),
+                                              child: Icon(
+                                                Icons.groups_rounded,
+                                                color: accentColor,
+                                                size: 18,
+                                              ),
+                                            ),
+                                            const Spacer(),
+                                            Text(
+                                              "Kelas $namaKelas",
+                                              style: GoogleFonts.outfit(
+                                                color: context.titleColor,
+                                                fontSize: 15,
+                                                fontWeight: FontWeight.bold,
+                                              ),
+                                            ),
+                                            const SizedBox(height: 3),
+                                            Row(
+                                              children: [
+                                                Text(
+                                                  "Lihat Santri",
+                                                  style: GoogleFonts.outfit(
+                                                    color: accentColor,
+                                                    fontSize: 10,
+                                                    fontWeight: FontWeight.bold,
+                                                  ),
+                                                ),
+                                                const SizedBox(width: 4),
+                                                Icon(
+                                                  Icons.arrow_forward_rounded,
+                                                  color: accentColor,
+                                                  size: 10,
+                                                ),
+                                              ],
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                    );
+                                  },
+                                ),
+                              ),
+                            ],
+                          ),
                         ),
                       )
                     else ...[
-                      // Search Bar
+                      // INSIDE CLASS: Search Bar
                       Padding(
-                        padding: const EdgeInsets.all(16.0),
+                        padding: const EdgeInsets.fromLTRB(16, 16, 16, 10),
                         child: TextField(
                           controller: _searchController,
                           onChanged: _onSearchChanged,
-                          style: GoogleFonts.inter(color: Colors.white, fontSize: 14),
+                          style: GoogleFonts.inter(color: context.titleColor, fontSize: 14),
                           decoration: InputDecoration(
                             hintText: 'Cari nama atau NIS santri...',
-                            hintStyle: GoogleFonts.inter(color: const Color(0xFF475569), fontSize: 13),
-                            prefixIcon: const Icon(Icons.search_rounded, color: Color(0xFF64748B)),
+                            hintStyle: GoogleFonts.inter(color: context.subTitleColor, fontSize: 13),
+                            prefixIcon: Icon(Icons.search_rounded, color: context.subTitleColor),
                             suffixIcon: _searchController.text.isNotEmpty
                                 ? IconButton(
-                                    icon: const Icon(Icons.clear_rounded, color: Color(0xFF64748B)),
+                                    icon: Icon(Icons.clear_rounded, color: context.subTitleColor),
                                     onPressed: () {
                                       _searchController.clear();
                                       _onSearchChanged('');
@@ -241,7 +395,7 @@ class _SantriExplorerScreenState extends State<SantriExplorerScreen> {
                                   )
                                 : null,
                             filled: true,
-                            fillColor: const Color(0xFF131B2E),
+                            fillColor: context.inputBg,
                             contentPadding: const EdgeInsets.symmetric(vertical: 14),
                             border: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(14),
@@ -251,17 +405,17 @@ class _SantriExplorerScreenState extends State<SantriExplorerScreen> {
                         ),
                       ),
                       
-                      // Student Count Banner
+                      // Count Banner
                       Padding(
                         padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 4.0),
                         child: Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
                             Text(
-                              "DAFTAR SANTRI BINAAN",
+                              "DAFTAR SANTRI AKTIF",
                               style: GoogleFonts.outfit(
-                                color: const Color(0xFF475569),
-                                fontSize: 11,
+                                color: context.subTitleColor,
+                                fontSize: 10,
                                 fontWeight: FontWeight.bold,
                                 letterSpacing: 1.2,
                               ),
@@ -270,7 +424,7 @@ class _SantriExplorerScreenState extends State<SantriExplorerScreen> {
                               "${_filteredStudents.length} Santri",
                               style: GoogleFonts.outfit(
                                 color: const Color(0xFF10B981),
-                                fontSize: 12,
+                                fontSize: 11,
                                 fontWeight: FontWeight.bold,
                               ),
                             ),
@@ -279,7 +433,7 @@ class _SantriExplorerScreenState extends State<SantriExplorerScreen> {
                       ),
                       const SizedBox(height: 10),
 
-                      // Students List
+                      // INSIDE CLASS: Student Grid Cards View
                       Expanded(
                         child: _filteredStudents.isEmpty
                             ? Center(
@@ -288,71 +442,32 @@ class _SantriExplorerScreenState extends State<SantriExplorerScreen> {
                                       ? "Tidak ada santri aktif di kelas ini."
                                       : "Santri tidak ditemukan.",
                                   style: GoogleFonts.outfit(
-                                    color: const Color(0xFF64748B),
+                                    color: context.bodyColor,
                                     fontSize: 14,
                                   ),
                                 ),
                               )
-                            : ListView.builder(
+                            : GridView.builder(
                                 physics: const BouncingScrollPhysics(),
-                                padding: const EdgeInsets.symmetric(horizontal: 16),
+                                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                                  crossAxisCount: 2,
+                                  crossAxisSpacing: 12,
+                                  mainAxisSpacing: 12,
+                                  childAspectRatio: 0.8,
+                                ),
                                 itemCount: _filteredStudents.length,
                                 itemBuilder: (context, index) {
                                   final student = _filteredStudents[index];
                                   return Card(
-                                    color: const Color(0xFF131C2E),
-                                    margin: const EdgeInsets.only(bottom: 12),
+                                    color: context.cardBg,
+                                    margin: EdgeInsets.zero,
                                     shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(16),
-                                      side: BorderSide(color: Colors.white.withOpacity(0.04)),
+                                      borderRadius: BorderRadius.circular(20),
+                                      side: BorderSide(color: context.borderColor),
                                     ),
                                     elevation: 0,
-                                    child: ListTile(
-                                      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                                      leading: Container(
-                                        width: 48,
-                                        height: 48,
-                                        decoration: BoxDecoration(
-                                          color: Colors.white.withOpacity(0.05),
-                                          shape: BoxShape.circle,
-                                          border: Border.all(
-                                            color: const Color(0xFF10B981).withOpacity(0.3),
-                                          ),
-                                        ),
-                                        child: ClipOval(
-                                          child: student.fotoUrl != null
-                                              ? Image.network(
-                                                  "${ApiService.baseUrl}${student.fotoUrl}",
-                                                  fit: BoxFit.cover,
-                                                  errorBuilder: (context, error, stackTrace) =>
-                                                      _buildDefaultAvatar(student.jenisKelamin),
-                                                )
-                                              : _buildDefaultAvatar(student.jenisKelamin),
-                                        ),
-                                      ),
-                                      title: Text(
-                                        student.nama,
-                                        style: GoogleFonts.outfit(
-                                          color: Colors.white,
-                                          fontSize: 15,
-                                          fontWeight: FontWeight.bold,
-                                        ),
-                                      ),
-                                      subtitle: Padding(
-                                        padding: const EdgeInsets.only(top: 4.0),
-                                        child: Text(
-                                          "NIS: ${student.nis} • Kamar: ${student.kamarNama}",
-                                          style: GoogleFonts.outfit(
-                                            color: const Color(0xFF94A3B8),
-                                            fontSize: 12,
-                                          ),
-                                        ),
-                                      ),
-                                      trailing: const Icon(
-                                        Icons.arrow_forward_ios_rounded,
-                                        color: Color(0xFF475569),
-                                        size: 14,
-                                      ),
+                                    child: InkWell(
                                       onTap: () {
                                         Navigator.push(
                                           context,
@@ -361,6 +476,74 @@ class _SantriExplorerScreenState extends State<SantriExplorerScreen> {
                                           ),
                                         );
                                       },
+                                      borderRadius: BorderRadius.circular(20),
+                                      child: Padding(
+                                        padding: const EdgeInsets.all(12.0),
+                                        child: Column(
+                                          mainAxisAlignment: MainAxisAlignment.center,
+                                          children: [
+                                            // Avatar
+                                            Container(
+                                              width: 56,
+                                              height: 56,
+                                              decoration: BoxDecoration(
+                                                color: Colors.white.withOpacity(0.05),
+                                                shape: BoxShape.circle,
+                                                border: Border.all(
+                                                  color: const Color(0xFF10B981).withOpacity(0.3),
+                                                  width: 1.5,
+                                                ),
+                                              ),
+                                              child: ClipOval(
+                                                child: student.fotoUrl != null && student.fotoUrl!.isNotEmpty
+                                                    ? Image.network(
+                                                        _apiService.getFullImageUrl(student.fotoUrl),
+                                                        fit: BoxFit.cover,
+                                                        errorBuilder: (context, error, stackTrace) =>
+                                                            _buildDefaultAvatar(student.jenisKelamin),
+                                                      )
+                                                    : _buildDefaultAvatar(student.jenisKelamin),
+                                              ),
+                                            ),
+                                            const SizedBox(height: 12),
+                                            // Name
+                                            Text(
+                                              student.nama,
+                                              style: GoogleFonts.outfit(
+                                                color: context.titleColor,
+                                                fontSize: 13,
+                                                fontWeight: FontWeight.bold,
+                                              ),
+                                              textAlign: TextAlign.center,
+                                              maxLines: 2,
+                                              overflow: TextOverflow.ellipsis,
+                                            ),
+                                            const SizedBox(height: 4),
+                                            // NIS
+                                            Text(
+                                              "NIS: ${student.nis}",
+                                              style: GoogleFonts.outfit(
+                                                color: context.subTitleColor,
+                                                fontSize: 10,
+                                              ),
+                                              textAlign: TextAlign.center,
+                                            ),
+                                            const SizedBox(height: 2),
+                                            // Room
+                                            Text(
+                                              student.kamarNama,
+                                              style: GoogleFonts.outfit(
+                                                color: const Color(0xFF10B981),
+                                                fontSize: 10,
+                                                fontWeight: FontWeight.w600,
+                                              ),
+                                              textAlign: TextAlign.center,
+                                              maxLines: 1,
+                                              overflow: TextOverflow.ellipsis,
+                                            ),
+                                          ],
+                                        ),
+                                      ),
                                     ),
                                   );
                                 },
@@ -376,7 +559,7 @@ class _SantriExplorerScreenState extends State<SantriExplorerScreen> {
     final isPutra = gender.toLowerCase() == 'putra' || gender.toLowerCase().startsWith('l');
     return Icon(
       isPutra ? Icons.face_rounded : Icons.face_3_rounded,
-      size: 26,
+      size: 28,
       color: const Color(0xFF10B981),
     );
   }

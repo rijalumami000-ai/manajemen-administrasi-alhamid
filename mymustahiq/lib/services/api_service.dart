@@ -103,6 +103,19 @@ class ApiService {
     }
   }
 
+  // Get all active classes list directly (skips homeroom fallback)
+  Future<Map<String, dynamic>> getClasses() async {
+    try {
+      final response = await _dio.get('/my-mustahiq/santri?force_classes=true');
+      if (response.statusCode == 200) {
+        return response.data;
+      }
+      throw Exception('Gagal mengambil daftar kelas.');
+    } catch (e) {
+      throw Exception('Tidak dapat memuat daftar kelas.');
+    }
+  }
+
   // Get Detailed Student Info (Profile, Grades, Achievements, Violations)
   Future<Map<String, dynamic>> getStudentDetail(int santriId) async {
     try {
@@ -169,4 +182,34 @@ class ApiService {
       return false;
     }
   }
+
+  // Format image URL by removing /api from the dynamic baseUrl
+  String getFullImageUrl(String? path) {
+    if (path == null || path.isEmpty) return '';
+    final currentBase = _dio.options.baseUrl;
+    final cleanBase = currentBase.endsWith('/api')
+        ? currentBase.substring(0, currentBase.length - 4)
+        : currentBase.replaceAll('/api', '');
+    return '$cleanBase$path';
+  }
+
+  // Change Password
+  Future<Map<String, dynamic>> changePassword(String oldPassword, String newPassword) async {
+    try {
+      final response = await _dio.post('/my-mustahiq/change-password', data: {
+        'oldPassword': oldPassword,
+        'newPassword': newPassword,
+      });
+      if (response.statusCode == 200) {
+        return response.data;
+      }
+      throw Exception('Gagal memperbarui password.');
+    } catch (e) {
+      if (e is DioException && e.response != null) {
+        throw Exception(e.response?.data['error'] ?? 'Gagal memperbarui password.');
+      }
+      throw Exception('Tidak dapat terhubung ke server.');
+    }
+  }
 }
+

@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../services/api_service.dart';
+import '../services/theme_manager.dart';
 
 class StrukturOrganisasiScreen extends StatefulWidget {
-  const StrukturOrganisasiScreen({super.key});
+  final int initialIndex;
+  const StrukturOrganisasiScreen({super.key, this.initialIndex = 0});
 
   @override
   State<StrukturOrganisasiScreen> createState() => _StrukturOrganisasiScreenState();
@@ -22,7 +24,7 @@ class _StrukturOrganisasiScreenState extends State<StrukturOrganisasiScreen> wit
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 2, vsync: this);
+    _tabController = TabController(length: 2, vsync: this, initialIndex: widget.initialIndex);
     _fetchStructureData();
   }
 
@@ -58,23 +60,23 @@ class _StrukturOrganisasiScreenState extends State<StrukturOrganisasiScreen> wit
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFF070B13),
+      backgroundColor: context.scaffoldBg,
       appBar: AppBar(
-        backgroundColor: const Color(0xFF0D1527),
+        backgroundColor: context.isDarkMode ? const Color(0xFF0D1527) : Colors.white,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios_new_rounded, color: Colors.white, size: 20),
+          icon: Icon(Icons.arrow_back_ios_new_rounded, color: context.titleColor, size: 20),
           onPressed: () => Navigator.pop(context),
         ),
         title: Text(
           "Struktur Organisasi",
-          style: GoogleFonts.outfit(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 18),
+          style: GoogleFonts.outfit(color: context.titleColor, fontWeight: FontWeight.bold, fontSize: 18),
         ),
         bottom: TabBar(
           controller: _tabController,
           indicatorColor: const Color(0xFF10B981),
-          labelColor: Colors.white,
-          unselectedLabelColor: const Color(0xFF64748B),
+          labelColor: const Color(0xFF10B981),
+          unselectedLabelColor: context.subTitleColor,
           labelStyle: GoogleFonts.outfit(fontWeight: FontWeight.bold, fontSize: 14),
           unselectedLabelStyle: GoogleFonts.outfit(fontWeight: FontWeight.normal, fontSize: 14),
           tabs: const [
@@ -97,7 +99,7 @@ class _StrukturOrganisasiScreenState extends State<StrukturOrganisasiScreen> wit
                         Text(
                           _errorMessage!,
                           textAlign: TextAlign.center,
-                          style: GoogleFonts.outfit(color: Colors.white, fontSize: 15),
+                          style: GoogleFonts.outfit(color: context.titleColor, fontSize: 15),
                         ),
                         const SizedBox(height: 20),
                         ElevatedButton(
@@ -126,7 +128,7 @@ class _StrukturOrganisasiScreenState extends State<StrukturOrganisasiScreen> wit
       return Center(
         child: Text(
           "Struktur belum terkonfigurasi.",
-          style: GoogleFonts.outfit(color: const Color(0xFF64748B), fontSize: 14),
+          style: GoogleFonts.outfit(color: context.subTitleColor, fontSize: 14),
         ),
       );
     }
@@ -157,7 +159,7 @@ class _StrukturOrganisasiScreenState extends State<StrukturOrganisasiScreen> wit
                       decoration: BoxDecoration(
                         color: badgeColor,
                         shape: BoxShape.circle,
-                        border: Border.all(color: Colors.white, width: 2),
+                        border: Border.all(color: context.scaffoldBg, width: 2),
                       ),
                     ),
                     if (index < list.length - 1)
@@ -174,11 +176,11 @@ class _StrukturOrganisasiScreenState extends State<StrukturOrganisasiScreen> wit
                 // Content Card
                 Expanded(
                   child: Card(
-                    color: const Color(0xFF131C2E),
+                    color: context.cardBg,
                     margin: EdgeInsets.zero,
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(20),
-                      side: BorderSide(color: Colors.white.withOpacity(0.04)),
+                      side: BorderSide(color: context.borderColor),
                     ),
                     elevation: 0,
                     child: Padding(
@@ -197,12 +199,12 @@ class _StrukturOrganisasiScreenState extends State<StrukturOrganisasiScreen> wit
                             child: ClipOval(
                               child: photo != null
                                   ? Image.network(
-                                      "${ApiService.baseUrl}$photo",
+                                      _apiService.getFullImageUrl(photo),
                                       fit: BoxFit.cover,
                                       errorBuilder: (context, error, stackTrace) =>
-                                          const Icon(Icons.person_rounded, color: Color(0xFF64748B), size: 28),
+                                          Icon(Icons.person_rounded, color: context.subTitleColor, size: 28),
                                     )
-                                  : const Icon(Icons.person_rounded, color: Color(0xFF64748B), size: 28),
+                                  : Icon(Icons.person_rounded, color: context.subTitleColor, size: 28),
                             ),
                           ),
                           const SizedBox(width: 16),
@@ -226,7 +228,7 @@ class _StrukturOrganisasiScreenState extends State<StrukturOrganisasiScreen> wit
                                 Text(
                                   name,
                                   style: GoogleFonts.outfit(
-                                    color: Colors.white,
+                                    color: context.titleColor,
                                     fontSize: 15,
                                     fontWeight: FontWeight.bold,
                                   ),
@@ -236,7 +238,7 @@ class _StrukturOrganisasiScreenState extends State<StrukturOrganisasiScreen> wit
                                   Text(
                                     "No. HP: $phone",
                                     style: GoogleFonts.outfit(
-                                      color: const Color(0xFF64748B),
+                                      color: context.bodyColor,
                                       fontSize: 12,
                                     ),
                                   ),

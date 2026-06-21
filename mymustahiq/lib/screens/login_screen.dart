@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:local_auth/local_auth.dart';
 import '../services/api_service.dart';
+import '../services/theme_manager.dart';
 import 'dashboard_screen.dart';
 
 class LoginScreen extends StatefulWidget {
@@ -18,12 +21,37 @@ class _LoginScreenState extends State<LoginScreen> {
   String? _errorMessage;
 
   final ApiService _apiService = ApiService();
+  final _storage = const FlutterSecureStorage();
+  final _auth = LocalAuthentication();
+  bool _biometricAvailable = false;
+  bool _biometricEnabled = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _checkBiometricLogin();
+  }
 
   @override
   void dispose() {
     _usernameController.dispose();
     _passwordController.dispose();
     super.dispose();
+  }
+
+  Future<void> _checkBiometricLogin() async {
+    try {
+      final canCheck = await _auth.canCheckBiometrics;
+      final isSupported = await _auth.isDeviceSupported();
+      final bioPref = await _storage.read(key: 'biometric_enabled');
+
+      if (mounted) {
+        setState(() {
+          _biometricAvailable = canCheck && isSupported;
+          _biometricEnabled = bioPref == 'true';
+        });
+      }
+    } catch (_) {}
   }
 
   Future<void> _handleLogin() async {
@@ -44,6 +72,49 @@ class _LoginScreenState extends State<LoginScreen> {
 
     try {
       await _apiService.login(username, password);
+      // Save credentials securely for biometric auto-login
+      await _storage.write(key: 'saved_username', value: username);
+      await _storage.write(key: 'saved_password', value: password);
+      if (mounted) {
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (context) => const DashboardScreen()),
+        );
+      }
+    } catch (e) {
+      setState(() {
+        _errorMessage = e.toString().replaceFirst('Exception: ', '');
+        _isLoading = false;
+      });
+    }
+  }
+
+  Future<void> _handleBiometricLogin() async {
+    try {
+      final didAuth = await _auth.authenticate(
+        localizedReason: 'Login ke MyMustahiq menggunakan biometrik',
+        options: const AuthenticationOptions(biometricOnly: true),
+      );
+
+      if (!didAuth) return;
+
+      // Retrieve saved credentials
+      final savedUser = await _storage.read(key: 'saved_username');
+      final savedPass = await _storage.read(key: 'saved_password');
+
+      if (savedUser == null || savedPass == null) {
+        setState(() {
+          _errorMessage = 'Silakan login manual terlebih dahulu, lalu aktifkan biometrik di menu Akun.';
+        });
+        return;
+      }
+
+      setState(() {
+        _isLoading = true;
+        _errorMessage = null;
+      });
+
+      await _apiService.login(savedUser, savedPass);
       if (mounted) {
         Navigator.pushReplacement(
           context,
@@ -60,8 +131,9 @@ class _LoginScreenState extends State<LoginScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = context.isDarkMode;
     return Scaffold(
-      backgroundColor: const Color(0xFF070B13), // Ultra deep space
+      backgroundColor: context.scaffoldBg,
       body: Stack(
         children: [
           // Background Emerald Glow
@@ -75,7 +147,7 @@ class _LoginScreenState extends State<LoginScreen> {
                 shape: BoxShape.circle,
                 gradient: RadialGradient(
                   colors: [
-                    const Color(0xFF064E3B).withOpacity(0.3),
+                    const Color(0xFF064E3B).withOpacity(isDark ? 0.3 : 0.08),
                     Colors.transparent,
                   ],
                 ),
@@ -94,7 +166,7 @@ class _LoginScreenState extends State<LoginScreen> {
                 shape: BoxShape.circle,
                 gradient: RadialGradient(
                   colors: [
-                    const Color(0xFFD97706).withOpacity(0.15),
+                    const Color(0xFFD97706).withOpacity(isDark ? 0.15 : 0.04),
                     Colors.transparent,
                   ],
                 ),
@@ -122,9 +194,9 @@ class _LoginScreenState extends State<LoginScreen> {
                             padding: const EdgeInsets.all(12),
                             decoration: BoxDecoration(
                               shape: BoxShape.circle,
-                              color: Colors.white.withOpacity(0.05),
+                              color: isDark ? Colors.white.withOpacity(0.05) : Colors.black.withOpacity(0.02),
                               border: Border.all(
-                                color: const Color(0xFF064E3B).withOpacity(0.3),
+                                color: const Color(0xFF064E3B).withOpacity(isDark ? 0.3 : 0.1),
                                 width: 2,
                               ),
                             ),
@@ -148,7 +220,7 @@ class _LoginScreenState extends State<LoginScreen> {
                           'MyMustahiq',
                           textAlign: TextAlign.center,
                           style: GoogleFonts.outfit(
-                            color: Colors.white,
+                            color: context.titleColor,
                             fontSize: 32,
                             fontWeight: FontWeight.w900,
                             letterSpacing: -0.5,
@@ -159,7 +231,7 @@ class _LoginScreenState extends State<LoginScreen> {
                           'Portal Khusus Guru Diniyah Al-Hamid',
                           textAlign: TextAlign.center,
                           style: GoogleFonts.outfit(
-                            color: const Color(0xFF94A3B8),
+                            color: context.subTitleColor,
                             fontSize: 15,
                             fontWeight: FontWeight.w400,
                           ),
@@ -198,7 +270,7 @@ class _LoginScreenState extends State<LoginScreen> {
                         Text(
                           'USERNAME',
                           style: GoogleFonts.outfit(
-                            color: const Color(0xFF64748B),
+                            color: context.subTitleColor,
                             fontSize: 11,
                             fontWeight: FontWeight.bold,
                             letterSpacing: 1.5,
@@ -207,13 +279,13 @@ class _LoginScreenState extends State<LoginScreen> {
                         const SizedBox(height: 8),
                         TextField(
                           controller: _usernameController,
-                          style: GoogleFonts.inter(color: Colors.white, fontSize: 15),
+                          style: GoogleFonts.inter(color: context.titleColor, fontSize: 15),
                           decoration: InputDecoration(
                             hintText: 'Masukkan username Diniyah Anda',
-                            hintStyle: GoogleFonts.inter(color: const Color(0xFF475569), fontSize: 14),
+                            hintStyle: GoogleFonts.inter(color: context.subTitleColor, fontSize: 14),
                             filled: true,
-                            fillColor: const Color(0xFF131B2E),
-                            prefixIcon: const Icon(Icons.person_outline_rounded, color: Color(0xFF64748B)),
+                            fillColor: context.inputBg,
+                            prefixIcon: Icon(Icons.person_outline_rounded, color: context.subTitleColor),
                             contentPadding: const EdgeInsets.symmetric(vertical: 18),
                             border: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(16),
@@ -231,7 +303,7 @@ class _LoginScreenState extends State<LoginScreen> {
                         Text(
                           'PASSWORD',
                           style: GoogleFonts.outfit(
-                            color: const Color(0xFF64748B),
+                            color: context.subTitleColor,
                             fontSize: 11,
                             fontWeight: FontWeight.bold,
                             letterSpacing: 1.5,
@@ -241,17 +313,17 @@ class _LoginScreenState extends State<LoginScreen> {
                         TextField(
                           controller: _passwordController,
                           obscureText: _obscurePassword,
-                          style: GoogleFonts.inter(color: Colors.white, fontSize: 15),
+                          style: GoogleFonts.inter(color: context.titleColor, fontSize: 15),
                           decoration: InputDecoration(
                             hintText: 'Masukkan password Anda',
-                            hintStyle: GoogleFonts.inter(color: const Color(0xFF475569), fontSize: 14),
+                            hintStyle: GoogleFonts.inter(color: context.subTitleColor, fontSize: 14),
                             filled: true,
-                            fillColor: const Color(0xFF131B2E),
-                            prefixIcon: const Icon(Icons.lock_outline_rounded, color: Color(0xFF64748B)),
+                            fillColor: context.inputBg,
+                            prefixIcon: Icon(Icons.lock_outline_rounded, color: context.subTitleColor),
                             suffixIcon: IconButton(
                               icon: Icon(
                                 _obscurePassword ? Icons.visibility_off_outlined : Icons.visibility_outlined,
-                                color: const Color(0xFF64748B),
+                                color: context.subTitleColor,
                               ),
                               onPressed: () {
                                 setState(() {
@@ -272,52 +344,84 @@ class _LoginScreenState extends State<LoginScreen> {
                         ),
                         const SizedBox(height: 35),
 
-                        // Login Button
-                        Container(
-                          height: 56,
-                          decoration: BoxDecoration(
-                            borderRadius: BorderRadius.circular(16),
-                            boxShadow: [
-                              BoxShadow(
-                                color: const Color(0xFF10B981).withOpacity(0.3),
-                                blurRadius: 20,
-                                offset: const Offset(0, 4),
-                                spreadRadius: -5,
-                              ),
-                            ],
-                          ),
-                          child: ElevatedButton(
-                            onPressed: _isLoading ? null : _handleLogin,
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: const Color(0xFF064E3B),
-                              foregroundColor: Colors.white,
-                              elevation: 0,
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(16),
-                              ),
-                              side: BorderSide(
-                                color: const Color(0xFF10B981).withOpacity(0.5),
-                                width: 1.5,
-                              ),
-                            ),
-                            child: _isLoading
-                                ? const SizedBox(
-                                    width: 24,
-                                    height: 24,
-                                    child: CircularProgressIndicator(
-                                      color: Colors.white,
-                                      strokeWidth: 2.5,
+                        // Login Button Row (+ Biometric)
+                        Row(
+                          children: [
+                            // Main Login Button
+                            Expanded(
+                              child: Container(
+                                height: 56,
+                                decoration: BoxDecoration(
+                                  borderRadius: BorderRadius.circular(16),
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: const Color(0xFF10B981).withOpacity(isDark ? 0.3 : 0.1),
+                                      blurRadius: 20,
+                                      offset: const Offset(0, 4),
+                                      spreadRadius: -5,
                                     ),
-                                  )
-                                : Text(
-                                    'MASUK SISTEM',
-                                    style: GoogleFonts.outfit(
-                                      fontSize: 16,
-                                      fontWeight: FontWeight.bold,
-                                      letterSpacing: 1.2,
+                                  ],
+                                ),
+                                child: ElevatedButton(
+                                  onPressed: _isLoading ? null : _handleLogin,
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: const Color(0xFF064E3B),
+                                    foregroundColor: Colors.white,
+                                    elevation: 0,
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(16),
+                                    ),
+                                    side: BorderSide(
+                                      color: const Color(0xFF10B981).withOpacity(0.5),
+                                      width: 1.5,
                                     ),
                                   ),
-                          ),
+                                  child: _isLoading
+                                      ? const SizedBox(
+                                          width: 24,
+                                          height: 24,
+                                          child: CircularProgressIndicator(
+                                            color: Colors.white,
+                                            strokeWidth: 2.5,
+                                          ),
+                                        )
+                                      : Text(
+                                          'MASUK SISTEM',
+                                          style: GoogleFonts.outfit(
+                                            fontSize: 16,
+                                            fontWeight: FontWeight.bold,
+                                            letterSpacing: 1.2,
+                                          ),
+                                        ),
+                                ),
+                              ),
+                            ),
+
+                            // Biometric Button
+                            if (_biometricAvailable && _biometricEnabled) ...[
+                              const SizedBox(width: 12),
+                              Container(
+                                height: 56,
+                                width: 56,
+                                decoration: BoxDecoration(
+                                  borderRadius: BorderRadius.circular(16),
+                                  border: Border.all(
+                                    color: const Color(0xFF10B981).withOpacity(isDark ? 0.4 : 0.2),
+                                    width: 1.5,
+                                  ),
+                                  color: context.inputBg,
+                                ),
+                                child: IconButton(
+                                  onPressed: _isLoading ? null : _handleBiometricLogin,
+                                  icon: const Icon(
+                                    Icons.fingerprint_rounded,
+                                    color: Color(0xFF10B981),
+                                    size: 28,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ],
                         ),
                         const SizedBox(height: 30),
 
@@ -326,7 +430,7 @@ class _LoginScreenState extends State<LoginScreen> {
                           'Madrasah Diniyah Al-Hamid Cintamulya\nMasa Depan Cerdas & Berakhlak Mulia',
                           textAlign: TextAlign.center,
                           style: GoogleFonts.outfit(
-                            color: const Color(0xFF475569),
+                            color: context.subTitleColor,
                             fontSize: 12,
                             height: 1.5,
                           ),

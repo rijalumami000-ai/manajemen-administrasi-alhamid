@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../services/api_service.dart';
+import '../services/theme_manager.dart';
 
 class JadwalPelajaranScreen extends StatefulWidget {
   const JadwalPelajaranScreen({super.key});
@@ -34,17 +35,26 @@ class _JadwalPelajaranScreenState extends State<JadwalPelajaranScreen> {
     });
 
     try {
-      final res = await _apiService.getStudents(null);
+      final res = await _apiService.getClasses();
       if (res['classes'] != null) {
         final list = List<Map<String, dynamic>>.from(res['classes']);
         setState(() {
           _classes = list;
           _isLoadingClasses = false;
         });
-
-        if (list.isNotEmpty) {
-          _selectClass(list[0]['id'], list[0]['name'] ?? list[0]['nama'] ?? '');
-        }
+      } else if (res['kelas'] != null) {
+        // Fallback to single homeroom class from older server responses
+        final singleKelas = res['kelas'];
+        final list = [
+          {
+            'id': singleKelas['id'],
+            'nama': singleKelas['nama'],
+          }
+        ];
+        setState(() {
+          _classes = list;
+          _isLoadingClasses = false;
+        });
       } else {
         throw Exception('Gagal memuat daftar kelas.');
       }
@@ -97,7 +107,6 @@ class _JadwalPelajaranScreenState extends State<JadwalPelajaranScreen> {
 
   @override
   Widget build(BuildContext context) {
-    // Standard ordered Diniyah nights
     final orderMalam = [
       'Malam Sabtu',
       'Malam Minggu',
@@ -108,48 +117,35 @@ class _JadwalPelajaranScreenState extends State<JadwalPelajaranScreen> {
       'Malam Jumat'
     ];
 
+    final isClassSelected = _selectedKelasId != null;
+
     return Scaffold(
-      backgroundColor: const Color(0xFF070B13),
+      backgroundColor: context.scaffoldBg,
       appBar: AppBar(
-        backgroundColor: const Color(0xFF0D1527),
+        backgroundColor: context.isDarkMode ? const Color(0xFF0D1527) : Colors.white,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios_new_rounded, color: Colors.white, size: 20),
-          onPressed: () => Navigator.pop(context),
+          icon: Icon(Icons.arrow_back_ios_new_rounded, color: context.titleColor, size: 20),
+          onPressed: () {
+            if (isClassSelected) {
+              setState(() {
+                _selectedKelasId = null;
+                _selectedKelasNama = '';
+                _weeklySchedule = {};
+              });
+            } else {
+              Navigator.pop(context);
+            }
+          },
         ),
         title: Text(
-          "Jadwal Pelajaran",
-          style: GoogleFonts.outfit(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 18),
+          isClassSelected ? "Jadwal Kelas $_selectedKelasNama" : "Jadwal Pelajaran",
+          style: GoogleFonts.outfit(color: context.titleColor, fontWeight: FontWeight.bold, fontSize: 18),
         ),
-        actions: [
-          if (_classes.isNotEmpty)
-            PopupMenuButton<Map<String, dynamic>>(
-              icon: const Icon(Icons.class_rounded, color: Color(0xFF10B981)),
-              color: const Color(0xFF131B2E),
-              tooltip: 'Pilih Kelas',
-              onSelected: (kelas) {
-                _selectClass(kelas['id'], kelas['nama'] ?? '');
-              },
-              itemBuilder: (BuildContext context) {
-                return _classes.map((kelas) {
-                  return PopupMenuItem<Map<String, dynamic>>(
-                    value: kelas,
-                    child: Text(
-                      "Kelas ${kelas['nama']}",
-                      style: GoogleFonts.outfit(
-                        color: _selectedKelasId == kelas['id'] ? const Color(0xFF10B981) : Colors.white,
-                        fontWeight: _selectedKelasId == kelas['id'] ? FontWeight.bold : FontWeight.normal,
-                      ),
-                    ),
-                  );
-                }).toList();
-              },
-            ),
-        ],
       ),
       body: _isLoadingClasses
           ? const Center(child: CircularProgressIndicator(color: Color(0xFF10B981)))
-          : _errorMessage != null && _weeklySchedule.isEmpty
+          : _errorMessage != null && !isClassSelected
               ? Center(
                   child: Padding(
                     padding: const EdgeInsets.all(24.0),
@@ -161,7 +157,7 @@ class _JadwalPelajaranScreenState extends State<JadwalPelajaranScreen> {
                         Text(
                           _errorMessage!,
                           textAlign: TextAlign.center,
-                          style: GoogleFonts.outfit(color: Colors.white, fontSize: 15),
+                          style: GoogleFonts.outfit(color: context.titleColor, fontSize: 15),
                         ),
                         const SizedBox(height: 20),
                         ElevatedButton(
@@ -175,170 +171,328 @@ class _JadwalPelajaranScreenState extends State<JadwalPelajaranScreen> {
                     ),
                   ),
                 )
-              : Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    // Subheader Info
-                    if (_selectedKelasNama.isNotEmpty)
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-                        color: const Color(0xFF131C2E).withOpacity(0.4),
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              : !isClassSelected
+                  ? _buildClassGrid()
+                  : _buildScheduleView(orderMalam),
+    );
+  }
+
+  Widget _buildClassGrid() {
+    if (_classes.isEmpty) {
+      return Center(
+        child: Text(
+          "Tidak ada kelas aktif.",
+          style: GoogleFonts.outfit(color: context.subTitleColor, fontSize: 14),
+        ),
+      );
+    }
+
+    return Padding(
+      padding: const EdgeInsets.all(20.0),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            "Pilih Kelas Diniyah",
+            style: GoogleFonts.outfit(
+              color: context.titleColor,
+              fontSize: 16,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          const SizedBox(height: 6),
+          Text(
+            "Pilih salah satu kelas di bawah untuk melihat rincian jadwal mingguan.",
+            style: GoogleFonts.outfit(
+              color: context.subTitleColor,
+              fontSize: 12,
+            ),
+          ),
+          const SizedBox(height: 20),
+          Expanded(
+            child: GridView.builder(
+              physics: const BouncingScrollPhysics(),
+              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                crossAxisCount: 2,
+                crossAxisSpacing: 14,
+                mainAxisSpacing: 14,
+                childAspectRatio: 1.1,
+              ),
+              itemCount: _classes.length,
+              itemBuilder: (context, index) {
+                final kelas = _classes[index];
+                final namaKelas = kelas['nama'] ?? '';
+                
+                // Deterministic gradient based on index and theme mode
+                final List<Color> cardColors = context.isDarkMode
+                    ? (index % 3 == 0
+                        ? [const Color(0xFF064E3B).withOpacity(0.4), const Color(0xFF022C22).withOpacity(0.6)]
+                        : index % 3 == 1
+                            ? [const Color(0xFF1E3A8A).withOpacity(0.4), const Color(0xFF172554).withOpacity(0.6)]
+                            : [const Color(0xFF78350F).withOpacity(0.4), const Color(0xFF451A03).withOpacity(0.6)])
+                    : (index % 3 == 0
+                        ? [const Color(0xFFECFDF5), const Color(0xFFD1FAE5)]
+                        : index % 3 == 1
+                            ? [const Color(0xFFEFF6FF), const Color(0xFFDBEAFE)]
+                            : [const Color(0xFFFFFBEB), const Color(0xFFFEF3C7)]);
+
+                final Color accentColor = index % 3 == 0
+                    ? const Color(0xFF10B981)
+                    : index % 3 == 1
+                        ? const Color(0xFF3B82F6)
+                        : const Color(0xFFF59E0B);
+
+                return GestureDetector(
+                  onTap: () => _selectClass(kelas['id'], namaKelas),
+                  child: Container(
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        colors: cardColors,
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                      ),
+                      borderRadius: BorderRadius.circular(20),
+                      border: Border.all(
+                        color: accentColor.withOpacity(context.isDarkMode ? 0.2 : 0.6),
+                        width: 1.2,
+                      ),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(context.isDarkMode ? 0.2 : 0.04),
+                          blurRadius: 6,
+                          offset: const Offset(0, 3),
+                        )
+                      ],
+                    ),
+                    padding: const EdgeInsets.all(16),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(8),
+                          decoration: BoxDecoration(
+                            color: context.isDarkMode ? Colors.white.withOpacity(0.06) : Colors.white,
+                            borderRadius: BorderRadius.circular(10),
+                            boxShadow: context.isDarkMode
+                                ? null
+                                : [
+                                    BoxShadow(
+                                      color: Colors.black.withOpacity(0.05),
+                                      blurRadius: 4,
+                                      offset: const Offset(0, 1),
+                                    )
+                                  ],
+                          ),
+                          child: Icon(
+                            Icons.school_rounded,
+                            color: accentColor,
+                            size: 18,
+                          ),
+                        ),
+                        const Spacer(),
+                        Text(
+                          "Kelas $namaKelas",
+                          style: GoogleFonts.outfit(
+                            color: context.titleColor,
+                            fontSize: 15,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        const SizedBox(height: 3),
+                        Row(
                           children: [
                             Text(
-                              "Jadwal Kelas: $_selectedKelasNama",
+                              "Lihat Jadwal",
                               style: GoogleFonts.outfit(
-                                color: Colors.white,
-                                fontSize: 14,
+                                color: accentColor,
+                                fontSize: 10,
                                 fontWeight: FontWeight.bold,
                               ),
                             ),
-                            Text(
-                              "T.A berjalan",
-                              style: GoogleFonts.outfit(
-                                color: const Color(0xFF10B981),
-                                fontSize: 12,
-                                fontWeight: FontWeight.w500,
-                              ),
+                            const SizedBox(width: 4),
+                            Icon(
+                              Icons.arrow_forward_rounded,
+                              color: accentColor,
+                              size: 10,
                             ),
                           ],
                         ),
-                      ),
-                    
-                    // Main Schedules
-                    Expanded(
-                      child: _isLoadingSchedule
-                          ? const Center(child: CircularProgressIndicator(color: Color(0xFF10B981)))
-                          : _weeklySchedule.isEmpty
-                              ? Center(
-                                  child: Text(
-                                    "Tidak ada jadwal pelajaran untuk kelas ini.",
-                                    style: GoogleFonts.outfit(color: const Color(0xFF64748B), fontSize: 14),
-                                  ),
-                                )
-                              : ListView.builder(
-                                  physics: const BouncingScrollPhysics(),
-                                  padding: const EdgeInsets.all(20),
-                                  itemCount: orderMalam.length,
-                                  itemBuilder: (context, index) {
-                                    final malamKey = orderMalam[index];
-                                    final dayList = _weeklySchedule[malamKey];
-                                    
-                                    // Don't render empty days
-                                    if (dayList == null || dayList.isEmpty) return const SizedBox();
+                      ],
+                    ),
+                  ),
+                );
+              },
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 
-                                    return Card(
-                                      color: const Color(0xFF131C2E),
-                                      margin: const EdgeInsets.only(bottom: 20),
-                                      shape: RoundedRectangleBorder(
-                                        borderRadius: BorderRadius.circular(20),
-                                        side: BorderSide(color: Colors.white.withOpacity(0.03)),
-                                      ),
-                                      child: Column(
-                                        crossAxisAlignment: CrossAxisAlignment.stretch,
-                                        children: [
-                                          // Day Title Banner
-                                          Container(
-                                            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-                                            decoration: BoxDecoration(
-                                              color: const Color(0xFF064E3B).withOpacity(0.15),
-                                              borderRadius: const BorderRadius.only(
-                                                topLeft: Radius.circular(20),
-                                                topRight: Radius.circular(20),
+  Widget _buildScheduleView(List<String> orderMalam) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        // Subheader Info
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+          color: context.isDarkMode ? const Color(0xFF131C2E).withOpacity(0.4) : context.surfaceBg,
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                "Jadwal Kelas Diniyah: $_selectedKelasNama",
+                style: GoogleFonts.outfit(
+                  color: context.titleColor,
+                  fontSize: 13,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              Text(
+                "T.A Berjalan",
+                style: GoogleFonts.outfit(
+                  color: const Color(0xFF10B981),
+                  fontSize: 11,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ],
+          ),
+        ),
+        
+        // Main Schedules
+        Expanded(
+          child: _isLoadingSchedule
+              ? const Center(child: CircularProgressIndicator(color: Color(0xFF10B981)))
+              : _weeklySchedule.isEmpty
+                  ? Center(
+                      child: Text(
+                        "Tidak ada jadwal pelajaran untuk kelas ini.",
+                        style: GoogleFonts.outfit(color: context.bodyColor, fontSize: 14),
+                      ),
+                    )
+                  : ListView.builder(
+                      physics: const BouncingScrollPhysics(),
+                      padding: const EdgeInsets.all(20),
+                      itemCount: orderMalam.length,
+                      itemBuilder: (context, index) {
+                        final malamKey = orderMalam[index];
+                        final dayList = _weeklySchedule[malamKey];
+                        
+                        // Don't render empty days
+                        if (dayList == null || dayList.isEmpty) return const SizedBox();
+
+                        return Card(
+                          color: context.cardBg,
+                          margin: const EdgeInsets.only(bottom: 20),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(20),
+                            side: BorderSide(color: context.borderColor),
+                          ),
+                          elevation: 0,
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                            children: [
+                              // Day Title Banner
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                                decoration: BoxDecoration(
+                                  color: const Color(0xFF10B981).withOpacity(context.isDarkMode ? 0.15 : 0.08),
+                                  borderRadius: const BorderRadius.only(
+                                    topLeft: Radius.circular(20),
+                                    topRight: Radius.circular(20),
+                                  ),
+                                ),
+                                child: Text(
+                                  malamKey,
+                                  style: GoogleFonts.outfit(
+                                    color: context.isDarkMode ? const Color(0xFF34D399) : const Color(0xFF065F46),
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.bold,
+                                    letterSpacing: 1.0,
+                                  ),
+                                ),
+                              ),
+                              
+                              // Sessions in Day
+                              Padding(
+                                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                                child: Column(
+                                  children: dayList.map<Widget>((session) {
+                                    final mapelName = session['mata_pelajaran_nama'] ?? '-';
+                                    final ustadzName = session['guru_nama'] ?? '-';
+                                    final jamKe = session['jam_ke'] ?? 1;
+                                    return Column(
+                                      children: [
+                                        Padding(
+                                          padding: const EdgeInsets.symmetric(vertical: 12),
+                                          child: Row(
+                                            children: [
+                                              // Session Indicator
+                                              Container(
+                                                width: 38,
+                                                height: 38,
+                                                alignment: Alignment.center,
+                                                decoration: BoxDecoration(
+                                                  color: context.surfaceBg,
+                                                  borderRadius: BorderRadius.circular(12),
+                                                  border: Border.all(color: context.borderColor),
+                                                ),
+                                                child: Text(
+                                                  "$jamKe",
+                                                  style: GoogleFonts.outfit(
+                                                    color: const Color(0xFFF59E0B),
+                                                    fontSize: 16,
+                                                    fontWeight: FontWeight.bold,
+                                                  ),
+                                                ),
                                               ),
-                                            ),
-                                            child: Text(
-                                              malamKey,
-                                              style: GoogleFonts.outfit(
-                                                color: const Color(0xFF34D399),
-                                                fontSize: 14,
-                                                fontWeight: FontWeight.bold,
-                                                letterSpacing: 1.0,
-                                              ),
-                                            ),
-                                          ),
-                                          
-                                          // Sessions in Day
-                                          Padding(
-                                            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                                            child: Column(
-                                              children: dayList.map<Widget>((session) {
-                                                final mapelName = session['mata_pelajaran_nama'] ?? '-';
-                                                final ustadzName = session['guru_nama'] ?? '-';
-                                                final jamKe = session['jam_ke'] ?? 1;
-                                                return Column(
+                                              const SizedBox(width: 16),
+                                              // Subject Details
+                                              Expanded(
+                                                child: Column(
+                                                  crossAxisAlignment: CrossAxisAlignment.start,
                                                   children: [
-                                                    Padding(
-                                                      padding: const EdgeInsets.symmetric(vertical: 12),
-                                                      child: Row(
-                                                        children: [
-                                                          // Session Indicator
-                                                          Container(
-                                                            width: 38,
-                                                            height: 38,
-                                                            alignment: Alignment.center,
-                                                            decoration: BoxDecoration(
-                                                              color: const Color(0xFF070B13),
-                                                              borderRadius: BorderRadius.circular(12),
-                                                              border: Border.all(color: Colors.white.withOpacity(0.04)),
-                                                            ),
-                                                            child: Text(
-                                                              "$jamKe",
-                                                              style: GoogleFonts.outfit(
-                                                                color: const Color(0xFFF59E0B),
-                                                                fontSize: 16,
-                                                                fontWeight: FontWeight.bold,
-                                                              ),
-                                                            ),
-                                                          ),
-                                                          const SizedBox(width: 16),
-                                                          // Subject Details
-                                                          Expanded(
-                                                            child: Column(
-                                                              crossAxisAlignment: CrossAxisAlignment.start,
-                                                              children: [
-                                                                Text(
-                                                                  mapelName,
-                                                                  style: GoogleFonts.outfit(
-                                                                    color: Colors.white,
-                                                                    fontSize: 14,
-                                                                    fontWeight: FontWeight.bold,
-                                                                  ),
-                                                                ),
-                                                                const SizedBox(height: 2),
-                                                                Text(
-                                                                  "Pengampu: $ustadzName",
-                                                                  style: GoogleFonts.outfit(
-                                                                    color: const Color(0xFF64748B),
-                                                                    fontSize: 12,
-                                                                  ),
-                                                                ),
-                                                              ],
-                                                            ),
-                                                          ),
-                                                        ],
+                                                    Text(
+                                                      mapelName,
+                                                      style: GoogleFonts.outfit(
+                                                        color: context.titleColor,
+                                                        fontSize: 14,
+                                                        fontWeight: FontWeight.bold,
                                                       ),
                                                     ),
-                                                    // Divider if not last
-                                                    if (dayList.last != session)
-                                                      Divider(
-                                                        color: Colors.white.withOpacity(0.03),
-                                                        height: 1,
+                                                    const SizedBox(height: 2),
+                                                    Text(
+                                                      "Pengampu: $ustadzName",
+                                                      style: GoogleFonts.outfit(
+                                                        color: context.bodyColor,
+                                                        fontSize: 12,
                                                       ),
+                                                    ),
                                                   ],
-                                                );
-                                              }).toList(),
-                                            ),
+                                                ),
+                                              ),
+                                            ],
                                           ),
-                                        ],
-                                      ),
+                                        ),
+                                        // Divider if not last
+                                        if (dayList.last != session)
+                                          Divider(
+                                            color: context.borderColor,
+                                            height: 1,
+                                          ),
+                                      ],
                                     );
-                                  },
+                                  }).toList(),
                                 ),
+                              ),
+                            ],
+                          ),
+                        );
+                      },
                     ),
-                  ],
-                ),
+        ),
+      ],
     );
   }
 }
