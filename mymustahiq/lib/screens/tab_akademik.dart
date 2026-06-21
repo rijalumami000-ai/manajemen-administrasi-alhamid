@@ -5,6 +5,9 @@ import 'jadwal_pelajaran_screen.dart';
 import 'santri_explorer_screen.dart';
 import 'struktur_organisasi_screen.dart';
 import 'teacher_list_screen.dart';
+import 'tim_soal_screen.dart';
+import 'input_nilai_screen.dart';
+import 'password_gate_dialog.dart';
 
 class TabAkademik extends StatelessWidget {
   const TabAkademik({super.key});
@@ -59,7 +62,7 @@ class TabAkademik extends StatelessWidget {
         'borderColor': isDark
             ? const Color(0xFFF59E0B).withOpacity(0.25)
             : const Color(0xFFF59E0B).withOpacity(0.4),
-        'textColor': isDark ? const Color(0xFFFBBF24) : const Color(0xFFB45309),
+          'textColor': isDark ? const Color(0xFFFBBF24) : const Color(0xFFB45309),
         'headingColor': isDark ? Colors.white : const Color(0xFFB45309),
         'bodyColor': isDark ? Colors.white.withOpacity(0.5) : const Color(0xFF78350F).withOpacity(0.8),
         'iconColor': isDark ? Colors.white : const Color(0xFFF59E0B),
@@ -100,6 +103,44 @@ class TabAkademik extends StatelessWidget {
         'bodyColor': isDark ? Colors.white.withOpacity(0.5) : const Color(0xFF115E59).withOpacity(0.8),
         'iconColor': isDark ? Colors.white : const Color(0xFF0D9488),
         'screen': const TeacherListScreen(isMustahiq: false),
+      },
+    ];
+
+    // Sub Items for Row 3 (NEW - Tim Soal & Input Nilai)
+    final subItemsRow3 = [
+      {
+        'title': 'Tim Soal',
+        'desc': 'Tulis & kelola bank soal ujian per kelas & mapel.',
+        'icon': Icons.edit_note_rounded,
+        'colors': isDark
+            ? [const Color(0xFF831843), const Color(0xFF0F172A)]
+            : [const Color(0xFFFDF2F8), const Color(0xFFFCE7F3)],
+        'borderColor': isDark
+            ? const Color(0xFFEC4899).withOpacity(0.25)
+            : const Color(0xFFEC4899).withOpacity(0.4),
+        'textColor': isDark ? const Color(0xFFF472B6) : const Color(0xFFBE185D),
+        'headingColor': isDark ? Colors.white : const Color(0xFFBE185D),
+        'bodyColor': isDark ? Colors.white.withOpacity(0.5) : const Color(0xFF831843).withOpacity(0.8),
+        'iconColor': isDark ? Colors.white : const Color(0xFFEC4899),
+        'password': 'timsoal123',
+        'screen': const TimSoalScreen(),
+      },
+      {
+        'title': 'Input Nilai',
+        'desc': 'Input nilai Muhafadzoh, Qiroah, Taftisy, & Ujian.',
+        'icon': Icons.border_color_rounded,
+        'colors': isDark
+            ? [const Color(0xFF7C2D12), const Color(0xFF0F172A)]
+            : [const Color(0xFFFFF7ED), const Color(0xFFFFEDD5)],
+        'borderColor': isDark
+            ? const Color(0xFFF97316).withOpacity(0.25)
+            : const Color(0xFFF97316).withOpacity(0.4),
+        'textColor': isDark ? const Color(0xFFFB923C) : const Color(0xFFC2410C),
+        'headingColor': isDark ? Colors.white : const Color(0xFFC2410C),
+        'bodyColor': isDark ? Colors.white.withOpacity(0.5) : const Color(0xFF7C2D12).withOpacity(0.8),
+        'iconColor': isDark ? Colors.white : const Color(0xFFF97316),
+        'password': 'inputnilai123',
+        'screen': const InputNilaiScreen(),
       },
     ];
 
@@ -244,6 +285,16 @@ class TabAkademik extends StatelessWidget {
                 Expanded(child: _buildSubItem(context, subItemsRow2[1], isDark, isLeft: false)),
               ],
             ),
+            const SizedBox(height: 14),
+
+            // 4. SUB ITEMS ROW 3 (Tim Soal & Input Nilai - NEW)
+            Row(
+              children: [
+                Expanded(child: _buildSubItem(context, subItemsRow3[0], isDark, isLeft: true)),
+                const SizedBox(width: 14),
+                Expanded(child: _buildSubItem(context, subItemsRow3[1], isDark, isLeft: false)),
+              ],
+            ),
           ],
         ),
       ),
@@ -252,11 +303,26 @@ class TabAkademik extends StatelessWidget {
 
   Widget _buildSubItem(BuildContext context, Map<String, dynamic> item, bool isDark, {required bool isLeft}) {
     return GestureDetector(
-      onTap: () {
-        Navigator.push(
-          context,
-          MaterialPageRoute(builder: (context) => item['screen'] as Widget),
-        );
+      onTap: () async {
+        if (item.containsKey('password') && item['password'] != null) {
+          final isOk = await showDialog<bool>(
+            context: context,
+            barrierDismissible: false,
+            builder: (context) => PasswordGateDialog(
+              title: "Akses Terkunci",
+              correctPassword: item['password'] as String,
+              menuName: item['title'] as String,
+            ),
+          );
+          if (isOk != true) return;
+        }
+
+        if (context.mounted) {
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (context) => item['screen'] as Widget),
+          );
+        }
       },
       child: Container(
         height: 175,

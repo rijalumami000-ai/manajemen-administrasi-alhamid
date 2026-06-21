@@ -85,60 +85,95 @@ class ApiService {
       }
       throw Exception('Gagal mengambil data dashboard.');
     } catch (e) {
-      throw Exception('Koneksi bermasalah atau sesi Anda telah berakhir.');
+      if (e is DioException && e.response != null) {
+        throw Exception(e.response?.data['error'] ?? 'Gagal mengambil data dashboard.');
+      }
+      rethrow;
     }
   }
 
   // Get Students List for class
-  Future<Map<String, dynamic>> getStudents(int? kelasId) async {
+  Future<Map<String, dynamic>> getStudents(int? kelasId, {int? tahunAjaranId, String? semester}) async {
     try {
-      final path = kelasId != null ? '/my-mustahiq/santri?kelas_id=$kelasId' : '/my-mustahiq/santri';
-      final response = await _dio.get(path);
+      final queryParams = <String>[];
+      if (kelasId != null) queryParams.add('kelas_id=$kelasId');
+      if (tahunAjaranId != null) queryParams.add('tahun_ajaran_id=$tahunAjaranId');
+      if (semester != null) queryParams.add('semester=$semester');
+      
+      final queryString = queryParams.isNotEmpty ? '?${queryParams.join('&')}' : '';
+      final response = await _dio.get('/my-mustahiq/santri$queryString');
       if (response.statusCode == 200) {
         return response.data;
       }
       throw Exception('Gagal mengambil data santri.');
     } catch (e) {
-      throw Exception('Tidak dapat memuat data santri.');
+      if (e is DioException && e.response != null) {
+        throw Exception(e.response?.data['error'] ?? 'Gagal mengambil data santri.');
+      }
+      rethrow;
     }
   }
 
   // Get all active classes list directly (skips homeroom fallback)
-  Future<Map<String, dynamic>> getClasses() async {
+  Future<Map<String, dynamic>> getClasses({int? tahunAjaranId, String? semester}) async {
     try {
-      final response = await _dio.get('/my-mustahiq/santri?force_classes=true');
+      final queryParams = <String>['force_classes=true'];
+      if (tahunAjaranId != null) queryParams.add('tahun_ajaran_id=$tahunAjaranId');
+      if (semester != null) queryParams.add('semester=$semester');
+      
+      final queryString = '?${queryParams.join('&')}';
+      final response = await _dio.get('/my-mustahiq/santri$queryString');
       if (response.statusCode == 200) {
         return response.data;
       }
       throw Exception('Gagal mengambil daftar kelas.');
     } catch (e) {
-      throw Exception('Tidak dapat memuat daftar kelas.');
+      if (e is DioException && e.response != null) {
+        throw Exception(e.response?.data['error'] ?? 'Gagal mengambil daftar kelas.');
+      }
+      rethrow;
     }
   }
 
   // Get Detailed Student Info (Profile, Grades, Achievements, Violations)
-  Future<Map<String, dynamic>> getStudentDetail(int santriId) async {
+  Future<Map<String, dynamic>> getStudentDetail(int santriId, {int? tahunAjaranId, String? semester}) async {
     try {
-      final response = await _dio.get('/my-mustahiq/santri/$santriId/detail');
+      final queryParams = <String>[];
+      if (tahunAjaranId != null) queryParams.add('tahun_ajaran_id=$tahunAjaranId');
+      if (semester != null) queryParams.add('semester=$semester');
+      final queryString = queryParams.isNotEmpty ? '?${queryParams.join('&')}' : '';
+      
+      final response = await _dio.get('/my-mustahiq/santri/$santriId/detail$queryString');
       if (response.statusCode == 200) {
         return response.data;
       }
       throw Exception('Gagal mengambil detail santri.');
     } catch (e) {
-      throw Exception('Tidak dapat memuat rincian santri.');
+      if (e is DioException && e.response != null) {
+        throw Exception(e.response?.data['error'] ?? 'Gagal mengambil detail santri.');
+      }
+      rethrow;
     }
   }
 
   // Get Schedule for class
-  Future<Map<String, dynamic>> getSchedule(int kelasId) async {
+  Future<Map<String, dynamic>> getSchedule(int kelasId, {int? tahunAjaranId, String? semester}) async {
     try {
-      final response = await _dio.get('/my-mustahiq/jadwal?kelas_id=$kelasId');
+      final queryParams = <String>['kelas_id=$kelasId'];
+      if (tahunAjaranId != null) queryParams.add('tahun_ajaran_id=$tahunAjaranId');
+      if (semester != null) queryParams.add('semester=$semester');
+      final queryString = '?${queryParams.join('&')}';
+      
+      final response = await _dio.get('/my-mustahiq/jadwal$queryString');
       if (response.statusCode == 200) {
         return response.data;
       }
       throw Exception('Gagal mengambil jadwal pelajaran.');
     } catch (e) {
-      throw Exception('Tidak dapat memuat jadwal.');
+      if (e is DioException && e.response != null) {
+        throw Exception(e.response?.data['error'] ?? 'Gagal mengambil jadwal pelajaran.');
+      }
+      rethrow;
     }
   }
 
@@ -151,7 +186,10 @@ class ApiService {
       }
       throw Exception('Gagal mengambil data struktur organisasi.');
     } catch (e) {
-      throw Exception('Tidak dapat memuat struktur.');
+      if (e is DioException && e.response != null) {
+        throw Exception(e.response?.data['error'] ?? 'Gagal mengambil data struktur.');
+      }
+      rethrow;
     }
   }
 
@@ -176,7 +214,6 @@ class ApiService {
       return response.statusCode == 200;
     } catch (e) {
       if (e is DioException && e.response != null) {
-        // Even if unauthorized, the server responded!
         return true;
       }
       return false;
@@ -235,6 +272,159 @@ class ApiService {
       throw Exception('Gagal mengambil daftar munawib.');
     } catch (e) {
       throw Exception('Tidak dapat memuat daftar munawib.');
+    }
+  }
+
+  // --- NEW ACADEMIC YEAR / TIM SOAL / INPUT NILAI METHODS ---
+
+  // Get list of all academic years
+  Future<Map<String, dynamic>> getTahunAjaranList() async {
+    try {
+      final response = await _dio.get('/my-mustahiq/tahun-ajaran');
+      if (response.statusCode == 200) {
+        return response.data;
+      }
+      throw Exception('Gagal mengambil daftar tahun ajaran.');
+    } catch (e) {
+      if (e is DioException && e.response != null) {
+        throw Exception(e.response?.data['error'] ?? 'Gagal mengambil daftar tahun ajaran.');
+      }
+      rethrow;
+    }
+  }
+
+  // Get metadata (classes and courses) for Tim Soal
+  Future<Map<String, dynamic>> getTimSoalData({int? tahunAjaranId}) async {
+    try {
+      final path = tahunAjaranId != null 
+          ? '/my-mustahiq/tim-soal/data?tahun_ajaran_id=$tahunAjaranId' 
+          : '/my-mustahiq/tim-soal/data';
+      final response = await _dio.get(path);
+      if (response.statusCode == 200) {
+        return response.data;
+      }
+      throw Exception('Gagal mengambil data kelas/pelajaran.');
+    } catch (e) {
+      if (e is DioException && e.response != null) {
+        throw Exception(e.response?.data['error'] ?? 'Gagal mengambil data tim soal.');
+      }
+      rethrow;
+    }
+  }
+
+  // Get list of existing exam questions
+  Future<Map<String, dynamic>> getTimSoalList({int? kelasId, String? semester, int? tahunAjaranId}) async {
+    try {
+      final queryParams = <String>[];
+      if (kelasId != null) queryParams.add('kelas_id=$kelasId');
+      if (semester != null) queryParams.add('semester=$semester');
+      if (tahunAjaranId != null) queryParams.add('tahun_ajaran_id=$tahunAjaranId');
+      
+      final queryString = queryParams.isNotEmpty ? '?${queryParams.join('&')}' : '';
+      final response = await _dio.get('/my-mustahiq/tim-soal/list$queryString');
+      if (response.statusCode == 200) {
+        return response.data;
+      }
+      throw Exception('Gagal mengambil daftar soal.');
+    } catch (e) {
+      if (e is DioException && e.response != null) {
+        throw Exception(e.response?.data['error'] ?? 'Gagal mengambil daftar soal.');
+      }
+      rethrow;
+    }
+  }
+
+  // Save exam question
+  Future<Map<String, dynamic>> saveTimSoal({
+    int? id,
+    required int kelasId,
+    required int mataPelajaranId,
+    int? tahunAjaranId,
+    required String semester,
+    required String tipeUjian,
+    required String kontenSoal,
+  }) async {
+    try {
+      final response = await _dio.post('/my-mustahiq/tim-soal/simpan', data: {
+        if (id != null) 'id': id,
+        'kelas_id': kelasId,
+        'mata_pelajaran_id': mataPelajaranId,
+        if (tahunAjaranId != null) 'tahun_ajaran_id': tahunAjaranId,
+        'semester': semester,
+        'tipe_ujian': tipeUjian,
+        'konten_soal': kontenSoal,
+      });
+      if (response.statusCode == 200) {
+        return response.data;
+      }
+      throw Exception('Gagal menyimpan soal.');
+    } catch (e) {
+      if (e is DioException && e.response != null) {
+        throw Exception(e.response?.data['error'] ?? 'Gagal menyimpan soal.');
+      }
+      throw Exception('Tidak dapat menyimpan soal.');
+    }
+  }
+
+  // Delete exam question
+  Future<Map<String, dynamic>> deleteTimSoal(int id) async {
+    try {
+      final response = await _dio.delete('/my-mustahiq/tim-soal/$id');
+      if (response.statusCode == 200) {
+        return response.data;
+      }
+      throw Exception('Gagal menghapus soal.');
+    } catch (e) {
+      throw Exception('Tidak dapat menghapus soal.');
+    }
+  }
+
+  // Get student list and existing grades for grade entry
+  Future<Map<String, dynamic>> getInputNilaiSantri({
+    required int kelasId,
+    int? tahunAjaranId,
+    String? semester,
+  }) async {
+    try {
+      final queryParams = <String>['kelas_id=$kelasId'];
+      if (tahunAjaranId != null) queryParams.add('tahun_ajaran_id=$tahunAjaranId');
+      if (semester != null) queryParams.add('semester=$semester');
+      final queryString = '?${queryParams.join('&')}';
+      
+      final response = await _dio.get('/my-mustahiq/input-nilai/santri$queryString');
+      if (response.statusCode == 200) {
+        return response.data;
+      }
+      throw Exception('Gagal mengambil data input nilai.');
+    } catch (e) {
+      if (e is DioException && e.response != null) {
+        throw Exception(e.response?.data['error'] ?? 'Gagal mengambil data input nilai.');
+      }
+      rethrow;
+    }
+  }
+
+  // Save entered grades bulk
+  Future<Map<String, dynamic>> saveInputNilai({
+    required int tahunAjaranId,
+    required int kategoriEvaluasiId,
+    required List<Map<String, dynamic>> data,
+  }) async {
+    try {
+      final response = await _dio.post('/my-mustahiq/input-nilai/simpan', data: {
+        'tahun_ajaran_id': tahunAjaranId,
+        'kategori_evaluasi_id': kategoriEvaluasiId,
+        'data': data,
+      });
+      if (response.statusCode == 200) {
+        return response.data;
+      }
+      throw Exception('Gagal menyimpan nilai.');
+    } catch (e) {
+      if (e is DioException && e.response != null) {
+        throw Exception(e.response?.data['error'] ?? 'Gagal menyimpan nilai.');
+      }
+      throw Exception('Tidak dapat menyimpan nilai.');
     }
   }
 }

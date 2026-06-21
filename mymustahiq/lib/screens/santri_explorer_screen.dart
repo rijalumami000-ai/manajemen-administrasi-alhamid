@@ -28,6 +28,10 @@ class _SantriExplorerScreenState extends State<SantriExplorerScreen> {
   String _activeYear = '';
   String _activeSemester = '';
 
+  List<dynamic> _tahunAjaranList = [];
+  Map<String, dynamic>? _selectedTahunAjaran;
+  String _selectedSemester = 'Ganjil';
+
   @override
   void initState() {
     super.initState();
@@ -80,9 +84,23 @@ class _SantriExplorerScreenState extends State<SantriExplorerScreen> {
     });
 
     try {
+      if (_tahunAjaranList.isEmpty) {
+        final taResult = await _apiService.getTahunAjaranList();
+        _tahunAjaranList = taResult['tahunAjaran'] ?? [];
+        _selectedSemester = taResult['activeSemester'] ?? 'Ganjil';
+        if (_tahunAjaranList.isNotEmpty) {
+          _selectedTahunAjaran = _tahunAjaranList.firstWhere(
+            (ta) => ta['is_active'] == true,
+            orElse: () => _tahunAjaranList.first,
+          );
+        }
+      }
+
+      final taId = _selectedTahunAjaran?['id'];
+
       if (_selectedKelasId == null) {
         // Fetch all classes list for the grid selector
-        final res = await _apiService.getClasses();
+        final res = await _apiService.getClasses(tahunAjaranId: taId, semester: _selectedSemester);
         final activeYear = res['tahunAjaran'] ?? '';
         final semester = res['semester'] ?? '';
         if (res['classes'] != null) {
@@ -113,7 +131,7 @@ class _SantriExplorerScreenState extends State<SantriExplorerScreen> {
         }
       } else {
         // Fetch students of the selected class
-        final res = await _apiService.getStudents(_selectedKelasId);
+        final res = await _apiService.getStudents(_selectedKelasId, tahunAjaranId: taId, semester: _selectedSemester);
         final list = res['santri'] as List<dynamic>? ?? [];
         final students = list.map((item) => Student.fromJson(item)).toList();
         
@@ -142,7 +160,8 @@ class _SantriExplorerScreenState extends State<SantriExplorerScreen> {
 
   Future<void> _fetchClassesListOnly() async {
     try {
-      final res = await _apiService.getClasses();
+      final taId = _selectedTahunAjaran?['id'];
+      final res = await _apiService.getClasses(tahunAjaranId: taId, semester: _selectedSemester);
       if (res['classes'] != null && mounted) {
         final list = List<Map<String, dynamic>>.from(res['classes']);
         _sortClasses(list);
@@ -285,6 +304,72 @@ class _SantriExplorerScreenState extends State<SantriExplorerScreen> {
                 )
               : Column(
                   children: [
+                    // Year & Semester Filter Bar
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 4),
+                      color: context.isDarkMode ? const Color(0xFF0D1527) : Colors.white,
+                      child: Row(
+                        children: [
+                          Expanded(
+                            child: DropdownButton<Map<String, dynamic>>(
+                              dropdownColor: context.isDarkMode ? const Color(0xFF1E293B) : Colors.white,
+                              value: _selectedTahunAjaran,
+                              isExpanded: true,
+                              underline: const SizedBox(),
+                              style: GoogleFonts.outfit(color: context.titleColor, fontSize: 13, fontWeight: FontWeight.bold),
+                              items: _tahunAjaranList.map<DropdownMenuItem<Map<String, dynamic>>>((ta) {
+                                return DropdownMenuItem<Map<String, dynamic>>(
+                                  value: ta as Map<String, dynamic>,
+                                  child: Text("T.A: ${ta['kode']}"),
+                                );
+                              }).toList(),
+                              onChanged: (val) {
+                                if (val != null) {
+                                  setState(() {
+                                    _selectedTahunAjaran = val;
+                                    _selectedKelasId = null; // Reset to class picker
+                                    _className = '';
+                                    _allStudents = [];
+                                    _filteredStudents = [];
+                                    _availableClasses = [];
+                                  });
+                                  _fetchStudentsData();
+                                }
+                              },
+                            ),
+                          ),
+                          const SizedBox(width: 24),
+                          Expanded(
+                            child: DropdownButton<String>(
+                              dropdownColor: context.isDarkMode ? const Color(0xFF1E293B) : Colors.white,
+                              value: _selectedSemester,
+                              isExpanded: true,
+                              underline: const SizedBox(),
+                              style: GoogleFonts.outfit(color: context.titleColor, fontSize: 13, fontWeight: FontWeight.bold),
+                              items: const [
+                                DropdownMenuItem(value: "Ganjil", child: Text("Sem: Ganjil")),
+                                DropdownMenuItem(value: "Genap", child: Text("Sem: Genap")),
+                              ],
+                              onChanged: (val) {
+                                if (val != null) {
+                                  setState(() {
+                                    _selectedSemester = val;
+                                    _selectedKelasId = null; // Reset to class picker
+                                    _className = '';
+                                    _allStudents = [];
+                                    _filteredStudents = [];
+                                    _availableClasses = [];
+                                  });
+                                  _fetchStudentsData();
+                                }
+                              },
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const Divider(height: 1, thickness: 1),
+
                     // LANDING: Class Grid View Selector
                     if (!hasClassLoaded && _availableClasses.isNotEmpty)
                       Expanded(
@@ -418,7 +503,7 @@ class _SantriExplorerScreenState extends State<SantriExplorerScreen> {
                                             ),
                                             const Spacer(),
                                             Text(
-                                              "Kelas $namaKelas",
+                                              namaKelas,
                                               style: GoogleFonts.outfit(
                                                 color: context.titleColor,
                                                 fontSize: 15,
@@ -554,7 +639,11 @@ class _SantriExplorerScreenState extends State<SantriExplorerScreen> {
                                         Navigator.push(
                                           context,
                                           MaterialPageRoute(
-                                            builder: (context) => SantriDetailScreen(santriId: student.id),
+                                            builder: (context) => SantriDetailScreen(
+                                              santriId: student.id,
+                                              tahunAjaranId: _selectedTahunAjaran?['id'],
+                                              semester: _selectedSemester,
+                                            ),
                                           ),
                                         );
                                       },
@@ -571,11 +660,13 @@ class _SantriExplorerScreenState extends State<SantriExplorerScreen> {
                                               decoration: BoxDecoration(
                                                 color: context.isDarkMode 
                                                     ? Colors.white.withOpacity(0.05) 
-                                                    : const Color(0xFF10B981).withOpacity(0.08),
+                                                    : const Color(0xFF10B981).withOpacity(0.12),
                                                 shape: BoxShape.circle,
                                                 border: Border.all(
-                                                  color: const Color(0xFF10B981).withOpacity(0.3),
-                                                  width: 1.5,
+                                                  color: const Color(0xFF10B981).withOpacity(
+                                                    context.isDarkMode ? 0.3 : 0.5,
+                                                  ),
+                                                  width: 2,
                                                 ),
                                               ),
                                               child: ClipOval(

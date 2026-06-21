@@ -177,17 +177,25 @@ function registerMyMustahiqRoutes(app) {
    * If kelas_id is not provided, defaults to the teacher's mustahiq class, or returns all active classes list.
    */
   router.get('/santri', asyncHandler(async (req, res) => {
-    const activeYear = await getActiveTahunAjaran();
+    const { kelas_id, tahun_ajaran_id, semester, force_classes } = req.query;
+
+    const activeYear = tahun_ajaran_id
+      ? (await db.query('SELECT id, kode FROM tahun_ajaran WHERE id = $1', [tahun_ajaran_id])).rows[0]
+      : await getActiveTahunAjaran();
+
     if (!activeYear) {
-      return res.status(404).json({ error: 'Tahun ajaran aktif tidak ditemukan.' });
+      return res.status(404).json({ error: 'Tahun ajaran tidak ditemukan.' });
     }
 
-    let kelasId = req.query.kelas_id ? parseInt(req.query.kelas_id, 10) : null;
+    const semResult = await db.query("SELECT value FROM system_settings WHERE key = 'active_semester' LIMIT 1");
+    const activeSemester = semester || (semResult.rows[0] ? semResult.rows[0].value : 'Ganjil');
+
+    let kelasId = kelas_id ? parseInt(kelas_id, 10) : null;
     const guruId = req.user.guru_id;
-    const forceClasses = req.query.force_classes === 'true';
+    const isForceClasses = force_classes === 'true';
 
     // If no class filter, try to fall back to the mustahiq class of this teacher
-    if (!kelasId && guruId && !forceClasses) {
+    if (!kelasId && guruId && !isForceClasses) {
       const mustahiqResult = await db.query(`
         SELECT kelas_id FROM kelas_tahun_ajaran 
         WHERE mustahiq_id = $1 AND tahun_ajaran_id = $2
@@ -197,22 +205,32 @@ function registerMyMustahiqRoutes(app) {
       }
     }
 
-    // If still no class is found/specified, or if forceClasses is true, return the class list
-    if (!kelasId || forceClasses) {
+    // If still no class is found/specified, or if isForceClasses is true, return the class list
+    if (!kelasId || isForceClasses) {
       const classesResult = await db.query(`
-        SELECT DISTINCT k.id, k.nama 
+        SELECT DISTINCT k.id, k.nama, k.tingkat
         FROM kelas k
         JOIN kelas_tahun_ajaran kta ON kta.kelas_id = k.id
-        WHERE kta.tahun_ajaran_id = $1
-        ORDER BY k.nama
+        WHERE kta.tahun_ajaran_id = $1 AND k.jenis = 'Diniyah'
+        ORDER BY
+          CASE 
+            WHEN k.tingkat = 0 THEN 1
+            WHEN k.tingkat = 1 THEN 2
+            WHEN k.tingkat = 99 THEN 3
+            WHEN k.tingkat = 2 THEN 4
+            WHEN k.tingkat = 3 THEN 5
+            WHEN k.tingkat = 4 THEN 6
+            WHEN k.tingkat = 5 THEN 7
+            WHEN k.tingkat = 6 THEN 8
+            ELSE 9
+          END,
+          k.nama
       `, [activeYear.id]);
-      
-      const semResult = await db.query("SELECT value FROM system_settings WHERE key = 'active_semester' LIMIT 1");
-      const activeSemester = semResult.rows[0] ? semResult.rows[0].value : 'Ganjil';
 
-      if (forceClasses) {
+      if (isForceClasses) {
         return res.json({
           tahunAjaran: activeYear.kode,
+          tahunAjaranId: activeYear.id,
           semester: activeSemester,
           classes: classesResult.rows
         });
@@ -221,6 +239,7 @@ function registerMyMustahiqRoutes(app) {
       return res.json({
         requires_class_selection: true,
         tahunAjaran: activeYear.kode,
+        tahunAjaranId: activeYear.id,
         semester: activeSemester,
         classes: classesResult.rows
       });
@@ -232,7 +251,7 @@ function registerMyMustahiqRoutes(app) {
       return res.status(404).json({ error: 'Kelas tidak ditemukan.' });
     }
 
-    // Fetch students in this class for the active year
+    // Fetch students in this class for the selected year
     const studentsResult = await db.query(`
       SELECT 
         sta.santri_id AS id, 
@@ -248,12 +267,10 @@ function registerMyMustahiqRoutes(app) {
       ORDER BY sta.nama
     `, [kelasId, activeYear.id]);
 
-    const semResult = await db.query("SELECT value FROM system_settings WHERE key = 'active_semester' LIMIT 1");
-    const activeSemester = semResult.rows[0] ? semResult.rows[0].value : 'Ganjil';
-
     res.json({
       kelas: classDetail.rows[0],
       tahunAjaran: activeYear.kode,
+      tahunAjaranId: activeYear.id,
       semester: activeSemester,
       santri: studentsResult.rows
     });
@@ -265,12 +282,21 @@ function registerMyMustahiqRoutes(app) {
    */
   router.get('/santri/:id/detail', asyncHandler(async (req, res) => {
     const santriId = parseInt(req.params.id, 10);
-    const activeYear = await getActiveTahunAjaran();
+    const { tahun_ajaran_id, semester } = req.query;
+
+    const activeYear = tahun_ajaran_id
+      ? (await db.query('SELECT id, kode FROM tahun_ajaran WHERE id = $1', [tahun_ajaran_id])).rows[0]
+      : await getActiveTahunAjaran();
+
     if (!activeYear) {
-      return res.status(404).json({ error: 'Tahun ajaran aktif tidak ditemukan.' });
+      return res.status(404).json({ error: 'Tahun ajaran tidak ditemukan.' });
     }
 
-    // 1. Fetch student snapshot for active academic year
+    const semResult = await db.query("SELECT value FROM system_settings WHERE key = 'active_semester' LIMIT 1");
+    const activeSemester = semester || (semResult.rows[0] ? semResult.rows[0].value : 'Ganjil');
+    const kategoriId = activeSemester === 'Genap' ? 2 : 1;
+
+    // 1. Fetch student snapshot for selected academic year
     const profileResult = await db.query(`
       SELECT 
         sta.santri_id AS id,
@@ -313,7 +339,7 @@ function registerMyMustahiqRoutes(app) {
     const muhafadzohMapelId = profile.muhafadzoh_mapel_id;
     const qiroatulMapelId = profile.qiroatul_mapel_id;
 
-    // 2. Fetch grades for active year
+    // 2. Fetch grades for selected year and semester (kategori_evaluasi_id)
     const gradesResult = await db.query(`
       SELECT 
         n.id,
@@ -328,9 +354,9 @@ function registerMyMustahiqRoutes(app) {
       FROM nilai_santri n
       JOIN mata_pelajaran mp ON n.mata_pelajaran_id = mp.id
       JOIN kategori_evaluasi ke ON n.kategori_evaluasi_id = ke.id
-      WHERE n.santri_id = $1 AND n.tahun_ajaran_id = $2
+      WHERE n.santri_id = $1 AND n.tahun_ajaran_id = $2 AND n.kategori_evaluasi_id = $3
       ORDER BY mp.nama, ke.nama
-    `, [santriId, activeYear.id]);
+    `, [santriId, activeYear.id, kategoriId]);
 
     // Categorize grades (especially Muhafadzoh and Qiroatul Kitab under Opsi A)
     const grades = gradesResult.rows.map(g => {
@@ -368,6 +394,9 @@ function registerMyMustahiqRoutes(app) {
     `, [santriId]);
 
     res.json({
+      tahunAjaran: activeYear.kode,
+      tahunAjaranId: activeYear.id,
+      semester: activeSemester,
       profile: {
         id: profile.id,
         nis: profile.nis,
@@ -401,12 +430,17 @@ function registerMyMustahiqRoutes(app) {
    * Returns daily schedule for a class or teacher
    */
   router.get('/jadwal', asyncHandler(async (req, res) => {
-    const activeTahunAjaran = await getActiveTahunAjaran();
+    const { kelas_id, tahun_ajaran_id, semester } = req.query;
+    
+    const activeTahunAjaran = tahun_ajaran_id
+      ? (await db.query('SELECT id, kode FROM tahun_ajaran WHERE id = $1', [tahun_ajaran_id])).rows[0]
+      : await getActiveTahunAjaran();
+
     if (!activeTahunAjaran) {
-      return res.status(404).json({ error: 'Tahun ajaran aktif tidak ditemukan.' });
+      return res.status(404).json({ error: 'Tahun ajaran tidak ditemukan.' });
     }
 
-    const kelasId = req.query.kelas_id ? parseInt(req.query.kelas_id, 10) : null;
+    const kelasId = kelas_id ? parseInt(kelas_id, 10) : null;
     if (!kelasId) {
       return res.status(400).json({ error: 'Parameter kelas_id wajib disertakan.' });
     }
@@ -437,11 +471,12 @@ function registerMyMustahiqRoutes(app) {
     `, [kelasId, activeTahunAjaran.id]);
 
     const semResult = await db.query("SELECT value FROM system_settings WHERE key = 'active_semester' LIMIT 1");
-    const activeSemester = semResult.rows[0] ? semResult.rows[0].value : 'Ganjil';
+    const activeSemester = semester || (semResult.rows[0] ? semResult.rows[0].value : 'Ganjil');
 
     res.json({
       kelas_id: kelasId,
       tahun_ajaran: activeTahunAjaran.kode,
+      tahunAjaranId: activeTahunAjaran.id,
       semester: activeSemester,
       jadwal: scheduleResult.rows
     });
@@ -660,6 +695,350 @@ function registerMyMustahiqRoutes(app) {
       semester: activeSemester,
       munawib: result.rows 
     });
+  }));
+
+  /**
+   * GET /api/my-mustahiq/tahun-ajaran
+   * Returns list of all academic years for selector UI
+   */
+  router.get('/tahun-ajaran', asyncHandler(async (req, res) => {
+    const result = await db.query(`
+      SELECT id, kode, is_active, status
+      FROM tahun_ajaran
+      ORDER BY tahun_mulai DESC
+    `);
+    const semResult = await db.query("SELECT value FROM system_settings WHERE key = 'active_semester' LIMIT 1");
+    const activeSemester = semResult.rows[0] ? semResult.rows[0].value : 'Ganjil';
+    res.json({ tahunAjaran: result.rows, activeSemester });
+  }));
+
+  /**
+   * GET /api/my-mustahiq/tim-soal/data
+   * Returns classes + mata pelajaran per class for tim soal form
+   */
+  router.get('/tim-soal/data', asyncHandler(async (req, res) => {
+    const tahunAjaranId = req.query.tahun_ajaran_id;
+    const activeYear = tahunAjaranId 
+      ? (await db.query('SELECT id, kode FROM tahun_ajaran WHERE id = $1', [tahunAjaranId])).rows[0]
+      : await getActiveTahunAjaran();
+    
+    if (!activeYear) return res.status(404).json({ error: 'Tahun ajaran tidak ditemukan.' });
+
+    // Get classes for the academic year
+    const classesResult = await db.query(`
+      SELECT DISTINCT k.id, k.nama, k.tingkat
+      FROM kelas k
+      JOIN kelas_tahun_ajaran kta ON kta.kelas_id = k.id
+      WHERE kta.tahun_ajaran_id = $1 AND k.jenis = 'Diniyah'
+      ORDER BY
+        CASE 
+          WHEN k.tingkat = 0 THEN 1
+          WHEN k.tingkat = 1 THEN 2
+          WHEN k.tingkat = 99 THEN 3
+          WHEN k.tingkat = 2 THEN 4
+          WHEN k.tingkat = 3 THEN 5
+          WHEN k.tingkat = 4 THEN 6
+          WHEN k.tingkat = 5 THEN 7
+          WHEN k.tingkat = 6 THEN 8
+          ELSE 9
+        END,
+        k.nama
+    `, [activeYear.id]);
+
+    // Get all mata pelajaran
+    const mapelResult = await db.query(`
+      SELECT id, nama, jenis FROM mata_pelajaran ORDER BY nama
+    `);
+
+    const semResult = await db.query("SELECT value FROM system_settings WHERE key = 'active_semester' LIMIT 1");
+    const activeSemester = semResult.rows[0] ? semResult.rows[0].value : 'Ganjil';
+
+    res.json({
+      tahunAjaran: activeYear.kode,
+      tahunAjaranId: activeYear.id,
+      semester: activeSemester,
+      classes: classesResult.rows,
+      mataPelajaran: mapelResult.rows
+    });
+  }));
+
+  /**
+   * GET /api/my-mustahiq/tim-soal/list
+   * Returns list of soal created for a class/semester
+   */
+  router.get('/tim-soal/list', asyncHandler(async (req, res) => {
+    const { kelas_id, semester, tahun_ajaran_id } = req.query;
+    const activeYear = tahun_ajaran_id
+      ? (await db.query('SELECT id, kode FROM tahun_ajaran WHERE id = $1', [tahun_ajaran_id])).rows[0]
+      : await getActiveTahunAjaran();
+
+    if (!activeYear) return res.status(404).json({ error: 'Tahun ajaran tidak ditemukan.' });
+
+    let tingkat = null;
+    if (kelas_id) {
+      const kelasRes = await db.query('SELECT tingkat FROM kelas WHERE id = $1', [kelas_id]);
+      if (kelasRes.rows.length > 0) {
+        tingkat = kelasRes.rows[0].tingkat;
+      }
+    }
+
+    const conditions = ['l.tahun_ajaran_id = $1'];
+    const params = [activeYear.id];
+    let idx = 2;
+
+    if (tingkat !== null) {
+      conditions.push(`l.tingkat = $${idx++}`);
+      params.push(tingkat);
+    }
+    if (semester) {
+      conditions.push(`l.semester = $${idx++}`);
+      params.push(semester);
+    }
+
+    const result = await db.query(`
+      SELECT 
+        l.id,
+        l.pelajaran,
+        l.judul,
+        l.sub_judul,
+        l.alamat,
+        l.hari_tanggal,
+        l.instruksi,
+        l.soal,
+        l.is_her,
+        l.tingkat,
+        l.created_at,
+        l.updated_at
+      FROM lembar_ujian l
+      WHERE ${conditions.join(' AND ')}
+      ORDER BY l.updated_at DESC
+    `, params);
+
+    // Get all classes to resolve name and ID mappings
+    const classesRes = await db.query('SELECT id, nama, tingkat FROM kelas WHERE jenis = \'Diniyah\'');
+    // Get all subjects
+    const mapelRes = await db.query('SELECT id, nama FROM mata_pelajaran');
+
+    const mapped = result.rows.map(row => {
+      let questionsList = [];
+      if (Array.isArray(row.soal)) {
+        questionsList = row.soal.map((q, idx) => {
+          const text = (typeof q === 'object' && q !== null) ? (q.teks || '') : q;
+          return `${idx + 1}. ${text}`;
+        });
+      }
+      const kontenSoal = questionsList.join('\n');
+
+      const classMatch = classesRes.rows.find(c => c.tingkat === row.tingkat);
+      const subjectMatch = mapelRes.rows.find(m => m.nama.toLowerCase() === row.pelajaran.toLowerCase());
+
+      return {
+        id: row.id,
+        kelas_id: classMatch ? classMatch.id : null,
+        kelas_nama: classMatch ? classMatch.nama : `Tingkat ${row.tingkat}`,
+        mapel_id: subjectMatch ? subjectMatch.id : null,
+        mapel_nama: subjectMatch ? subjectMatch.nama : row.pelajaran,
+        tipe_ujian: row.is_her ? 'SOAL HER' : (row.judul || 'Ujian Semester'),
+        konten_soal: kontenSoal,
+        dibuat_oleh: 'Administrator',
+        created_at: row.created_at,
+        updated_at: row.updated_at
+      };
+    });
+
+    res.json({ soal: mapped, tahunAjaran: activeYear.kode });
+  }));
+
+  /**
+   * POST /api/my-mustahiq/tim-soal/simpan
+   * Create or update a soal
+   */
+  router.post('/tim-soal/simpan', asyncHandler(async (req, res) => {
+    const { id, kelas_id, mata_pelajaran_id, tahun_ajaran_id, semester, tipe_ujian, konten_soal } = req.body;
+    
+    if (!kelas_id || !mata_pelajaran_id || !semester || !konten_soal) {
+      return res.status(400).json({ error: 'Data soal tidak lengkap. Kelas, mapel, semester, dan konten wajib diisi.' });
+    }
+
+    const activeYear = tahun_ajaran_id
+      ? (await db.query('SELECT id, kode FROM tahun_ajaran WHERE id = $1', [tahun_ajaran_id])).rows[0]
+      : await getActiveTahunAjaran();
+
+    if (!activeYear) return res.status(404).json({ error: 'Tahun ajaran tidak ditemukan.' });
+
+    // 1. Get tingkat from kelas
+    const kelasRes = await db.query('SELECT tingkat FROM kelas WHERE id = $1', [kelas_id]);
+    if (kelasRes.rows.length === 0) return res.status(404).json({ error: 'Kelas tidak ditemukan.' });
+    const tingkat = kelasRes.rows[0].tingkat;
+
+    // 2. Get pelajaran name from mata_pelajaran
+    const mapelRes = await db.query('SELECT nama FROM mata_pelajaran WHERE id = $1', [mata_pelajaran_id]);
+    if (mapelRes.rows.length === 0) return res.status(404).json({ error: 'Mata pelajaran tidak ditemukan.' });
+    const pelajaranName = mapelRes.rows[0].nama;
+
+    // 3. Parse konten_soal
+    const lines = konten_soal.split('\n')
+      .map(line => line.trim())
+      .filter(line => line.length > 0);
+
+    const questionsArray = lines.map(line => {
+      // Strip common numbering prefixes
+      let cleanTeks = line.replace(/^\d+[\.\)\-]\s*/, '')
+                          .replace(/^[a-zA-Z][\.\)\-]\s*/, '')
+                          .trim();
+      return { teks: cleanTeks, jawaban: "" };
+    });
+
+    const isHerValue = (tipe_ujian === 'SOAL HER');
+    const judulValue = tipe_ujian || 'PENILAIAN AKHIR SEMESTER';
+
+    if (id) {
+      // Update
+      await db.query(`
+        UPDATE lembar_ujian
+        SET tahun_ajaran_id=$1, semester=$2, tingkat=$3, pelajaran=$4, judul=$5, soal=$6, is_her=$7, updated_at=NOW()
+        WHERE id=$8
+      `, [activeYear.id, semester, tingkat, pelajaranName, judulValue, JSON.stringify(questionsArray), isHerValue, id]);
+      
+      return res.json({ success: true, message: 'Lembar ujian berhasil diperbarui.' });
+    }
+
+    // Insert new exam sheet
+    const insertResult = await db.query(`
+      INSERT INTO lembar_ujian (tahun_ajaran_id, semester, tingkat, pelajaran, judul, sub_judul, alamat, hari_tanggal, instruksi, soal, is_her, created_at, updated_at)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, NOW(), NOW())
+      RETURNING id
+    `, [
+      activeYear.id,
+      semester,
+      tingkat,
+      pelajaranName,
+      judulValue,
+      'MADRASAH DINIYYAH AL-HAMID',
+      'Cintamulya Candipuro Lampung Selatan',
+      'Senin, 12 Desember 2026',
+      'KERJAKAN URAIAN SOAL-SOAL DI BAWAH INI !',
+      JSON.stringify(questionsArray),
+      isHerValue
+    ]);
+
+    res.json({ success: true, message: 'Lembar ujian berhasil disimpan.', id: insertResult.rows[0].id });
+  }));
+
+  /**
+   * DELETE /api/my-mustahiq/tim-soal/:id
+   * Delete a soal
+   */
+  router.delete('/tim-soal/:id', asyncHandler(async (req, res) => {
+    const soalId = parseInt(req.params.id, 10);
+    await db.query('DELETE FROM lembar_ujian WHERE id = $1', [soalId]);
+    res.json({ success: true, message: 'Lembar ujian berhasil dihapus.' });
+  }));
+
+  /**
+   * GET /api/my-mustahiq/input-nilai/santri
+   * Returns santri list for a class and academic year (for grade entry)
+   */
+  router.get('/input-nilai/santri', asyncHandler(async (req, res) => {
+    const { kelas_id, tahun_ajaran_id, semester } = req.query;
+    if (!kelas_id) return res.status(400).json({ error: 'kelas_id wajib disertakan.' });
+
+    const activeYear = tahun_ajaran_id
+      ? (await db.query('SELECT id, kode FROM tahun_ajaran WHERE id = $1', [tahun_ajaran_id])).rows[0]
+      : await getActiveTahunAjaran();
+
+    if (!activeYear) return res.status(404).json({ error: 'Tahun ajaran tidak ditemukan.' });
+
+    const semResult = await db.query("SELECT value FROM system_settings WHERE key = 'active_semester' LIMIT 1");
+    const activeSemester = semester || (semResult.rows[0] ? semResult.rows[0].value : 'Ganjil');
+    const kategoriId = activeSemester === 'Genap' ? 2 : 1;
+
+    // Get students in this class
+    const studentsResult = await db.query(`
+      SELECT sta.santri_id AS id, sta.nama, sta.nis, s.foto_url, sta.jenis_kelamin
+      FROM santri_tahun_ajaran sta
+      JOIN santri s ON sta.santri_id = s.id
+      WHERE sta.kelas_diniyah_id = $1 AND sta.tahun_ajaran_id = $2 AND sta.status = 'aktif'
+      ORDER BY sta.nama
+    `, [kelas_id, activeYear.id]);
+
+    // Get mata pelajaran for this class from jadwal
+    const mapelResult = await db.query(`
+      SELECT DISTINCT mp.id, mp.nama, mp.jenis
+      FROM jadwal_pelajaran_harian j
+      JOIN mata_pelajaran mp ON j.mata_pelajaran_id = mp.id
+      WHERE j.kelas_id = $1 AND j.tahun_ajaran_id = $2
+      ORDER BY mp.nama
+    `, [kelas_id, activeYear.id]);
+
+    // Get existing grades for this class/semester
+    const nilaiResult = await db.query(`
+      SELECT n.santri_id, n.mata_pelajaran_id, n.nilai_angka, n.predikat, n.capaian, n.id
+      FROM nilai_santri n
+      JOIN santri_tahun_ajaran sta ON sta.santri_id = n.santri_id AND sta.tahun_ajaran_id = n.tahun_ajaran_id
+      WHERE sta.kelas_diniyah_id = $1 AND n.tahun_ajaran_id = $2 AND n.kategori_evaluasi_id = $3
+    `, [kelas_id, activeYear.id, kategoriId]);
+
+    // Build nilai map: santri_id -> mapel_id -> nilai
+    const nilaiMap = {};
+    for (const n of nilaiResult.rows) {
+      if (!nilaiMap[n.santri_id]) nilaiMap[n.santri_id] = {};
+      nilaiMap[n.santri_id][n.mata_pelajaran_id] = { nilai: n.nilai_angka, predikat: n.predikat, capaian: n.capaian, id: n.id };
+    }
+
+    // Get kelas_tahun_ajaran for Muhafadzoh and Qiroatul Kitab mapel IDs
+    const ktaResult = await db.query(`
+      SELECT muhafadzoh_mapel_id, qiroatul_mapel_id
+      FROM kelas_tahun_ajaran
+      WHERE kelas_id = $1 AND tahun_ajaran_id = $2
+      LIMIT 1
+    `, [kelas_id, activeYear.id]);
+
+    const kelasConfig = ktaResult.rows[0] || {};
+
+    const classDetail = await db.query('SELECT id, nama FROM kelas WHERE id = $1', [kelas_id]);
+
+    res.json({
+      kelas: classDetail.rows[0],
+      tahunAjaran: activeYear.kode,
+      tahunAjaranId: activeYear.id,
+      semester: activeSemester,
+      kategoriEvaluasiId: kategoriId,
+      muhafadzohMapelId: kelasConfig.muhafadzoh_mapel_id,
+      qiroatulMapelId: kelasConfig.qiroatul_mapel_id,
+      santri: studentsResult.rows,
+      mataPelajaran: mapelResult.rows,
+      nilaiExisting: nilaiMap
+    });
+  }));
+
+  /**
+   * POST /api/my-mustahiq/input-nilai/simpan
+   * Bulk save grades for santri
+   */
+  router.post('/input-nilai/simpan', asyncHandler(async (req, res) => {
+    const { tahun_ajaran_id, kategori_evaluasi_id, data } = req.body;
+    // data: array of { santri_id, mata_pelajaran_id, nilai_angka, predikat, capaian }
+    
+    if (!tahun_ajaran_id || !kategori_evaluasi_id || !data || !Array.isArray(data)) {
+      return res.status(400).json({ error: 'Data nilai tidak lengkap.' });
+    }
+
+    let saved = 0;
+    for (const item of data) {
+      const { santri_id, mata_pelajaran_id, nilai_angka, predikat, capaian } = item;
+      if (!santri_id || !mata_pelajaran_id) continue;
+
+      await db.query(`
+        INSERT INTO nilai_santri (santri_id, mata_pelajaran_id, tahun_ajaran_id, kategori_evaluasi_id, nilai_angka, predikat, capaian)
+        VALUES ($1, $2, $3, $4, $5, $6, $7)
+        ON CONFLICT (santri_id, mata_pelajaran_id, tahun_ajaran_id, kategori_evaluasi_id)
+        DO UPDATE SET nilai_angka = EXCLUDED.nilai_angka, predikat = EXCLUDED.predikat, capaian = EXCLUDED.capaian, updated_at = NOW()
+      `, [santri_id, mata_pelajaran_id, tahun_ajaran_id, kategori_evaluasi_id, nilai_angka || null, predikat || null, capaian || null]);
+      saved++;
+    }
+
+    res.json({ success: true, message: `${saved} nilai berhasil disimpan.`, saved });
   }));
 
   app.use('/api/my-mustahiq', router);

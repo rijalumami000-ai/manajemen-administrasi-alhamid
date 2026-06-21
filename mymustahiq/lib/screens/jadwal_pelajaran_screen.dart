@@ -24,6 +24,10 @@ class _JadwalPelajaranScreenState extends State<JadwalPelajaranScreen> {
   String _activeYear = '';
   String _activeSemester = '';
 
+  List<dynamic> _tahunAjaranList = [];
+  Map<String, dynamic>? _selectedTahunAjaran;
+  String _selectedSemester = 'Ganjil';
+
   @override
   void initState() {
     super.initState();
@@ -69,7 +73,20 @@ class _JadwalPelajaranScreenState extends State<JadwalPelajaranScreen> {
     });
 
     try {
-      final res = await _apiService.getClasses();
+      if (_tahunAjaranList.isEmpty) {
+        final taResult = await _apiService.getTahunAjaranList();
+        _tahunAjaranList = taResult['tahunAjaran'] ?? [];
+        _selectedSemester = taResult['activeSemester'] ?? 'Ganjil';
+        if (_tahunAjaranList.isNotEmpty) {
+          _selectedTahunAjaran = _tahunAjaranList.firstWhere(
+            (ta) => ta['is_active'] == true,
+            orElse: () => _tahunAjaranList.first,
+          );
+        }
+      }
+
+      final taId = _selectedTahunAjaran?['id'];
+      final res = await _apiService.getClasses(tahunAjaranId: taId, semester: _selectedSemester);
       final activeYear = res['tahunAjaran'] ?? '';
       final semester = res['semester'] ?? '';
 
@@ -117,7 +134,8 @@ class _JadwalPelajaranScreenState extends State<JadwalPelajaranScreen> {
     });
 
     try {
-      final res = await _apiService.getSchedule(kelasId);
+      final taId = _selectedTahunAjaran?['id'];
+      final res = await _apiService.getSchedule(kelasId, tahunAjaranId: taId, semester: _selectedSemester);
       final list = res['jadwal'] as List<dynamic>? ?? [];
       
       // Group by "malam"
@@ -185,37 +203,107 @@ class _JadwalPelajaranScreenState extends State<JadwalPelajaranScreen> {
           style: GoogleFonts.outfit(color: context.titleColor, fontWeight: FontWeight.bold, fontSize: 18),
         ),
       ),
-      body: _isLoadingClasses
-          ? const Center(child: CircularProgressIndicator(color: Color(0xFF10B981)))
-          : _errorMessage != null && !isClassSelected
-              ? Center(
-                  child: Padding(
-                    padding: const EdgeInsets.all(24.0),
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        const Icon(Icons.error_outline_rounded, color: Colors.amber, size: 48),
-                        const SizedBox(height: 16),
-                        Text(
-                          _errorMessage!,
-                          textAlign: TextAlign.center,
-                          style: GoogleFonts.outfit(color: context.titleColor, fontSize: 15),
-                        ),
-                        const SizedBox(height: 20),
-                        ElevatedButton(
-                          onPressed: _fetchClasses,
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: const Color(0xFF064E3B),
-                          ),
-                          child: Text('Coba Lagi', style: GoogleFonts.outfit(color: Colors.white)),
-                        ),
-                      ],
-                    ),
+      body: Column(
+        children: [
+          // Year & Semester Filter Bar
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 4),
+            color: context.isDarkMode ? const Color(0xFF0D1527) : Colors.white,
+            child: Row(
+              children: [
+                Expanded(
+                  child: DropdownButton<Map<String, dynamic>>(
+                    dropdownColor: context.isDarkMode ? const Color(0xFF1E293B) : Colors.white,
+                    value: _selectedTahunAjaran,
+                    isExpanded: true,
+                    underline: const SizedBox(),
+                    style: GoogleFonts.outfit(color: context.titleColor, fontSize: 13, fontWeight: FontWeight.bold),
+                    items: _tahunAjaranList.map<DropdownMenuItem<Map<String, dynamic>>>((ta) {
+                      return DropdownMenuItem<Map<String, dynamic>>(
+                        value: ta as Map<String, dynamic>,
+                        child: Text("T.A: ${ta['kode']}"),
+                      );
+                    }).toList(),
+                    onChanged: (val) {
+                      if (val != null) {
+                        setState(() {
+                          _selectedTahunAjaran = val;
+                        });
+                        _fetchClasses().then((_) {
+                          if (isClassSelected) {
+                            _selectClass(_selectedKelasId!, _selectedKelasNama);
+                          }
+                        });
+                      }
+                    },
                   ),
-                )
-              : !isClassSelected
-                  ? _buildClassGrid()
-                  : _buildScheduleView(orderMalam),
+                ),
+                const SizedBox(width: 24),
+                Expanded(
+                  child: DropdownButton<String>(
+                    dropdownColor: context.isDarkMode ? const Color(0xFF1E293B) : Colors.white,
+                    value: _selectedSemester,
+                    isExpanded: true,
+                    underline: const SizedBox(),
+                    style: GoogleFonts.outfit(color: context.titleColor, fontSize: 13, fontWeight: FontWeight.bold),
+                    items: const [
+                      DropdownMenuItem(value: "Ganjil", child: Text("Sem: Ganjil")),
+                      DropdownMenuItem(value: "Genap", child: Text("Sem: Genap")),
+                    ],
+                    onChanged: (val) {
+                      if (val != null) {
+                        setState(() {
+                          _selectedSemester = val;
+                        });
+                        _fetchClasses().then((_) {
+                          if (isClassSelected) {
+                            _selectClass(_selectedKelasId!, _selectedKelasNama);
+                          }
+                        });
+                      }
+                    },
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const Divider(height: 1, thickness: 1),
+
+          Expanded(
+            child: _isLoadingClasses
+                ? const Center(child: CircularProgressIndicator(color: Color(0xFF10B981)))
+                : _errorMessage != null && !isClassSelected
+                    ? Center(
+                        child: Padding(
+                          padding: const EdgeInsets.all(24.0),
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              const Icon(Icons.error_outline_rounded, color: Colors.amber, size: 48),
+                              const SizedBox(height: 16),
+                              Text(
+                                _errorMessage!,
+                                textAlign: TextAlign.center,
+                                style: GoogleFonts.outfit(color: context.titleColor, fontSize: 15),
+                              ),
+                              const SizedBox(height: 20),
+                              ElevatedButton(
+                                onPressed: _fetchClasses,
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: const Color(0xFF064E3B),
+                                ),
+                                child: Text('Coba Lagi', style: GoogleFonts.outfit(color: Colors.white)),
+                              ),
+                            ],
+                          ),
+                        ),
+                      )
+                    : !isClassSelected
+                        ? _buildClassGrid()
+                        : _buildScheduleView(orderMalam),
+          ),
+        ],
+      ),
     );
   }
 

@@ -5,7 +5,14 @@ import '../services/theme_manager.dart';
 
 class SantriDetailScreen extends StatefulWidget {
   final int santriId;
-  const SantriDetailScreen({super.key, required this.santriId});
+  final int? tahunAjaranId;
+  final String? semester;
+  const SantriDetailScreen({
+    super.key,
+    required this.santriId,
+    this.tahunAjaranId,
+    this.semester,
+  });
 
   @override
   State<SantriDetailScreen> createState() => _SantriDetailScreenState();
@@ -18,6 +25,10 @@ class _SantriDetailScreenState extends State<SantriDetailScreen> with SingleTick
   bool _isLoading = true;
   String? _errorMessage;
   Map<String, dynamic>? _data;
+
+  List<dynamic> _tahunAjaranList = [];
+  Map<String, dynamic>? _selectedTahunAjaran;
+  String _selectedSemester = 'Ganjil';
 
   @override
   void initState() {
@@ -39,7 +50,27 @@ class _SantriDetailScreenState extends State<SantriDetailScreen> with SingleTick
     });
 
     try {
-      final res = await _apiService.getStudentDetail(widget.santriId);
+      if (_tahunAjaranList.isEmpty) {
+        final taResult = await _apiService.getTahunAjaranList();
+        _tahunAjaranList = taResult['tahunAjaran'] ?? [];
+        _selectedSemester = widget.semester ?? taResult['activeSemester'] ?? 'Ganjil';
+        if (_tahunAjaranList.isNotEmpty) {
+          final targetId = widget.tahunAjaranId;
+          _selectedTahunAjaran = targetId != null
+              ? _tahunAjaranList.firstWhere((ta) => ta['id'] == targetId, orElse: () => null)
+              : null;
+          _selectedTahunAjaran ??= _tahunAjaranList.firstWhere(
+            (ta) => ta['is_active'] == true,
+            orElse: () => _tahunAjaranList.first,
+          );
+        }
+      }
+
+      final res = await _apiService.getStudentDetail(
+        widget.santriId,
+        tahunAjaranId: _selectedTahunAjaran?['id'],
+        semester: _selectedSemester,
+      );
       setState(() {
         _data = res;
         _isLoading = false;
@@ -180,6 +211,63 @@ class _SantriDetailScreenState extends State<SantriDetailScreen> with SingleTick
                         ],
                       ),
                     ),
+                    const Divider(height: 1, thickness: 1),
+
+                    // Year & Semester Filter Bar
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 4),
+                      color: context.isDarkMode ? const Color(0xFF0D1527) : Colors.white,
+                      child: Row(
+                        children: [
+                          Expanded(
+                            child: DropdownButton<Map<String, dynamic>>(
+                              dropdownColor: context.isDarkMode ? const Color(0xFF1E293B) : Colors.white,
+                              value: _selectedTahunAjaran,
+                              isExpanded: true,
+                              underline: const SizedBox(),
+                              style: GoogleFonts.outfit(color: context.titleColor, fontSize: 13, fontWeight: FontWeight.bold),
+                              items: _tahunAjaranList.map<DropdownMenuItem<Map<String, dynamic>>>((ta) {
+                                return DropdownMenuItem<Map<String, dynamic>>(
+                                  value: ta as Map<String, dynamic>,
+                                  child: Text("T.A: ${ta['kode']}"),
+                                );
+                              }).toList(),
+                              onChanged: (val) {
+                                if (val != null) {
+                                  setState(() {
+                                    _selectedTahunAjaran = val;
+                                  });
+                                  _fetchDetailData();
+                                }
+                              },
+                            ),
+                          ),
+                          const SizedBox(width: 24),
+                          Expanded(
+                            child: DropdownButton<String>(
+                              dropdownColor: context.isDarkMode ? const Color(0xFF1E293B) : Colors.white,
+                              value: _selectedSemester,
+                              isExpanded: true,
+                              underline: const SizedBox(),
+                              style: GoogleFonts.outfit(color: context.titleColor, fontSize: 13, fontWeight: FontWeight.bold),
+                              items: const [
+                                DropdownMenuItem(value: "Ganjil", child: Text("Sem: Ganjil")),
+                                DropdownMenuItem(value: "Genap", child: Text("Sem: Genap")),
+                              ],
+                              onChanged: (val) {
+                                if (val != null) {
+                                  setState(() {
+                                    _selectedSemester = val;
+                                  });
+                                  _fetchDetailData();
+                                }
+                              },
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const Divider(height: 1, thickness: 1),
 
                     // Custom Tab Bar
                     Container(
