@@ -88,10 +88,42 @@ async function initDatabase() {
       ALTER TABLE users DROP CONSTRAINT IF EXISTS users_role_check1;
       ALTER TABLE users ADD CONSTRAINT users_role_check
         CHECK (role IN ('admin', 'madrasah_diniyah', 'bendahara'));
+
+      -- Tambah kolom muhafadzoh_mapel_id jika belum ada
+      IF NOT EXISTS (
+        SELECT 1 FROM information_schema.columns
+        WHERE table_name = 'kelas_tahun_ajaran' AND column_name = 'muhafadzoh_mapel_id'
+      ) THEN
+        ALTER TABLE kelas_tahun_ajaran ADD COLUMN muhafadzoh_mapel_id INTEGER REFERENCES mata_pelajaran(id) ON DELETE SET NULL;
+      END IF;
+
+      -- Tambah kolom qiroatul_mapel_id jika belum ada
+      IF NOT EXISTS (
+        SELECT 1 FROM information_schema.columns
+        WHERE table_name = 'kelas_tahun_ajaran' AND column_name = 'qiroatul_mapel_id'
+      ) THEN
+        ALTER TABLE kelas_tahun_ajaran ADD COLUMN qiroatul_mapel_id INTEGER REFERENCES mata_pelajaran(id) ON DELETE SET NULL;
+      END IF;
+
+      -- Tambah kolom aktif_ganjil jika belum ada
+      IF NOT EXISTS (
+        SELECT 1 FROM information_schema.columns
+        WHERE table_name = 'santri_tahun_ajaran' AND column_name = 'aktif_ganjil'
+      ) THEN
+        ALTER TABLE santri_tahun_ajaran ADD COLUMN aktif_ganjil BOOLEAN NOT NULL DEFAULT TRUE;
+      END IF;
+
+      -- Tambah kolom aktif_genap jika belum ada
+      IF NOT EXISTS (
+        SELECT 1 FROM information_schema.columns
+        WHERE table_name = 'santri_tahun_ajaran' AND column_name = 'aktif_genap'
+      ) THEN
+        ALTER TABLE santri_tahun_ajaran ADD COLUMN aktif_genap BOOLEAN NOT NULL DEFAULT TRUE;
+      END IF;
     END
     $$;
   `);
-  console.log('✓ Role bendahara tersedia di tabel users');
+  console.log('✓ Role bendahara & kolom tambahan diverifikasi/diperbarui');
 }
 
 module.exports = initDatabase;
