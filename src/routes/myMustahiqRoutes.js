@@ -388,7 +388,7 @@ function registerMyMustahiqRoutes(app) {
         type = 'Muhafadzoh';
       } else if (g.mata_pelajaran_id === qiroatulMapelId) {
         type = 'Qiroatul Kitab';
-      } else if (g.mapel_jenis === 'Taftisyul Kutub' || g.mata_pelajaran.toLowerCase().includes('taftisy')) {
+      } else if (g.mapel_jenis === 'Taftisyul Kutub' || (g.mata_pelajaran || '').toLowerCase().includes('taftisy')) {
         type = 'Taftisyul Kutub';
       } else if (g.kategori_jenis === 'Semester' || g.kategori_evaluasi.toLowerCase().includes('ujian')) {
         type = 'Ujian Tulis';
