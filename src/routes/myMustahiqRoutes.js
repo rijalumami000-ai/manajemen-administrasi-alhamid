@@ -1009,14 +1009,19 @@ function registerMyMustahiqRoutes(app) {
 
     const studentsResult = await db.query(studentsQuery, [kelasId, activeYear.id]);
 
-    // Get mata pelajaran for this class from jadwal
+    const classDetail = await db.query('SELECT id, nama, tingkat FROM kelas WHERE id = $1', [kelasId]);
+    const tingkat = classDetail.rows[0] ? classDetail.rows[0].tingkat : null;
+
+    // Get mata pelajaran for this class from mapel_tingkat
     const mapelResult = await db.query(`
       SELECT DISTINCT mp.id, mp.nama, mp.jenis
-      FROM jadwal_pelajaran_harian j
-      JOIN mata_pelajaran mp ON j.mata_pelajaran_id = mp.id
-      WHERE j.kelas_id = $1 AND j.tahun_ajaran_id = $2
+      FROM mapel_tingkat mt
+      JOIN mata_pelajaran mp ON mt.mata_pelajaran_id = mp.id
+      WHERE mt.tingkat = $1 
+        AND (mt.tahun_ajaran_id = $2 OR mt.tahun_ajaran_id IS NULL)
+        AND (mt.kategori_evaluasi_id = $3 OR mt.kategori_evaluasi_id IS NULL)
       ORDER BY mp.nama
-    `, [kelasId, activeYear.id]);
+    `, [tingkat, activeYear.id, kategoriId]);
 
     // Get existing grades for this class/semester
     const nilaiResult = await db.query(`
@@ -1033,7 +1038,6 @@ function registerMyMustahiqRoutes(app) {
       nilaiMap[n.santri_id][n.mata_pelajaran_id] = { nilai: n.nilai_angka, predikat: n.predikat, capaian: n.capaian, id: n.id };
     }
 
-    // Get kelas_tahun_ajaran for Muhafadzoh and Qiroatul Kitab mapel IDs
     const ktaResult = await db.query(`
       SELECT muhafadzoh_mapel_id, qiroatul_mapel_id
       FROM kelas_tahun_ajaran
@@ -1043,13 +1047,10 @@ function registerMyMustahiqRoutes(app) {
 
     const kelasConfig = ktaResult.rows[0] || {};
 
-    const classDetail = await db.query('SELECT id, nama, tingkat FROM kelas WHERE id = $1', [kelasId]);
-    const tingkat = classDetail.rows[0] ? classDetail.rows[0].tingkat : null;
-
     // Attach konfigurasi setting_kriteria_nilai
     for (let i = 0; i < mapelResult.rows.length; i++) {
       let mapel = mapelResult.rows[i];
-      let isTaftisy = mapel.jenis === 'Taftisyul Kutub' || (mapel.nama || '').toLowerCase().includes('taftisy');
+      let isTaftisy = mapel.jenis === 'Taftisy' || mapel.jenis === 'Taftisyul Kutub' || (mapel.nama || '').toLowerCase().includes('taftisy');
       
       if (isTaftisy) {
         mapel.tipe_input = 'Teks';
@@ -1061,9 +1062,14 @@ function registerMyMustahiqRoutes(app) {
         const setRes = await db.query(`
           SELECT tipe_input, konfigurasi
           FROM setting_kriteria_nilai
-          WHERE tahun_ajaran_id = $1 AND kategori_evaluasi_id = $2 AND tingkat = $3 AND jenis_mapel = 'Muhafadzoh'
+          WHERE (tahun_ajaran_id = $1 OR tahun_ajaran_id IS NULL) 
+            AND (kategori_evaluasi_id = $2 OR kategori_evaluasi_id IS NULL) 
+            AND (mata_pelajaran_id = $4 OR mata_pelajaran_id IS NULL)
+            AND tingkat = $3 
+            AND jenis_mapel = 'Muhafadzoh'
+          ORDER BY tahun_ajaran_id DESC NULLS LAST, kategori_evaluasi_id DESC NULLS LAST, mata_pelajaran_id NULLS LAST
           LIMIT 1
-        `, [activeYear.id, kategoriId, tingkat]);
+        `, [activeYear.id, kategoriId, tingkat, mapel.id]);
         if (setRes.rows.length > 0) {
           mapel.tipe_input = setRes.rows[0].tipe_input;
           mapel.konfigurasi = setRes.rows[0].konfigurasi;
