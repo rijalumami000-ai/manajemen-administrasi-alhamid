@@ -860,12 +860,14 @@ function registerMyMustahiqRoutes(app) {
 
       return {
         id: row.id,
+        tingkat: row.tingkat,
         kelas_id: classMatch ? classMatch.id : null,
         kelas_nama: `Tingkat ${row.tingkat}`,
         semester: row.semester || '-',
         mapel_id: subjectMatch ? subjectMatch.id : null,
         mapel_nama: subjectMatch ? subjectMatch.nama : row.pelajaran,
         tipe_ujian: row.is_her ? 'SOAL HER' : (row.judul || 'Ujian Semester'),
+        is_her: row.is_her || false,
         konten_soal: kontenSoal,
         dibuat_oleh: 'Administrator',
         created_at: row.created_at,

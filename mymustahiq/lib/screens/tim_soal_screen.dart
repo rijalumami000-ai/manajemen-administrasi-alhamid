@@ -22,7 +22,73 @@ class _TimSoalScreenState extends State<TimSoalScreen> {
   List<dynamic> _mataPelajaran = [];
   List<dynamic> _soalList = [];
 
-  int? _filterKelasId;
+  // Filter: tingkat (level) instead of individual kelas
+  int? _filterTingkat;
+  // Filter: null = Semua, false = Soal Utama, true = Soal Her
+  bool? _filterIsHer;
+
+  // Helper: tingkat names
+  String _tingkatLabel(int tingkat) {
+    switch (tingkat) {
+      case 0:
+        return 'Kelas Sifir';
+      case 1:
+        return 'Kelas 1';
+      case 99:
+        return 'Kelas SP';
+      case 2:
+        return 'Kelas 2';
+      case 3:
+        return 'Kelas 3';
+      case 4:
+        return 'Kelas 4';
+      case 5:
+        return 'Kelas 5';
+      case 6:
+        return 'Kelas 6';
+      default:
+        return 'Tingkat $tingkat';
+    }
+  }
+
+  // Get distinct tingkat levels from classes, sorted by order
+  List<Map<String, dynamic>> get _distinctTingkatList {
+    final seen = <int>{};
+    final result = <Map<String, dynamic>>[];
+    // Sort classes by tingkat_order if available
+    final sorted = List<dynamic>.from(_classes)
+      ..sort((a, b) {
+        final orderA = a['tingkat_order'] ?? _tingkatOrder(a['tingkat'] ?? 0);
+        final orderB = b['tingkat_order'] ?? _tingkatOrder(b['tingkat'] ?? 0);
+        return (orderA as int).compareTo(orderB as int);
+      });
+    for (final c in sorted) {
+      final tingkat = c['tingkat'] as int? ?? 0;
+      if (!seen.contains(tingkat)) {
+        seen.add(tingkat);
+        result.add({
+          'tingkat': tingkat,
+          'label': _tingkatLabel(tingkat),
+          'kelas_id': c['id'], // representative class id for this tingkat
+        });
+      }
+    }
+    return result;
+  }
+
+  int _tingkatOrder(int tingkat) {
+    switch (tingkat) {
+      case 0: return 1;
+      case 1: return 2;
+      case 99: return 3;
+      case 2: return 4;
+      case 3: return 5;
+      case 4: return 6;
+      case 5: return 7;
+      case 6: return 8;
+      default: return 9;
+    }
+  }
 
   @override
   void initState() {
@@ -39,7 +105,6 @@ class _TimSoalScreenState extends State<TimSoalScreen> {
       _selectedSemester = taResult['activeSemester'] ?? 'Ganjil';
 
       if (_tahunAjaranList.isNotEmpty) {
-        // Default to active year, or first one
         _selectedTahunAjaran = _tahunAjaranList.firstWhere(
           (ta) => ta['is_active'] == true,
           orElse: () => _tahunAjaranList.first,
@@ -71,13 +136,36 @@ class _TimSoalScreenState extends State<TimSoalScreen> {
     if (_selectedTahunAjaran == null) return;
     final taId = _selectedTahunAjaran!['id'];
 
+    // Find a representative kelas_id from the selected tingkat
+    int? filterKelasId;
+    if (_filterTingkat != null) {
+      final match = _classes.firstWhere(
+        (c) => c['tingkat'] == _filterTingkat,
+        orElse: () => null,
+      );
+      if (match != null) {
+        filterKelasId = match['id'] as int?;
+      }
+    }
+
     final listData = await _apiService.getTimSoalList(
-      kelasId: _filterKelasId,
+      kelasId: filterKelasId,
       semester: _selectedSemester,
       tahunAjaranId: taId,
     );
+
+    List<dynamic> allSoal = listData['soal'] ?? [];
+
+    // Client-side filter by is_her
+    if (_filterIsHer != null) {
+      allSoal = allSoal.where((s) {
+        final isHer = s['is_her'] == true;
+        return isHer == _filterIsHer;
+      }).toList();
+    }
+
     setState(() {
-      _soalList = listData['soal'] ?? [];
+      _soalList = allSoal;
     });
   }
 
@@ -94,9 +182,19 @@ class _TimSoalScreenState extends State<TimSoalScreen> {
   }
 
   void _showAddEditBottomSheet({Map<String, dynamic>? existingSoal}) {
-    int? selectedKelasId = existingSoal != null ? existingSoal['kelas_id'] as int? : null;
-    int? selectedMapelId = existingSoal != null ? existingSoal['mapel_id'] as int? : null;
-    String selectedTipeUjian = existingSoal?['tipe_ujian'] ?? 'Ujian Semester';
+    // For the form, we need a representative kelas_id per tingkat
+    // When editing, map existing tingkat to a tingkat value
+    int? selectedTingkat;
+    int? selectedMapelId;
+    bool selectedIsHer = false;
+
+    if (existingSoal != null) {
+      // The backend returns tingkat directly in mapped data
+      selectedTingkat = existingSoal['tingkat'] as int?;
+      selectedMapelId = existingSoal['mapel_id'] as int?;
+      selectedIsHer = existingSoal['is_her'] == true;
+    }
+
     final contentController = TextEditingController(text: existingSoal?['konten_soal'] ?? '');
 
     showModalBottomSheet(
@@ -108,6 +206,7 @@ class _TimSoalScreenState extends State<TimSoalScreen> {
         final panelBg = isDark ? const Color(0xFF1E293B) : Colors.white;
         final textStyle = GoogleFonts.outfit(color: isDark ? Colors.white : Colors.black87);
         final titleColor = isDark ? Colors.white : Colors.black87;
+        final primaryColor = isDark ? const Color(0xFFEC4899) : const Color(0xFFBE185D);
 
         return StatefulBuilder(
           builder: (context, setModalState) {
@@ -146,26 +245,26 @@ class _TimSoalScreenState extends State<TimSoalScreen> {
                     ),
                     const SizedBox(height: 16),
 
-                    // Kelas Dropdown
+                    // Tingkat Dropdown (instead of individual classes)
                     Text(
-                      "Pilih Kelas",
+                      "Pilih Tingkat Kelas",
                       style: GoogleFonts.outfit(fontWeight: FontWeight.bold, fontSize: 13, color: isDark ? Colors.white70 : Colors.black54),
                     ),
                     const SizedBox(height: 6),
                     DropdownButtonFormField<int>(
                       dropdownColor: panelBg,
-                      initialValue: selectedKelasId,
+                      value: selectedTingkat,
                       style: textStyle,
-                      decoration: _inputDecoration(isDark, Icons.class_rounded, "Pilih Kelas"),
-                      items: _classes.map<DropdownMenuItem<int>>((c) {
+                      decoration: _inputDecoration(isDark, Icons.class_rounded, "Pilih Tingkat Kelas"),
+                      items: _distinctTingkatList.map<DropdownMenuItem<int>>((t) {
                         return DropdownMenuItem<int>(
-                          value: c['id'] as int,
-                          child: Text(c['nama'] as String),
+                          value: t['tingkat'] as int,
+                          child: Text(t['label'] as String),
                         );
                       }).toList(),
                       onChanged: (val) {
                         setModalState(() {
-                          selectedKelasId = val;
+                          selectedTingkat = val;
                         });
                       },
                     ),
@@ -179,7 +278,7 @@ class _TimSoalScreenState extends State<TimSoalScreen> {
                     const SizedBox(height: 6),
                     DropdownButtonFormField<int>(
                       dropdownColor: panelBg,
-                      initialValue: selectedMapelId,
+                      value: selectedMapelId,
                       style: textStyle,
                       decoration: _inputDecoration(isDark, Icons.book_rounded, "Pilih Mata Pelajaran"),
                       items: _mataPelajaran.map<DropdownMenuItem<int>>((m) {
@@ -196,30 +295,100 @@ class _TimSoalScreenState extends State<TimSoalScreen> {
                     ),
                     const SizedBox(height: 16),
 
-                    // Tipe Ujian
+                    // Soal Utama / Soal Her toggle
                     Text(
-                      "Tipe Ujian",
+                      "Jenis Soal",
                       style: GoogleFonts.outfit(fontWeight: FontWeight.bold, fontSize: 13, color: isDark ? Colors.white70 : Colors.black54),
                     ),
                     const SizedBox(height: 6),
-                    DropdownButtonFormField<String>(
-                      dropdownColor: panelBg,
-                      initialValue: selectedTipeUjian,
-                      style: textStyle,
-                      decoration: _inputDecoration(isDark, Icons.assignment_rounded, "Tipe Ujian"),
-                      items: const [
-                        DropdownMenuItem(value: "Ujian Semester", child: Text("Ujian Semester (Reguler)")),
-                        DropdownMenuItem(value: "PTS", child: Text("PTS (Penilaian Tengah Semester)")),
-                        DropdownMenuItem(value: "PAS", child: Text("PAS (Penilaian Akhir Semester)")),
-                        DropdownMenuItem(value: "Ujian Praktik", child: Text("Ujian Praktik")),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: GestureDetector(
+                            onTap: () {
+                              setModalState(() => selectedIsHer = false);
+                            },
+                            child: AnimatedContainer(
+                              duration: const Duration(milliseconds: 200),
+                              padding: const EdgeInsets.symmetric(vertical: 14),
+                              decoration: BoxDecoration(
+                                color: !selectedIsHer
+                                    ? primaryColor.withOpacity(0.15)
+                                    : (isDark ? Colors.white.withOpacity(0.05) : Colors.black.withOpacity(0.03)),
+                                borderRadius: BorderRadius.circular(14),
+                                border: Border.all(
+                                  color: !selectedIsHer ? primaryColor : Colors.transparent,
+                                  width: 1.5,
+                                ),
+                              ),
+                              child: Center(
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Icon(
+                                      Icons.assignment_rounded,
+                                      size: 16,
+                                      color: !selectedIsHer ? primaryColor : (isDark ? Colors.white38 : Colors.black38),
+                                    ),
+                                    const SizedBox(width: 6),
+                                    Text(
+                                      "Soal Utama",
+                                      style: GoogleFonts.outfit(
+                                        fontSize: 13,
+                                        fontWeight: FontWeight.bold,
+                                        color: !selectedIsHer ? primaryColor : (isDark ? Colors.white38 : Colors.black38),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: GestureDetector(
+                            onTap: () {
+                              setModalState(() => selectedIsHer = true);
+                            },
+                            child: AnimatedContainer(
+                              duration: const Duration(milliseconds: 200),
+                              padding: const EdgeInsets.symmetric(vertical: 14),
+                              decoration: BoxDecoration(
+                                color: selectedIsHer
+                                    ? Colors.orange.withOpacity(0.15)
+                                    : (isDark ? Colors.white.withOpacity(0.05) : Colors.black.withOpacity(0.03)),
+                                borderRadius: BorderRadius.circular(14),
+                                border: Border.all(
+                                  color: selectedIsHer ? Colors.orange : Colors.transparent,
+                                  width: 1.5,
+                                ),
+                              ),
+                              child: Center(
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Icon(
+                                      Icons.refresh_rounded,
+                                      size: 16,
+                                      color: selectedIsHer ? Colors.orange : (isDark ? Colors.white38 : Colors.black38),
+                                    ),
+                                    const SizedBox(width: 6),
+                                    Text(
+                                      "Soal Her",
+                                      style: GoogleFonts.outfit(
+                                        fontSize: 13,
+                                        fontWeight: FontWeight.bold,
+                                        color: selectedIsHer ? Colors.orange : (isDark ? Colors.white38 : Colors.black38),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
                       ],
-                      onChanged: (val) {
-                        if (val != null) {
-                          setModalState(() {
-                            selectedTipeUjian = val;
-                          });
-                        }
-                      },
                     ),
                     const SizedBox(height: 16),
 
@@ -247,24 +416,37 @@ class _TimSoalScreenState extends State<TimSoalScreen> {
                     ),
                     const SizedBox(height: 24),
 
-                    // Action buttons
+                    // Action button
                     ElevatedButton(
                       onPressed: () async {
-                        if (selectedKelasId == null || selectedMapelId == null || contentController.text.trim().isEmpty) {
+                        if (selectedTingkat == null || selectedMapelId == null || contentController.text.trim().isEmpty) {
                           _showSnackBar("Harap lengkapi semua isian form.", isError: true);
                           return;
                         }
+
+                        // Find a representative kelas_id for the selected tingkat
+                        final matchClass = _classes.firstWhere(
+                          (c) => c['tingkat'] == selectedTingkat,
+                          orElse: () => null,
+                        );
+                        if (matchClass == null) {
+                          _showSnackBar("Kelas untuk tingkat ini tidak ditemukan.", isError: true);
+                          return;
+                        }
+                        final kelasId = matchClass['id'] as int;
+
                         Navigator.pop(context); // Close bottomsheet
                         setState(() => _isLoading = true);
 
                         try {
+                          final tipeUjian = selectedIsHer ? 'SOAL HER' : 'PENILAIAN AKHIR SEMESTER';
                           await _apiService.saveTimSoal(
                             id: existingSoal?['id'],
-                            kelasId: selectedKelasId!,
+                            kelasId: kelasId,
                             mataPelajaranId: selectedMapelId!,
                             tahunAjaranId: _selectedTahunAjaran!['id'],
                             semester: _selectedSemester,
-                            tipeUjian: selectedTipeUjian,
+                            tipeUjian: tipeUjian,
                             kontenSoal: contentController.text.trim(),
                           );
                           _showSnackBar("Soal berhasil disimpan!");
@@ -472,38 +654,38 @@ class _TimSoalScreenState extends State<TimSoalScreen> {
                           ],
                         ),
                         const Divider(height: 20),
-                        // Class filter dropdown
+                        // Tingkat filter dropdown
                         Row(
                           children: [
                             Icon(Icons.filter_list_rounded, size: 16, color: subColor),
                             const SizedBox(width: 8),
                             Text(
-                              "Filter Kelas:",
+                              "Tingkat:",
                               style: GoogleFonts.outfit(fontSize: 12, fontWeight: FontWeight.bold, color: headingColor),
                             ),
-                            const SizedBox(width: 12),
+                            const SizedBox(width: 8),
                             Expanded(
                               child: DropdownButton<int?>(
                                 dropdownColor: cardBgColor,
-                                value: _filterKelasId,
+                                value: _filterTingkat,
                                 isExpanded: true,
                                 underline: const SizedBox(),
                                 style: GoogleFonts.outfit(color: headingColor, fontSize: 13),
                                 items: [
                                   DropdownMenuItem<int?>(
                                     value: null,
-                                    child: Text("Semua Kelas", style: GoogleFonts.outfit(color: headingColor)),
+                                    child: Text("Semua Tingkat", style: GoogleFonts.outfit(color: headingColor)),
                                   ),
-                                  ..._classes.map<DropdownMenuItem<int?>>((c) {
+                                  ..._distinctTingkatList.map<DropdownMenuItem<int?>>((t) {
                                     return DropdownMenuItem<int?>(
-                                      value: c['id'] as int,
-                                      child: Text(c['nama'] as String),
+                                      value: t['tingkat'] as int,
+                                      child: Text(t['label'] as String),
                                     );
                                   }),
                                 ],
                                 onChanged: (val) {
                                   setState(() {
-                                    _filterKelasId = val;
+                                    _filterTingkat = val;
                                     _isLoading = true;
                                   });
                                   _loadSoalList().then((_) {
@@ -511,6 +693,66 @@ class _TimSoalScreenState extends State<TimSoalScreen> {
                                   });
                                 },
                               ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 8),
+                        // Soal Utama / Her filter
+                        Row(
+                          children: [
+                            Icon(Icons.assignment_rounded, size: 16, color: subColor),
+                            const SizedBox(width: 8),
+                            Text(
+                              "Jenis:",
+                              style: GoogleFonts.outfit(fontSize: 12, fontWeight: FontWeight.bold, color: headingColor),
+                            ),
+                            const SizedBox(width: 8),
+                            _buildFilterChip(
+                              label: "Semua",
+                              isSelected: _filterIsHer == null,
+                              onTap: () {
+                                setState(() {
+                                  _filterIsHer = null;
+                                  _isLoading = true;
+                                });
+                                _loadSoalList().then((_) {
+                                  setState(() => _isLoading = false);
+                                });
+                              },
+                              isDark: isDark,
+                              activeColor: subColor,
+                            ),
+                            const SizedBox(width: 6),
+                            _buildFilterChip(
+                              label: "Soal Utama",
+                              isSelected: _filterIsHer == false,
+                              onTap: () {
+                                setState(() {
+                                  _filterIsHer = false;
+                                  _isLoading = true;
+                                });
+                                _loadSoalList().then((_) {
+                                  setState(() => _isLoading = false);
+                                });
+                              },
+                              isDark: isDark,
+                              activeColor: subColor,
+                            ),
+                            const SizedBox(width: 6),
+                            _buildFilterChip(
+                              label: "Soal Her",
+                              isSelected: _filterIsHer == true,
+                              onTap: () {
+                                setState(() {
+                                  _filterIsHer = true;
+                                  _isLoading = true;
+                                });
+                                _loadSoalList().then((_) {
+                                  setState(() => _isLoading = false);
+                                });
+                              },
+                              isDark: isDark,
+                              activeColor: Colors.orange,
                             ),
                           ],
                         ),
@@ -561,7 +803,43 @@ class _TimSoalScreenState extends State<TimSoalScreen> {
     );
   }
 
+  Widget _buildFilterChip({
+    required String label,
+    required bool isSelected,
+    required VoidCallback onTap,
+    required bool isDark,
+    required Color activeColor,
+  }) {
+    return GestureDetector(
+      onTap: onTap,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+        decoration: BoxDecoration(
+          color: isSelected ? activeColor.withOpacity(0.15) : (isDark ? Colors.white.withOpacity(0.05) : Colors.black.withOpacity(0.03)),
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(
+            color: isSelected ? activeColor : Colors.transparent,
+            width: 1.2,
+          ),
+        ),
+        child: Text(
+          label,
+          style: GoogleFonts.outfit(
+            fontSize: 11,
+            fontWeight: FontWeight.bold,
+            color: isSelected ? activeColor : (isDark ? Colors.white54 : Colors.black45),
+          ),
+        ),
+      ),
+    );
+  }
+
   Widget _buildSoalCard(Map<String, dynamic> soal, Color cardBg, bool isDark, Color headingColor, Color subColor) {
+    final isHer = soal['is_her'] == true;
+    final tingkat = soal['tingkat'];
+    final tingkatLabel = tingkat != null ? _tingkatLabel(tingkat as int) : (soal['kelas_nama'] ?? '-');
+
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       decoration: BoxDecoration(
@@ -592,7 +870,7 @@ class _TimSoalScreenState extends State<TimSoalScreen> {
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: Text(
-                  soal['kelas_nama'] ?? '-',
+                  tingkatLabel,
                   style: GoogleFonts.outfit(fontSize: 10, fontWeight: FontWeight.bold, color: subColor),
                 ),
               ),
@@ -609,13 +887,23 @@ class _TimSoalScreenState extends State<TimSoalScreen> {
                 ),
               ),
               const SizedBox(width: 8),
-              Expanded(
+              // Soal Utama / Her badge
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                decoration: BoxDecoration(
+                  color: isHer ? Colors.orange.withOpacity(0.1) : Colors.green.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(8),
+                ),
                 child: Text(
-                  soal['tipe_ujian'] ?? 'Ujian Semester',
-                  style: GoogleFonts.outfit(fontSize: 11, fontWeight: FontWeight.bold, color: isDark ? Colors.white70 : Colors.black54),
-                  overflow: TextOverflow.ellipsis,
+                  isHer ? "Soal Her" : "Soal Utama",
+                  style: GoogleFonts.outfit(
+                    fontSize: 10,
+                    fontWeight: FontWeight.bold,
+                    color: isHer ? Colors.orange : Colors.green.shade700,
+                  ),
                 ),
               ),
+              const Spacer(),
               // Action buttons (Edit & Delete)
               IconButton(
                 icon: Icon(Icons.edit_rounded, size: 16, color: isDark ? Colors.white70 : Colors.black54),
