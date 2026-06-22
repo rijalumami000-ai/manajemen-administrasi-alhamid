@@ -216,11 +216,7 @@ function registerMyMustahiqRoutes(app) {
     // If still no class is found/specified, or if isForceClasses is true, return the class list
     if (!kelasId || isForceClasses) {
       const classesResult = await db.query(`
-        SELECT DISTINCT k.id, k.nama, k.tingkat
-        FROM kelas k
-        JOIN kelas_tahun_ajaran kta ON kta.kelas_id = k.id
-        WHERE kta.tahun_ajaran_id = $1 AND k.jenis = 'Diniyah'
-        ORDER BY
+        SELECT DISTINCT k.id, k.nama, k.tingkat,
           CASE 
             WHEN k.tingkat = 0 THEN 1
             WHEN k.tingkat = 1 THEN 2
@@ -231,8 +227,11 @@ function registerMyMustahiqRoutes(app) {
             WHEN k.tingkat = 5 THEN 7
             WHEN k.tingkat = 6 THEN 8
             ELSE 9
-          END,
-          k.nama
+          END AS tingkat_order
+        FROM kelas k
+        JOIN kelas_tahun_ajaran kta ON kta.kelas_id = k.id
+        WHERE kta.tahun_ajaran_id = $1 AND k.jenis = 'Diniyah'
+        ORDER BY tingkat_order, k.nama
       `, [activeYear.id]);
 
       if (isForceClasses) {
