@@ -221,39 +221,13 @@ class _JadwalPelajaranScreenState extends State<JadwalPelajaranScreen> {
                     items: _tahunAjaranList.map<DropdownMenuItem<Map<String, dynamic>>>((ta) {
                       return DropdownMenuItem<Map<String, dynamic>>(
                         value: ta as Map<String, dynamic>,
-                        child: Text("T.A: ${ta['kode']}"),
+                        child: Text("Tahun Ajaran: ${ta['kode']}"),
                       );
                     }).toList(),
                     onChanged: (val) {
                       if (val != null) {
                         setState(() {
                           _selectedTahunAjaran = val;
-                        });
-                        _fetchClasses().then((_) {
-                          if (isClassSelected) {
-                            _selectClass(_selectedKelasId!, _selectedKelasNama);
-                          }
-                        });
-                      }
-                    },
-                  ),
-                ),
-                const SizedBox(width: 24),
-                Expanded(
-                  child: DropdownButton<String>(
-                    dropdownColor: context.isDarkMode ? const Color(0xFF1E293B) : Colors.white,
-                    value: _selectedSemester,
-                    isExpanded: true,
-                    underline: const SizedBox(),
-                    style: GoogleFonts.outfit(color: context.titleColor, fontSize: 13, fontWeight: FontWeight.bold),
-                    items: const [
-                      DropdownMenuItem(value: "Ganjil", child: Text("Sem: Ganjil")),
-                      DropdownMenuItem(value: "Genap", child: Text("Sem: Genap")),
-                    ],
-                    onChanged: (val) {
-                      if (val != null) {
-                        setState(() {
-                          _selectedSemester = val;
                         });
                         _fetchClasses().then((_) {
                           if (isClassSelected) {
@@ -341,7 +315,7 @@ class _JadwalPelajaranScreenState extends State<JadwalPelajaranScreen> {
                     borderRadius: BorderRadius.circular(6),
                   ),
                   child: Text(
-                    "T.A $_activeYear ($_activeSemester)",
+                    "T.A $_activeYear",
                     style: GoogleFonts.outfit(
                       color: const Color(0xFF10B981),
                       fontSize: 10,

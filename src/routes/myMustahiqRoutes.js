@@ -390,7 +390,7 @@ function registerMyMustahiqRoutes(app) {
         type = 'Qiroatul Kitab';
       } else if (g.mapel_jenis === 'Taftisyul Kutub' || (g.mata_pelajaran || '').toLowerCase().includes('taftisy')) {
         type = 'Taftisyul Kutub';
-      } else if (g.kategori_jenis === 'Semester' || g.kategori_evaluasi.toLowerCase().includes('ujian')) {
+      } else if (g.kategori_jenis === 'Semester' || (g.kategori_evaluasi || '').toLowerCase().includes('ujian')) {
         type = 'Ujian Tulis';
       }
 
