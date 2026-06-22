@@ -201,6 +201,22 @@ class _InputNilaiScreenState extends State<InputNilaiScreen> {
     final sIdStr = santriId.toString();
     final studentGrades = Map<String, dynamic>.from(_nilaiExisting[sIdStr] ?? {});
 
+    // Helper function to extract bab and description from stored capaian for Teks format
+    Map<String, String> parseStoredCapaian(dynamic existingGrade) {
+      if (existingGrade == null || existingGrade['capaian'] == null) {
+        return {'bab': '', 'desc': ''};
+      }
+      final String saved = existingGrade['capaian'].toString();
+      final int idx = saved.indexOf(' - ');
+      if (idx != -1) {
+        return {
+          'bab': saved.substring(0, idx).trim(),
+          'desc': saved.substring(idx + 3).trim(),
+        };
+      }
+      return {'bab': saved.trim(), 'desc': ''};
+    }
+
     // Prepare lists of form items
     final List<Map<String, dynamic>> formItems = [];
 
@@ -210,6 +226,7 @@ class _InputNilaiScreenState extends State<InputNilaiScreen> {
       final existing = studentGrades[mIdStr];
       final mapelData = _mataPelajaran.firstWhere((m) => m['id'] == _muhafadzohMapelId, orElse: () => <String, dynamic>{});
       final String tipeInput = mapelData['tipe_input']?.toString() ?? 'Angka';
+      final parsed = parseStoredCapaian(existing);
       
       formItems.add({
         'mapel_id': _muhafadzohMapelId,
@@ -217,9 +234,9 @@ class _InputNilaiScreenState extends State<InputNilaiScreen> {
         'is_special': true,
         'tipe_input': tipeInput,
         'konfigurasi': mapelData['konfigurasi'],
-        'controller': TextEditingController(text: tipeInput == 'Teks' ? (existing?['capaian'] ?? '') : (existing != null && existing['nilai'] != null ? _formatNilai(existing['nilai']) : '')),
+        'controller': TextEditingController(text: tipeInput == 'Teks' ? parsed['bab'] : (existing != null && existing['nilai'] != null ? _formatNilai(existing['nilai']) : '')),
         'predikat_controller': TextEditingController(text: existing?['predikat'] ?? ''),
-        'capaian_controller': TextEditingController(text: tipeInput == 'Teks' ? '' : (existing?['capaian'] ?? '')),
+        'capaian_controller': TextEditingController(text: tipeInput == 'Teks' ? parsed['desc']! : (existing?['capaian'] ?? '')),
       });
     }
 
@@ -251,6 +268,7 @@ class _InputNilaiScreenState extends State<InputNilaiScreen> {
       final mIdStr = mId.toString();
       final existing = studentGrades[mIdStr];
       final String tipeInput = mapel['tipe_input']?.toString() ?? 'Teks';
+      final parsed = parseStoredCapaian(existing);
       
       formItems.add({
         'mapel_id': mId,
@@ -258,9 +276,9 @@ class _InputNilaiScreenState extends State<InputNilaiScreen> {
         'is_special': true,
         'tipe_input': tipeInput,
         'konfigurasi': mapel['konfigurasi'],
-        'controller': TextEditingController(text: tipeInput == 'Teks' ? (existing?['capaian'] ?? '') : (existing != null && existing['nilai'] != null ? _formatNilai(existing['nilai']) : '')),
+        'controller': TextEditingController(text: tipeInput == 'Teks' ? parsed['bab'] : (existing != null && existing['nilai'] != null ? _formatNilai(existing['nilai']) : '')),
         'predikat_controller': TextEditingController(text: existing?['predikat'] ?? ''),
-        'capaian_controller': TextEditingController(text: tipeInput == 'Teks' ? '' : (existing?['capaian'] ?? '')),
+        'capaian_controller': TextEditingController(text: tipeInput == 'Teks' ? parsed['desc']! : (existing?['capaian'] ?? '')),
       });
     }
 
@@ -275,6 +293,7 @@ class _InputNilaiScreenState extends State<InputNilaiScreen> {
       final mIdStr = mId.toString();
       final existing = studentGrades[mIdStr];
       final String tipeInput = mapel['tipe_input']?.toString() ?? 'Angka';
+      final parsed = parseStoredCapaian(existing);
       
       formItems.add({
         'mapel_id': mId,
@@ -282,9 +301,9 @@ class _InputNilaiScreenState extends State<InputNilaiScreen> {
         'is_special': false,
         'tipe_input': tipeInput,
         'konfigurasi': mapel['konfigurasi'],
-        'controller': TextEditingController(text: tipeInput == 'Teks' ? (existing?['capaian'] ?? '') : (existing != null && existing['nilai'] != null ? _formatNilai(existing['nilai']) : '')),
+        'controller': TextEditingController(text: tipeInput == 'Teks' ? parsed['bab'] : (existing != null && existing['nilai'] != null ? _formatNilai(existing['nilai']) : '')),
         'predikat_controller': TextEditingController(text: existing?['predikat'] ?? ''),
-        'capaian_controller': TextEditingController(text: tipeInput == 'Teks' ? '' : (existing?['capaian'] ?? '')),
+        'capaian_controller': TextEditingController(text: tipeInput == 'Teks' ? parsed['desc']! : (existing?['capaian'] ?? '')),
       });
     }
 
