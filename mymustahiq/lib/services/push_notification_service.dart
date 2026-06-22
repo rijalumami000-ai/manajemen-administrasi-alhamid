@@ -9,7 +9,7 @@ class PushNotificationService {
   factory PushNotificationService() => _instance;
   PushNotificationService._internal();
 
-  final FirebaseMessaging _fcm = FirebaseMessaging.instance;
+  FirebaseMessaging? _fcm;
   final FlutterLocalNotificationsPlugin _localNotifications = FlutterLocalNotificationsPlugin();
   bool _initialized = false;
 
@@ -20,8 +20,11 @@ class PushNotificationService {
       // 1. Initialize Firebase Core
       await Firebase.initializeApp();
 
-      // 2. Request permission (FCM)
-      await _fcm.requestPermission(
+      // 2. Initialize FCM instance
+      _fcm = FirebaseMessaging.instance;
+
+      // 3. Request permission (FCM)
+      await _fcm!.requestPermission(
         alert: true,
         announcement: false,
         badge: true,
@@ -99,7 +102,11 @@ class PushNotificationService {
   Future<void> registerDeviceToken() async {
     try {
       // Safely fetch Firebase token if initialized
-      String? token = await _fcm.getToken();
+      if (_fcm == null) {
+        print('⚠ FCM token registration skipped: Firebase Messaging is not initialized.');
+        return;
+      }
+      String? token = await _fcm!.getToken();
       if (token != null) {
         final apiService = ApiService();
         String deviceInfo = Platform.isAndroid ? 'Android' : 'iOS';

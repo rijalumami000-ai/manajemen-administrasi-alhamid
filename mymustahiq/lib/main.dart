@@ -68,8 +68,10 @@ class _AuthenticationWrapperState extends State<AuthenticationWrapper> {
   }
 
   Future<void> _checkTokenValidity() async {
+    print('🔑 [Auth] Checking token validity...');
     final token = await _apiService.getToken();
     if (token == null) {
+      print('🔑 [Auth] No stored token found. Directing to login screen.');
       if (mounted) {
         setState(() {
           _isAuthenticated = false;
@@ -79,17 +81,23 @@ class _AuthenticationWrapperState extends State<AuthenticationWrapper> {
       return;
     }
 
+    print('🔑 [Auth] Token found: ${token.substring(0, token.length > 10 ? 10 : token.length)}... Testing connection and validity...');
     try {
       // Test server connection and token validity by fetching dashboard
-      await _apiService.getDashboard();
+      final start = DateTime.now();
+      final dashboard = await _apiService.getDashboard();
+      final duration = DateTime.now().difference(start);
+      print('🔑 [Auth] Connection successful! Dashboard fetched in ${duration.inMilliseconds}ms.');
+      print('🔑 [Auth] Active User Info: ${dashboard['guruInfo']?['nama'] ?? 'Unknown'}. Opening dashboard...');
       if (mounted) {
         setState(() {
           _isAuthenticated = true;
           _checkingAuth = false;
         });
       }
-    } catch (_) {
-      // In case of error (expired token or server offline)
+    } catch (e) {
+      print('🔑 [Auth] Error or token invalid (server offline/expired): $e');
+      print('🔑 [Auth] Directing to login screen as fallback.');
       if (mounted) {
         setState(() {
           // Fallback to login screen

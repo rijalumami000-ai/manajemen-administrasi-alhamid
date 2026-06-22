@@ -27,3 +27,6 @@ release/
 # Temporary and Scratch Files
 scratch/
 scratch_check_db.js
+
+# Firebase service account credentials
+config/firebase-service-account.json
