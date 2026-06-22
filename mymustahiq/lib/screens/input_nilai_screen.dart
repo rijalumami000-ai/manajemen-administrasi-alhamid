@@ -109,13 +109,35 @@ class _InputNilaiScreenState extends State<InputNilaiScreen> {
     );
   }
 
-  String _calculatePredikat(double? score) {
+  String _calculatePredikat(double? score, dynamic konfigurasi) {
     if (score == null) return '';
-    if (score >= 90) return 'A';
-    if (score >= 80) return 'B';
-    if (score >= 70) return 'C';
-    if (score >= 60) return 'D';
-    return 'E';
+    
+    // Use dynamic configuration if provided
+    if (konfigurasi != null && konfigurasi is Map) {
+      for (var entry in konfigurasi.entries) {
+        var pred = entry.key.toString();
+        var limits = entry.value;
+        if (limits is Map) {
+          var min = limits['min'];
+          var max = limits['max'];
+          if (min != null && max != null) {
+            double minVal = double.tryParse(min.toString()) ?? 0;
+            double maxVal = double.tryParse(max.toString()) ?? 100;
+            if (score >= minVal && score <= maxVal) {
+              return pred;
+            }
+          }
+        }
+      }
+      return ''; // No match found in config
+    }
+
+    // Default hardcoded fallback
+    if (score >= 90) return 'Mumtaz';
+    if (score >= 80) return 'Jayyid';
+    if (score >= 70) return 'Mutawassith';
+    if (score >= 60) return "Rodi'";
+    return "Rodi'";
   }
 
   int _getGradeProgress(int santriId) {
@@ -174,13 +196,18 @@ class _InputNilaiScreenState extends State<InputNilaiScreen> {
     if (_muhafadzohMapelId != null) {
       final mIdStr = _muhafadzohMapelId.toString();
       final existing = studentGrades[mIdStr];
+      final mapelData = _mataPelajaran.firstWhere((m) => m['id'] == _muhafadzohMapelId, orElse: () => <String, dynamic>{});
+      final String tipeInput = mapelData['tipe_input']?.toString() ?? 'Angka';
+      
       formItems.add({
         'mapel_id': _muhafadzohMapelId,
         'title': 'Muhafadzoh Akbar',
         'is_special': true,
-        'controller': TextEditingController(text: existing != null && existing['nilai'] != null ? existing['nilai'].toString() : ''),
+        'tipe_input': tipeInput,
+        'konfigurasi': mapelData['konfigurasi'],
+        'controller': TextEditingController(text: tipeInput == 'Teks' ? (existing?['capaian'] ?? '') : (existing != null && existing['nilai'] != null ? existing['nilai'].toString() : '')),
         'predikat_controller': TextEditingController(text: existing?['predikat'] ?? ''),
-        'capaian_controller': TextEditingController(text: existing?['capaian'] ?? ''),
+        'capaian_controller': TextEditingController(text: tipeInput == 'Teks' ? '' : (existing?['capaian'] ?? '')),
       });
     }
 
@@ -192,6 +219,8 @@ class _InputNilaiScreenState extends State<InputNilaiScreen> {
         'mapel_id': _qiroatulMapelId,
         'title': 'Qiroatul Kitab',
         'is_special': true,
+        'tipe_input': 'Angka',
+        'konfigurasi': null,
         'controller': TextEditingController(text: existing != null && existing['nilai'] != null ? existing['nilai'].toString() : ''),
         'predikat_controller': TextEditingController(text: existing?['predikat'] ?? ''),
         'capaian_controller': TextEditingController(text: existing?['capaian'] ?? ''),
@@ -206,14 +235,17 @@ class _InputNilaiScreenState extends State<InputNilaiScreen> {
       final mIdStr = mId.toString();
       final existing = studentGrades[mIdStr];
       final isTaftisy = mapel['jenis'] == 'Taftisyul Kutub' || mapel['nama'].toString().toLowerCase().contains('taftisy');
+      final String tipeInput = mapel['tipe_input']?.toString() ?? 'Angka';
       
       formItems.add({
         'mapel_id': mId,
         'title': mapel['nama'] as String,
         'is_special': isTaftisy,
-        'controller': TextEditingController(text: existing != null && existing['nilai'] != null ? existing['nilai'].toString() : ''),
+        'tipe_input': tipeInput,
+        'konfigurasi': mapel['konfigurasi'],
+        'controller': TextEditingController(text: tipeInput == 'Teks' ? (existing?['capaian'] ?? '') : (existing != null && existing['nilai'] != null ? existing['nilai'].toString() : '')),
         'predikat_controller': TextEditingController(text: existing?['predikat'] ?? ''),
-        'capaian_controller': TextEditingController(text: existing?['capaian'] ?? ''),
+        'capaian_controller': TextEditingController(text: tipeInput == 'Teks' ? '' : (existing?['capaian'] ?? '')),
       });
     }
 
@@ -326,24 +358,48 @@ class _InputNilaiScreenState extends State<InputNilaiScreen> {
                                   // Score Input
                                   Expanded(
                                     flex: 2,
-                                    child: TextField(
-                                      controller: scoreCtrl,
-                                      keyboardType: TextInputType.number,
-                                      style: textStyle,
-                                      decoration: _inputDecoration("Nilai (0-100)", isDark),
-                                      onChanged: (val) {
-                                        final double? score = double.tryParse(val);
-                                        if (score != null) {
-                                          setModalState(() {
-                                            predCtrl.text = _calculatePredikat(score);
-                                          });
-                                        } else {
-                                          setModalState(() {
-                                            predCtrl.text = '';
-                                          });
-                                        }
-                                      },
-                                    ),
+                                    child: item['tipe_input'] == 'Teks'
+                                        ? DropdownButtonFormField<String>(
+                                            value: scoreCtrl.text.isEmpty ? null : ((item['konfigurasi'] as List<dynamic>? ?? []).any((c) => c['bab'].toString() == scoreCtrl.text) ? scoreCtrl.text : null),
+                                            dropdownColor: panelBg,
+                                            style: textStyle,
+                                            decoration: _inputDecoration("Pilih Capaian / Teks", isDark),
+                                            items: (item['konfigurasi'] as List<dynamic>? ?? [])
+                                                .map<DropdownMenuItem<String>>((c) {
+                                              return DropdownMenuItem<String>(
+                                                value: c['bab'].toString(),
+                                                child: Text(c['bab'].toString(), style: textStyle),
+                                              );
+                                            }).toList(),
+                                            onChanged: (val) {
+                                              if (val != null) {
+                                                setModalState(() {
+                                                  scoreCtrl.text = val;
+                                                  final cfg = (item['konfigurasi'] as List<dynamic>?)?.firstWhere(
+                                                      (c) => c['bab'].toString() == val, orElse: () => null);
+                                                  predCtrl.text = cfg != null ? (cfg['predikat']?.toString() ?? '') : '';
+                                                });
+                                              }
+                                            },
+                                          )
+                                        : TextField(
+                                            controller: scoreCtrl,
+                                            keyboardType: TextInputType.number,
+                                            style: textStyle,
+                                            decoration: _inputDecoration("Nilai (0-100)", isDark),
+                                            onChanged: (val) {
+                                              final double? score = double.tryParse(val);
+                                              if (score != null) {
+                                                setModalState(() {
+                                                  predCtrl.text = _calculatePredikat(score, item['konfigurasi']);
+                                                });
+                                              } else {
+                                                setModalState(() {
+                                                  predCtrl.text = '';
+                                                });
+                                              }
+                                            },
+                                          ),
                                   ),
                                   const SizedBox(width: 12),
                                   // Predicate Input
@@ -392,13 +448,24 @@ class _InputNilaiScreenState extends State<InputNilaiScreen> {
                         final pred = (item['predikat_controller'] as TextEditingController).text.trim();
                         final desc = (item['capaian_controller'] as TextEditingController).text.trim();
 
-                        final double? score = double.tryParse(scoreText);
+                        final bool isTeks = item['tipe_input'] == 'Teks';
+                        final double? score = isTeks ? null : double.tryParse(scoreText);
+                        
+                        // For 'Teks', scoreText holds the "bab" which goes to capaian. 
+                        // We also append desc if there's any extra note.
+                        String finalCapaian = '';
+                        if (isTeks) {
+                          finalCapaian = desc.isNotEmpty ? "$scoreText - $desc" : scoreText;
+                        } else {
+                          finalCapaian = desc;
+                        }
+
                         gradesToSave.add({
                           'santri_id': santriId,
                           'mata_pelajaran_id': mId,
                           'nilai_angka': score,
                           'predikat': pred.isNotEmpty ? pred : null,
-                          'capaian': desc.isNotEmpty ? desc : null,
+                          'capaian': finalCapaian.isNotEmpty ? finalCapaian : null,
                         });
                       }
 

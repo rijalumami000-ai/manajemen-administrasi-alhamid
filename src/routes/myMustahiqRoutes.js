@@ -750,11 +750,7 @@ function registerMyMustahiqRoutes(app) {
 
     // Get classes for the academic year
     const classesResult = await db.query(`
-      SELECT DISTINCT k.id, k.nama, k.tingkat
-      FROM kelas k
-      JOIN kelas_tahun_ajaran kta ON kta.kelas_id = k.id
-      WHERE kta.tahun_ajaran_id = $1 AND k.jenis = 'Diniyah'
-      ORDER BY
+      SELECT DISTINCT k.id, k.nama, k.tingkat,
         CASE 
           WHEN k.tingkat = 0 THEN 1
           WHEN k.tingkat = 1 THEN 2
@@ -765,8 +761,11 @@ function registerMyMustahiqRoutes(app) {
           WHEN k.tingkat = 5 THEN 7
           WHEN k.tingkat = 6 THEN 8
           ELSE 9
-        END,
-        k.nama
+        END AS tingkat_order
+      FROM kelas k
+      JOIN kelas_tahun_ajaran kta ON kta.kelas_id = k.id
+      WHERE kta.tahun_ajaran_id = $1 AND k.jenis = 'Diniyah'
+      ORDER BY tingkat_order, k.nama
     `, [activeYear.id]);
 
     // Get all mata pelajaran
@@ -833,6 +832,7 @@ function registerMyMustahiqRoutes(app) {
         l.soal,
         l.is_her,
         l.tingkat,
+        l.semester,
         l.created_at,
         l.updated_at
       FROM lembar_ujian l
@@ -861,7 +861,8 @@ function registerMyMustahiqRoutes(app) {
       return {
         id: row.id,
         kelas_id: classMatch ? classMatch.id : null,
-        kelas_nama: classMatch ? classMatch.nama : `Tingkat ${row.tingkat}`,
+        kelas_nama: `Tingkat ${row.tingkat}`,
+        semester: row.semester || '-',
         mapel_id: subjectMatch ? subjectMatch.id : null,
         mapel_nama: subjectMatch ? subjectMatch.nama : row.pelajaran,
         tipe_ujian: row.is_her ? 'SOAL HER' : (row.judul || 'Ujian Semester'),
@@ -1042,7 +1043,37 @@ function registerMyMustahiqRoutes(app) {
 
     const kelasConfig = ktaResult.rows[0] || {};
 
-    const classDetail = await db.query('SELECT id, nama FROM kelas WHERE id = $1', [kelasId]);
+    const classDetail = await db.query('SELECT id, nama, tingkat FROM kelas WHERE id = $1', [kelasId]);
+    const tingkat = classDetail.rows[0] ? classDetail.rows[0].tingkat : null;
+
+    // Attach konfigurasi setting_kriteria_nilai
+    for (let i = 0; i < mapelResult.rows.length; i++) {
+      let mapel = mapelResult.rows[i];
+      let isTaftisy = mapel.jenis === 'Taftisyul Kutub' || (mapel.nama || '').toLowerCase().includes('taftisy');
+      
+      if (isTaftisy) {
+        mapel.tipe_input = 'Teks';
+        mapel.konfigurasi = [
+          { bab: 'Tam', predikat: 'Tam' },
+          { bab: 'Naqish', predikat: 'Naqish' }
+        ];
+      } else if (mapel.jenis === 'Muhafadzoh') {
+        const setRes = await db.query(`
+          SELECT tipe_input, konfigurasi
+          FROM setting_kriteria_nilai
+          WHERE tahun_ajaran_id = $1 AND kategori_evaluasi_id = $2 AND tingkat = $3 AND jenis_mapel = 'Muhafadzoh'
+          LIMIT 1
+        `, [activeYear.id, kategoriId, tingkat]);
+        if (setRes.rows.length > 0) {
+          mapel.tipe_input = setRes.rows[0].tipe_input;
+          mapel.konfigurasi = setRes.rows[0].konfigurasi;
+        } else {
+          mapel.tipe_input = 'Angka'; // default
+        }
+      } else {
+        mapel.tipe_input = 'Angka';
+      }
+    }
 
     res.json({
       kelas: classDetail.rows[0],

@@ -597,6 +597,18 @@ class _TimSoalScreenState extends State<TimSoalScreen> {
                 ),
               ),
               const SizedBox(width: 8),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                decoration: BoxDecoration(
+                  color: (isDark ? Colors.blue.shade400 : Colors.blue.shade600).withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Text(
+                  soal['semester'] ?? '-',
+                  style: GoogleFonts.outfit(fontSize: 10, fontWeight: FontWeight.bold, color: isDark ? Colors.blue.shade300 : Colors.blue.shade700),
+                ),
+              ),
+              const SizedBox(width: 8),
               Expanded(
                 child: Text(
                   soal['tipe_ujian'] ?? 'Ujian Semester',
