@@ -239,20 +239,47 @@ class _InputNilaiScreenState extends State<InputNilaiScreen> {
       });
     }
 
-    // 3. Taftisyul Kutub and Reguler subjects
+    // 3. Taftisyul Kutub
+    final taftisyMapels = _mataPelajaran.where((m) {
+      final mId = m['id'] as int;
+      if (mId == _muhafadzohMapelId || mId == _qiroatulMapelId) return false;
+      return m['jenis'] == 'Taftisy' || m['jenis'] == 'Taftisyul Kutub' || m['nama'].toString().toLowerCase().contains('taftisy');
+    }).toList();
+
+    for (final mapel in taftisyMapels) {
+      final mId = mapel['id'] as int;
+      final mIdStr = mId.toString();
+      final existing = studentGrades[mIdStr];
+      final String tipeInput = mapel['tipe_input']?.toString() ?? 'Teks';
+      
+      formItems.add({
+        'mapel_id': mId,
+        'title': mapel['nama'] ?? 'Taftisyul Kutub',
+        'is_special': true,
+        'tipe_input': tipeInput,
+        'konfigurasi': mapel['konfigurasi'],
+        'controller': TextEditingController(text: tipeInput == 'Teks' ? (existing?['capaian'] ?? '') : (existing != null && existing['nilai'] != null ? _formatNilai(existing['nilai']) : '')),
+        'predikat_controller': TextEditingController(text: existing?['predikat'] ?? ''),
+        'capaian_controller': TextEditingController(text: tipeInput == 'Teks' ? '' : (existing?['capaian'] ?? '')),
+      });
+    }
+
+    // 4. Reguler subjects
     for (final mapel in _mataPelajaran) {
       final mId = mapel['id'] as int;
       if (mId == _muhafadzohMapelId || mId == _qiroatulMapelId) continue;
       
+      final isTaftisy = mapel['jenis'] == 'Taftisy' || mapel['jenis'] == 'Taftisyul Kutub' || mapel['nama'].toString().toLowerCase().contains('taftisy');
+      if (isTaftisy) continue;
+      
       final mIdStr = mId.toString();
       final existing = studentGrades[mIdStr];
-      final isTaftisy = mapel['jenis'] == 'Taftisyul Kutub' || mapel['nama'].toString().toLowerCase().contains('taftisy');
       final String tipeInput = mapel['tipe_input']?.toString() ?? 'Angka';
       
       formItems.add({
         'mapel_id': mId,
         'title': mapel['nama'] as String,
-        'is_special': isTaftisy,
+        'is_special': false,
         'tipe_input': tipeInput,
         'konfigurasi': mapel['konfigurasi'],
         'controller': TextEditingController(text: tipeInput == 'Teks' ? (existing?['capaian'] ?? '') : (existing != null && existing['nilai'] != null ? _formatNilai(existing['nilai']) : '')),

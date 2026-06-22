@@ -1080,9 +1080,8 @@ function registerMyMustahiqRoutes(app) {
           FROM setting_kriteria_nilai
           WHERE (tahun_ajaran_id = $1 OR tahun_ajaran_id IS NULL) 
             AND (kategori_evaluasi_id = $2 OR kategori_evaluasi_id IS NULL) 
-            AND (mata_pelajaran_id = $4 OR mata_pelajaran_id IS NULL)
+            AND (mata_pelajaran_id = $4 OR (mata_pelajaran_id IS NULL AND jenis_mapel = 'Muhafadzoh'))
             AND tingkat = $3 
-            AND jenis_mapel = 'Muhafadzoh'
           ORDER BY tahun_ajaran_id DESC NULLS LAST, kategori_evaluasi_id DESC NULLS LAST, mata_pelajaran_id NULLS LAST
           LIMIT 1
         `, [activeYear.id, kategoriId, tingkat, mapel.id]);
