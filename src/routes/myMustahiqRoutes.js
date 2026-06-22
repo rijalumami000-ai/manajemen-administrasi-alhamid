@@ -1047,6 +1047,22 @@ function registerMyMustahiqRoutes(app) {
 
     const kelasConfig = ktaResult.rows[0] || {};
 
+    // Fetch special subjects that might not be in mapel_tingkat (Taftisyul Kutub, Muhafadzoh, Qiroatul Kitab)
+    const specialSubjects = await db.query(`
+      SELECT id, nama, jenis FROM mata_pelajaran 
+      WHERE jenis = 'Taftisy' 
+         OR jenis = 'Taftisyul Kutub' 
+         OR nama ILIKE '%taftisy%'
+         OR id = $1 
+         OR id = $2
+    `, [kelasConfig.muhafadzoh_mapel_id || -1, kelasConfig.qiroatul_mapel_id || -1]);
+
+    specialSubjects.rows.forEach(sm => {
+      if (!mapelResult.rows.some(m => m.id === sm.id)) {
+        mapelResult.rows.push(sm);
+      }
+    });
+
     // Attach konfigurasi setting_kriteria_nilai
     for (let i = 0; i < mapelResult.rows.length; i++) {
       let mapel = mapelResult.rows[i];
