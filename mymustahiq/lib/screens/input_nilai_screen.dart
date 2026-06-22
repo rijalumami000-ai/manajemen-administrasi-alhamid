@@ -140,6 +140,18 @@ class _InputNilaiScreenState extends State<InputNilaiScreen> {
     return "Rodi'";
   }
 
+  String _formatNilai(dynamic nilai) {
+    if (nilai == null) return '';
+    final d = double.tryParse(nilai.toString());
+    if (d != null) {
+      if (d == d.toInt()) {
+        return d.toInt().toString();
+      }
+      return d.toString();
+    }
+    return nilai.toString();
+  }
+
   int _getGradeProgress(int santriId) {
     final sIdStr = santriId.toString();
     if (!_nilaiExisting.containsKey(sIdStr)) return 0;
@@ -205,7 +217,7 @@ class _InputNilaiScreenState extends State<InputNilaiScreen> {
         'is_special': true,
         'tipe_input': tipeInput,
         'konfigurasi': mapelData['konfigurasi'],
-        'controller': TextEditingController(text: tipeInput == 'Teks' ? (existing?['capaian'] ?? '') : (existing != null && existing['nilai'] != null ? existing['nilai'].toString() : '')),
+        'controller': TextEditingController(text: tipeInput == 'Teks' ? (existing?['capaian'] ?? '') : (existing != null && existing['nilai'] != null ? _formatNilai(existing['nilai']) : '')),
         'predikat_controller': TextEditingController(text: existing?['predikat'] ?? ''),
         'capaian_controller': TextEditingController(text: tipeInput == 'Teks' ? '' : (existing?['capaian'] ?? '')),
       });
@@ -221,7 +233,7 @@ class _InputNilaiScreenState extends State<InputNilaiScreen> {
         'is_special': true,
         'tipe_input': 'Angka',
         'konfigurasi': null,
-        'controller': TextEditingController(text: existing != null && existing['nilai'] != null ? existing['nilai'].toString() : ''),
+        'controller': TextEditingController(text: existing != null && existing['nilai'] != null ? _formatNilai(existing['nilai']) : ''),
         'predikat_controller': TextEditingController(text: existing?['predikat'] ?? ''),
         'capaian_controller': TextEditingController(text: existing?['capaian'] ?? ''),
       });
@@ -243,7 +255,7 @@ class _InputNilaiScreenState extends State<InputNilaiScreen> {
         'is_special': isTaftisy,
         'tipe_input': tipeInput,
         'konfigurasi': mapel['konfigurasi'],
-        'controller': TextEditingController(text: tipeInput == 'Teks' ? (existing?['capaian'] ?? '') : (existing != null && existing['nilai'] != null ? existing['nilai'].toString() : '')),
+        'controller': TextEditingController(text: tipeInput == 'Teks' ? (existing?['capaian'] ?? '') : (existing != null && existing['nilai'] != null ? _formatNilai(existing['nilai']) : '')),
         'predikat_controller': TextEditingController(text: existing?['predikat'] ?? ''),
         'capaian_controller': TextEditingController(text: tipeInput == 'Teks' ? '' : (existing?['capaian'] ?? '')),
       });
