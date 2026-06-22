@@ -737,7 +737,7 @@ function registerMyMustahiqRoutes(app) {
 
   /**
    * GET /api/my-mustahiq/tim-soal/data
-   * Returns classes + mata pelajaran per class for tim soal form
+   * Returns classes + mata pelajaran per tingkat for tim soal form
    */
   router.get('/tim-soal/data', asyncHandler(async (req, res) => {
     const tahunAjaranId = req.query.tahun_ajaran_id;
@@ -768,10 +768,31 @@ function registerMyMustahiqRoutes(app) {
       ORDER BY tingkat_order, k.nama
     `, [activeYear.id]);
 
-    // Get all mata pelajaran
-    const mapelResult = await db.query(`
-      SELECT id, nama, jenis FROM mata_pelajaran ORDER BY nama
+    // Get subjects per tingkat from mapel_tingkat table (only Reguler subjects, excluding special exams)
+    const mapelPerTingkatResult = await db.query(`
+      SELECT DISTINCT mt.tingkat, mt.mata_pelajaran_id, mp.nama, mp.jenis
+      FROM mapel_tingkat mt
+      JOIN mata_pelajaran mp ON mp.id = mt.mata_pelajaran_id
+      WHERE mp.jenis = 'Reguler'
+      ORDER BY mt.tingkat, mp.nama
     `);
+
+    // Group subjects by tingkat
+    const mapelPerTingkat = {};
+    mapelPerTingkatResult.rows.forEach(row => {
+      const key = String(row.tingkat);
+      if (!mapelPerTingkat[key]) {
+        mapelPerTingkat[key] = [];
+      }
+      // Avoid duplicates
+      if (!mapelPerTingkat[key].some(m => m.id === row.mata_pelajaran_id)) {
+        mapelPerTingkat[key].push({
+          id: row.mata_pelajaran_id,
+          nama: row.nama,
+          jenis: row.jenis
+        });
+      }
+    });
 
     const semResult = await db.query("SELECT value FROM system_settings WHERE key = 'active_semester' LIMIT 1");
     const activeSemester = semResult.rows[0] ? semResult.rows[0].value : 'Ganjil';
@@ -781,7 +802,7 @@ function registerMyMustahiqRoutes(app) {
       tahunAjaranId: activeYear.id,
       semester: activeSemester,
       classes: classesResult.rows,
-      mataPelajaran: mapelResult.rows
+      mapelPerTingkat: mapelPerTingkat
     });
   }));
 

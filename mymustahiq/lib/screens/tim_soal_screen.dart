@@ -19,7 +19,8 @@ class _TimSoalScreenState extends State<TimSoalScreen> {
   String _selectedSemester = 'Ganjil';
 
   List<dynamic> _classes = [];
-  List<dynamic> _mataPelajaran = [];
+  // Map of tingkat (as string) -> list of subjects
+  Map<String, dynamic> _mapelPerTingkat = {};
   List<dynamic> _soalList = [];
 
   // Filter: tingkat (level) instead of individual kelas
@@ -51,31 +52,6 @@ class _TimSoalScreenState extends State<TimSoalScreen> {
     }
   }
 
-  // Get distinct tingkat levels from classes, sorted by order
-  List<Map<String, dynamic>> get _distinctTingkatList {
-    final seen = <int>{};
-    final result = <Map<String, dynamic>>[];
-    // Sort classes by tingkat_order if available
-    final sorted = List<dynamic>.from(_classes)
-      ..sort((a, b) {
-        final orderA = a['tingkat_order'] ?? _tingkatOrder(a['tingkat'] ?? 0);
-        final orderB = b['tingkat_order'] ?? _tingkatOrder(b['tingkat'] ?? 0);
-        return (orderA as int).compareTo(orderB as int);
-      });
-    for (final c in sorted) {
-      final tingkat = c['tingkat'] as int? ?? 0;
-      if (!seen.contains(tingkat)) {
-        seen.add(tingkat);
-        result.add({
-          'tingkat': tingkat,
-          'label': _tingkatLabel(tingkat),
-          'kelas_id': c['id'], // representative class id for this tingkat
-        });
-      }
-    }
-    return result;
-  }
-
   int _tingkatOrder(int tingkat) {
     switch (tingkat) {
       case 0: return 1;
@@ -90,6 +66,39 @@ class _TimSoalScreenState extends State<TimSoalScreen> {
     }
   }
 
+  // Get distinct tingkat levels from classes, sorted by order
+  List<Map<String, dynamic>> get _distinctTingkatList {
+    final seen = <int>{};
+    final result = <Map<String, dynamic>>[];
+    final sorted = List<dynamic>.from(_classes)
+      ..sort((a, b) {
+        final orderA = a['tingkat_order'] ?? _tingkatOrder(a['tingkat'] ?? 0);
+        final orderB = b['tingkat_order'] ?? _tingkatOrder(b['tingkat'] ?? 0);
+        return (orderA as int).compareTo(orderB as int);
+      });
+    for (final c in sorted) {
+      final tingkat = c['tingkat'] as int? ?? 0;
+      if (!seen.contains(tingkat)) {
+        seen.add(tingkat);
+        result.add({
+          'tingkat': tingkat,
+          'label': _tingkatLabel(tingkat),
+          'kelas_id': c['id'],
+        });
+      }
+    }
+    return result;
+  }
+
+  // Get subjects for a specific tingkat from mapelPerTingkat
+  List<Map<String, dynamic>> _getSubjectsForTingkat(int? tingkat) {
+    if (tingkat == null) return [];
+    final key = tingkat.toString();
+    final mapelList = _mapelPerTingkat[key];
+    if (mapelList == null || mapelList is! List) return [];
+    return mapelList.map<Map<String, dynamic>>((m) => Map<String, dynamic>.from(m as Map)).toList();
+  }
+
   @override
   void initState() {
     super.initState();
@@ -99,7 +108,6 @@ class _TimSoalScreenState extends State<TimSoalScreen> {
   Future<void> _initializeData() async {
     setState(() => _isLoading = true);
     try {
-      // 1. Fetch academic years
       final taResult = await _apiService.getTahunAjaranList();
       _tahunAjaranList = taResult['tahunAjaran'] ?? [];
       _selectedSemester = taResult['activeSemester'] ?? 'Ganjil';
@@ -123,12 +131,10 @@ class _TimSoalScreenState extends State<TimSoalScreen> {
     if (_selectedTahunAjaran == null) return;
     final taId = _selectedTahunAjaran!['id'];
 
-    // 2. Fetch classes & subjects for selected academic year
     final metaData = await _apiService.getTimSoalData(tahunAjaranId: taId);
     _classes = metaData['classes'] ?? [];
-    _mataPelajaran = metaData['mataPelajaran'] ?? [];
+    _mapelPerTingkat = Map<String, dynamic>.from(metaData['mapelPerTingkat'] ?? {});
 
-    // 3. Fetch questions list
     await _loadSoalList();
   }
 
@@ -136,7 +142,6 @@ class _TimSoalScreenState extends State<TimSoalScreen> {
     if (_selectedTahunAjaran == null) return;
     final taId = _selectedTahunAjaran!['id'];
 
-    // Find a representative kelas_id from the selected tingkat
     int? filterKelasId;
     if (_filterTingkat != null) {
       final match = _classes.firstWhere(
@@ -182,14 +187,11 @@ class _TimSoalScreenState extends State<TimSoalScreen> {
   }
 
   void _showAddEditBottomSheet({Map<String, dynamic>? existingSoal}) {
-    // For the form, we need a representative kelas_id per tingkat
-    // When editing, map existing tingkat to a tingkat value
     int? selectedTingkat;
     int? selectedMapelId;
     bool selectedIsHer = false;
 
     if (existingSoal != null) {
-      // The backend returns tingkat directly in mapped data
       selectedTingkat = existingSoal['tingkat'] as int?;
       selectedMapelId = existingSoal['mapel_id'] as int?;
       selectedIsHer = existingSoal['is_her'] == true;
@@ -210,6 +212,14 @@ class _TimSoalScreenState extends State<TimSoalScreen> {
 
         return StatefulBuilder(
           builder: (context, setModalState) {
+            // Get subjects for current selected tingkat
+            final currentSubjects = _getSubjectsForTingkat(selectedTingkat);
+
+            // Validate selectedMapelId still exists in current subjects
+            if (selectedMapelId != null && !currentSubjects.any((m) => m['id'] == selectedMapelId)) {
+              selectedMapelId = null;
+            }
+
             return Container(
               decoration: BoxDecoration(
                 color: panelBg,
@@ -245,7 +255,7 @@ class _TimSoalScreenState extends State<TimSoalScreen> {
                     ),
                     const SizedBox(height: 16),
 
-                    // Tingkat Dropdown (instead of individual classes)
+                    // Tingkat Dropdown
                     Text(
                       "Pilih Tingkat Kelas",
                       style: GoogleFonts.outfit(fontWeight: FontWeight.bold, fontSize: 13, color: isDark ? Colors.white70 : Colors.black54),
@@ -265,34 +275,76 @@ class _TimSoalScreenState extends State<TimSoalScreen> {
                       onChanged: (val) {
                         setModalState(() {
                           selectedTingkat = val;
+                          selectedMapelId = null; // Reset mapel when tingkat changes
                         });
                       },
                     ),
                     const SizedBox(height: 16),
 
-                    // Mapel Dropdown
+                    // Mapel Dropdown — filtered by selected tingkat
                     Text(
                       "Pilih Mata Pelajaran",
                       style: GoogleFonts.outfit(fontWeight: FontWeight.bold, fontSize: 13, color: isDark ? Colors.white70 : Colors.black54),
                     ),
                     const SizedBox(height: 6),
-                    DropdownButtonFormField<int>(
-                      dropdownColor: panelBg,
-                      value: selectedMapelId,
-                      style: textStyle,
-                      decoration: _inputDecoration(isDark, Icons.book_rounded, "Pilih Mata Pelajaran"),
-                      items: _mataPelajaran.map<DropdownMenuItem<int>>((m) {
-                        return DropdownMenuItem<int>(
-                          value: m['id'] as int,
-                          child: Text("${m['nama']} (${m['jenis']})"),
-                        );
-                      }).toList(),
-                      onChanged: (val) {
-                        setModalState(() {
-                          selectedMapelId = val;
-                        });
-                      },
-                    ),
+                    if (selectedTingkat == null)
+                      Container(
+                        padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 16),
+                        decoration: BoxDecoration(
+                          color: isDark ? Colors.white.withOpacity(0.05) : Colors.black.withOpacity(0.03),
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                        child: Row(
+                          children: [
+                            Icon(Icons.info_outline_rounded, size: 16, color: isDark ? Colors.white30 : Colors.black26),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: Text(
+                                "Pilih tingkat kelas terlebih dahulu",
+                                style: GoogleFonts.outfit(fontSize: 13, color: isDark ? Colors.white30 : Colors.black26),
+                              ),
+                            ),
+                          ],
+                        ),
+                      )
+                    else if (currentSubjects.isEmpty)
+                      Container(
+                        padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 16),
+                        decoration: BoxDecoration(
+                          color: isDark ? Colors.white.withOpacity(0.05) : Colors.black.withOpacity(0.03),
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                        child: Row(
+                          children: [
+                            Icon(Icons.warning_amber_rounded, size: 16, color: Colors.orange.withOpacity(0.7)),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: Text(
+                                "Belum ada mata pelajaran untuk tingkat ini",
+                                style: GoogleFonts.outfit(fontSize: 13, color: Colors.orange.withOpacity(0.7)),
+                              ),
+                            ),
+                          ],
+                        ),
+                      )
+                    else
+                      DropdownButtonFormField<int>(
+                        dropdownColor: panelBg,
+                        value: selectedMapelId,
+                        style: textStyle,
+                        decoration: _inputDecoration(isDark, Icons.book_rounded, "Pilih Mata Pelajaran"),
+                        items: currentSubjects.map<DropdownMenuItem<int>>((m) {
+                          return DropdownMenuItem<int>(
+                            value: m['id'] as int,
+                            child: Text(m['nama'] as String),
+                          );
+                        }).toList(),
+                        onChanged: (val) {
+                          setModalState(() {
+                            selectedMapelId = val;
+                          });
+                        },
+                      ),
                     const SizedBox(height: 16),
 
                     // Soal Utama / Soal Her toggle
@@ -403,7 +455,7 @@ class _TimSoalScreenState extends State<TimSoalScreen> {
                       maxLines: 6,
                       style: textStyle,
                       decoration: InputDecoration(
-                        hintText: "Tuliskan soal di sini...",
+                        hintText: "Tuliskan soal di sini...\n(satu soal per baris)",
                         hintStyle: GoogleFonts.outfit(color: isDark ? Colors.white30 : Colors.black.withOpacity(0.3)),
                         filled: true,
                         fillColor: isDark ? Colors.white.withOpacity(0.05) : Colors.black.withOpacity(0.03),
@@ -435,7 +487,7 @@ class _TimSoalScreenState extends State<TimSoalScreen> {
                         }
                         final kelasId = matchClass['id'] as int;
 
-                        Navigator.pop(context); // Close bottomsheet
+                        Navigator.pop(context);
                         setState(() => _isLoading = true);
 
                         try {
@@ -887,7 +939,6 @@ class _TimSoalScreenState extends State<TimSoalScreen> {
                 ),
               ),
               const SizedBox(width: 8),
-              // Soal Utama / Her badge
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                 decoration: BoxDecoration(
@@ -904,7 +955,6 @@ class _TimSoalScreenState extends State<TimSoalScreen> {
                 ),
               ),
               const Spacer(),
-              // Action buttons (Edit & Delete)
               IconButton(
                 icon: Icon(Icons.edit_rounded, size: 16, color: isDark ? Colors.white70 : Colors.black54),
                 padding: EdgeInsets.zero,
@@ -921,13 +971,11 @@ class _TimSoalScreenState extends State<TimSoalScreen> {
             ],
           ),
           const SizedBox(height: 10),
-          // Subject Title
           Text(
             soal['mapel_nama'] ?? '-',
             style: GoogleFonts.outfit(fontSize: 15, fontWeight: FontWeight.bold, color: headingColor),
           ),
           const SizedBox(height: 8),
-          // Question Content
           Text(
             soal['konten_soal'] ?? '',
             maxLines: 4,
@@ -935,7 +983,6 @@ class _TimSoalScreenState extends State<TimSoalScreen> {
             style: GoogleFonts.outfit(fontSize: 13, height: 1.4, color: isDark ? Colors.white60 : Colors.black87),
           ),
           const Divider(height: 24),
-          // Author & Date
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
