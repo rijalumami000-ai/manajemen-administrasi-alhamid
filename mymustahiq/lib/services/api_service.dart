@@ -497,6 +497,38 @@ class ApiService {
     }
   }
 
+  // Delete single notification
+  Future<Map<String, dynamic>> deleteNotification(int id) async {
+    try {
+      final response = await _dio.delete('/my-mustahiq/notifications/$id');
+      if (response.statusCode == 200) {
+        return response.data;
+      }
+      throw Exception('Gagal menghapus notifikasi.');
+    } catch (e) {
+      if (e is DioException && e.response != null) {
+        throw Exception(e.response?.data['error'] ?? 'Gagal menghapus notifikasi.');
+      }
+      rethrow;
+    }
+  }
+
+  // Clear all notifications
+  Future<Map<String, dynamic>> clearAllNotifications() async {
+    try {
+      final response = await _dio.delete('/my-mustahiq/notifications/clear-all');
+      if (response.statusCode == 200) {
+        return response.data;
+      }
+      throw Exception('Gagal menghapus semua riwayat notifikasi.');
+    } catch (e) {
+      if (e is DioException && e.response != null) {
+        throw Exception(e.response?.data['error'] ?? 'Gagal menghapus semua riwayat notifikasi.');
+      }
+      rethrow;
+    }
+  }
+
   // Register FCM Token
   Future<Map<String, dynamic>> registerFcmToken(String token, {String? deviceInfo}) async {
     try {
@@ -511,6 +543,74 @@ class ApiService {
     } catch (e) {
       if (e is DioException && e.response != null) {
         throw Exception(e.response?.data['error'] ?? 'Gagal mendaftarkan token FCM.');
+      }
+      rethrow;
+    }
+  }
+
+  // --- CLASS GROUP CHAT METHODS ---
+
+  // Get list of group chat rooms (classes associated with this teacher)
+  Future<Map<String, dynamic>> getChatRooms() async {
+    try {
+      final response = await _dio.get('/my-mustahiq/chats/rooms');
+      if (response.statusCode == 200) {
+        return response.data;
+      }
+      throw Exception('Gagal mengambil daftar ruang obrolan.');
+    } catch (e) {
+      if (e is DioException && e.response != null) {
+        throw Exception(e.response?.data['error'] ?? 'Gagal mengambil daftar ruang obrolan.');
+      }
+      rethrow;
+    }
+  }
+
+  // Get messages for a specific class room
+  Future<List<dynamic>> getChatMessages(int kelasId) async {
+    try {
+      final response = await _dio.get('/my-mustahiq/chats/rooms/$kelasId/messages');
+      if (response.statusCode == 200) {
+        return response.data as List<dynamic>;
+      }
+      throw Exception('Gagal mengambil pesan obrolan.');
+    } catch (e) {
+      if (e is DioException && e.response != null) {
+        throw Exception(e.response?.data['error'] ?? 'Gagal mengambil pesan obrolan.');
+      }
+      rethrow;
+    }
+  }
+
+  // Send a message in a specific class room
+  Future<Map<String, dynamic>> sendChatMessage(int kelasId, String message) async {
+    try {
+      final response = await _dio.post('/my-mustahiq/chats/rooms/$kelasId/messages', data: {
+        'message': message,
+      });
+      if (response.statusCode == 200) {
+        return response.data;
+      }
+      throw Exception('Gagal mengirim pesan.');
+    } catch (e) {
+      if (e is DioException && e.response != null) {
+        throw Exception(e.response?.data['error'] ?? 'Gagal mengirim pesan.');
+      }
+      rethrow;
+    }
+  }
+
+  // Delete a message for self
+  Future<Map<String, dynamic>> deleteChatMessageForSelf(int messageId) async {
+    try {
+      final response = await _dio.delete('/my-mustahiq/chats/messages/$messageId/delete-self');
+      if (response.statusCode == 200) {
+        return response.data;
+      }
+      throw Exception('Gagal menghapus pesan.');
+    } catch (e) {
+      if (e is DioException && e.response != null) {
+        throw Exception(e.response?.data['error'] ?? 'Gagal menghapus pesan.');
       }
       rethrow;
     }

@@ -3,8 +3,14 @@ const path = require('path');
 const fs = require('fs');
 
 let admin;
+let getMessaging;
 try {
   admin = require('firebase-admin');
+  try {
+    getMessaging = require('firebase-admin/messaging').getMessaging;
+  } catch (e) {
+    // Older firebase-admin might not have modular messaging exports
+  }
 } catch (e) {
   // Safe load if package is not yet fully installed synchronously
 }
@@ -28,7 +34,7 @@ function initFCM() {
     if (fs.existsSync(serviceAccountPath)) {
       const serviceAccount = require(serviceAccountPath);
       admin.initializeApp({
-        credential: admin.credential.cert(serviceAccount)
+        credential: admin.credential ? admin.credential.cert(serviceAccount) : admin.cert(serviceAccount)
       });
       fcmInitialized = true;
       console.log('✓ Firebase Admin SDK initialized for FCM');
@@ -82,6 +88,22 @@ async function sendNotification({ title, body, category, target }) {
     return { success: true, inAppOnly: true, sentCount: guruIds.length };
   }
 
+  // Get Messaging Instance dynamically to support v14+ and older versions
+  let messagingInstance;
+  if (getMessaging) {
+    try {
+      messagingInstance = getMessaging();
+    } catch (_) {}
+  }
+  if (!messagingInstance && admin && typeof admin.messaging === 'function') {
+    messagingInstance = admin.messaging();
+  }
+
+  if (!messagingInstance) {
+    console.warn('⚠ Firebase Messaging is not available.');
+    return { success: true, inAppOnly: true, sentCount: guruIds.length };
+  }
+
   // Get FCM tokens for these gurus
   const tokenResult = await db.query(
     `SELECT token, guru_id FROM fcm_tokens WHERE guru_id = ANY($1)`,
@@ -96,7 +118,7 @@ async function sendNotification({ title, body, category, target }) {
   
   // Send multicast message
   try {
-    const response = await admin.messaging().sendEachForMulticast({
+    const response = await messagingInstance.sendEachForMulticast({
       tokens: tokens,
       notification: {
         title: title,

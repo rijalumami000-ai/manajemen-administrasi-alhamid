@@ -78,6 +78,100 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
     }
   }
 
+  Future<void> _deleteNotificationSingle(int id) async {
+    try {
+      await _apiService.deleteNotification(id);
+      setState(() {
+        _notifications.removeWhere((n) => n['id'] == id);
+      });
+    } catch (e) {
+      _fetchNotifications();
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Gagal menghapus notifikasi: ${e.toString().replaceFirst('Exception: ', '')}'),
+            backgroundColor: Colors.redAccent,
+          ),
+        );
+      }
+    }
+  }
+
+  Future<void> _clearAllNotifications() async {
+    try {
+      await _apiService.clearAllNotifications();
+      setState(() {
+        _notifications.clear();
+      });
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              'Semua riwayat notifikasi berhasil dihapus',
+              style: GoogleFonts.outfit(color: Colors.white, fontSize: 13),
+            ),
+            backgroundColor: const Color(0xFF10B981),
+            duration: const Duration(seconds: 2),
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Gagal menghapus riwayat: ${e.toString().replaceFirst('Exception: ', '')}'),
+            backgroundColor: Colors.redAccent,
+          ),
+        );
+      }
+    }
+  }
+
+  Future<bool?> _showDeleteConfirmDialog(dynamic notif) async {
+    return await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: context.cardBg,
+        title: Text('Hapus Notifikasi?', style: GoogleFonts.outfit(color: context.titleColor, fontWeight: FontWeight.bold)),
+        content: Text('Apakah Anda yakin ingin menghapus notifikasi ini?', style: GoogleFonts.outfit(color: context.bodyColor)),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: Text('Batal', style: GoogleFonts.outfit(color: context.subTitleColor)),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: Text('Hapus', style: GoogleFonts.outfit(color: Colors.redAccent, fontWeight: FontWeight.bold)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _showClearAllConfirmDialog() async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: context.cardBg,
+        title: Text('Hapus Semua Riwayat?', style: GoogleFonts.outfit(color: context.titleColor, fontWeight: FontWeight.bold)),
+        content: Text('Apakah Anda yakin ingin menghapus seluruh riwayat notifikasi Anda? Tindakan ini tidak dapat dibatalkan.', style: GoogleFonts.outfit(color: context.bodyColor)),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: Text('Batal', style: GoogleFonts.outfit(color: context.subTitleColor)),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: Text('Hapus Semua', style: GoogleFonts.outfit(color: Colors.redAccent, fontWeight: FontWeight.bold)),
+          ),
+        ],
+      ),
+    );
+    if (confirm == true) {
+      _clearAllNotifications();
+    }
+  }
+
   Future<void> _showNotificationDetail(dynamic notif) async {
     final notifId = notif['id'];
     final wasUnread = notif['is_read'] == false;
@@ -214,7 +308,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
     return Scaffold(
       backgroundColor: context.scaffoldBg,
       appBar: AppBar(
-        backgroundColor: context.isDarkMode ? const Color(0xFF0D1527) : Colors.white,
+        backgroundColor: context.isDarkMode ? const Color(0xFF0D1527) : Colors.white.withOpacity(0.45),
         elevation: 0,
         leading: IconButton(
           icon: Icon(Icons.arrow_back_ios_new_rounded, color: context.titleColor, size: 20),
@@ -229,6 +323,12 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
           ),
         ),
         actions: [
+          if (_notifications.isNotEmpty)
+            IconButton(
+              icon: const Icon(Icons.delete_sweep_rounded, color: Colors.redAccent, size: 22),
+              tooltip: 'Hapus Semua',
+              onPressed: _showClearAllConfirmDialog,
+            ),
           if (unreadCount > 0)
             TextButton.icon(
               onPressed: _markAllAsRead,
@@ -265,121 +365,140 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                           final isRead = notif['is_read'] == true;
                           final color = _getCategoryColor(notif['category'] ?? '');
 
-                          return Container(
-                            margin: const EdgeInsets.only(bottom: 12),
-                            child: Card(
-                              color: isRead
-                                  ? context.cardBg
-                                  : (context.isDarkMode
-                                      ? const Color(0xFF1F2937).withOpacity(0.4)
-                                      : const Color(0xFF10B981).withOpacity(0.08)),
-                              margin: EdgeInsets.zero,
-                              shape: RoundedRectangleBorder(
+                          return Dismissible(
+                            key: Key(notif['id'].toString()),
+                            direction: DismissDirection.endToStart,
+                            background: Container(
+                              alignment: Alignment.centerRight,
+                              padding: const EdgeInsets.only(right: 20),
+                              decoration: BoxDecoration(
+                                color: Colors.redAccent.withOpacity(0.9),
                                 borderRadius: BorderRadius.circular(16),
-                                side: BorderSide(
-                                  color: isRead
-                                      ? context.borderColor
-                                      : const Color(0xFF10B981).withOpacity(0.3),
-                                  width: 1,
-                                ),
                               ),
-                              elevation: 0,
-                              child: InkWell(
-                                onTap: () => _showNotificationDetail(notif),
-                                borderRadius: BorderRadius.circular(16),
-                                child: Padding(
-                                  padding: const EdgeInsets.all(16.0),
-                                  child: Row(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                    children: [
-                                      Column(
-                                        children: [
-                                          Container(
-                                            width: 8,
-                                            height: 8,
-                                            decoration: BoxDecoration(
-                                              color: isRead ? Colors.transparent : const Color(0xFF10B981),
-                                              shape: BoxShape.circle,
-                                              boxShadow: isRead
-                                                  ? null
-                                                  : [
-                                                      BoxShadow(
-                                                        color: const Color(0xFF10B981).withOpacity(0.5),
-                                                        blurRadius: 4,
-                                                        spreadRadius: 1,
-                                                      )
-                                                    ],
-                                            ),
-                                          ),
-                                          const SizedBox(height: 8),
-                                          Icon(
-                                            (notif['category'] ?? '').toString().toLowerCase() == 'akademik'
-                                                ? Icons.school_rounded
-                                                : (notif['category'] ?? '').toString().toLowerCase() == 'pengumuman'
-                                                    ? Icons.campaign_rounded
-                                                    : Icons.settings_suggest_rounded,
-                                            color: color.withOpacity(isRead ? 0.5 : 0.9),
-                                            size: 18,
-                                          ),
-                                        ],
-                                      ),
-                                      const SizedBox(width: 14),
-                                      Expanded(
-                                        child: Column(
-                                          crossAxisAlignment: CrossAxisAlignment.start,
+                              child: const Icon(Icons.delete_outline_rounded, color: Colors.white),
+                            ),
+                            confirmDismiss: (direction) async {
+                              return await _showDeleteConfirmDialog(notif);
+                            },
+                            onDismissed: (direction) {
+                              _deleteNotificationSingle(notif['id']);
+                            },
+                            child: Container(
+                              margin: const EdgeInsets.only(bottom: 12),
+                              child: Card(
+                                color: isRead
+                                    ? context.cardBg
+                                    : (context.isDarkMode
+                                        ? const Color(0xFF1F2937).withOpacity(0.4)
+                                        : const Color(0xFF10B981).withOpacity(0.08)),
+                                margin: EdgeInsets.zero,
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(16),
+                                  side: BorderSide(
+                                    color: isRead
+                                        ? context.borderColor
+                                        : const Color(0xFF10B981).withOpacity(0.3),
+                                    width: 1,
+                                  ),
+                                ),
+                                elevation: 0,
+                                child: InkWell(
+                                  onTap: () => _showNotificationDetail(notif),
+                                  borderRadius: BorderRadius.circular(16),
+                                  child: Padding(
+                                    padding: const EdgeInsets.all(16.0),
+                                    child: Row(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        Column(
                                           children: [
-                                            Row(
-                                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                              children: [
-                                                Container(
-                                                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                                                  decoration: BoxDecoration(
-                                                    color: color.withOpacity(0.12),
-                                                    borderRadius: BorderRadius.circular(6),
-                                                  ),
-                                                  child: Text(
-                                                    (notif['category'] ?? 'INFO').toString().toUpperCase(),
-                                                    style: GoogleFonts.outfit(
-                                                      color: color,
-                                                      fontSize: 9,
-                                                      fontWeight: FontWeight.bold,
-                                                      letterSpacing: 0.6,
-                                                    ),
-                                                  ),
-                                                ),
-                                                Text(
-                                                  _formatDate(notif['created_at']),
-                                                  style: GoogleFonts.outfit(
-                                                    color: context.subTitleColor,
-                                                    fontSize: 10,
-                                                  ),
-                                                ),
-                                              ],
+                                            Container(
+                                              width: 8,
+                                              height: 8,
+                                              decoration: BoxDecoration(
+                                                color: isRead ? Colors.transparent : const Color(0xFF10B981),
+                                                shape: BoxShape.circle,
+                                                boxShadow: isRead
+                                                    ? null
+                                                    : [
+                                                        BoxShadow(
+                                                          color: const Color(0xFF10B981).withOpacity(0.5),
+                                                          blurRadius: 4,
+                                                          spreadRadius: 1,
+                                                        )
+                                                      ],
+                                              ),
                                             ),
                                             const SizedBox(height: 8),
-                                            Text(
-                                              notif['title'] ?? '',
-                                              style: GoogleFonts.outfit(
-                                                color: isRead ? context.subTitleColor : context.titleColor,
-                                                fontSize: 13,
-                                                fontWeight: isRead ? FontWeight.w500 : FontWeight.bold,
-                                              ),
-                                            ),
-                                            const SizedBox(height: 4),
-                                            Text(
-                                              notif['body'] ?? '',
-                                              style: GoogleFonts.outfit(
-                                                color: context.bodyColor,
-                                                fontSize: 11,
-                                                height: 1.3,
-                                              ),
-                                              maxLines: 2,
-                                              overflow: TextOverflow.ellipsis,
+                                            Icon(
+                                              (notif['category'] ?? '').toString().toLowerCase() == 'akademik'
+                                                  ? Icons.school_rounded
+                                                  : (notif['category'] ?? '').toString().toLowerCase() == 'pengumuman'
+                                                      ? Icons.campaign_rounded
+                                                      : Icons.settings_suggest_rounded,
+                                              color: color.withOpacity(isRead ? 0.5 : 0.9),
+                                              size: 18,
                                             ),
                                           ],
                                         ),
-                                      ),
-                                    ],
+                                        const SizedBox(width: 14),
+                                        Expanded(
+                                          child: Column(
+                                            crossAxisAlignment: CrossAxisAlignment.start,
+                                            children: [
+                                              Row(
+                                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                                children: [
+                                                  Container(
+                                                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                                                    decoration: BoxDecoration(
+                                                      color: color.withOpacity(0.12),
+                                                      borderRadius: BorderRadius.circular(6),
+                                                    ),
+                                                    child: Text(
+                                                      (notif['category'] ?? 'INFO').toString().toUpperCase(),
+                                                      style: GoogleFonts.outfit(
+                                                        color: color,
+                                                        fontSize: 9,
+                                                        fontWeight: FontWeight.bold,
+                                                        letterSpacing: 0.6,
+                                                      ),
+                                                    ),
+                                                  ),
+                                                  Text(
+                                                    _formatDate(notif['created_at']),
+                                                    style: GoogleFonts.outfit(
+                                                      color: context.subTitleColor,
+                                                      fontSize: 10,
+                                                    ),
+                                                  ),
+                                                ],
+                                              ),
+                                              const SizedBox(height: 8),
+                                              Text(
+                                                notif['title'] ?? '',
+                                                style: GoogleFonts.outfit(
+                                                  color: isRead ? context.subTitleColor : context.titleColor,
+                                                  fontSize: 13,
+                                                  fontWeight: isRead ? FontWeight.w500 : FontWeight.bold,
+                                                ),
+                                              ),
+                                              const SizedBox(height: 4),
+                                              Text(
+                                                notif['body'] ?? '',
+                                                style: GoogleFonts.outfit(
+                                                  color: context.bodyColor,
+                                                  fontSize: 11,
+                                                  height: 1.3,
+                                                ),
+                                                maxLines: 2,
+                                                overflow: TextOverflow.ellipsis,
+                                              ),
+                                            ],
+                                          ),
+                                        ),
+                                      ],
+                                    ),
                                   ),
                                 ),
                               ),

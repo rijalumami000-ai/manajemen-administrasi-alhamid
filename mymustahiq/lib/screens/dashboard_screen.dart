@@ -1,3 +1,4 @@
+import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../services/theme_manager.dart';
@@ -7,6 +8,7 @@ import 'tab_kelasku.dart';
 import 'tab_administratif.dart';
 import 'tab_akun.dart';
 import 'notifications_screen.dart';
+import 'chat_rooms_screen.dart';
 import '../services/push_notification_service.dart';
 
 class DashboardScreen extends StatefulWidget {
@@ -61,7 +63,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
     return Scaffold(
       backgroundColor: context.scaffoldBg,
       appBar: AppBar(
-        backgroundColor: context.isDarkMode ? const Color(0xFF0D1527) : Colors.white,
+        backgroundColor: context.isDarkMode ? const Color(0xFF0D1527) : Colors.white.withOpacity(0.45),
         elevation: 0,
         centerTitle: true,
         title: Text(
@@ -88,6 +90,22 @@ class _DashboardScreenState extends State<DashboardScreen> {
           ),
         ),
         actions: [
+          GestureDetector(
+            onTap: () async {
+              await Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => const ChatRoomsScreen()),
+              );
+            },
+            child: Center(
+              child: Icon(
+                Icons.chat_bubble_outline_rounded,
+                color: context.titleColor,
+                size: 22,
+              ),
+            ),
+          ),
+          const SizedBox(width: 16),
           GestureDetector(
             onTap: () async {
               await Navigator.push(
@@ -198,30 +216,51 @@ class _DashboardScreenState extends State<DashboardScreen> {
         ],
       ),
       bottomNavigationBar: Container(
-        decoration: BoxDecoration(
-          color: context.isDarkMode ? const Color(0xFF0D1527) : Colors.white,
-          border: Border(
-            top: BorderSide(color: context.borderColor, width: 1),
-          ),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withOpacity(context.isDarkMode ? 0.4 : 0.05),
-              blurRadius: 15,
-              offset: const Offset(0, -2),
-            ),
-          ],
-        ),
+        color: Colors.transparent,
         child: SafeArea(
           child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceAround,
-              children: [
-                _buildNavItem(0, Icons.school_rounded, 'Akademik'),
-                _buildNavItem(1, Icons.class_rounded, 'Kelasku'),
-                _buildNavItem(2, Icons.admin_panel_settings_rounded, 'Administratif'),
-                _buildNavItem(3, Icons.person_rounded, 'Akun'),
-              ],
+            padding: context.isDarkMode 
+                ? EdgeInsets.zero 
+                : const EdgeInsets.fromLTRB(16, 4, 16, 12),
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(context.isDarkMode ? 0 : 24),
+              child: BackdropFilter(
+                filter: ui.ImageFilter.blur(
+                  sigmaX: context.isDarkMode ? 0 : 15.0,
+                  sigmaY: context.isDarkMode ? 0 : 15.0,
+                ),
+                child: Container(
+                  decoration: BoxDecoration(
+                    color: context.isDarkMode 
+                        ? const Color(0xFF0D1527) 
+                        : Colors.white.withOpacity(0.55),
+                    borderRadius: BorderRadius.circular(context.isDarkMode ? 0 : 24),
+                    border: Border.all(
+                      color: context.isDarkMode 
+                          ? context.borderColor 
+                          : Colors.white.withOpacity(0.65),
+                      width: context.isDarkMode ? 1 : 1.5,
+                    ),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(context.isDarkMode ? 0.3 : 0.03),
+                        blurRadius: 20,
+                        offset: const Offset(0, -4),
+                      ),
+                    ],
+                  ),
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceAround,
+                    children: [
+                      _buildNavItem(0, Icons.school_rounded, 'Akademik'),
+                      _buildNavItem(1, Icons.class_rounded, 'Kelasku'),
+                      _buildNavItem(2, Icons.admin_panel_settings_rounded, 'Administratif'),
+                      _buildNavItem(3, Icons.person_rounded, 'Akun'),
+                    ],
+                  ),
+                ),
+              ),
             ),
           ),
         ),

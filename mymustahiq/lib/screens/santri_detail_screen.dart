@@ -99,7 +99,7 @@ class _SantriDetailScreenState extends State<SantriDetailScreen> with SingleTick
     return Scaffold(
       backgroundColor: context.scaffoldBg,
       appBar: AppBar(
-        backgroundColor: context.isDarkMode ? const Color(0xFF0D1527) : Colors.white,
+        backgroundColor: context.isDarkMode ? const Color(0xFF0D1527) : Colors.white.withOpacity(0.45),
         elevation: 0,
         leading: IconButton(
           icon: Icon(Icons.arrow_back_ios_new_rounded, color: context.titleColor, size: 20),
@@ -143,7 +143,7 @@ class _SantriDetailScreenState extends State<SantriDetailScreen> with SingleTick
                     // Student Header Card
                     Container(
                       padding: const EdgeInsets.fromLTRB(24, 16, 24, 24),
-                      color: context.isDarkMode ? const Color(0xFF0D1527) : Colors.white,
+                      color: context.cardBg,
                       child: Row(
                         children: [
                           Container(

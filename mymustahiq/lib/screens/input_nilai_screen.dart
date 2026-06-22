@@ -582,8 +582,8 @@ class _InputNilaiScreenState extends State<InputNilaiScreen> {
   @override
   Widget build(BuildContext context) {
     final isDark = context.isDarkMode;
-    final primaryBgColor = isDark ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC);
-    final cardBgColor = isDark ? const Color(0xFF1E293B) : Colors.white;
+    final primaryBgColor = context.scaffoldBg;
+    final cardBgColor = context.cardBg;
     final headingColor = isDark ? Colors.white : const Color(0xFF1E293B);
     final subColor = isDark ? const Color(0xFFFB923C) : const Color(0xFFC2410C);
 

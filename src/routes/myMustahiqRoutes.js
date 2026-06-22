@@ -1259,6 +1259,29 @@ function registerMyMustahiqRoutes(app) {
     res.json({ success: true, message: 'Notifikasi ditandai dibaca.' });
   }));
 
+  // === NOTIFICATIONS: CLEAR ALL ===
+  router.delete('/notifications/clear-all', asyncHandler(async (req, res) => {
+    const guruId = req.user.guru_id;
+    await db.query(`
+      DELETE FROM notifications
+      WHERE guru_id = $1
+    `, [guruId]);
+    res.json({ success: true, message: 'Semua riwayat notifikasi berhasil dihapus.' });
+  }));
+
+  // === NOTIFICATIONS: DELETE SINGLE ===
+  router.delete('/notifications/:id', asyncHandler(async (req, res) => {
+    const guruId = req.user.guru_id;
+    const notifId = parseInt(req.params.id, 10);
+    if (isNaN(notifId)) return res.status(400).json({ error: 'ID notifikasi tidak valid.' });
+
+    await db.query(`
+      DELETE FROM notifications
+      WHERE id = $1 AND guru_id = $2
+    `, [notifId, guruId]);
+    res.json({ success: true, message: 'Notifikasi berhasil dihapus.' });
+  }));
+
   // === FCM TOKEN: REGISTER/UPDATE ===
   router.post('/register-fcm', asyncHandler(async (req, res) => {
     const guruId = req.user.guru_id;
@@ -1312,6 +1335,244 @@ function registerMyMustahiqRoutes(app) {
       console.error('[Admin Trigger] Error executing daily schedules:', err);
       res.status(500).json({ error: err.message || 'Gagal memicu pengiriman notifikasi jadwal harian.' });
     }
+  }));
+
+  // === CHAT GROUPS: GET LIST OF ROOMS ===
+  router.get('/chats/rooms', asyncHandler(async (req, res) => {
+    const guruId = req.user.guru_id;
+    const activeYear = await getActiveTahunAjaran();
+
+    if (!activeYear) {
+      return res.status(404).json({ error: 'Tahun ajaran aktif tidak ditemukan.' });
+    }
+
+    const query = `
+      WITH user_direct_mustahiq_classes AS (
+        SELECT kta.kelas_id, k.tingkat
+        FROM kelas_tahun_ajaran kta
+        JOIN kelas k ON kta.kelas_id = k.id
+        WHERE kta.mustahiq_id = $1 AND kta.tahun_ajaran_id = $2
+      ),
+      user_mustahiq_tingkats AS (
+        SELECT DISTINCT tingkat FROM user_direct_mustahiq_classes
+      ),
+      user_classes_via_tingkat AS (
+        SELECT kta.kelas_id, 'mustahiq' AS role
+        FROM kelas_tahun_ajaran kta
+        JOIN kelas k ON kta.kelas_id = k.id
+        WHERE k.tingkat IN (SELECT tingkat FROM user_mustahiq_tingkats)
+          AND kta.tahun_ajaran_id = $2
+      ),
+      user_classes_direct AS (
+        SELECT kelas_id, 'mustahiq' AS role FROM user_direct_mustahiq_classes
+        UNION ALL
+        SELECT DISTINCT kelas_id, 'munawib' AS role
+        FROM jadwal_pelajaran_harian
+        WHERE guru_id = $1 AND tahun_ajaran_id = $2
+      ),
+      user_combined_classes AS (
+        SELECT kelas_id, role FROM user_classes_via_tingkat
+        UNION ALL
+        SELECT kelas_id, role FROM user_classes_direct
+      ),
+      unique_classes AS (
+        SELECT kelas_id, 
+               ARRAY_AGG(DISTINCT role) as roles
+        FROM user_combined_classes
+        GROUP BY kelas_id
+      )
+      SELECT uc.kelas_id, 
+             uc.roles, 
+             k.nama AS kelas_nama,
+             (
+               SELECT JSON_BUILD_OBJECT(
+                 'message', cm.message,
+                 'sender_name', g.nama,
+                 'created_at', cm.created_at
+               )
+               FROM chat_messages cm
+               JOIN guru g ON cm.sender_id = g.id
+               WHERE cm.kelas_id = uc.kelas_id 
+                 AND cm.tahun_ajaran_id = $2
+                 AND NOT ($1 = ANY(cm.deleted_by_guru_ids))
+               ORDER BY cm.created_at DESC
+               LIMIT 1
+             ) AS last_message
+      FROM unique_classes uc
+      JOIN kelas k ON uc.kelas_id = k.id
+      ORDER BY k.nama;
+    `;
+
+    const result = await db.query(query, [guruId, activeYear.id]);
+    res.json({
+      tahun_ajaran_id: activeYear.id,
+      tahun_ajaran_kode: activeYear.kode,
+      rooms: result.rows
+    });
+  }));
+
+  // === CHAT GROUPS: GET MESSAGES IN ROOM ===
+  router.get('/chats/rooms/:kelas_id/messages', asyncHandler(async (req, res) => {
+    const guruId = req.user.guru_id;
+    const kelasId = parseInt(req.params.kelas_id, 10);
+    const activeYear = await getActiveTahunAjaran();
+
+    if (isNaN(kelasId)) {
+      return res.status(400).json({ error: 'ID kelas tidak valid.' });
+    }
+    if (!activeYear) {
+      return res.status(404).json({ error: 'Tahun ajaran aktif tidak ditemukan.' });
+    }
+
+    // Security check: Verify guru belongs to this class/room (Directly or same tingkat Mustahiq)
+    const accessCheck = await db.query(`
+      SELECT 1 FROM kelas_tahun_ajaran WHERE kelas_id = $1 AND mustahiq_id = $2 AND tahun_ajaran_id = $3
+      UNION
+      SELECT 1 FROM jadwal_pelajaran_harian WHERE kelas_id = $1 AND guru_id = $2 AND tahun_ajaran_id = $3
+      UNION
+      SELECT 1 
+      FROM kelas_tahun_ajaran kta
+      JOIN kelas k ON kta.kelas_id = k.id
+      WHERE kta.mustahiq_id = $2 AND kta.tahun_ajaran_id = $3
+        AND k.tingkat = (SELECT tingkat FROM kelas WHERE id = $1)
+      LIMIT 1
+    `, [kelasId, guruId, activeYear.id]);
+
+    if (accessCheck.rows.length === 0) {
+      return res.status(403).json({ error: 'Anda tidak memiliki akses ke ruang obrolan kelas ini.' });
+    }
+
+    const messagesResult = await db.query(`
+      SELECT 
+        cm.id,
+        cm.kelas_id,
+        cm.tahun_ajaran_id,
+        cm.sender_id,
+        g.nama AS sender_name,
+        g.foto_url AS sender_foto_url,
+        cm.message,
+        cm.created_at
+      FROM chat_messages cm
+      JOIN guru g ON cm.sender_id = g.id
+      WHERE cm.kelas_id = $1 
+        AND cm.tahun_ajaran_id = $2
+        AND NOT ($3 = ANY(cm.deleted_by_guru_ids))
+      ORDER BY cm.created_at ASC
+      LIMIT 100
+    `, [kelasId, activeYear.id, guruId]);
+
+    res.json(messagesResult.rows);
+  }));
+
+  // === CHAT GROUPS: POST MESSAGE ===
+  router.post('/chats/rooms/:kelas_id/messages', asyncHandler(async (req, res) => {
+    const guruId = req.user.guru_id;
+    const kelasId = parseInt(req.params.kelas_id, 10);
+    const { message } = req.body;
+    const activeYear = await getActiveTahunAjaran();
+
+    if (isNaN(kelasId)) {
+      return res.status(400).json({ error: 'ID kelas tidak valid.' });
+    }
+    if (!message || message.trim() === '') {
+      return res.status(400).json({ error: 'Pesan tidak boleh kosong.' });
+    }
+    if (!activeYear) {
+      return res.status(404).json({ error: 'Tahun ajaran aktif tidak ditemukan.' });
+    }
+
+    // Security check: Verify guru belongs to this class/room (Directly or same tingkat Mustahiq)
+    const accessCheck = await db.query(`
+      SELECT 1 FROM kelas_tahun_ajaran WHERE kelas_id = $1 AND mustahiq_id = $2 AND tahun_ajaran_id = $3
+      UNION
+      SELECT 1 FROM jadwal_pelajaran_harian WHERE kelas_id = $1 AND guru_id = $2 AND tahun_ajaran_id = $3
+      UNION
+      SELECT 1 
+      FROM kelas_tahun_ajaran kta
+      JOIN kelas k ON kta.kelas_id = k.id
+      WHERE kta.mustahiq_id = $2 AND kta.tahun_ajaran_id = $3
+        AND k.tingkat = (SELECT tingkat FROM kelas WHERE id = $1)
+      LIMIT 1
+    `, [kelasId, guruId, activeYear.id]);
+
+    if (accessCheck.rows.length === 0) {
+      return res.status(403).json({ error: 'Anda tidak memiliki akses ke ruang obrolan kelas ini.' });
+    }
+
+    // Insert message
+    const insertRes = await db.query(`
+      INSERT INTO chat_messages (kelas_id, tahun_ajaran_id, sender_id, message)
+      VALUES ($1, $2, $3, $4)
+      RETURNING id, created_at
+    `, [kelasId, activeYear.id, guruId, message]);
+
+    const senderName = req.user.full_name || 'Ustadz';
+    const msgObj = {
+      id: insertRes.rows[0].id,
+      kelas_id: kelasId,
+      tahun_ajaran_id: activeYear.id,
+      sender_id: guruId,
+      sender_name: senderName,
+      message: message,
+      created_at: insertRes.rows[0].created_at
+    };
+
+    // Send FCM and in-app notification to all other class teachers
+    const classRes = await db.query('SELECT nama FROM kelas WHERE id = $1', [kelasId]);
+    const classNama = classRes.rows[0]?.nama || 'Obrolan Kelas';
+
+    const otherGurusRes = await db.query(`
+      SELECT DISTINCT guru_id 
+      FROM (
+        SELECT mustahiq_id AS guru_id FROM kelas_tahun_ajaran WHERE kelas_id = $1 AND tahun_ajaran_id = $2 AND mustahiq_id IS NOT NULL
+        UNION
+        SELECT guru_id FROM jadwal_pelajaran_harian WHERE kelas_id = $1 AND tahun_ajaran_id = $2 AND guru_id IS NOT NULL
+        UNION
+        SELECT kta_same.mustahiq_id AS guru_id
+        FROM kelas_tahun_ajaran kta_same
+        JOIN kelas k_same ON kta_same.kelas_id = k_same.id
+        WHERE kta_same.tahun_ajaran_id = $2 AND kta_same.mustahiq_id IS NOT NULL
+          AND k_same.tingkat = (SELECT tingkat FROM kelas WHERE id = $1)
+      ) all_teachers
+      WHERE guru_id != $3
+    `, [kelasId, activeYear.id, guruId]);
+
+    const { sendNotification } = require('../services/notificationService');
+    const otherGurus = otherGurusRes.rows.map(r => r.guru_id);
+    
+    for (const targetId of otherGurus) {
+      sendNotification({
+        title: `Pesan baru di Kelas ${classNama}`,
+        body: `${senderName}: ${message}`,
+        category: 'Chat',
+        target: targetId
+      }).catch(err => console.error('[FCM Chat Notification Error]', err));
+    }
+
+    res.json({ success: true, message: msgObj });
+  }));
+
+  // === CHAT GROUPS: DELETE MESSAGE FOR SELF ===
+  router.delete('/chats/messages/:message_id/delete-self', asyncHandler(async (req, res) => {
+    const guruId = req.user.guru_id;
+    const messageId = parseInt(req.params.message_id, 10);
+
+    if (isNaN(messageId)) {
+      return res.status(400).json({ error: 'ID pesan tidak valid.' });
+    }
+
+    const deleteRes = await db.query(`
+      UPDATE chat_messages
+      SET deleted_by_guru_ids = array_append(deleted_by_guru_ids, $1)
+      WHERE id = $2 AND NOT ($1 = ANY(deleted_by_guru_ids))
+      RETURNING id
+    `, [guruId, messageId]);
+
+    if (deleteRes.rows.length === 0) {
+      return res.status(404).json({ error: 'Pesan tidak ditemukan atau sudah dihapus.' });
+    }
+
+    res.json({ success: true, message: 'Pesan berhasil dihapus untuk Anda.' });
   }));
 
   app.use('/api/my-mustahiq', router);

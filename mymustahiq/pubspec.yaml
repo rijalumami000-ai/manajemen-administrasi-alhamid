@@ -44,6 +44,7 @@ dependencies:
   firebase_core: ^2.24.2
   firebase_messaging: ^14.7.10
   flutter_local_notifications: ^17.2.1
+  flutter_native_splash: ^2.4.0
 
 dev_dependencies:
   flutter_test:
@@ -55,6 +56,27 @@ dev_dependencies:
   # package. See that file for information about deactivating specific lint
   # rules and activating additional ones.
   flutter_lints: ^6.0.0
+  flutter_launcher_icons: ^0.13.1
+
+flutter_launcher_icons:
+  android: "launcher_icon"
+  ios: true
+  image_path: "assets/images/app_icon.png"
+  adaptive_icon_background: "#070B13"
+  adaptive_icon_foreground: "assets/images/app_icon.png"
+
+flutter_native_splash:
+  color: "#070B13"
+  image: "assets/images/app_icon.png"
+  android: true
+  ios: true
+  color_dark: "#070B13"
+  image_dark: "assets/images/app_icon.png"
+  android_12:
+    image: "assets/images/app_icon.png"
+    color: "#070B13"
+    color_dark: "#070B13"
+
 
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec

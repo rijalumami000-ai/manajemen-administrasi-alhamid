@@ -1,8 +1,12 @@
 import 'dart:io';
+import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'api_service.dart';
+import '../screens/notifications_screen.dart';
+
+final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 
 class PushNotificationService {
   static final PushNotificationService _instance = PushNotificationService._internal();
@@ -58,7 +62,8 @@ class PushNotificationService {
       await _localNotifications.initialize(
         initializationSettings,
         onDidReceiveNotificationResponse: (NotificationResponse response) {
-          // Handle foreground notification tap if needed
+          // Handle foreground notification tap
+          _navigateToNotificationsScreen();
         },
       );
 
@@ -90,6 +95,14 @@ class PushNotificationService {
       // 6. Handle background/terminated message clicks
       FirebaseMessaging.onMessageOpenedApp.listen((RemoteMessage message) {
         // App opened from background notification
+        _handleNotificationClick(message);
+      });
+
+      // 7. Check if app was opened from terminated state via a notification click
+      _fcm!.getInitialMessage().then((RemoteMessage? message) {
+        if (message != null) {
+          _handleNotificationClick(message);
+        }
       });
 
       _initialized = true;
@@ -116,5 +129,15 @@ class PushNotificationService {
     } catch (e) {
       print('⚠ FCM Token Registration Bypassed/Failed: $e');
     }
+  }
+
+  void _handleNotificationClick(RemoteMessage message) {
+    _navigateToNotificationsScreen();
+  }
+
+  void _navigateToNotificationsScreen() {
+    navigatorKey.currentState?.push(
+      MaterialPageRoute(builder: (context) => const NotificationsScreen()),
+    );
   }
 }

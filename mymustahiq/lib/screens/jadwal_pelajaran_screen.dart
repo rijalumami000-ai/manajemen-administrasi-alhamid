@@ -182,7 +182,7 @@ class _JadwalPelajaranScreenState extends State<JadwalPelajaranScreen> {
     return Scaffold(
       backgroundColor: context.scaffoldBg,
       appBar: AppBar(
-        backgroundColor: context.isDarkMode ? const Color(0xFF0D1527) : Colors.white,
+        backgroundColor: context.isDarkMode ? const Color(0xFF0D1527) : Colors.white.withOpacity(0.45),
         elevation: 0,
         leading: IconButton(
           icon: Icon(Icons.arrow_back_ios_new_rounded, color: context.titleColor, size: 20),
@@ -208,7 +208,7 @@ class _JadwalPelajaranScreenState extends State<JadwalPelajaranScreen> {
           // Year & Semester Filter Bar
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 4),
-            color: context.isDarkMode ? const Color(0xFF0D1527) : Colors.white,
+            color: context.cardBg,
             child: Row(
               children: [
                 Expanded(

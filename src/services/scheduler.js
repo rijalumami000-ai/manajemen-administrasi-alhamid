@@ -35,6 +35,18 @@ function startScheduler() {
 }
 
 async function sendDailySchedules() {
+  // 1. Clean up old class schedule notifications (older than 7 days)
+  try {
+    const cleanupResult = await db.query(`
+      DELETE FROM notifications 
+      WHERE category = 'Akademik' 
+        AND created_at < NOW() - INTERVAL '7 days'
+    `);
+    console.log(`[Scheduler] Cleaned up ${cleanupResult.rowCount} old academic notifications older than 7 days.`);
+  } catch (err) {
+    console.error('[Scheduler] Error cleaning up old notifications:', err);
+  }
+
   const activeYear = await getActiveTahunAjaran();
   if (!activeYear) {
     console.log('[Scheduler] No active academic year found. Skipping.');

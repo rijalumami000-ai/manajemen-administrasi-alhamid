@@ -206,7 +206,7 @@ class _SantriExplorerScreenState extends State<SantriExplorerScreen> {
     return Scaffold(
       backgroundColor: context.scaffoldBg,
       appBar: AppBar(
-        backgroundColor: context.isDarkMode ? const Color(0xFF0D1527) : Colors.white,
+        backgroundColor: context.isDarkMode ? const Color(0xFF0D1527) : Colors.white.withOpacity(0.45),
         elevation: 0,
         title: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
