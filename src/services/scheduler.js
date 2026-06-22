@@ -96,7 +96,7 @@ async function sendDailySchedules() {
   const guruRes = await db.query(`
     SELECT id, nama, jabatan_id
     FROM guru
-    WHERE status = 'aktif' AND mymustahiq_username IS NOT NULL
+    WHERE LOWER(status) = 'aktif' AND mymustahiq_username IS NOT NULL
   `);
 
   for (const guru of guruRes.rows) {

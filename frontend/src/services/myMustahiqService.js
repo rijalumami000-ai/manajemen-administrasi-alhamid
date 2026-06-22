@@ -14,5 +14,10 @@ export const myMustahiqService = {
   // Send manual push notification (Admin only)
   async sendPushNotification(title, body, category, target) {
     return apiPost('/my-mustahiq/admin/push-notification', { title, body, category, target });
+  },
+
+  // Trigger daily schedule push notification (Admin only)
+  async triggerDailySchedulePush() {
+    return apiPost('/my-mustahiq/admin/trigger-scheduler');
   }
 };

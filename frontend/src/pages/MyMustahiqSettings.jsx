@@ -23,6 +23,7 @@ export function MyMustahiqSettings() {
   // Push notifications states
   const [pushForm] = Form.useForm();
   const [pushing, setPushing] = useState(false);
+  const [scheduleTriggering, setScheduleTriggering] = useState(false);
 
   const handleSendPush = async (values) => {
     setPushing(true);
@@ -36,6 +37,19 @@ export function MyMustahiqSettings() {
       message.error(err.message || 'Gagal mengirimkan notifikasi.');
     } finally {
       setPushing(false);
+    }
+  };
+
+  const handleTriggerDailySchedule = async () => {
+    setScheduleTriggering(true);
+    try {
+      const res = await myMustahiqService.triggerDailySchedulePush();
+      message.success(res.message || 'Notifikasi jadwal harian berhasil dikirim!');
+    } catch (err) {
+      console.error('Failed to trigger schedule push:', err);
+      message.error(err.message || 'Gagal memicu pengiriman notifikasi jadwal.');
+    } finally {
+      setScheduleTriggering(false);
     }
   };
 
@@ -298,10 +312,10 @@ export function MyMustahiqSettings() {
           },
           {
             key: 'push',
-            label: 'Kirim Notifikasi Manual',
+            label: 'Kirim Notifikasi & Jadwal',
             children: (
-              <div style={{ marginTop: '16px' }}>
-                <Card style={{ borderRadius: '8px', maxWidth: '600px', margin: '0 auto' }}>
+              <div style={{ marginTop: '16px', display: 'flex', flexDirection: 'column', gap: '24px', alignItems: 'center' }}>
+                <Card style={{ borderRadius: '8px', width: '100%', maxWidth: '600px' }}>
                   <Title level={4} style={{ marginBottom: '16px' }}>Kirim Push Notifikasi Manual</Title>
                   <Paragraph type="secondary">
                     Gunakan form ini untuk memicu pengiriman notifikasi instan ke aplikasi handphone ustadz yang terdaftar.
@@ -361,6 +375,23 @@ export function MyMustahiqSettings() {
                       </Button>
                     </Form.Item>
                   </Form>
+                </Card>
+
+                {/* Card 2: Manual trigger daily schedule */}
+                <Card style={{ borderRadius: '8px', width: '100%', maxWidth: '600px' }}>
+                  <Title level={4} style={{ marginBottom: '16px' }}>Kirim Notifikasi Jadwal Pelajaran Harian</Title>
+                  <Paragraph type="secondary">
+                    Gunakan tombol ini untuk memicu pengiriman notifikasi jadwal pelajaran malam ini secara instan ke handphone ustadz terkait (otomatis terkirim setiap jam 16:00 WIB).
+                  </Paragraph>
+                  <Button 
+                    type="primary" 
+                    onClick={handleTriggerDailySchedule} 
+                    loading={scheduleTriggering} 
+                    style={{ background: '#52c41a', borderColor: '#52c41a' }} 
+                    block
+                  >
+                    Kirim Jadwal Malam Ini ke Seluruh Ustadz terkait
+                  </Button>
                 </Card>
               </div>
             )

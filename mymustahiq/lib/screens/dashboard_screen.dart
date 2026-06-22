@@ -7,6 +7,7 @@ import 'tab_kelasku.dart';
 import 'tab_administratif.dart';
 import 'tab_akun.dart';
 import 'notifications_screen.dart';
+import '../services/push_notification_service.dart';
 
 class DashboardScreen extends StatefulWidget {
   const DashboardScreen({super.key});
@@ -38,6 +39,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
   void initState() {
     super.initState();
     _fetchUnreadNotificationsCount();
+    PushNotificationService().registerDeviceToken();
   }
 
   Future<void> _fetchUnreadNotificationsCount() async {

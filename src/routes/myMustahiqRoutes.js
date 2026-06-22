@@ -1299,6 +1299,21 @@ function registerMyMustahiqRoutes(app) {
     }
   }));
 
+  // === ADMIN: TRIGGER SCHEDULED NOTIFICATION MANUAL ===
+  router.post('/admin/trigger-scheduler', asyncHandler(async (req, res) => {
+    if (req.user.role !== 'admin') {
+      return res.status(403).json({ error: 'Akses ditolak. Hanya admin yang diperbolehkan.' });
+    }
+    const { sendDailySchedules } = require('../services/scheduler');
+    try {
+      await sendDailySchedules();
+      res.json({ success: true, message: 'Notifikasi jadwal harian berhasil diproses dan dikirim ke seluruh ustadz terkait.' });
+    } catch (err) {
+      console.error('[Admin Trigger] Error executing daily schedules:', err);
+      res.status(500).json({ error: err.message || 'Gagal memicu pengiriman notifikasi jadwal harian.' });
+    }
+  }));
+
   app.use('/api/my-mustahiq', router);
 }
 

@@ -5,10 +5,12 @@ import 'screens/login_screen.dart';
 import 'screens/dashboard_screen.dart';
 
 import 'services/theme_manager.dart';
+import 'services/push_notification_service.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await ThemeManager().init();
+  await PushNotificationService().initialize();
   runApp(const MyMustahiqApp());
 }
 

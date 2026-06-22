@@ -47,13 +47,13 @@ async function sendNotification({ title, body, category, target }) {
   // 1. Identify target guru IDs
   let guruIds = [];
   if (target === 'all') {
-    const result = await db.query("SELECT id FROM guru WHERE status = 'aktif' AND mymustahiq_username IS NOT NULL");
+    const result = await db.query("SELECT id FROM guru WHERE LOWER(status) = 'aktif' AND mymustahiq_username IS NOT NULL");
     guruIds = result.rows.map(r => r.id);
   } else if (target === 'mustahiq') {
-    const result = await db.query("SELECT id FROM guru WHERE status = 'aktif' AND jabatan_id = 1 AND mymustahiq_username IS NOT NULL");
+    const result = await db.query("SELECT id FROM guru WHERE LOWER(status) = 'aktif' AND jabatan_id = 1 AND mymustahiq_username IS NOT NULL");
     guruIds = result.rows.map(r => r.id);
   } else if (target === 'munawib') {
-    const result = await db.query("SELECT id FROM guru WHERE status = 'aktif' AND jabatan_id = 2 AND mymustahiq_username IS NOT NULL");
+    const result = await db.query("SELECT id FROM guru WHERE LOWER(status) = 'aktif' AND jabatan_id = 2 AND mymustahiq_username IS NOT NULL");
     guruIds = result.rows.map(r => r.id);
   } else if (Number.isInteger(target)) {
     guruIds = [target];
