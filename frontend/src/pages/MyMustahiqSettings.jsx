@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Card, Table, Select, Input, Tag, Space, Typography, message, Badge, Button, Modal, Form } from 'antd';
+import { Card, Table, Select, Input, Tag, Space, Typography, message, Badge, Button, Modal, Form, Tabs } from 'antd';
 import { SearchOutlined, KeyOutlined, DeleteOutlined } from '@ant-design/icons';
 import { myMustahiqService } from '../services/myMustahiqService';
 import { PageHeader, LoadingState, ErrorState } from '../components/common';
@@ -19,6 +19,25 @@ export function MyMustahiqSettings() {
   const [selectedGuru, setSelectedGuru] = useState(null);
   const [form] = Form.useForm();
   const [submitting, setSubmitting] = useState(false);
+
+  // Push notifications states
+  const [pushForm] = Form.useForm();
+  const [pushing, setPushing] = useState(false);
+
+  const handleSendPush = async (values) => {
+    setPushing(true);
+    try {
+      const { title, body, category, target } = values;
+      const res = await myMustahiqService.sendPushNotification(title, body, category, target);
+      message.success(res.message || 'Notifikasi berhasil dikirim!');
+      pushForm.resetFields();
+    } catch (err) {
+      console.error('Failed to send push:', err);
+      message.error(err.message || 'Gagal mengirimkan notifikasi.');
+    } finally {
+      setPushing(false);
+    }
+  };
 
   useEffect(() => {
     loadData();
@@ -223,47 +242,131 @@ export function MyMustahiqSettings() {
   return (
     <div className="mymustahiq-settings-page" style={{ padding: '24px' }}>
       <PageHeader
-        title="Setelan Akun MyMustahiq"
-        subtitle="Kelola akun login (username & password) khusus untuk aplikasi mobile MyMustahiq per guru"
+        title="Setelan & Utilitas MyMustahiq"
+        subtitle="Kelola akun login ustadz dan kirim notifikasi manual ke aplikasi mobile"
       />
 
-      <Card style={{ marginBottom: '24px', borderRadius: '8px' }}>
-        <Space direction="horizontal" size="middle" style={{ width: '100%', justifyContent: 'space-between', flexWrap: 'wrap' }}>
-          {/* Search bar */}
-          <Input
-            placeholder="Cari nama, NIP, atau username..."
-            prefix={<SearchOutlined style={{ color: '#bfbfbf' }} />}
-            value={searchText}
-            onChange={(e) => setSearchText(e.target.value)}
-            style={{ width: '300px' }}
-            allowClear
-          />
+      <Tabs
+        defaultActiveKey="accounts"
+        type="card"
+        style={{ marginTop: '16px' }}
+        items={[
+          {
+            key: 'accounts',
+            label: 'Manajemen Akun Guru',
+            children: (
+              <div style={{ marginTop: '16px' }}>
+                <Card style={{ marginBottom: '24px', borderRadius: '8px' }}>
+                  <Space direction="horizontal" size="middle" style={{ width: '100%', justifyContent: 'space-between', flexWrap: 'wrap' }}>
+                    {/* Search bar */}
+                    <Input
+                      placeholder="Cari nama, NIP, atau username..."
+                      prefix={<SearchOutlined style={{ color: '#bfbfbf' }} />}
+                      value={searchText}
+                      onChange={(e) => setSearchText(e.target.value)}
+                      style={{ width: '300px' }}
+                      allowClear
+                    />
 
-          {/* Status Filter */}
-          <Space>
-            <span style={{ color: '#8c8c8c' }}>Status Akses Mobile:</span>
-            <Select 
-              value={statusFilter} 
-              onChange={setStatusFilter} 
-              style={{ width: '180px' }}
-            >
-              <Option value="all">Semua Guru</Option>
-              <Option value="active">Akses Aktif</Option>
-              <Option value="inactive">Akses Nonaktif</Option>
-            </Select>
-          </Space>
-        </Space>
-      </Card>
+                    {/* Status Filter */}
+                    <Space>
+                      <span style={{ color: '#8c8c8c' }}>Status Akses Mobile:</span>
+                      <Select 
+                        value={statusFilter} 
+                        onChange={setStatusFilter} 
+                        style={{ width: '180px' }}
+                      >
+                        <Option value="all">Semua Guru</Option>
+                        <Option value="active">Akses Aktif</Option>
+                        <Option value="inactive">Akses Nonaktif</Option>
+                      </Select>
+                    </Space>
+                  </Space>
+                </Card>
 
-      <Card style={{ borderRadius: '8px' }}>
-        <Table
-          columns={columns}
-          dataSource={filteredGurus}
-          rowKey="id"
-          pagination={{ pageSize: 10, showSizeChanger: true }}
-          bordered
-        />
-      </Card>
+                <Card style={{ borderRadius: '8px' }}>
+                  <Table
+                    columns={columns}
+                    dataSource={filteredGurus}
+                    rowKey="id"
+                    pagination={{ pageSize: 10, showSizeChanger: true }}
+                    bordered
+                  />
+                </Card>
+              </div>
+            )
+          },
+          {
+            key: 'push',
+            label: 'Kirim Notifikasi Manual',
+            children: (
+              <div style={{ marginTop: '16px' }}>
+                <Card style={{ borderRadius: '8px', maxWidth: '600px', margin: '0 auto' }}>
+                  <Title level={4} style={{ marginBottom: '16px' }}>Kirim Push Notifikasi Manual</Title>
+                  <Paragraph type="secondary">
+                    Gunakan form ini untuk memicu pengiriman notifikasi instan ke aplikasi handphone ustadz yang terdaftar.
+                  </Paragraph>
+                  <Form
+                    layout="vertical"
+                    onFinish={handleSendPush}
+                    form={pushForm}
+                    initialValues={{ category: 'Pengumuman', target: 'all' }}
+                  >
+                    <Form.Item
+                      label="Judul Notifikasi"
+                      name="title"
+                      rules={[{ required: true, message: 'Judul notifikasi wajib diisi.' }]}
+                    >
+                      <Input placeholder="Masukkan judul..." maxLength={100} />
+                    </Form.Item>
+
+                    <Form.Item
+                      label="Isi Pesan"
+                      name="body"
+                      rules={[{ required: true, message: 'Isi pesan wajib diisi.' }]}
+                    >
+                      <Input.TextArea rows={4} placeholder="Masukkan pesan detail..." maxLength={500} />
+                    </Form.Item>
+
+                    <Form.Item
+                      label="Kategori"
+                      name="category"
+                      rules={[{ required: true }]}
+                    >
+                      <Select>
+                        <Option value="Akademik">Akademik</Option>
+                        <Option value="Pengumuman">Pengumuman</Option>
+                        <Option value="Sistem">Sistem</Option>
+                      </Select>
+                    </Form.Item>
+
+                    <Form.Item
+                      label="Target Penerima"
+                      name="target"
+                      rules={[{ required: true }]}
+                    >
+                      <Select showSearch optionFilterProp="children">
+                        <Option value="all">Semua Ustadz (Aktif)</Option>
+                        <Option value="mustahiq">Hanya Mustahiq (Wali Kelas)</Option>
+                        <Option value="munawib">Hanya Munawib (Guru Mapel)</Option>
+                        {gurus.map(g => (
+                          <Option key={g.id} value={g.id}>{g.nama} {g.nip ? `(${g.nip})` : ''}</Option>
+                        ))}
+                      </Select>
+                    </Form.Item>
+
+                    <Form.Item style={{ marginTop: '24px', marginBottom: 0 }}>
+                      <Button type="primary" htmlType="submit" loading={pushing} block>
+                        Kirim Notifikasi Realtime
+                      </Button>
+                    </Form.Item>
+                  </Form>
+                </Card>
+              </div>
+            )
+          }
+        ]}
+      />
 
       {/* Modal Setel Kredensial */}
       <Modal

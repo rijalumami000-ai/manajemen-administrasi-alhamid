@@ -166,7 +166,7 @@ class _TeacherListScreenState extends State<TeacherListScreen> {
     final title = widget.isMustahiq ? "Daftar Mustahiq" : "Daftar Munawib";
     final description = widget.isMustahiq
         ? "Daftar asatidz/ustadzah wali kelas Diniyah aktif"
-        : "Daftar asatidz/ustadzah pengawas ketertiban malam";
+        : "Daftar asatidz/ustadzah guru mata pelajaran";
 
     return Scaffold(
       backgroundColor: context.scaffoldBg,

@@ -24,6 +24,7 @@ const migrations = [
   { name: 'alter_nilai_angka_type',              fn: require('./migrations/alter_nilai_angka_type') },
   { name: 'add_struktur_dan_jadwal_pelajaran',   fn: require('./migrations/add_struktur_dan_jadwal_pelajaran') },
   { name: 'add_mymustahiq_credentials_to_guru',  fn: require('./migrations/add_mymustahiq_credentials_to_guru') },
+  { name: 'add_notifications_tables',            fn: require('./migrations/add_notifications_tables') },
 ];
 
 async function runAll() {

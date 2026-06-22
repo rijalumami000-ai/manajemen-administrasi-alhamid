@@ -427,5 +427,93 @@ class ApiService {
       throw Exception('Tidak dapat menyimpan nilai.');
     }
   }
+
+  // Get Buku Induk Santri list
+  Future<List<dynamic>> getBukuInduk({String? gender, String? search}) async {
+    try {
+      final queryParams = <String>[];
+      if (gender != null && gender.isNotEmpty) queryParams.add('jenis_kelamin=$gender');
+      if (search != null && search.isNotEmpty) queryParams.add('search=$search');
+      final queryString = queryParams.isNotEmpty ? '?${queryParams.join('&')}' : '';
+      
+      final response = await _dio.get('/my-mustahiq/buku-induk$queryString');
+      if (response.statusCode == 200) {
+        return response.data as List<dynamic>;
+      }
+      throw Exception('Gagal mengambil data buku induk.');
+    } catch (e) {
+      if (e is DioException && e.response != null) {
+        throw Exception(e.response?.data['error'] ?? 'Gagal mengambil data buku induk.');
+      }
+      rethrow;
+    }
+  }
+
+  // Get In-App Notifications
+  Future<List<dynamic>> getNotifications() async {
+    try {
+      final response = await _dio.get('/my-mustahiq/notifications');
+      if (response.statusCode == 200) {
+        return response.data as List<dynamic>;
+      }
+      throw Exception('Gagal mengambil data notifikasi.');
+    } catch (e) {
+      if (e is DioException && e.response != null) {
+        throw Exception(e.response?.data['error'] ?? 'Gagal mengambil data notifikasi.');
+      }
+      rethrow;
+    }
+  }
+
+  // Mark all notifications as read
+  Future<Map<String, dynamic>> markNotificationsAsRead() async {
+    try {
+      final response = await _dio.post('/my-mustahiq/notifications/read-all');
+      if (response.statusCode == 200) {
+        return response.data;
+      }
+      throw Exception('Gagal menandai semua notifikasi.');
+    } catch (e) {
+      if (e is DioException && e.response != null) {
+        throw Exception(e.response?.data['error'] ?? 'Gagal menandai semua notifikasi.');
+      }
+      rethrow;
+    }
+  }
+
+  // Mark single notification as read
+  Future<Map<String, dynamic>> markNotificationAsReadSingle(int id) async {
+    try {
+      final response = await _dio.post('/my-mustahiq/notifications/read/$id');
+      if (response.statusCode == 200) {
+        return response.data;
+      }
+      throw Exception('Gagal menandai notifikasi.');
+    } catch (e) {
+      if (e is DioException && e.response != null) {
+        throw Exception(e.response?.data['error'] ?? 'Gagal menandai notifikasi.');
+      }
+      rethrow;
+    }
+  }
+
+  // Register FCM Token
+  Future<Map<String, dynamic>> registerFcmToken(String token, {String? deviceInfo}) async {
+    try {
+      final response = await _dio.post('/my-mustahiq/register-fcm', data: {
+        'token': token,
+        'deviceInfo': deviceInfo ?? '',
+      });
+      if (response.statusCode == 200) {
+        return response.data;
+      }
+      throw Exception('Gagal mendaftarkan token FCM.');
+    } catch (e) {
+      if (e is DioException && e.response != null) {
+        throw Exception(e.response?.data['error'] ?? 'Gagal mendaftarkan token FCM.');
+      }
+      rethrow;
+    }
+  }
 }
 

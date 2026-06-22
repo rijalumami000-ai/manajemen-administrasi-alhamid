@@ -34,83 +34,29 @@ class TabAkademik extends StatelessWidget {
       'screen': const SantriExplorerScreen(),
     };
 
-    // Sub Items for Row 1
-    final subItemsRow1 = [
-      {
-        'title': 'Jadwal Pelajaran',
-        'desc': 'Jadwal KBM harian & mingguan per kelas.',
-        'icon': Icons.calendar_today_rounded,
-        'colors': isDark
-            ? [const Color(0xFF065F46), const Color(0xFF0F172A)]
-            : [const Color(0xFFECFDF5), const Color(0xFFD1FAE5)],
-        'borderColor': isDark
-            ? const Color(0xFF10B981).withOpacity(0.25)
-            : const Color(0xFF10B981).withOpacity(0.4),
-        'textColor': isDark ? const Color(0xFF34D399) : const Color(0xFF065F46),
-        'headingColor': isDark ? Colors.white : const Color(0xFF065F46),
-        'bodyColor': isDark ? Colors.white.withOpacity(0.5) : const Color(0xFF064E3B).withOpacity(0.8),
-        'iconColor': isDark ? Colors.white : const Color(0xFF10B981),
-        'screen': const JadwalPelajaranScreen(),
-      },
-      {
-        'title': 'Struktur Madrasah',
-        'desc': 'Pengurus Diniyah & Panitia Semester.',
-        'icon': Icons.account_tree_rounded,
-        'colors': isDark
-            ? [const Color(0xFF78350F), const Color(0xFF0F172A)]
-            : [const Color(0xFFFFFBEB), const Color(0xFFFEF3C7)],
-        'borderColor': isDark
-            ? const Color(0xFFF59E0B).withOpacity(0.25)
-            : const Color(0xFFF59E0B).withOpacity(0.4),
-          'textColor': isDark ? const Color(0xFFFBBF24) : const Color(0xFFB45309),
-        'headingColor': isDark ? Colors.white : const Color(0xFFB45309),
-        'bodyColor': isDark ? Colors.white.withOpacity(0.5) : const Color(0xFF78350F).withOpacity(0.8),
-        'iconColor': isDark ? Colors.white : const Color(0xFFF59E0B),
-        'screen': const StrukturOrganisasiScreen(),
-      },
-    ];
+    // Jadwal Pelajaran Item - Full Width
+    final jadwalItem = {
+      'title': 'Jadwal Pelajaran',
+      'desc': 'Cari jadwal KBM harian dan mingguan per kelas aktif.',
+      'icon': Icons.calendar_today_rounded,
+      'colors': isDark
+          ? [const Color(0xFF065F46), const Color(0xFF0F172A)]
+          : [const Color(0xFFECFDF5), const Color(0xFFD1FAE5)],
+      'borderColor': isDark
+          ? const Color(0xFF10B981).withOpacity(0.25)
+          : const Color(0xFF10B981).withOpacity(0.4),
+      'textColor': isDark ? const Color(0xFF34D399) : const Color(0xFF065F46),
+      'headingColor': isDark ? Colors.white : const Color(0xFF065F46),
+      'bodyColor': isDark ? Colors.white.withOpacity(0.6) : const Color(0xFF064E3B).withOpacity(0.8),
+      'iconColor': isDark ? Colors.white : const Color(0xFF10B981),
+      'screen': const JadwalPelajaranScreen(),
+    };
 
-    // Sub Items for Row 2 (NEW)
-    final subItemsRow2 = [
-      {
-        'title': 'Daftar Mustahiq',
-        'desc': 'Daftar asatidz/ustadzah wali kelas Diniyah.',
-        'icon': Icons.assignment_ind_rounded,
-        'colors': isDark
-            ? [const Color(0xFF4C1D95), const Color(0xFF0F172A)]
-            : [const Color(0xFFF5F3FF), const Color(0xFFEDE9FE)],
-        'borderColor': isDark
-            ? const Color(0xFF8B5CF6).withOpacity(0.25)
-            : const Color(0xFF8B5CF6).withOpacity(0.4),
-        'textColor': isDark ? const Color(0xFFA78BFA) : const Color(0xFF6D28D9),
-        'headingColor': isDark ? Colors.white : const Color(0xFF6D28D9),
-        'bodyColor': isDark ? Colors.white.withOpacity(0.5) : const Color(0xFF4C1D95).withOpacity(0.8),
-        'iconColor': isDark ? Colors.white : const Color(0xFF8B5CF6),
-        'screen': const TeacherListScreen(isMustahiq: true),
-      },
-      {
-        'title': 'Daftar Munawib',
-        'desc': 'Daftar ustadz pengawas ketertiban santri.',
-        'icon': Icons.security_rounded,
-        'colors': isDark
-            ? [const Color(0xFF115E59), const Color(0xFF0F172A)]
-            : [const Color(0xFFF0FDFA), const Color(0xFFCCFBF1)],
-        'borderColor': isDark
-            ? const Color(0xFF0D9488).withOpacity(0.25)
-            : const Color(0xFF0D9488).withOpacity(0.4),
-        'textColor': isDark ? const Color(0xFF2DD4BF) : const Color(0xFF0F766E),
-        'headingColor': isDark ? Colors.white : const Color(0xFF0F766E),
-        'bodyColor': isDark ? Colors.white.withOpacity(0.5) : const Color(0xFF115E59).withOpacity(0.8),
-        'iconColor': isDark ? Colors.white : const Color(0xFF0D9488),
-        'screen': const TeacherListScreen(isMustahiq: false),
-      },
-    ];
-
-    // Sub Items for Row 3 (NEW - Tim Soal & Input Nilai)
-    final subItemsRow3 = [
+    // Sub Items (Tim Soal & Input Nilai)
+    final subItems = [
       {
         'title': 'Tim Soal',
-        'desc': 'Tulis & kelola bank soal ujian per kelas & mapel.',
+        'desc': 'Kelola bank soal ujian per kelas & mapel.',
         'icon': Icons.edit_note_rounded,
         'colors': isDark
             ? [const Color(0xFF831843), const Color(0xFF0F172A)]
@@ -162,7 +108,7 @@ class TabAkademik extends StatelessWidget {
             ),
             const SizedBox(height: 6),
             Text(
-              "Akses portal data santri, jadwal pelajaran, dan asatidz pesantren.",
+              "Akses portal data santri, jadwal pelajaran, dan ujian.",
               style: GoogleFonts.outfit(
                 color: context.subTitleColor,
                 fontSize: 13,
@@ -267,32 +213,109 @@ class TabAkademik extends StatelessWidget {
             ),
             const SizedBox(height: 16),
 
-            // 2. SUB ITEMS ROW 1 (Jadwal & Struktur)
-            Row(
-              children: [
-                Expanded(child: _buildSubItem(context, subItemsRow1[0], isDark, isLeft: true)),
-                const SizedBox(width: 14),
-                Expanded(child: _buildSubItem(context, subItemsRow1[1], isDark, isLeft: false)),
-              ],
+            // 2. JADWAL PELAJARAN CARD (Full Width)
+            GestureDetector(
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => jadwalItem['screen'] as Widget),
+                );
+              },
+              child: Container(
+                width: double.infinity,
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: jadwalItem['colors'] as List<Color>,
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
+                  borderRadius: BorderRadius.circular(22),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(isDark ? 0.3 : 0.04),
+                      blurRadius: 12,
+                      offset: const Offset(0, 5),
+                    ),
+                  ],
+                  border: Border.all(
+                    color: jadwalItem['borderColor'] as Color,
+                    width: 1.5,
+                  ),
+                ),
+                padding: const EdgeInsets.all(22),
+                child: Row(
+                  children: [
+                    // Icon
+                    Container(
+                      padding: const EdgeInsets.all(14),
+                      decoration: BoxDecoration(
+                        color: isDark ? Colors.white.withOpacity(0.06) : Colors.white.withOpacity(0.6),
+                        borderRadius: BorderRadius.circular(16),
+                        border: isDark ? null : Border.all(color: Colors.white, width: 1.5),
+                      ),
+                      child: Icon(
+                        jadwalItem['icon'] as IconData,
+                        color: jadwalItem['iconColor'] as Color,
+                        size: 32,
+                      ),
+                    ),
+                    const SizedBox(width: 18),
+                    // Texts
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            jadwalItem['title'] as String,
+                            style: GoogleFonts.outfit(
+                              color: jadwalItem['headingColor'] as Color,
+                              fontSize: 17,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          const SizedBox(height: 6),
+                          Text(
+                            jadwalItem['desc'] as String,
+                            style: GoogleFonts.outfit(
+                              color: jadwalItem['bodyColor'] as Color,
+                              fontSize: 11,
+                              height: 1.4,
+                            ),
+                          ),
+                          const SizedBox(height: 10),
+                          Row(
+                            children: [
+                              Text(
+                                "Buka Jadwal",
+                                style: GoogleFonts.outfit(
+                                  color: jadwalItem['textColor'] as Color,
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                              const SizedBox(width: 6),
+                              Icon(
+                                Icons.arrow_forward_rounded,
+                                color: jadwalItem['textColor'] as Color,
+                                size: 13,
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
             ),
-            const SizedBox(height: 14),
+            const SizedBox(height: 16),
 
-            // 3. SUB ITEMS ROW 2 (Mustahiq & Munawib - NEW)
+            // 3. SUB ITEMS ROW (Tim Soal & Input Nilai)
             Row(
               children: [
-                Expanded(child: _buildSubItem(context, subItemsRow2[0], isDark, isLeft: true)),
+                Expanded(child: _buildSubItem(context, subItems[0], isDark, isLeft: true)),
                 const SizedBox(width: 14),
-                Expanded(child: _buildSubItem(context, subItemsRow2[1], isDark, isLeft: false)),
-              ],
-            ),
-            const SizedBox(height: 14),
-
-            // 4. SUB ITEMS ROW 3 (Tim Soal & Input Nilai - NEW)
-            Row(
-              children: [
-                Expanded(child: _buildSubItem(context, subItemsRow3[0], isDark, isLeft: true)),
-                const SizedBox(width: 14),
-                Expanded(child: _buildSubItem(context, subItemsRow3[1], isDark, isLeft: false)),
+                Expanded(child: _buildSubItem(context, subItems[1], isDark, isLeft: false)),
               ],
             ),
           ],

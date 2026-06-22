@@ -1179,6 +1179,126 @@ function registerMyMustahiqRoutes(app) {
     res.json({ success: true, message: `${saved} nilai berhasil disimpan.`, saved });
   }));
 
+  // === BUKU INDUK: GET DATA ===
+  router.get('/buku-induk', asyncHandler(async (req, res) => {
+    const { jenis_kelamin, search } = req.query;
+    let whereClause = [];
+    let params = [];
+
+    if (jenis_kelamin) {
+      params.push(jenis_kelamin);
+      whereClause.push(`s.jenis_kelamin = $${params.length}`);
+    }
+    if (search) {
+      params.push(`%${search}%`);
+      whereClause.push(`(s.nama ILIKE $${params.length} OR s.nis ILIKE $${params.length})`);
+    }
+
+    const where = whereClause.length ? `WHERE ${whereClause.join(' AND ')}` : '';
+
+    const result = await db.query(`
+      SELECT
+        s.id, s.nis, s.nik, s.nama, s.jenis_kelamin,
+        s.tempat_lahir, s.tanggal_lahir, s.alamat,
+        s.tahun_masuk, s.foto_url, s.created_at,
+        kd.nama AS kelas_diniyah,
+        ks.nama AS kelas_sekolah,
+        km.nama AS nama_kamar,
+        o.nama_ayah, o.nama_ibu, o.no_hp_ayah, o.no_hp_ibu,
+        o.pekerjaan_ayah, o.pekerjaan_ibu,
+        CASE WHEN sfd.santri_id IS NOT NULL THEN TRUE ELSE FALSE END AS is_face_registered,
+        s.qr_code, s.nfc_uid, s.fingerprint_id
+      FROM santri s
+      LEFT JOIN kelas kd ON s.kelas_diniyah_id = kd.id
+      LEFT JOIN kelas ks ON s.kelas_sekolah_id = ks.id
+      LEFT JOIN kamar km ON s.kamar_id = km.id
+      LEFT JOIN orangtua o ON s.orangtua_id = o.id
+      LEFT JOIN santri_face_data sfd ON s.id = sfd.santri_id
+      ${where}
+      ORDER BY s.tahun_masuk DESC NULLS LAST, s.nama ASC
+    `, params);
+
+    res.json(result.rows);
+  }));
+
+  // === NOTIFICATIONS: GET LIST ===
+  router.get('/notifications', asyncHandler(async (req, res) => {
+    const guruId = req.user.guru_id;
+    const result = await db.query(`
+      SELECT id, title, body, category, is_read, created_at
+      FROM notifications
+      WHERE guru_id = $1
+      ORDER BY created_at DESC
+      LIMIT 50
+    `, [guruId]);
+    res.json(result.rows);
+  }));
+
+  // === NOTIFICATIONS: MARK ALL AS READ ===
+  router.post('/notifications/read-all', asyncHandler(async (req, res) => {
+    const guruId = req.user.guru_id;
+    await db.query(`
+      UPDATE notifications
+      SET is_read = TRUE
+      WHERE guru_id = $1
+    `, [guruId]);
+    res.json({ success: true, message: 'Semua notifikasi ditandai dibaca.' });
+  }));
+
+  // === NOTIFICATIONS: MARK SINGLE AS READ ===
+  router.post('/notifications/read/:id', asyncHandler(async (req, res) => {
+    const guruId = req.user.guru_id;
+    const notifId = parseInt(req.params.id, 10);
+    if (isNaN(notifId)) return res.status(400).json({ error: 'ID notifikasi tidak valid.' });
+
+    await db.query(`
+      UPDATE notifications
+      SET is_read = TRUE
+      WHERE id = $1 AND guru_id = $2
+    `, [notifId, guruId]);
+    res.json({ success: true, message: 'Notifikasi ditandai dibaca.' });
+  }));
+
+  // === FCM TOKEN: REGISTER/UPDATE ===
+  router.post('/register-fcm', asyncHandler(async (req, res) => {
+    const guruId = req.user.guru_id;
+    const { token, deviceInfo } = req.body;
+    if (!token) return res.status(400).json({ error: 'Token FCM wajib disertakan.' });
+
+    await db.query(`
+      INSERT INTO fcm_tokens (guru_id, token, device_info, updated_at)
+      VALUES ($1, $2, $3, NOW())
+      ON CONFLICT (token) 
+      DO UPDATE SET guru_id = EXCLUDED.guru_id, device_info = EXCLUDED.device_info, updated_at = NOW()
+    `, [guruId, token, deviceInfo || null]);
+
+    res.json({ success: true, message: 'Token FCM berhasil didaftarkan.' });
+  }));
+
+  // === ADMIN: PUSH NOTIFICATION MANUAL ===
+  router.post('/admin/push-notification', asyncHandler(async (req, res) => {
+    if (req.user.role !== 'admin') {
+      return res.status(403).json({ error: 'Akses ditolak. Hanya admin yang diperbolehkan.' });
+    }
+    const { title, body, category, target } = req.body;
+    if (!title || !body) {
+      return res.status(400).json({ error: 'Judul dan isi notifikasi wajib diisi.' });
+    }
+
+    const { sendNotification } = require('../services/notificationService');
+    const sendRes = await sendNotification({ title, body, category, target });
+    
+    if (sendRes.success) {
+      res.json({ 
+        success: true, 
+        message: `Notifikasi berhasil diproses untuk ${sendRes.sentCount} guru.`,
+        inAppOnly: sendRes.inAppOnly || false
+      });
+    } else {
+      res.status(500).json({ error: sendRes.error || 'Gagal mengirimkan notifikasi.' });
+    }
+  }));
+
   app.use('/api/my-mustahiq', router);
 }
 

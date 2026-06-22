@@ -173,6 +173,14 @@ const port = process.env.PORT || 3000;
 
 initDatabase()
   .then(() => {
+    // Start notification scheduler
+    try {
+      const { startScheduler } = require('./src/services/scheduler');
+      startScheduler();
+    } catch (err) {
+      console.error('❌ Gagal menjalankan scheduler notifikasi:', err);
+    }
+
     app.listen(port, '0.0.0.0', () => {
       console.log('');
       console.log('╔══════════════════════════════════════════════╗');

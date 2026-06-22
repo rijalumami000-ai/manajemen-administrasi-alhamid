@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../services/theme_manager.dart';
+import '../services/api_service.dart';
 import 'tab_akademik.dart';
 import 'tab_kelasku.dart';
-import 'tab_notifikasi.dart';
+import 'tab_administratif.dart';
 import 'tab_akun.dart';
+import 'notifications_screen.dart';
 
 class DashboardScreen extends StatefulWidget {
   const DashboardScreen({super.key});
@@ -15,20 +17,42 @@ class DashboardScreen extends StatefulWidget {
 
 class _DashboardScreenState extends State<DashboardScreen> {
   int _currentIndex = 1; // Default to "Kelasku" tab
+  int _unreadNotifications = 0;
+  final ApiService _apiService = ApiService();
 
   final List<Widget> _tabs = const [
     TabAkademik(),
     TabKelasku(),
-    TabNotifikasi(),
+    TabAdministratif(),
     TabAkun(),
   ];
 
   static const _tabTitles = [
     'Akademik',
     'Kelasku',
-    'Notifikasi',
+    'Administratif',
     'Akun Saya',
   ];
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchUnreadNotificationsCount();
+  }
+
+  Future<void> _fetchUnreadNotificationsCount() async {
+    try {
+      final list = await _apiService.getNotifications();
+      final count = list.where((n) => n['is_read'] == false).length;
+      if (mounted) {
+        setState(() {
+          _unreadNotifications = count;
+        });
+      }
+    } catch (e) {
+      // Ignore background fetch error
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -62,6 +86,53 @@ class _DashboardScreenState extends State<DashboardScreen> {
           ),
         ),
         actions: [
+          GestureDetector(
+            onTap: () async {
+              await Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => const NotificationsScreen()),
+              );
+              _fetchUnreadNotificationsCount();
+            },
+            child: Center(
+              child: Stack(
+                clipBehavior: Clip.none,
+                children: [
+                  Icon(
+                    Icons.notifications_rounded,
+                    color: context.titleColor,
+                    size: 24,
+                  ),
+                  if (_unreadNotifications > 0)
+                    Positioned(
+                      right: -3,
+                      top: -3,
+                      child: Container(
+                        padding: const EdgeInsets.all(2),
+                        decoration: const BoxDecoration(
+                          color: Colors.redAccent,
+                          shape: BoxShape.circle,
+                        ),
+                        constraints: const BoxConstraints(
+                          minWidth: 14,
+                          minHeight: 14,
+                        ),
+                        child: Text(
+                          '$_unreadNotifications',
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 8,
+                            fontWeight: FontWeight.bold,
+                          ),
+                          textAlign: TextAlign.center,
+                        ),
+                      ),
+                    ),
+                ],
+              ),
+            ),
+          ),
+          const SizedBox(width: 14),
           Container(
             margin: const EdgeInsets.only(right: 14),
             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
@@ -146,7 +217,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
               children: [
                 _buildNavItem(0, Icons.school_rounded, 'Akademik'),
                 _buildNavItem(1, Icons.class_rounded, 'Kelasku'),
-                _buildNavItem(2, Icons.notifications_rounded, 'Notifikasi'),
+                _buildNavItem(2, Icons.admin_panel_settings_rounded, 'Administratif'),
                 _buildNavItem(3, Icons.person_rounded, 'Akun'),
               ],
             ),
