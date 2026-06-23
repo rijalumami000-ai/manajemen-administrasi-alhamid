@@ -10,6 +10,7 @@ import 'input_nilai_screen.dart';
 import 'password_gate_dialog.dart';
 import '../widgets/muhafadzoh_info_bottom_sheet.dart';
 import '../widgets/qiroah_maqro_bottom_sheet.dart';
+import '../widgets/taftisy_materi_bottom_sheet.dart';
 
 class TabAkademik extends StatelessWidget {
   const TabAkademik({super.key});
@@ -504,6 +505,103 @@ class TabAkademik extends StatelessWidget {
                               Icon(
                                 Icons.arrow_forward_rounded,
                                 color: isDark ? const Color(0xFFFB923C) : const Color(0xFF7C2D12),
+                                size: 13,
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            const SizedBox(height: 16),
+            // 6. BATASAN TAFTISYUL KUTUB CARD (Full Width)
+            GestureDetector(
+              onTap: () {
+                TaftisyMateriBottomSheet.show(context);
+              },
+              child: Container(
+                width: double.infinity,
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: isDark
+                        ? [const Color(0xFF5B21B6), const Color(0xFF0F172A)]
+                        : [const Color(0xFFF3E8FF), const Color(0xFFE9D5FF)],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
+                  borderRadius: BorderRadius.circular(22),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(isDark ? 0.3 : 0.04),
+                      blurRadius: 12,
+                      offset: const Offset(0, 5),
+                    ),
+                  ],
+                  border: Border.all(
+                    color: isDark
+                        ? const Color(0xFF8B5CF6).withOpacity(0.25)
+                        : const Color(0xFF8B5CF6).withOpacity(0.4),
+                    width: 1.5,
+                  ),
+                ),
+                padding: const EdgeInsets.all(22),
+                child: Row(
+                  children: [
+                    // Icon
+                    Container(
+                      padding: const EdgeInsets.all(14),
+                      decoration: BoxDecoration(
+                        color: isDark ? Colors.white.withOpacity(0.06) : Colors.white.withOpacity(0.6),
+                        borderRadius: BorderRadius.circular(16),
+                        border: isDark ? null : Border.all(color: Colors.white, width: 1.5),
+                      ),
+                      child: Icon(
+                        Icons.menu_book_rounded,
+                        color: isDark ? Colors.white : const Color(0xFF8B5CF6),
+                        size: 32,
+                      ),
+                    ),
+                    const SizedBox(width: 18),
+                    // Texts
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Batasan Taftisyul Kutub',
+                            style: GoogleFonts.outfit(
+                              color: isDark ? Colors.white : const Color(0xFF5B21B6),
+                              fontSize: 17,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          const SizedBox(height: 6),
+                          Text(
+                            'Daftar acuan batasan materi dan halaman Ujian Taftisyul Kutub per kelas Diniyah.',
+                            style: GoogleFonts.outfit(
+                              color: isDark ? Colors.white.withOpacity(0.6) : const Color(0xFF5B21B6).withOpacity(0.8),
+                              fontSize: 11,
+                              height: 1.4,
+                            ),
+                          ),
+                          const SizedBox(height: 10),
+                          Row(
+                            children: [
+                              Text(
+                                "Lihat Batasan",
+                                style: GoogleFonts.outfit(
+                                  color: isDark ? const Color(0xFFC7D2FE) : const Color(0xFF5B21B6),
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                              const SizedBox(width: 6),
+                              Icon(
+                                Icons.arrow_forward_rounded,
+                                color: isDark ? const Color(0xFFC7D2FE) : const Color(0xFF5B21B6),
                                 size: 13,
                               ),
                             ],

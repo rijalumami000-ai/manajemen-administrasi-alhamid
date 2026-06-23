@@ -677,5 +677,39 @@ class ApiService {
       rethrow;
     }
   }
+
+  // Get Taftisyul Kutub Materi Info
+  Future<List<dynamic>> getTaftisyMateri({required int kelasId, int? tahunAjaranId, String? semester}) async {
+    try {
+      final Map<String, dynamic> queryParams = {
+        'kelas_id': kelasId,
+      };
+      if (tahunAjaranId != null) {
+        queryParams['tahun_ajaran_id'] = tahunAjaranId;
+      }
+      if (semester != null) {
+        queryParams['semester'] = semester;
+      }
+
+      final response = await _dio.get(
+        '/my-mustahiq/taftisy-materi',
+        queryParameters: queryParams,
+      );
+      if (response.statusCode == 200) {
+        if (response.data is List) {
+          return response.data as List<dynamic>;
+        } else {
+          throw Exception('Format data tidak valid dari server (bukan JSON List).');
+        }
+      }
+      throw Exception('Gagal mengambil data batasan Taftisyul Kutub.');
+    } catch (e) {
+      if (e is DioException && e.response != null) {
+        throw Exception(e.response?.data['error'] ?? 'Gagal mengambil batasan Taftisyul Kutub.');
+      }
+      rethrow;
+    }
+  }
 }
+
 
