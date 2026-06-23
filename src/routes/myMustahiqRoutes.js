@@ -795,6 +795,13 @@ function registerMyMustahiqRoutes(app) {
       }
     });
 
+    // Fallback: if Kelas SP (tingkat 99) has no subjects, copy from tingkat 2
+    if (!mapelPerTingkat['99'] || mapelPerTingkat['99'].length === 0) {
+      if (mapelPerTingkat['2'] && mapelPerTingkat['2'].length > 0) {
+        mapelPerTingkat['99'] = [...mapelPerTingkat['2']];
+      }
+    }
+
     const semResult = await db.query("SELECT value FROM system_settings WHERE key = 'active_semester' LIMIT 1");
     const activeSemester = semResult.rows[0] ? semResult.rows[0].value : 'Ganjil';
 
@@ -1116,6 +1123,8 @@ function registerMyMustahiqRoutes(app) {
           { bab: 'Naqish', predikat: 'Naqish' }
         ];
       } else if (mapel.jenis === 'Muhafadzoh' || mapel.id === muhafadzohId) {
+        // For Kelas SP (tingkat 99), use tingkat 2 config for Muhafadzoh
+        const muhafadzohTingkat = tingkat === 99 ? 2 : tingkat;
         const setRes = await db.query(`
           SELECT tipe_input, konfigurasi
           FROM setting_kriteria_nilai
@@ -1125,7 +1134,7 @@ function registerMyMustahiqRoutes(app) {
             AND tingkat = $3 
           ORDER BY tahun_ajaran_id DESC NULLS LAST, kategori_evaluasi_id DESC NULLS LAST, mata_pelajaran_id NULLS LAST
           LIMIT 1
-        `, [activeYear.id, kategoriId, tingkat, mapel.id]);
+        `, [activeYear.id, kategoriId, muhafadzohTingkat, mapel.id]);
         if (setRes.rows.length > 0) {
           mapel.tipe_input = setRes.rows[0].tipe_input;
           mapel.konfigurasi = setRes.rows[0].konfigurasi;

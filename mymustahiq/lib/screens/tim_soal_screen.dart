@@ -25,8 +25,8 @@ class _TimSoalScreenState extends State<TimSoalScreen> {
 
   // Filter: tingkat (level) instead of individual kelas
   int? _filterTingkat;
-  // Filter: null = Semua, false = Soal Utama, true = Soal Her
-  bool? _filterIsHer;
+  // Filter: false = Soal Utama, true = Soal Her (no "Semua" option)
+  bool _filterIsHer = false;
 
   // Helper: tingkat names
   String _tingkatLabel(int tingkat) {
@@ -135,6 +135,11 @@ class _TimSoalScreenState extends State<TimSoalScreen> {
     _classes = metaData['classes'] ?? [];
     _mapelPerTingkat = Map<String, dynamic>.from(metaData['mapelPerTingkat'] ?? {});
 
+    // Set default filter tingkat to first available (Kelas 1) if not set
+    if (_filterTingkat == null && _distinctTingkatList.isNotEmpty) {
+      _filterTingkat = _distinctTingkatList.first['tingkat'] as int;
+    }
+
     await _loadSoalList();
   }
 
@@ -161,13 +166,11 @@ class _TimSoalScreenState extends State<TimSoalScreen> {
 
     List<dynamic> allSoal = listData['soal'] ?? [];
 
-    // Client-side filter by is_her
-    if (_filterIsHer != null) {
-      allSoal = allSoal.where((s) {
-        final isHer = s['is_her'] == true;
-        return isHer == _filterIsHer;
-      }).toList();
-    }
+    // Client-side filter by is_her (always applied, no "Semua" option)
+    allSoal = allSoal.where((s) {
+      final isHer = s['is_her'] == true;
+      return isHer == _filterIsHer;
+    }).toList();
 
     setState(() {
       _soalList = allSoal;
@@ -213,7 +216,17 @@ class _TimSoalScreenState extends State<TimSoalScreen> {
         return StatefulBuilder(
           builder: (context, setModalState) {
             // Get subjects for current selected tingkat
-            final currentSubjects = _getSubjectsForTingkat(selectedTingkat);
+            var currentSubjects = _getSubjectsForTingkat(selectedTingkat);
+
+            // Filter out subjects that already have soal for this tingkat+isHer (only in add mode)
+            if (existingSoal == null && selectedTingkat != null) {
+              currentSubjects = currentSubjects.where((m) {
+                return !_soalList.any((s) =>
+                  s['tingkat'] == selectedTingkat &&
+                  s['mapel_id'] == m['id'] &&
+                  s['is_her'] == selectedIsHer);
+              }).toList();
+            }
 
             // Validate selectedMapelId still exists in current subjects
             if (selectedMapelId != null && !currentSubjects.any((m) => m['id'] == selectedMapelId)) {
@@ -347,101 +360,137 @@ class _TimSoalScreenState extends State<TimSoalScreen> {
                       ),
                     const SizedBox(height: 16),
 
-                    // Soal Utama / Soal Her toggle
+                    // Jenis Soal — toggle for new, static label for edit
                     Text(
                       "Jenis Soal",
                       style: GoogleFonts.outfit(fontWeight: FontWeight.bold, fontSize: 13, color: isDark ? Colors.white70 : Colors.black54),
                     ),
                     const SizedBox(height: 6),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: GestureDetector(
-                            onTap: () {
-                              setModalState(() => selectedIsHer = false);
-                            },
-                            child: AnimatedContainer(
-                              duration: const Duration(milliseconds: 200),
-                              padding: const EdgeInsets.symmetric(vertical: 14),
-                              decoration: BoxDecoration(
-                                color: !selectedIsHer
-                                    ? primaryColor.withOpacity(0.15)
-                                    : (isDark ? Colors.white.withOpacity(0.05) : Colors.black.withOpacity(0.03)),
-                                borderRadius: BorderRadius.circular(14),
-                                border: Border.all(
-                                  color: !selectedIsHer ? primaryColor : Colors.transparent,
-                                  width: 1.5,
-                                ),
+                    if (existingSoal != null)
+                      // Static label when editing
+                      Container(
+                        padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 16),
+                        decoration: BoxDecoration(
+                          color: selectedIsHer
+                              ? Colors.orange.withOpacity(0.15)
+                              : primaryColor.withOpacity(0.15),
+                          borderRadius: BorderRadius.circular(14),
+                          border: Border.all(
+                            color: selectedIsHer ? Colors.orange : primaryColor,
+                            width: 1.5,
+                          ),
+                        ),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(
+                              selectedIsHer ? Icons.refresh_rounded : Icons.assignment_rounded,
+                              size: 16,
+                              color: selectedIsHer ? Colors.orange : primaryColor,
+                            ),
+                            const SizedBox(width: 6),
+                            Text(
+                              selectedIsHer ? "Soal Her" : "Soal Utama",
+                              style: GoogleFonts.outfit(
+                                fontSize: 13,
+                                fontWeight: FontWeight.bold,
+                                color: selectedIsHer ? Colors.orange : primaryColor,
                               ),
-                              child: Center(
-                                child: Row(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    Icon(
-                                      Icons.assignment_rounded,
-                                      size: 16,
-                                      color: !selectedIsHer ? primaryColor : (isDark ? Colors.white38 : Colors.black38),
-                                    ),
-                                    const SizedBox(width: 6),
-                                    Text(
-                                      "Soal Utama",
-                                      style: GoogleFonts.outfit(
-                                        fontSize: 13,
-                                        fontWeight: FontWeight.bold,
+                            ),
+                          ],
+                        ),
+                      )
+                    else
+                      // Toggle for new soal
+                      Row(
+                        children: [
+                          Expanded(
+                            child: GestureDetector(
+                              onTap: () {
+                                setModalState(() => selectedIsHer = false);
+                              },
+                              child: AnimatedContainer(
+                                duration: const Duration(milliseconds: 200),
+                                padding: const EdgeInsets.symmetric(vertical: 14),
+                                decoration: BoxDecoration(
+                                  color: !selectedIsHer
+                                      ? primaryColor.withOpacity(0.15)
+                                      : (isDark ? Colors.white.withOpacity(0.05) : Colors.black.withOpacity(0.03)),
+                                  borderRadius: BorderRadius.circular(14),
+                                  border: Border.all(
+                                    color: !selectedIsHer ? primaryColor : Colors.transparent,
+                                    width: 1.5,
+                                  ),
+                                ),
+                                child: Center(
+                                  child: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Icon(
+                                        Icons.assignment_rounded,
+                                        size: 16,
                                         color: !selectedIsHer ? primaryColor : (isDark ? Colors.white38 : Colors.black38),
                                       ),
-                                    ),
-                                  ],
+                                      const SizedBox(width: 6),
+                                      Text(
+                                        "Soal Utama",
+                                        style: GoogleFonts.outfit(
+                                          fontSize: 13,
+                                          fontWeight: FontWeight.bold,
+                                          color: !selectedIsHer ? primaryColor : (isDark ? Colors.white38 : Colors.black38),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
                                 ),
                               ),
                             ),
                           ),
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: GestureDetector(
-                            onTap: () {
-                              setModalState(() => selectedIsHer = true);
-                            },
-                            child: AnimatedContainer(
-                              duration: const Duration(milliseconds: 200),
-                              padding: const EdgeInsets.symmetric(vertical: 14),
-                              decoration: BoxDecoration(
-                                color: selectedIsHer
-                                    ? Colors.orange.withOpacity(0.15)
-                                    : (isDark ? Colors.white.withOpacity(0.05) : Colors.black.withOpacity(0.03)),
-                                borderRadius: BorderRadius.circular(14),
-                                border: Border.all(
-                                  color: selectedIsHer ? Colors.orange : Colors.transparent,
-                                  width: 1.5,
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: GestureDetector(
+                              onTap: () {
+                                setModalState(() => selectedIsHer = true);
+                              },
+                              child: AnimatedContainer(
+                                duration: const Duration(milliseconds: 200),
+                                padding: const EdgeInsets.symmetric(vertical: 14),
+                                decoration: BoxDecoration(
+                                  color: selectedIsHer
+                                      ? Colors.orange.withOpacity(0.15)
+                                      : (isDark ? Colors.white.withOpacity(0.05) : Colors.black.withOpacity(0.03)),
+                                  borderRadius: BorderRadius.circular(14),
+                                  border: Border.all(
+                                    color: selectedIsHer ? Colors.orange : Colors.transparent,
+                                    width: 1.5,
+                                  ),
                                 ),
-                              ),
-                              child: Center(
-                                child: Row(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    Icon(
-                                      Icons.refresh_rounded,
-                                      size: 16,
-                                      color: selectedIsHer ? Colors.orange : (isDark ? Colors.white38 : Colors.black38),
-                                    ),
-                                    const SizedBox(width: 6),
-                                    Text(
-                                      "Soal Her",
-                                      style: GoogleFonts.outfit(
-                                        fontSize: 13,
-                                        fontWeight: FontWeight.bold,
+                                child: Center(
+                                  child: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Icon(
+                                        Icons.refresh_rounded,
+                                        size: 16,
                                         color: selectedIsHer ? Colors.orange : (isDark ? Colors.white38 : Colors.black38),
                                       ),
-                                    ),
-                                  ],
+                                      const SizedBox(width: 6),
+                                      Text(
+                                        "Soal Her",
+                                        style: GoogleFonts.outfit(
+                                          fontSize: 13,
+                                          fontWeight: FontWeight.bold,
+                                          color: selectedIsHer ? Colors.orange : (isDark ? Colors.white38 : Colors.black38),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
                                 ),
                               ),
                             ),
                           ),
-                        ),
-                      ],
-                    ),
+                        ],
+                      ),
                     const SizedBox(height: 16),
 
                     // Konten Soal
@@ -724,10 +773,6 @@ class _TimSoalScreenState extends State<TimSoalScreen> {
                                 underline: const SizedBox(),
                                 style: GoogleFonts.outfit(color: headingColor, fontSize: 13),
                                 items: [
-                                  DropdownMenuItem<int?>(
-                                    value: null,
-                                    child: Text("Semua Tingkat", style: GoogleFonts.outfit(color: headingColor)),
-                                  ),
                                   ..._distinctTingkatList.map<DropdownMenuItem<int?>>((t) {
                                     return DropdownMenuItem<int?>(
                                       value: t['tingkat'] as int,
@@ -749,7 +794,7 @@ class _TimSoalScreenState extends State<TimSoalScreen> {
                           ],
                         ),
                         const SizedBox(height: 8),
-                        // Soal Utama / Her filter
+                        // Soal Utama / Her filter (no "Semua" option)
                         Row(
                           children: [
                             Icon(Icons.assignment_rounded, size: 16, color: subColor),
@@ -759,22 +804,6 @@ class _TimSoalScreenState extends State<TimSoalScreen> {
                               style: GoogleFonts.outfit(fontSize: 12, fontWeight: FontWeight.bold, color: headingColor),
                             ),
                             const SizedBox(width: 8),
-                            _buildFilterChip(
-                              label: "Semua",
-                              isSelected: _filterIsHer == null,
-                              onTap: () {
-                                setState(() {
-                                  _filterIsHer = null;
-                                  _isLoading = true;
-                                });
-                                _loadSoalList().then((_) {
-                                  setState(() => _isLoading = false);
-                                });
-                              },
-                              isDark: isDark,
-                              activeColor: subColor,
-                            ),
-                            const SizedBox(width: 6),
                             _buildFilterChip(
                               label: "Soal Utama",
                               isSelected: _filterIsHer == false,

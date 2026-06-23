@@ -250,6 +250,7 @@ class _InputNilaiScreenState extends State<InputNilaiScreen> {
         'mapel_id': _qiroatulMapelId,
         'title': 'Qiroatul Kitab',
         'is_special': true,
+        'is_qiroah': true,
         'tipe_input': 'Angka',
         'konfigurasi': null,
         'controller': TextEditingController(text: existing != null && existing['nilai'] != null ? _formatNilai(existing['nilai']) : ''),
@@ -412,79 +413,87 @@ class _InputNilaiScreenState extends State<InputNilaiScreen> {
                               ),
                               const SizedBox(height: 12),
                               
-                              // Score and Predicate Row
-                              Row(
-                                children: [
-                                  // Score Input
-                                  Expanded(
-                                    flex: 2,
-                                    child: item['tipe_input'] == 'Teks'
-                                        ? DropdownButtonFormField<String>(
-                                            value: scoreCtrl.text.isEmpty ? null : ((item['konfigurasi'] as List<dynamic>? ?? []).any((c) => c['bab'].toString() == scoreCtrl.text) ? scoreCtrl.text : null),
-                                            dropdownColor: panelBg,
-                                            style: textStyle,
-                                            decoration: _inputDecoration("Pilih Capaian / Teks", isDark),
-                                            items: (item['konfigurasi'] as List<dynamic>? ?? [])
-                                                .map<DropdownMenuItem<String>>((c) {
-                                              return DropdownMenuItem<String>(
-                                                value: c['bab'].toString(),
-                                                child: Text(c['bab'].toString(), style: textStyle),
-                                              );
-                                            }).toList(),
-                                            onChanged: (val) {
-                                              if (val != null) {
-                                                setModalState(() {
-                                                  scoreCtrl.text = val;
-                                                  final cfg = (item['konfigurasi'] as List<dynamic>?)?.firstWhere(
-                                                      (c) => c['bab'].toString() == val, orElse: () => null);
-                                                  predCtrl.text = cfg != null ? (cfg['predikat']?.toString() ?? '') : '';
-                                                });
-                                              }
-                                            },
-                                          )
-                                        : TextField(
-                                            controller: scoreCtrl,
-                                            keyboardType: TextInputType.number,
-                                            style: textStyle,
-                                            decoration: _inputDecoration("Nilai (0-100)", isDark),
-                                            onChanged: (val) {
-                                              final double? score = double.tryParse(val);
-                                              if (score != null) {
-                                                setModalState(() {
-                                                  predCtrl.text = _calculatePredikat(score, item['konfigurasi']);
-                                                });
-                                              } else {
-                                                setModalState(() {
-                                                  predCtrl.text = '';
-                                                });
-                                              }
-                                            },
+                              // Determine if predikat should be shown
+                              // Show predikat only for Muhafadzoh and Taftisyul Kutub
+                              // Hide for Qiroatul Kitab and Reguler (Ujian Tulis)
+                              Builder(builder: (context) {
+                                final bool isQiroah = item['is_qiroah'] == true;
+                                final bool isSpecial = item['is_special'] == true;
+                                final bool showPredikat = isSpecial && !isQiroah;
+                                
+                                return Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    // Score and optional Predicate Row
+                                    Row(
+                                      children: [
+                                        // Score Input
+                                        Expanded(
+                                          flex: showPredikat ? 2 : 1,
+                                          child: item['tipe_input'] == 'Teks'
+                                              ? DropdownButtonFormField<String>(
+                                                  value: scoreCtrl.text.isEmpty ? null : ((item['konfigurasi'] as List<dynamic>? ?? []).any((c) => c['bab'].toString() == scoreCtrl.text) ? scoreCtrl.text : null),
+                                                  dropdownColor: panelBg,
+                                                  style: textStyle,
+                                                  decoration: _inputDecoration("Pilih Capaian / Teks", isDark),
+                                                  items: (item['konfigurasi'] as List<dynamic>? ?? [])
+                                                      .map<DropdownMenuItem<String>>((c) {
+                                                    return DropdownMenuItem<String>(
+                                                      value: c['bab'].toString(),
+                                                      child: Text(c['bab'].toString(), style: textStyle),
+                                                    );
+                                                  }).toList(),
+                                                  onChanged: (val) {
+                                                    if (val != null) {
+                                                      setModalState(() {
+                                                        scoreCtrl.text = val;
+                                                        final cfg = (item['konfigurasi'] as List<dynamic>?)?.firstWhere(
+                                                            (c) => c['bab'].toString() == val, orElse: () => null);
+                                                        predCtrl.text = cfg != null ? (cfg['predikat']?.toString() ?? '') : '';
+                                                      });
+                                                    }
+                                                  },
+                                                )
+                                              : TextField(
+                                                  controller: scoreCtrl,
+                                                  keyboardType: TextInputType.number,
+                                                  style: textStyle,
+                                                  decoration: _inputDecoration("Nilai (0-100)", isDark),
+                                                  onChanged: (val) {
+                                                    final double? score = double.tryParse(val);
+                                                    if (score != null) {
+                                                      setModalState(() {
+                                                        predCtrl.text = _calculatePredikat(score, item['konfigurasi']);
+                                                      });
+                                                    } else {
+                                                      setModalState(() {
+                                                        predCtrl.text = '';
+                                                      });
+                                                    }
+                                                  },
+                                                ),
+                                        ),
+                                        if (showPredikat) ...[
+                                          const SizedBox(width: 12),
+                                          // Predicate Input
+                                          Expanded(
+                                            flex: 1,
+                                            child: TextField(
+                                              controller: predCtrl,
+                                              textAlign: TextAlign.center,
+                                              maxLength: 2,
+                                              style: textStyle.copyWith(fontWeight: FontWeight.bold),
+                                              decoration: _inputDecoration("Predikat", isDark).copyWith(
+                                                counterText: "",
+                                              ),
+                                            ),
                                           ),
-                                  ),
-                                  const SizedBox(width: 12),
-                                  // Predicate Input
-                                  Expanded(
-                                    flex: 1,
-                                    child: TextField(
-                                      controller: predCtrl,
-                                      textAlign: TextAlign.center,
-                                      maxLength: 2,
-                                      style: textStyle.copyWith(fontWeight: FontWeight.bold),
-                                      decoration: _inputDecoration("Predikat", isDark).copyWith(
-                                        counterText: "",
-                                      ),
+                                        ],
+                                      ],
                                     ),
-                                  ),
-                                ],
-                              ),
-                              const SizedBox(height: 10),
-                              
-                              // Capaian Input
-                              TextField(
-                                controller: descCtrl,
-                                style: textStyle,
-                                decoration: _inputDecoration("Catatan Capaian / Deskripsi", isDark),
-                              ),
+                                  ],
+                                );
+                              }),
                             ],
                           ),
                         );
