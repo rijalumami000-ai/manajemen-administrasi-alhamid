@@ -32,9 +32,14 @@ class TaftisyMateriBottomSheet extends StatefulWidget {
 class _TaftisyMateriBottomSheetState extends State<TaftisyMateriBottomSheet> {
   final ApiService _apiService = ApiService();
   
+  List<dynamic> _tahunAjaranList = [];
+  Map<String, dynamic>? _selectedTahunAjaran;
+  String _selectedSemester = 'Ganjil';
+  bool _loadingFilters = true;
+
   List<dynamic> _classes = [];
   int? _selectedKelasId;
-  bool _loadingClasses = true;
+  bool _loadingClasses = false;
   String? _classError;
 
   List<dynamic> _taftisyMateri = [];
@@ -44,14 +49,59 @@ class _TaftisyMateriBottomSheetState extends State<TaftisyMateriBottomSheet> {
   @override
   void initState() {
     super.initState();
-    _loadClasses();
+    _loadFiltersAndClasses();
+  }
+
+  Future<void> _loadFiltersAndClasses() async {
+    try {
+      final taResult = await _apiService.getTahunAjaranList();
+      _tahunAjaranList = taResult['tahunAjaran'] ?? [];
+
+      if (widget.tahunAjaranId != null) {
+        _selectedTahunAjaran = _tahunAjaranList.firstWhere(
+          (ta) => ta['id'] == widget.tahunAjaranId,
+          orElse: () => _tahunAjaranList.firstWhere((ta) => ta['is_active'] == true, orElse: () => _tahunAjaranList.first),
+        );
+      } else {
+        _selectedTahunAjaran = _tahunAjaranList.firstWhere(
+          (ta) => ta['is_active'] == true,
+          orElse: () => _tahunAjaranList.first,
+        );
+      }
+
+      _selectedSemester = widget.semester ?? taResult['activeSemester'] ?? 'Ganjil';
+
+      if (mounted) {
+        setState(() {
+          _loadingFilters = false;
+        });
+        await _loadClasses();
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _loadingFilters = false;
+        });
+        await _loadClasses();
+      }
+    }
   }
 
   Future<void> _loadClasses() async {
+    if (_selectedTahunAjaran == null) return;
+    
+    setState(() {
+      _loadingClasses = true;
+      _classError = null;
+      _classes = [];
+      _selectedKelasId = null;
+      _taftisyMateri = [];
+    });
+
     try {
       final classesData = await _apiService.getClasses(
-        tahunAjaranId: widget.tahunAjaranId,
-        semester: widget.semester,
+        tahunAjaranId: _selectedTahunAjaran?['id'],
+        semester: _selectedSemester,
       );
       if (mounted) {
         setState(() {
@@ -69,7 +119,7 @@ class _TaftisyMateriBottomSheetState extends State<TaftisyMateriBottomSheet> {
     } catch (e) {
       if (mounted) {
         setState(() {
-          _classError = e.toString();
+          _classError = e.toString().replaceFirst('Exception: ', '');
           _loadingClasses = false;
         });
       }
@@ -85,8 +135,8 @@ class _TaftisyMateriBottomSheetState extends State<TaftisyMateriBottomSheet> {
     try {
       final data = await _apiService.getTaftisyMateri(
         kelasId: kelasId,
-        tahunAjaranId: widget.tahunAjaranId,
-        semester: widget.semester,
+        tahunAjaranId: _selectedTahunAjaran?['id'],
+        semester: _selectedSemester,
       );
       if (mounted) {
         setState(() {
@@ -97,7 +147,7 @@ class _TaftisyMateriBottomSheetState extends State<TaftisyMateriBottomSheet> {
     } catch (e) {
       if (mounted) {
         setState(() {
-          _materiError = e.toString();
+          _materiError = e.toString().replaceFirst('Exception: ', '');
           _loadingMateri = false;
         });
       }
@@ -112,7 +162,7 @@ class _TaftisyMateriBottomSheetState extends State<TaftisyMateriBottomSheet> {
     final borderCol = isDark ? Colors.white.withOpacity(0.08) : Colors.black.withOpacity(0.08);
 
     return Container(
-      height: MediaQuery.of(context).size.height * 0.8,
+      height: MediaQuery.of(context).size.height * 0.85,
       decoration: BoxDecoration(
         color: bottomSheetBg,
         borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
@@ -184,15 +234,101 @@ class _TaftisyMateriBottomSheetState extends State<TaftisyMateriBottomSheet> {
             ),
           ),
 
-          // Class Selection Dropdown
-          if (_loadingClasses)
+          // Year and Semester dropdown selectors
+          if (_loadingFilters)
             const Padding(
               padding: EdgeInsets.symmetric(horizontal: 16),
               child: Center(child: LinearProgressIndicator(color: Color(0xFF8B5CF6))),
             )
+          else if (_tahunAjaranList.isNotEmpty)
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: DropdownButtonFormField<int>(
+                      value: _selectedTahunAjaran?['id'],
+                      decoration: InputDecoration(
+                        labelText: "Tahun Ajaran",
+                        labelStyle: GoogleFonts.outfit(fontSize: 12, color: isDark ? Colors.white70 : Colors.black87),
+                        contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: BorderSide(color: borderCol),
+                        ),
+                        enabledBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: BorderSide(color: borderCol),
+                        ),
+                        filled: true,
+                        fillColor: isDark ? const Color(0xFF1F2937) : const Color(0xFFF8FAFC),
+                      ),
+                      dropdownColor: isDark ? const Color(0xFF1F2937) : Colors.white,
+                      items: _tahunAjaranList.map<DropdownMenuItem<int>>((ta) {
+                        return DropdownMenuItem<int>(
+                          value: ta['id'] as int,
+                          child: Text(ta['kode'] ?? '', style: GoogleFonts.outfit(fontSize: 12, color: headingColor)),
+                        );
+                      }).toList(),
+                      onChanged: (val) {
+                        if (val != null) {
+                          setState(() {
+                            _selectedTahunAjaran = _tahunAjaranList.firstWhere((ta) => ta['id'] == val);
+                          });
+                          _loadClasses();
+                        }
+                      },
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: DropdownButtonFormField<String>(
+                      value: _selectedSemester,
+                      decoration: InputDecoration(
+                        labelText: "Semester",
+                        labelStyle: GoogleFonts.outfit(fontSize: 12, color: isDark ? Colors.white70 : Colors.black87),
+                        contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: BorderSide(color: borderCol),
+                        ),
+                        enabledBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: BorderSide(color: borderCol),
+                        ),
+                        filled: true,
+                        fillColor: isDark ? const Color(0xFF1F2937) : const Color(0xFFF8FAFC),
+                      ),
+                      dropdownColor: isDark ? const Color(0xFF1F2937) : Colors.white,
+                      items: const [
+                        DropdownMenuItem<String>(value: 'Ganjil', child: Text('Ganjil', style: TextStyle(fontSize: 12))),
+                        DropdownMenuItem<String>(value: 'Genap', child: Text('Genap', style: TextStyle(fontSize: 12))),
+                      ],
+                      onChanged: (val) {
+                        if (val != null) {
+                          setState(() {
+                            _selectedSemester = val;
+                          });
+                          _loadClasses();
+                        }
+                      },
+                    ),
+                  ),
+                ],
+              ),
+            ),
+
+          const SizedBox(height: 8),
+
+          // Class Selection Dropdown
+          if (_loadingClasses)
+            const Padding(
+              padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              child: Center(child: LinearProgressIndicator(color: Color(0xFF8B5CF6))),
+            )
           else if (_classError != null)
             Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
               child: Text(
                 "Gagal memuat kelas: $_classError",
                 style: GoogleFonts.outfit(color: Colors.redAccent, fontSize: 13),

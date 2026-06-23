@@ -33,13 +33,59 @@ class _QiroahMaqroBottomSheetState extends State<QiroahMaqroBottomSheet> {
   final ApiService _apiService = ApiService();
   late Future<List<dynamic>> _maqroFuture;
 
+  List<dynamic> _tahunAjaranList = [];
+  Map<String, dynamic>? _selectedTahunAjaran;
+  String _selectedSemester = 'Ganjil';
+  bool _loadingFilters = true;
+
   @override
   void initState() {
     super.initState();
-    _maqroFuture = _apiService.getQiroahMaqro(
-      tahunAjaranId: widget.tahunAjaranId,
-      semester: widget.semester,
-    );
+    _loadFiltersAndData();
+  }
+
+  Future<void> _loadFiltersAndData() async {
+    try {
+      final taResult = await _apiService.getTahunAjaranList();
+      _tahunAjaranList = taResult['tahunAjaran'] ?? [];
+
+      if (widget.tahunAjaranId != null) {
+        _selectedTahunAjaran = _tahunAjaranList.firstWhere(
+          (ta) => ta['id'] == widget.tahunAjaranId,
+          orElse: () => _tahunAjaranList.firstWhere((ta) => ta['is_active'] == true, orElse: () => _tahunAjaranList.first),
+        );
+      } else {
+        _selectedTahunAjaran = _tahunAjaranList.firstWhere(
+          (ta) => ta['is_active'] == true,
+          orElse: () => _tahunAjaranList.first,
+        );
+      }
+
+      _selectedSemester = widget.semester ?? taResult['activeSemester'] ?? 'Ganjil';
+
+      if (mounted) {
+        setState(() {
+          _loadingFilters = false;
+        });
+        _loadData();
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _loadingFilters = false;
+        });
+        _loadData();
+      }
+    }
+  }
+
+  void _loadData() {
+    setState(() {
+      _maqroFuture = _apiService.getQiroahMaqro(
+        tahunAjaranId: _selectedTahunAjaran?['id'],
+        semester: _selectedSemester,
+      );
+    });
   }
 
   @override
@@ -51,7 +97,7 @@ class _QiroahMaqroBottomSheetState extends State<QiroahMaqroBottomSheet> {
     final cardColor = isDark ? const Color(0xFF1F2937) : const Color(0xFFF8FAFC);
 
     return Container(
-      height: MediaQuery.of(context).size.height * 0.75,
+      height: MediaQuery.of(context).size.height * 0.85,
       decoration: BoxDecoration(
         color: bottomSheetBg,
         borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
@@ -111,7 +157,7 @@ class _QiroahMaqroBottomSheetState extends State<QiroahMaqroBottomSheet> {
                 const SizedBox(width: 10),
                 Expanded(
                   child: Text(
-                    "Tabel ini merupakan acuan daftar bahan bacaan (Maqro) Ujian Qiroatul Kitab yang berlaku di Ponpes Al-Hamid. Data ini hanya bersifat informatif / administratif sebagai panduan pengujian dan bukan merupakan aturan/rumusan perhitungan nilai baru.",
+                    "Tabel ini merupakan acuan daftar bahan bacaan (Maqro) Ujian Qiroatul Kitab yang berlaku di Ponpes Al-Hamid. Data ini hanya bersifat informatif / administratif sebagai panduan pengujian.",
                     style: GoogleFonts.outfit(
                       fontSize: 11,
                       color: isDark ? Colors.orange[200] : Colors.orange[900],
@@ -122,6 +168,92 @@ class _QiroahMaqroBottomSheetState extends State<QiroahMaqroBottomSheet> {
               ],
             ),
           ),
+
+          // Year and Semester dropdown selectors
+          if (_loadingFilters)
+            const Padding(
+              padding: EdgeInsets.symmetric(horizontal: 16),
+              child: Center(child: LinearProgressIndicator(color: Colors.orange)),
+            )
+          else if (_tahunAjaranList.isNotEmpty)
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: DropdownButtonFormField<int>(
+                      value: _selectedTahunAjaran?['id'],
+                      decoration: InputDecoration(
+                        labelText: "Tahun Ajaran",
+                        labelStyle: GoogleFonts.outfit(fontSize: 12, color: isDark ? Colors.white70 : Colors.black87),
+                        contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: BorderSide(color: borderCol),
+                        ),
+                        enabledBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: BorderSide(color: borderCol),
+                        ),
+                        filled: true,
+                        fillColor: isDark ? const Color(0xFF1F2937) : const Color(0xFFF8FAFC),
+                      ),
+                      dropdownColor: isDark ? const Color(0xFF1F2937) : Colors.white,
+                      items: _tahunAjaranList.map<DropdownMenuItem<int>>((ta) {
+                        return DropdownMenuItem<int>(
+                          value: ta['id'] as int,
+                          child: Text(ta['kode'] ?? '', style: GoogleFonts.outfit(fontSize: 12, color: headingColor)),
+                        );
+                      }).toList(),
+                      onChanged: (val) {
+                        if (val != null) {
+                          setState(() {
+                            _selectedTahunAjaran = _tahunAjaranList.firstWhere((ta) => ta['id'] == val);
+                          });
+                          _loadData();
+                        }
+                      },
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: DropdownButtonFormField<String>(
+                      value: _selectedSemester,
+                      decoration: InputDecoration(
+                        labelText: "Semester",
+                        labelStyle: GoogleFonts.outfit(fontSize: 12, color: isDark ? Colors.white70 : Colors.black87),
+                        contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: BorderSide(color: borderCol),
+                        ),
+                        enabledBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: BorderSide(color: borderCol),
+                        ),
+                        filled: true,
+                        fillColor: isDark ? const Color(0xFF1F2937) : const Color(0xFFF8FAFC),
+                      ),
+                      dropdownColor: isDark ? const Color(0xFF1F2937) : Colors.white,
+                      items: const [
+                        DropdownMenuItem<String>(value: 'Ganjil', child: Text('Ganjil', style: TextStyle(fontSize: 12))),
+                        DropdownMenuItem<String>(value: 'Genap', child: Text('Genap', style: TextStyle(fontSize: 12))),
+                      ],
+                      onChanged: (val) {
+                        if (val != null) {
+                          setState(() {
+                            _selectedSemester = val;
+                          });
+                          _loadData();
+                        }
+                      },
+                    ),
+                  ),
+                ],
+              ),
+            ),
+
+          const SizedBox(height: 12),
 
           // Content List
           Expanded(

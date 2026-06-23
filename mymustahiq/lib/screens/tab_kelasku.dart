@@ -3,6 +3,8 @@ import 'package:google_fonts/google_fonts.dart';
 import '../services/api_service.dart';
 import '../services/theme_manager.dart';
 import 'santri_explorer_screen.dart';
+import 'weekly_schedule_screen.dart';
+import 'informasi_ujian_screen.dart';
 
 class TabKelasku extends StatefulWidget {
   const TabKelasku({super.key});
@@ -522,9 +524,9 @@ class _TabKelaskuState extends State<TabKelasku> {
               ],
               const SizedBox(height: 24),
 
-              // ===== JADWAL SEMINGGU =====
+              // ===== LAYANAN KELAS =====
               Text(
-                isMustahiq ? "JADWAL KELAS SEMINGGU" : "JADWAL MENGAJAR SEMINGGU",
+                "LAYANAN KELAS",
                 style: GoogleFonts.outfit(
                   color: context.subTitleColor,
                   fontSize: 11,
@@ -534,26 +536,73 @@ class _TabKelaskuState extends State<TabKelasku> {
               ),
               const SizedBox(height: 10),
 
-              if (scheduleToRender.isEmpty)
-                Container(
-                  padding: const EdgeInsets.all(20),
-                  decoration: BoxDecoration(
-                    color: context.cardBg,
-                    borderRadius: BorderRadius.circular(18),
-                    border: Border.all(color: context.borderColor),
-                  ),
-                  child: Center(
-                    child: Text(
-                      isMustahiq
-                          ? "Jadwal kelas belum tersedia."
-                          : "Tidak ada jadwal mengajar di semester ini.",
-                      textAlign: TextAlign.center,
-                      style: GoogleFonts.outfit(color: context.bodyColor, fontSize: 13),
+              if (isMustahiq)
+                Row(
+                  children: [
+                    Expanded(
+                      child: _buildClassMenuCard(
+                        context: context,
+                        title: "Jadwal Pelajaran",
+                        desc: "Jadwal KBM kelas seminggu penuh.",
+                        icon: Icons.calendar_month_rounded,
+                        color: const Color(0xFF10B981),
+                        onTap: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => WeeklyScheduleScreen(
+                                schedule: scheduleToRender,
+                                isMustahiq: true,
+                                className: kelasMustahiq['nama'] ?? '',
+                              ),
+                            ),
+                          );
+                        },
+                      ),
                     ),
-                  ),
+                    const SizedBox(width: 16),
+                    Expanded(
+                      child: _buildClassMenuCard(
+                        context: context,
+                        title: "Informasi Ujian",
+                        desc: "Ketentuan nilai & batasan materi ujian.",
+                        icon: Icons.assignment_rounded,
+                        color: const Color(0xFF8B5CF6),
+                        onTap: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => InformasiUjianScreen(
+                                kelasMustahiq: kelasMustahiq,
+                              ),
+                            ),
+                          );
+                        },
+                      ),
+                    ),
+                  ],
                 )
               else
-                ..._buildWeeklySchedule(context, scheduleToRender, isMustahiq),
+                _buildClassMenuCard(
+                  context: context,
+                  title: "Jadwal Mengajarku",
+                  desc: "Jadwal mengajar Anda seminggu penuh.",
+                  icon: Icons.calendar_month_rounded,
+                  color: const Color(0xFF10B981),
+                  isFullWidth: true,
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => WeeklyScheduleScreen(
+                          schedule: scheduleToRender,
+                          isMustahiq: false,
+                          className: '',
+                        ),
+                      ),
+                    );
+                  },
+                ),
 
               const SizedBox(height: 30),
             ],
@@ -563,143 +612,106 @@ class _TabKelaskuState extends State<TabKelasku> {
     );
   }
 
-  List<Widget> _buildWeeklySchedule(
-      BuildContext context, Map<String, List<dynamic>> jadwalMingguan, bool isMustahiq) {
-    const orderMalam = [
-      'Malam Ahad',
-      'Malam Senin',
-      'Malam Selasa',
-      'Malam Rabu',
-      'Malam Kamis',
-      'Malam Sabtu',
-      'Malam Jumat'
-    ];
-
-    final malamHariIni = _getMalamHariIni();
-    final widgets = <Widget>[];
-
-    for (final malam in orderMalam) {
-      final items = jadwalMingguan[malam];
-      if (items == null || items.isEmpty) continue;
-
-      final isTonight = malam == malamHariIni;
-
-      widgets.add(
-        Container(
-          margin: const EdgeInsets.only(bottom: 12),
-          decoration: BoxDecoration(
-            color: context.cardBg,
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(
-              color: isTonight
-                  ? const Color(0xFF10B981).withOpacity(context.isDarkMode ? 0.3 : 0.6)
-                  : context.borderColor,
-              width: isTonight ? 1.5 : 1,
+  Widget _buildClassMenuCard({
+    required BuildContext context,
+    required String title,
+    required String desc,
+    required IconData icon,
+    required Color color,
+    required VoidCallback onTap,
+    bool isFullWidth = false,
+  }) {
+    final isDark = context.isDarkMode;
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        height: isFullWidth ? 100 : 160,
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: context.cardBg,
+          borderRadius: BorderRadius.circular(18),
+          border: Border.all(color: context.borderColor),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(isDark ? 0.25 : 0.03),
+              blurRadius: 10,
+              offset: const Offset(0, 4),
             ),
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                decoration: BoxDecoration(
-                  color: isTonight
-                      ? const Color(0xFF064E3B).withOpacity(context.isDarkMode ? 0.2 : 0.08)
-                      : context.surfaceBg,
-                  borderRadius: const BorderRadius.only(
-                    topLeft: Radius.circular(16),
-                    topRight: Radius.circular(16),
-                  ),
-                ),
-                child: Row(
-                  children: [
-                    Text(
-                      malam,
-                      style: GoogleFonts.outfit(
-                        color: isTonight
-                            ? (context.isDarkMode ? const Color(0xFF34D399) : const Color(0xFF065F46))
-                            : context.titleColor,
-                        fontSize: 12,
-                        fontWeight: FontWeight.bold,
-                        letterSpacing: 0.6,
-                      ),
+          ],
+        ),
+        child: isFullWidth
+            ? Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: color.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(14),
                     ),
-                    if (isTonight) ...[
-                      const SizedBox(width: 8),
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFF10B981).withOpacity(0.2),
-                          borderRadius: BorderRadius.circular(4),
-                        ),
-                        child: Text(
-                          "MALAM INI",
+                    child: Icon(icon, color: color, size: 26),
+                  ),
+                  const SizedBox(width: 14),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Text(
+                          title,
                           style: GoogleFonts.outfit(
-                            color: const Color(0xFF10B981),
-                            fontSize: 9,
+                            color: context.titleColor,
+                            fontSize: 16,
                             fontWeight: FontWeight.bold,
                           ),
                         ),
-                      ),
-                    ],
-                  ],
-                ),
-              ),
-              ...items.map((item) => Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-                    child: Row(
-                      children: [
-                        Container(
-                          width: 28,
-                          height: 28,
-                          alignment: Alignment.center,
-                          decoration: BoxDecoration(
-                            color: context.surfaceBg,
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                          child: Text(
-                            "${item['jam_ke']}",
-                            style: GoogleFonts.outfit(
-                              color: const Color(0xFFF59E0B),
-                              fontSize: 12,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                item['mata_pelajaran_nama'] ?? '-',
-                                style: GoogleFonts.outfit(
-                                  color: context.titleColor,
-                                  fontSize: 13,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                              Text(
-                                isMustahiq
-                                    ? "Pengampu: ${item['guru_nama'] ?? '-'}"
-                                    : "Kelas ${item['kelas_nama'] ?? '-'}",
-                                style: GoogleFonts.outfit(
-                                  color: context.bodyColor,
-                                  fontSize: 11,
-                                ),
-                              ),
-                            ],
+                        Text(
+                          desc,
+                          style: GoogleFonts.outfit(
+                            color: context.bodyColor,
+                            fontSize: 11,
                           ),
                         ),
                       ],
                     ),
-                  )),
-            ],
-          ),
-        ),
-      );
-    }
-
-    return widgets;
+                  ),
+                  Icon(Icons.chevron_right_rounded, color: context.bodyColor),
+                ],
+              )
+            : Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(10),
+                    decoration: BoxDecoration(
+                      color: color.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Icon(icon, color: color, size: 22),
+                  ),
+                  const Spacer(),
+                  Text(
+                    title,
+                    style: GoogleFonts.outfit(
+                      color: context.titleColor,
+                      fontSize: 14,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    desc,
+                    style: GoogleFonts.outfit(
+                      color: context.bodyColor,
+                      fontSize: 10,
+                      height: 1.3,
+                    ),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ],
+              ),
+      ),
+    );
   }
 }
+

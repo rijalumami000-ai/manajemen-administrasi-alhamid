@@ -116,7 +116,7 @@ function registerMyMustahiqRoutes(app) {
 
       // 2. Get homeroom class (kelas mustahiq) for active year
       const mustahiqResult = await db.query(`
-        SELECT kta.kelas_id, k.nama AS kelas_nama
+        SELECT kta.kelas_id, k.nama AS kelas_nama, k.tingkat
         FROM kelas_tahun_ajaran kta
         JOIN kelas k ON kta.kelas_id = k.id
         WHERE kta.mustahiq_id = $1 AND kta.tahun_ajaran_id = $2
@@ -126,7 +126,8 @@ function registerMyMustahiqRoutes(app) {
         const kelasId = mustahiqResult.rows[0].kelas_id;
         dashboardData.kelasMustahiq = {
           id: kelasId,
-          nama: mustahiqResult.rows[0].kelas_nama
+          nama: mustahiqResult.rows[0].kelas_nama,
+          tingkat: mustahiqResult.rows[0].tingkat
         };
 
         // 3. Count total students in this class for the active year (filtered by active semester checklist)
