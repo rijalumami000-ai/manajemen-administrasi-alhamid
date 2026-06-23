@@ -23,6 +23,7 @@ const Users = lazy(() => import('./pages/Users').then(m => ({ default: m.Users }
 const MyMustahiqSettings = lazy(() => import('./pages/MyMustahiqSettings').then(m => ({ default: m.MyMustahiqSettings })));
 const Profile = lazy(() => import('./pages/Profile').then(m => ({ default: m.Profile })));
 const ManajemenNilai = lazy(() => import('./pages/ManajemenNilai').then(m => ({ default: m.ManajemenNilai })));
+const InformasiUjian = lazy(() => import('./pages/InformasiUjian').then(m => ({ default: m.InformasiUjian })));
 
 const RaporPrint = lazy(() => import('./pages/RaporPrint').then(m => ({ default: m.RaporPrint })));
 const LaporanUjianKhusus = lazy(() => import('./pages/LaporanUjianKhusus').then(m => ({ default: m.LaporanUjianKhusus })));
@@ -112,6 +113,7 @@ function App() {
                     <Route path="nilai" element={<ManajemenNilai mode="input" key="input" />} />
                     <Route path="input-nilai-ujian" element={<ManajemenNilai mode="input-ujian" key="input-ujian" />} />
                     <Route path="nilai-pengaturan" element={<ManajemenNilai mode="config" key="config" />} />
+                    <Route path="informasi-ujian" element={<InformasiUjian />} />
                     <Route path="nilai-rekap" element={<ManajemenNilai mode="rekap" key="rekap" />} />
                     <Route path="laporan-ujian-khusus" element={<LaporanUjianKhusus />} />
                     <Route path="welcome" element={<Welcome />} />

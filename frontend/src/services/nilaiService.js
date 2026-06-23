@@ -90,5 +90,31 @@ export const nilaiService = {
   fetchAkumulasiKelas: async (filters) => {
     const params = new URLSearchParams(filters).toString();
     return apiGet(`/nilai/akumulasi-kelas${params ? '?' + params : ''}`);
+  },
+
+  fetchMuhafadzohInfo: async (tahunAjaranId, kategoriEvaluasiId) => {
+    let url = '/nilai/muhafadzoh-info';
+    const params = [];
+    if (tahunAjaranId) params.push(`tahun_ajaran_id=${tahunAjaranId}`);
+    if (kategoriEvaluasiId) params.push(`kategori_evaluasi_id=${kategoriEvaluasiId}`);
+    if (params.length > 0) url += `?${params.join('&')}`;
+    return apiGet(url);
+  },
+
+  saveMuhafadzohInfo: async (data) => {
+    return apiPost('/nilai/muhafadzoh-info', data);
+  },
+
+  fetchQiroahMaqro: async (tahunAjaranId, kategoriEvaluasiId) => {
+    let url = '/nilai/qiroah-maqro';
+    const params = [];
+    if (tahunAjaranId) params.push(`tahun_ajaran_id=${tahunAjaranId}`);
+    if (kategoriEvaluasiId) params.push(`kategori_evaluasi_id=${kategoriEvaluasiId}`);
+    if (params.length > 0) url += `?${params.join('&')}`;
+    return apiGet(url);
+  },
+
+  saveQiroahMaqro: async (data) => {
+    return apiPost('/nilai/qiroah-maqro', data);
   }
 };

@@ -288,6 +288,252 @@ Write-Host "SCAN_SUCCESS"
     }
   });
 
+  router.get('/muhafadzoh-info', async (req, res, next) => {
+    const db = require('../../db');
+    const { tahun_ajaran_id, kategori_evaluasi_id } = req.query;
+
+    if (!tahun_ajaran_id || !kategori_evaluasi_id) {
+      return res.status(400).json({ error: 'tahun_ajaran_id dan kategori_evaluasi_id wajib disertakan.' });
+    }
+
+    try {
+      const key = `muhafadzoh_info_${tahun_ajaran_id}_${kategori_evaluasi_id}`;
+      const result = await db.query('SELECT value FROM system_settings WHERE key = $1 LIMIT 1', [key]);
+      
+      if (result.rows.length > 0) {
+        return res.json(JSON.parse(result.rows[0].value));
+      }
+
+      // Check if requested year is active
+      const activeYearRes = await db.query('SELECT id FROM tahun_ajaran WHERE is_active = true LIMIT 1');
+      const activeYearId = activeYearRes.rows[0]?.id;
+
+      if (activeYearId && Number(tahun_ajaran_id) === activeYearId) {
+        // Default fallback
+        const defaultData = [
+          {
+            kelas: "Sifir",
+            kitab: "Lughotul ‘Arobiyah",
+            mumtaz: "80",
+            jayyid: "70-79",
+            mutawasith: "60-69",
+            rodi: "1-59"
+          },
+          {
+            kelas: "Satu",
+            kitab: "Jurumiyah Jawa",
+            mumtaz: "171",
+            jayyid: "160-170",
+            mutawasith: "150-159",
+            rodi: "1-149"
+          },
+          {
+            kelas: "SP",
+            kitab: "Matan Jurumiyah",
+            mumtaz: "باب المخفوضات من الاسماء",
+            jayyid: "باب Mفعول من اجله – باب Mفعول معه".replace(/M/g, "الم"), // "باب المفعول من اجله – باب المفعول معه"
+            mutawasith: "باب لا – باب المنادي",
+            rodi: "باب الكلام – باب الاستثناء"
+          },
+          {
+            kelas: "Dua",
+            kitab: "Matan Jurumiyah",
+            mumtaz: "باب المخفوضات من الاسماء",
+            jayyid: "باب Mفعول من اجله – باب Mفعول معه".replace(/M/g, "الم"), // "باب المفعول من اجله – باب المفعول معه"
+            mutawasith: "باب لا – باب المنادي",
+            rodi: "باب الكلام – باب الاستثناء"
+          },
+          {
+            kelas: "Tiga",
+            kitab: "Nadzom ‘Imrithi",
+            mumtaz: "254",
+            jayyid: "245 - 253",
+            mutawasith: "235 - 244",
+            rodi: "1 - 234"
+          },
+          {
+            kelas: "Empat",
+            kitab: "Nadzom Alfiyah",
+            mumtaz: "350",
+            jayyid: "300 - 349",
+            mutawasith: "245 - 299",
+            rodi: "1 - 244"
+          },
+          {
+            kelas: "Lima",
+            kitab: "Nadzom Alfiyah",
+            mumtaz: "600",
+            jayyid: "525 - 599",
+            mutawasith: "450 - 524",
+            rodi: "201 - 449"
+          },
+          {
+            kelas: "Enam",
+            kitab: "Nadzom Alfiyah",
+            mumtaz: "1002",
+            jayyid: "925 - 1001",
+            mutawasith: "850 - 924",
+            rodi: "601 - 849"
+          }
+        ];
+
+        // Auto initialize database entry for active year
+        await db.query(
+          "INSERT INTO system_settings (key, value) VALUES ($1, $2) ON CONFLICT (key) DO UPDATE SET value = $2",
+          [key, JSON.stringify(defaultData)]
+        );
+
+        return res.json(defaultData);
+      }
+
+      // Return empty array for non-active years
+      res.json([]);
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  router.post('/muhafadzoh-info', async (req, res, next) => {
+    const db = require('../../db');
+    const { tahun_ajaran_id, kategori_evaluasi_id, data } = req.body;
+
+    if (!tahun_ajaran_id || !kategori_evaluasi_id || !Array.isArray(data)) {
+      return res.status(400).json({ error: 'tahun_ajaran_id, kategori_evaluasi_id, dan data (array) wajib diisi.' });
+    }
+
+    try {
+      const key = `muhafadzoh_info_${tahun_ajaran_id}_${kategori_evaluasi_id}`;
+      await db.query(
+        "INSERT INTO system_settings (key, value) VALUES ($1, $2) ON CONFLICT (key) DO UPDATE SET value = $2",
+        [key, JSON.stringify(data)]
+      );
+      res.json({ success: true, message: 'Ketentuan nilai muhafadzoh berhasil diperbarui.' });
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  router.get('/qiroah-maqro', async (req, res, next) => {
+    const db = require('../../db');
+    const { tahun_ajaran_id, kategori_evaluasi_id } = req.query;
+
+    if (!tahun_ajaran_id || !kategori_evaluasi_id) {
+      return res.status(400).json({ error: 'tahun_ajaran_id dan kategori_evaluasi_id wajib disertakan.' });
+    }
+
+    try {
+      const key = `qiroah_maqro_${tahun_ajaran_id}_${kategori_evaluasi_id}`;
+      const result = await db.query('SELECT value FROM system_settings WHERE key = $1 LIMIT 1', [key]);
+      
+      if (result.rows.length > 0) {
+        return res.json(JSON.parse(result.rows[0].value));
+      }
+
+      // Check if requested year is active
+      const activeYearRes = await db.query('SELECT id FROM tahun_ajaran WHERE is_active = true LIMIT 1');
+      const activeYearId = activeYearRes.rows[0]?.id;
+
+      if (activeYearId && Number(tahun_ajaran_id) === activeYearId) {
+        // Default fallback for Maqro Qiroatul Kitab
+        const defaultData = [
+          {
+            kelas: "Sifir",
+            maqro: [
+              "س : ما ذا تقول في الجلوس للتشهد الأخير ج :",
+              "س : ما ذا تقول بعد التشهد الأخير ج :"
+            ]
+          },
+          {
+            kelas: "Satu",
+            maqro: [
+              "النجاسات",
+              "الإستنجاء"
+            ]
+          },
+          {
+            kelas: "SP",
+            maqro: [
+              "فصل ينبش الميت",
+              "الإستعانات",
+              "الأموال التي تلزم فيها الزكاة"
+            ]
+          },
+          {
+            kelas: "Dua",
+            maqro: [
+              "فصل ومن معاصي القلب",
+              "فصل ومن معاصي البطن",
+              "فصل ومن معاصي العين"
+            ]
+          },
+          {
+            kelas: "Tiga",
+            maqro: [
+              "كتاب الفرائض والوصايا",
+              "فصل والفروض المقدرة",
+              "فصل ويجوز الوصية"
+            ]
+          },
+          {
+            kelas: "Empat",
+            maqro: [
+              "فصل في عدد مبطلات الصلاة",
+              "فصل والمتروك من الصلاة"
+            ]
+          },
+          {
+            kelas: "Lima",
+            maqro: [
+              "كتاب احكام الفرائض والوصايا",
+              "فصل والفروض المقدرة",
+              "فصل في احكام الوصية"
+            ]
+          },
+          {
+            kelas: "Enam",
+            maqro: [
+              "كتاب احكام الجنايات",
+              "فصل في بيان الدية"
+            ]
+          }
+        ];
+
+        // Auto initialize database entry for active year
+        await db.query(
+          "INSERT INTO system_settings (key, value) VALUES ($1, $2) ON CONFLICT (key) DO UPDATE SET value = $2",
+          [key, JSON.stringify(defaultData)]
+        );
+
+        return res.json(defaultData);
+      }
+
+      // Return empty array for non-active years
+      res.json([]);
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  router.post('/qiroah-maqro', async (req, res, next) => {
+    const db = require('../../db');
+    const { tahun_ajaran_id, kategori_evaluasi_id, data } = req.body;
+
+    if (!tahun_ajaran_id || !kategori_evaluasi_id || !Array.isArray(data)) {
+      return res.status(400).json({ error: 'tahun_ajaran_id, kategori_evaluasi_id, dan data (array) wajib diisi.' });
+    }
+
+    try {
+      const key = `qiroah_maqro_${tahun_ajaran_id}_${kategori_evaluasi_id}`;
+      await db.query(
+        "INSERT INTO system_settings (key, value) VALUES ($1, $2) ON CONFLICT (key) DO UPDATE SET value = $2",
+        [key, JSON.stringify(data)]
+      );
+      res.json({ success: true, message: 'Maqro qiroatul kitab berhasil diperbarui.' });
+    } catch (error) {
+      next(error);
+    }
+  });
+
   app.use('/api/nilai', router);
 }
 

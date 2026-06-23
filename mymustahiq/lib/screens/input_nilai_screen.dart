@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../services/api_service.dart';
 import '../services/theme_manager.dart';
+import '../widgets/muhafadzoh_info_bottom_sheet.dart';
+import '../widgets/qiroah_maqro_bottom_sheet.dart';
 
 class InputNilaiScreen extends StatefulWidget {
   const InputNilaiScreen({super.key});
@@ -601,6 +603,26 @@ class _InputNilaiScreenState extends State<InputNilaiScreen> {
           style: GoogleFonts.outfit(color: isDark ? Colors.white : Colors.black87, fontWeight: FontWeight.bold, fontSize: 18),
         ),
         centerTitle: true,
+        actions: [
+          IconButton(
+            icon: Icon(Icons.menu_book_rounded, color: isDark ? Colors.white : Colors.black87),
+            onPressed: () => MuhafadzohInfoBottomSheet.show(
+              context,
+              tahunAjaranId: _selectedTahunAjaran?['id'],
+              semester: _selectedSemester,
+            ),
+            tooltip: "Ketentuan Nilai Muhafadzoh",
+          ),
+          IconButton(
+            icon: Icon(Icons.chrome_reader_mode_rounded, color: isDark ? Colors.white : Colors.black87),
+            onPressed: () => QiroahMaqroBottomSheet.show(
+              context,
+              tahunAjaranId: _selectedTahunAjaran?['id'],
+              semester: _selectedSemester,
+            ),
+            tooltip: "Maqro Qiroatul Kitab",
+          ),
+        ],
       ),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator(color: Colors.orange))

@@ -615,5 +615,67 @@ class ApiService {
       rethrow;
     }
   }
+
+  // Get Muhafadzoh Score Guidelines / Info
+  Future<List<dynamic>> getMuhafadzohInfo({int? tahunAjaranId, String? semester}) async {
+    try {
+      final Map<String, dynamic> queryParams = {};
+      if (tahunAjaranId != null) {
+        queryParams['tahun_ajaran_id'] = tahunAjaranId;
+      }
+      if (semester != null) {
+        queryParams['semester'] = semester;
+      }
+
+      final response = await _dio.get(
+        '/my-mustahiq/muhafadzoh-info',
+        queryParameters: queryParams,
+      );
+      if (response.statusCode == 200) {
+        if (response.data is List) {
+          return response.data as List<dynamic>;
+        } else {
+          throw Exception('Format data tidak valid dari server (bukan JSON List).');
+        }
+      }
+      throw Exception('Gagal mengambil data ketentuan nilai Muhafadzoh.');
+    } catch (e) {
+      if (e is DioException && e.response != null) {
+        throw Exception(e.response?.data['error'] ?? 'Gagal mengambil ketentuan nilai.');
+      }
+      rethrow;
+    }
+  }
+
+  // Get Qiroatul Kitab Maqro Info
+  Future<List<dynamic>> getQiroahMaqro({int? tahunAjaranId, String? semester}) async {
+    try {
+      final Map<String, dynamic> queryParams = {};
+      if (tahunAjaranId != null) {
+        queryParams['tahun_ajaran_id'] = tahunAjaranId;
+      }
+      if (semester != null) {
+        queryParams['semester'] = semester;
+      }
+
+      final response = await _dio.get(
+        '/my-mustahiq/qiroah-maqro',
+        queryParameters: queryParams,
+      );
+      if (response.statusCode == 200) {
+        if (response.data is List) {
+          return response.data as List<dynamic>;
+        } else {
+          throw Exception('Format data tidak valid dari server (bukan JSON List).');
+        }
+      }
+      throw Exception('Gagal mengambil data Maqro Qiroatul Kitab.');
+    } catch (e) {
+      if (e is DioException && e.response != null) {
+        throw Exception(e.response?.data['error'] ?? 'Gagal mengambil Maqro Qiroatul Kitab.');
+      }
+      rethrow;
+    }
+  }
 }
 

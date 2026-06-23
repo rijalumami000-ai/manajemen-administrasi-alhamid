@@ -225,6 +225,7 @@ export function Sidebar({ collapsed, onCollapse }) {
         { key: '/struktur-organisasi', icon: 'Users', label: 'Struktur Organisasi', disabled: isStaff() },
         { key: '/jadwal-pelajaran', icon: 'Clock', label: 'Jadwal Harian', disabled: isStaff() },
         { key: '/nilai-pengaturan', icon: 'Sliders', label: 'Pengaturan & Jadwal', disabled: isStaff() },
+        { key: '/informasi-ujian', icon: 'FileText', label: 'Informasi Ujian', disabled: isStaff() },
         { key: '/nilai', icon: 'Edit', label: 'Input Penilaian', disabled: isStaff() },
         { key: '/scan-nilai', icon: 'Scan', label: 'Scan Nilai', disabled: isStaff() },
         { key: '/nilai-rekap', icon: 'FileSpreadsheet', label: 'Rekap & Rapor', disabled: isStaff() },

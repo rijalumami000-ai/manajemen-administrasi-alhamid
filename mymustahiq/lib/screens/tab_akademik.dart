@@ -8,6 +8,8 @@ import 'teacher_list_screen.dart';
 import 'tim_soal_screen.dart';
 import 'input_nilai_screen.dart';
 import 'password_gate_dialog.dart';
+import '../widgets/muhafadzoh_info_bottom_sheet.dart';
+import '../widgets/qiroah_maqro_bottom_sheet.dart';
 
 class TabAkademik extends StatelessWidget {
   const TabAkademik({super.key});
@@ -317,6 +319,201 @@ class TabAkademik extends StatelessWidget {
                 const SizedBox(width: 14),
                 Expanded(child: _buildSubItem(context, subItems[1], isDark, isLeft: false)),
               ],
+            ),
+            const SizedBox(height: 16),
+            
+            // 4. KETENTUAN NILAI MUHAFADZOH CARD (Full Width)
+            GestureDetector(
+              onTap: () {
+                MuhafadzohInfoBottomSheet.show(context);
+              },
+              child: Container(
+                width: double.infinity,
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: isDark
+                        ? [const Color(0xFF065F46), const Color(0xFF0F172A)]
+                        : [const Color(0xFFE6F4EA), const Color(0xFFCEEAD6)],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
+                  borderRadius: BorderRadius.circular(22),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(isDark ? 0.3 : 0.04),
+                      blurRadius: 12,
+                      offset: const Offset(0, 5),
+                    ),
+                  ],
+                  border: Border.all(
+                    color: isDark
+                        ? const Color(0xFF10B981).withOpacity(0.25)
+                        : const Color(0xFF10B981).withOpacity(0.4),
+                    width: 1.5,
+                  ),
+                ),
+                padding: const EdgeInsets.all(22),
+                child: Row(
+                  children: [
+                    // Icon
+                    Container(
+                      padding: const EdgeInsets.all(14),
+                      decoration: BoxDecoration(
+                        color: isDark ? Colors.white.withOpacity(0.06) : Colors.white.withOpacity(0.6),
+                        borderRadius: BorderRadius.circular(16),
+                        border: isDark ? null : Border.all(color: Colors.white, width: 1.5),
+                      ),
+                      child: Icon(
+                        Icons.info_outline_rounded,
+                        color: isDark ? Colors.white : const Color(0xFF10B981),
+                        size: 32,
+                      ),
+                    ),
+                    const SizedBox(width: 18),
+                    // Texts
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Ketentuan Nilai Muhafadzoh',
+                            style: GoogleFonts.outfit(
+                              color: isDark ? Colors.white : const Color(0xFF065F46),
+                              fontSize: 17,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          const SizedBox(height: 6),
+                          Text(
+                            'Informasi acuan ketentuan & rentang kriteria nilai Ujian Muhafadzoh per jenjang kelas.',
+                            style: GoogleFonts.outfit(
+                              color: isDark ? Colors.white.withOpacity(0.6) : const Color(0xFF064E3B).withOpacity(0.8),
+                              fontSize: 11,
+                              height: 1.4,
+                            ),
+                          ),
+                          const SizedBox(height: 10),
+                          Row(
+                            children: [
+                              Text(
+                                "Lihat Ketentuan",
+                                style: GoogleFonts.outfit(
+                                  color: isDark ? const Color(0xFF34D399) : const Color(0xFF065F46),
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                              const SizedBox(width: 6),
+                              Icon(
+                                Icons.arrow_forward_rounded,
+                                color: isDark ? const Color(0xFF34D399) : const Color(0xFF065F46),
+                                size: 13,
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            const SizedBox(height: 16),
+            // 5. MAQRO QIROATUL KITAB CARD (Full Width)
+            GestureDetector(
+              onTap: () {
+                QiroahMaqroBottomSheet.show(context);
+              },
+              child: Container(
+                width: double.infinity,
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: isDark
+                        ? [const Color(0xFF7C2D12), const Color(0xFF0F172A)]
+                        : [const Color(0xFFFFF7ED), const Color(0xFFFFEDD5)],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
+                  borderRadius: BorderRadius.circular(22),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(isDark ? 0.3 : 0.04),
+                      blurRadius: 12,
+                      offset: const Offset(0, 5),
+                    ),
+                  ],
+                  border: Border.all(
+                    color: isDark
+                        ? const Color(0xFFF97316).withOpacity(0.25)
+                        : const Color(0xFFF97316).withOpacity(0.4),
+                    width: 1.5,
+                  ),
+                ),
+                padding: const EdgeInsets.all(22),
+                child: Row(
+                  children: [
+                    // Icon
+                    Container(
+                      padding: const EdgeInsets.all(14),
+                      decoration: BoxDecoration(
+                        color: isDark ? Colors.white.withOpacity(0.06) : Colors.white.withOpacity(0.6),
+                        borderRadius: BorderRadius.circular(16),
+                        border: isDark ? null : Border.all(color: Colors.white, width: 1.5),
+                      ),
+                      child: Icon(
+                        Icons.chrome_reader_mode_rounded,
+                        color: isDark ? Colors.white : const Color(0xFFF97316),
+                        size: 32,
+                      ),
+                    ),
+                    const SizedBox(width: 18),
+                    // Texts
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Maqro Qiroatul Kitab',
+                            style: GoogleFonts.outfit(
+                              color: isDark ? Colors.white : const Color(0xFF7C2D12),
+                              fontSize: 17,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          const SizedBox(height: 6),
+                          Text(
+                            'Daftar acuan bahan bacaan (Maqro) Ujian Qiroatul Kitab per jenjang kelas.',
+                            style: GoogleFonts.outfit(
+                              color: isDark ? Colors.white.withOpacity(0.6) : const Color(0xFF7C2D12).withOpacity(0.8),
+                              fontSize: 11,
+                              height: 1.4,
+                            ),
+                          ),
+                          const SizedBox(height: 10),
+                          Row(
+                            children: [
+                              Text(
+                                "Lihat Maqro",
+                                style: GoogleFonts.outfit(
+                                  color: isDark ? const Color(0xFFFB923C) : const Color(0xFF7C2D12),
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                              const SizedBox(width: 6),
+                              Icon(
+                                Icons.arrow_forward_rounded,
+                                color: isDark ? const Color(0xFFFB923C) : const Color(0xFF7C2D12),
+                                size: 13,
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
             ),
           ],
         ),
