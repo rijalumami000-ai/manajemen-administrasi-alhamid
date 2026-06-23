@@ -1803,6 +1803,81 @@ function registerMyMustahiqRoutes(app) {
     res.json([]);
   }));
 
+  // === TAFTISYUL KUTUB MATERI INFO ===
+  router.get('/taftisy-materi', asyncHandler(async (req, res) => {
+    let { tahun_ajaran_id, semester, kelas_id } = req.query;
+
+    if (!kelas_id) {
+      return res.status(400).json({ error: 'kelas_id wajib disertakan.' });
+    }
+
+    const parsedTahunAjaranId = tahun_ajaran_id && tahun_ajaran_id !== 'null' && tahun_ajaran_id !== 'undefined' ? parseInt(tahun_ajaran_id, 10) : null;
+    const activeYear = parsedTahunAjaranId
+      ? (await db.query('SELECT id, kode FROM tahun_ajaran WHERE id = $1', [parsedTahunAjaranId])).rows[0]
+      : await getActiveTahunAjaran();
+
+    if (!activeYear) {
+      return res.status(404).json({ error: 'Tahun ajaran tidak ditemukan.' });
+    }
+
+    const semResult = await db.query("SELECT value FROM system_settings WHERE key = 'active_semester' LIMIT 1");
+    const activeSemester = semester || (semResult.rows[0] ? semResult.rows[0].value : 'Ganjil');
+
+    // Dynamic category lookup
+    const katResult = await db.query(
+      "SELECT id FROM kategori_evaluasi WHERE LOWER(nama) LIKE $1 LIMIT 1",
+      [`%semester ${activeSemester.toLowerCase()}%`]
+    );
+    const kategoriId = katResult.rows[0] ? katResult.rows[0].id : (activeSemester.toLowerCase().includes('genap') ? 2 : 1);
+
+    const key = `taftisy_materi_${activeYear.id}_${kategoriId}_${kelas_id}`;
+    const result = await db.query("SELECT value FROM system_settings WHERE key = $1 LIMIT 1", [key]);
+
+    if (result.rows.length > 0) {
+      return res.json(JSON.parse(result.rows[0].value));
+    }
+
+    // Query the class information to get the tingkat
+    const classRes = await db.query('SELECT nama, tingkat FROM kelas WHERE id = $1 LIMIT 1', [kelas_id]);
+    const classInfo = classRes.rows[0];
+
+    let defaultData = [];
+    if (classInfo) {
+      // Query the regular subjects from mapel_tingkat for this tingkat, academic year, and category
+      const mapelRes = await db.query(`
+        SELECT DISTINCT mp.nama
+        FROM mapel_tingkat mt
+        JOIN mata_pelajaran mp ON mp.id = mt.mata_pelajaran_id
+        WHERE mt.tingkat = $1
+          AND (mt.tahun_ajaran_id = $2 OR mt.tahun_ajaran_id IS NULL)
+          AND (mt.kategori_evaluasi_id = $3 OR mt.kategori_evaluasi_id IS NULL)
+          AND mp.jenis = 'Reguler'
+        ORDER BY mp.nama
+      `, [classInfo.tingkat, activeYear.id, kategoriId]);
+
+      defaultData = mapelRes.rows.map(row => ({
+        pelajaran: row.nama,
+        batas_awal: "",
+        batas_akhir: "",
+        halaman: ""
+      }));
+    }
+
+    // Check if requested year is active
+    const activeYearRes = await db.query('SELECT id FROM tahun_ajaran WHERE is_active = true LIMIT 1');
+    const activeYearId = activeYearRes.rows[0]?.id;
+
+    if (activeYearId && Number(activeYear.id) === activeYearId && defaultData.length > 0) {
+      // Auto initialize database entry for active year
+      await db.query(
+        "INSERT INTO system_settings (key, value) VALUES ($1, $2) ON CONFLICT (key) DO UPDATE SET value = $2",
+        [key, JSON.stringify(defaultData)]
+      );
+    }
+
+    return res.json(defaultData);
+  }));
+
   app.use('/api/my-mustahiq', router);
 }
 

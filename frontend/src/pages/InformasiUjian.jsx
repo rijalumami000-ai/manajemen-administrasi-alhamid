@@ -180,6 +180,13 @@ export function InformasiUjian() {
   const [qiroahMaqro, setQiroahMaqro] = useState([]);
   const [editQiroahMaqro, setEditQiroahMaqro] = useState([]);
   const [isEditingQiroah, setIsEditingQiroah] = useState(false);
+
+  // Taftisyul Kutub states
+  const [classList, setClassList] = useState([]);
+  const [selectedKelas, setSelectedKelas] = useState(null);
+  const [taftisyMateri, setTaftisyMateri] = useState([]);
+  const [editTaftisyMateri, setEditTaftisyMateri] = useState([]);
+  const [isEditingTaftisy, setIsEditingTaftisy] = useState(false);
   
   const [loading, setLoading] = useState(true);
   const [saveLoading, setSaveLoading] = useState(false);
@@ -194,14 +201,22 @@ export function InformasiUjian() {
       setLoading(true);
       setError(null);
       
-      const [taData, katData, systemSettings] = await Promise.all([
+      const [taData, katData, systemSettings, classesData] = await Promise.all([
         nilaiService.fetchTahunAjaran(),
         nilaiService.fetchKategori(),
-        settingsService.fetchSettings().catch(() => ({}))
+        settingsService.fetchSettings().catch(() => ({})),
+        nilaiService.fetchKelas().catch(() => [])
       ]);
 
       setTahunAjaranList(Array.isArray(taData) ? taData : []);
       setKategori(Array.isArray(katData) ? katData : []);
+
+      // Filter Diniyah classes
+      const diniyahClasses = Array.isArray(classesData) ? classesData.filter(c => c.jenis === 'Diniyah') : [];
+      setClassList(diniyahClasses);
+      if (diniyahClasses.length > 0) {
+        setSelectedKelas(diniyahClasses[0].id);
+      }
 
       // Find active academic year
       const activeTA = Array.isArray(taData) ? taData.find(ta => ta.is_active) : null;
@@ -219,7 +234,7 @@ export function InformasiUjian() {
       }
     } catch (err) {
       console.error('Failed to load initial data:', err);
-      setError('Gagal memuat data filter tahun ajaran dan semester.');
+      setError('Gagal memuat data filter tahun ajaran, semester, dan kelas.');
     } finally {
       setLoading(false);
     }
@@ -231,6 +246,13 @@ export function InformasiUjian() {
       fetchData();
     }
   }, [tahunAjaran, selectedKategori]);
+
+  // Fetch taftisy data whenever filters or class change
+  useEffect(() => {
+    if (tahunAjaran?.id && selectedKategori && selectedKelas) {
+      fetchTaftisyData();
+    }
+  }, [tahunAjaran, selectedKategori, selectedKelas]);
 
   const fetchData = async () => {
     try {
@@ -255,6 +277,19 @@ export function InformasiUjian() {
       message.error('Gagal mengambil data ketentuan nilai dan maqro.');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchTaftisyData = async () => {
+    try {
+      setIsEditingTaftisy(false);
+      const data = await nilaiService.fetchTaftisyMateri(tahunAjaran.id, selectedKategori, selectedKelas);
+      const sorted = Array.isArray(data) ? data : [];
+      setTaftisyMateri(sorted);
+      setEditTaftisyMateri(JSON.parse(JSON.stringify(sorted)));
+    } catch (err) {
+      console.error('Failed to fetch taftisy info:', err);
+      message.error('Gagal mengambil data batasan materi Taftisyul Kutub.');
     }
   };
 
@@ -339,6 +374,39 @@ export function InformasiUjian() {
     setIsEditingQiroah(false);
   };
 
+  // Taftisyul Kutub change handlers
+  const handleTaftisyInputChange = (index, field, value) => {
+    const updated = [...editTaftisyMateri];
+    updated[index][field] = value;
+    setEditTaftisyMateri(updated);
+  };
+
+  const handleTaftisySave = async () => {
+    if (!tahunAjaran?.id || !selectedKategori || !selectedKelas) return;
+    try {
+      setSaveLoading(true);
+      await nilaiService.saveTaftisyMateri({
+        tahun_ajaran_id: tahunAjaran.id,
+        kategori_evaluasi_id: selectedKategori,
+        kelas_id: selectedKelas,
+        data: editTaftisyMateri
+      });
+      message.success('Batasan materi Taftisyul Kutub berhasil diperbarui!');
+      setTaftisyMateri(JSON.parse(JSON.stringify(editTaftisyMateri)));
+      setIsEditingTaftisy(false);
+    } catch (err) {
+      console.error('Failed to save taftisy materi:', err);
+      message.error(err.message || 'Gagal menyimpan batasan materi.');
+    } finally {
+      setSaveLoading(false);
+    }
+  };
+
+  const handleTaftisyCancel = () => {
+    setEditTaftisyMateri(JSON.parse(JSON.stringify(taftisyMateri)));
+    setIsEditingTaftisy(false);
+  };
+
   const handleInitializeMuhafadzoh = (type) => {
     const template = type === 'default' ? defaultMuhafadzohTemplate : emptyMuhafadzohTemplate;
     setEditData(JSON.parse(JSON.stringify(template)));
@@ -351,6 +419,122 @@ export function InformasiUjian() {
     setIsEditingQiroah(true);
   };
 
+  const taftisyColumns = [
+    {
+      title: 'No',
+      key: 'index',
+      width: 60,
+      align: 'center',
+      render: (text, record, index) => index + 1
+    },
+    {
+      title: 'Pelajaran',
+      dataIndex: 'pelajaran',
+      key: 'pelajaran',
+      width: 250,
+      render: (text) => {
+        const isArabic = /[\u0600-\u06FF]/.test(text);
+        return (
+          <Text 
+            strong 
+            className={isArabic ? "arabic-text" : ""}
+            style={isArabic ? { fontSize: '18px', color: '#1a365d' } : { color: '#1a365d' }}
+          >
+            {text}
+          </Text>
+        );
+      }
+    },
+    {
+      title: 'Batas Awal',
+      dataIndex: 'batas_awal',
+      key: 'batas_awal',
+      align: 'center',
+      render: (text, record, index) => {
+        if (isEditingTaftisy) {
+          const isArabic = /[\u0600-\u06FF]/.test(editTaftisyMateri[index]?.batas_awal || '');
+          return (
+            <Input 
+              value={editTaftisyMateri[index]?.batas_awal} 
+              className={isArabic ? "arabic-text" : ""}
+              style={isArabic ? { direction: 'rtl', textAlign: 'right' } : {}}
+              onChange={(e) => handleTaftisyInputChange(index, 'batas_awal', e.target.value)} 
+            />
+          );
+        }
+        const isArabic = /[\u0600-\u06FF]/.test(text);
+        return (
+          <Text 
+            className={isArabic ? "arabic-text" : ""} 
+            style={isArabic ? { fontSize: '18px', color: '#0f172a' } : { color: '#334155' }} 
+            strong
+          >
+            {text || '-'}
+          </Text>
+        );
+      }
+    },
+    {
+      title: 'Batas Akhir',
+      dataIndex: 'batas_akhir',
+      key: 'batas_akhir',
+      align: 'center',
+      render: (text, record, index) => {
+        if (isEditingTaftisy) {
+          const isArabic = /[\u0600-\u06FF]/.test(editTaftisyMateri[index]?.batas_akhir || '');
+          return (
+            <Input 
+              value={editTaftisyMateri[index]?.batas_akhir} 
+              className={isArabic ? "arabic-text" : ""}
+              style={isArabic ? { direction: 'rtl', textAlign: 'right' } : {}}
+              onChange={(e) => handleTaftisyInputChange(index, 'batas_akhir', e.target.value)} 
+            />
+          );
+        }
+        const isArabic = /[\u0600-\u06FF]/.test(text);
+        return (
+          <Text 
+            className={isArabic ? "arabic-text" : ""} 
+            style={isArabic ? { fontSize: '18px', color: '#0f172a' } : { color: '#334155' }} 
+            strong
+          >
+            {text || '-'}
+          </Text>
+        );
+      }
+    },
+    {
+      title: 'Halaman',
+      dataIndex: 'halaman',
+      key: 'halaman',
+      width: 120,
+      align: 'center',
+      render: (text, record, index) => {
+        if (isEditingTaftisy) {
+          const isArabic = /[\u0600-\u06FF]/.test(editTaftisyMateri[index]?.halaman || '');
+          return (
+            <Input 
+              value={editTaftisyMateri[index]?.halaman} 
+              className={isArabic ? "arabic-text" : ""}
+              style={isArabic ? { direction: 'rtl', textAlign: 'right' } : {}}
+              onChange={(e) => handleTaftisyInputChange(index, 'halaman', e.target.value)} 
+            />
+          );
+        }
+        const isArabic = /[\u0600-\u06FF]/.test(text);
+        return (
+          <Text 
+            className={isArabic ? "arabic-text" : ""} 
+            style={isArabic ? { fontSize: '18px', color: '#0f172a' } : { color: '#334155' }} 
+            strong
+          >
+            {text || '-'}
+          </Text>
+        );
+      }
+    }
+  ];
+
   const muhafadzohColumns = [
     {
       title: 'Kelas',
@@ -358,6 +542,7 @@ export function InformasiUjian() {
       key: 'kelas',
       width: 120,
       align: 'center',
+      fixed: 'left',
       render: (text) => <Text strong>{text}</Text>
     },
     {
@@ -500,6 +685,7 @@ export function InformasiUjian() {
       key: 'kelas',
       width: 150,
       align: 'center',
+      fixed: 'left',
       render: (text) => <Text strong>{text}</Text>
     },
     {
@@ -678,6 +864,7 @@ export function InformasiUjian() {
                         pagination={false} 
                         size="middle"
                         bordered
+                        scroll={{ x: 'max-content' }}
                         rowKey={(record, idx) => idx}
                       />
                     ) : (
@@ -769,6 +956,7 @@ export function InformasiUjian() {
                         pagination={false} 
                         size="middle"
                         bordered
+                        scroll={{ x: 'max-content' }}
                         rowKey={(record, idx) => idx}
                       />
                     ) : (
@@ -790,6 +978,104 @@ export function InformasiUjian() {
                           </Button>
                         </Space>
                       </Empty>
+                    )}
+                  </Card>
+                </div>
+              )
+            },
+            {
+              key: 'taftisyul-kutub',
+              label: (
+                <span>
+                  <BookOutlined />
+                  Batasan Taftisyul Kutub
+                </span>
+              ),
+              children: (
+                <div style={{ marginTop: '16px' }}>
+                  <Alert 
+                    message="Informasi Penting & Administratif" 
+                    description={
+                      <div>
+                        Tabel ini merupakan acuan batasan materi (**Batas Awal, Batas Akhir, dan Halaman**) Ujian Taftisyul Kutub yang berlaku di Ponpes Al-Hamid. 
+                        <strong> Data pelajaran diambil otomatis dari Jadwal Pelajaran (Reguler) tingkat kelas terkait untuk tahun ajaran dan semester terpilih.</strong>
+                      </div>
+                    } 
+                    type="warning" 
+                    showIcon 
+                    style={{ marginBottom: 20, borderRadius: '8px' }}
+                  />
+
+                  <div style={{ marginBottom: 20, display: 'flex', gap: '12px', alignItems: 'center' }}>
+                    <Text strong>Pilih Kelas Diniyah:</Text>
+                    <Select
+                      style={{ width: 200 }}
+                      placeholder="Pilih Kelas"
+                      value={selectedKelas}
+                      onChange={setSelectedKelas}
+                      options={classList.map(c => ({ value: c.id, label: c.nama }))}
+                      disabled={isEditingTaftisy}
+                    />
+                  </div>
+
+                  <Card 
+                    title={`Batasan Materi Taftisyul Kutub - Kelas ${classList.find(c => c.id === selectedKelas)?.nama || ''}`}
+                    extra={
+                      isEditingTaftisy ? (
+                        <Space>
+                          <Button 
+                            icon={<CloseOutlined />} 
+                            onClick={handleTaftisyCancel}
+                            disabled={saveLoading}
+                          >
+                            Batal
+                          </Button>
+                          <Button 
+                            type="primary" 
+                            icon={<SaveOutlined />} 
+                            onClick={handleTaftisySave}
+                            loading={saveLoading}
+                            style={{ backgroundColor: '#10b981', borderColor: '#10b981' }}
+                          >
+                            Simpan Perubahan
+                          </Button>
+                        </Space>
+                      ) : (
+                        <Button 
+                          type="primary" 
+                          icon={<EditOutlined />} 
+                          onClick={() => setIsEditingTaftisy(true)}
+                          disabled={isEditing || isEditingQiroah || !selectedKelas || taftisyMateri.length === 0}
+                        >
+                          Ubah Batasan
+                        </Button>
+                      )
+                    }
+                    style={{ borderRadius: '8px', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05), 0 2px 4px -1px rgba(0,0,0,0.06)' }}
+                  >
+                    {!selectedKelas ? (
+                      <Empty description="Silakan pilih kelas diniyah terlebih dahulu." />
+                    ) : taftisyMateri.length > 0 || isEditingTaftisy ? (
+                      <Table 
+                        dataSource={isEditingTaftisy ? editTaftisyMateri : taftisyMateri} 
+                        columns={taftisyColumns} 
+                        pagination={false} 
+                        size="middle"
+                        bordered
+                        rowKey={(record, idx) => idx}
+                      />
+                    ) : (
+                      <Alert
+                        message="Jadwal Pelajaran Belum Dikonfigurasi"
+                        description={
+                          <div>
+                            Tidak ditemukan mata pelajaran Reguler untuk tingkat kelas ini pada tahun ajaran dan semester terpilih. 
+                            Silakan konfigurasikan <strong>Jadwal Pelajaran</strong> terlebih dahulu untuk memuat daftar pelajaran secara otomatis.
+                          </div>
+                        }
+                        type="info"
+                        showIcon
+                      />
                     )}
                   </Card>
                 </div>
