@@ -198,9 +198,35 @@ class _TimSoalScreenState extends State<TimSoalScreen> {
       selectedTingkat = existingSoal['tingkat'] as int?;
       selectedMapelId = existingSoal['mapel_id'] as int?;
       selectedIsHer = existingSoal['is_her'] == true;
+    } else {
+      selectedTingkat = _filterTingkat;
+      selectedIsHer = _filterIsHer;
     }
 
-    final contentController = TextEditingController(text: existingSoal?['konten_soal'] ?? '');
+    final List<Map<String, String>> questionAnswerList = [];
+    if (existingSoal != null && existingSoal['soal_array'] != null) {
+      final list = existingSoal['soal_array'] as List;
+      for (final item in list) {
+        if (item is Map) {
+          questionAnswerList.add({
+            'teks': (item['teks'] ?? '').toString(),
+            'jawaban': (item['jawaban'] ?? '').toString(),
+          });
+        }
+      }
+    }
+
+    if (questionAnswerList.isEmpty) {
+      questionAnswerList.add({'teks': '', 'jawaban': ''});
+    }
+
+    final List<TextEditingController> teksControllers = [];
+    final List<TextEditingController> jawabanControllers = [];
+
+    for (final qa in questionAnswerList) {
+      teksControllers.add(TextEditingController(text: qa['teks']));
+      jawabanControllers.add(TextEditingController(text: qa['jawaban']));
+    }
 
     showModalBottomSheet(
       context: context,
@@ -268,30 +294,60 @@ class _TimSoalScreenState extends State<TimSoalScreen> {
                     ),
                     const SizedBox(height: 16),
 
-                    // Tingkat Dropdown
+                    // Tingkat Kelas
                     Text(
-                      "Pilih Tingkat Kelas",
+                      "Tingkat Kelas",
                       style: GoogleFonts.outfit(fontWeight: FontWeight.bold, fontSize: 13, color: isDark ? Colors.white70 : Colors.black54),
                     ),
                     const SizedBox(height: 6),
-                    DropdownButtonFormField<int>(
-                      dropdownColor: panelBg,
-                      value: selectedTingkat,
-                      style: textStyle,
-                      decoration: _inputDecoration(isDark, Icons.class_rounded, "Pilih Tingkat Kelas"),
-                      items: _distinctTingkatList.map<DropdownMenuItem<int>>((t) {
-                        return DropdownMenuItem<int>(
-                          value: t['tingkat'] as int,
-                          child: Text(t['label'] as String),
-                        );
-                      }).toList(),
-                      onChanged: (val) {
-                        setModalState(() {
-                          selectedTingkat = val;
-                          selectedMapelId = null; // Reset mapel when tingkat changes
-                        });
-                      },
-                    ),
+                    existingSoal == null
+                        ? Container(
+                            padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 16),
+                            decoration: BoxDecoration(
+                              color: isDark ? Colors.white.withOpacity(0.05) : Colors.black.withOpacity(0.03),
+                              borderRadius: BorderRadius.circular(14),
+                              border: Border.all(
+                                color: isDark ? Colors.white24 : Colors.black12,
+                                width: 1.5,
+                              ),
+                            ),
+                            child: Row(
+                              children: [
+                                Icon(
+                                  Icons.class_rounded,
+                                  size: 16,
+                                  color: primaryColor,
+                                ),
+                                const SizedBox(width: 8),
+                                Text(
+                                  _tingkatLabel(selectedTingkat ?? 1),
+                                  style: GoogleFonts.outfit(
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.bold,
+                                    color: titleColor,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          )
+                        : DropdownButtonFormField<int>(
+                            dropdownColor: panelBg,
+                            value: selectedTingkat,
+                            style: textStyle,
+                            decoration: _inputDecoration(isDark, Icons.class_rounded, "Pilih Tingkat Kelas"),
+                            items: _distinctTingkatList.map<DropdownMenuItem<int>>((t) {
+                              return DropdownMenuItem<int>(
+                                value: t['tingkat'] as int,
+                                child: Text(t['label'] as String),
+                              );
+                            }).toList(),
+                            onChanged: (val) {
+                              setModalState(() {
+                                selectedTingkat = val;
+                                selectedMapelId = null; // Reset mapel when tingkat changes
+                              });
+                            },
+                          ),
                     const SizedBox(height: 16),
 
                     // Mapel Dropdown — filtered by selected tingkat
@@ -360,159 +416,169 @@ class _TimSoalScreenState extends State<TimSoalScreen> {
                       ),
                     const SizedBox(height: 16),
 
-                    // Jenis Soal — toggle for new, static label for edit
+                    // Jenis Soal — static label
                     Text(
                       "Jenis Soal",
                       style: GoogleFonts.outfit(fontWeight: FontWeight.bold, fontSize: 13, color: isDark ? Colors.white70 : Colors.black54),
                     ),
                     const SizedBox(height: 6),
-                    if (existingSoal != null)
-                      // Static label when editing
-                      Container(
-                        padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 16),
-                        decoration: BoxDecoration(
-                          color: selectedIsHer
-                              ? Colors.orange.withOpacity(0.15)
-                              : primaryColor.withOpacity(0.15),
-                          borderRadius: BorderRadius.circular(14),
-                          border: Border.all(
-                            color: selectedIsHer ? Colors.orange : primaryColor,
-                            width: 1.5,
-                          ),
+                    Container(
+                      padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 16),
+                      decoration: BoxDecoration(
+                        color: selectedIsHer
+                            ? Colors.orange.withOpacity(0.15)
+                            : primaryColor.withOpacity(0.15),
+                        borderRadius: BorderRadius.circular(14),
+                        border: Border.all(
+                          color: selectedIsHer ? Colors.orange : primaryColor,
+                          width: 1.5,
                         ),
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Icon(
-                              selectedIsHer ? Icons.refresh_rounded : Icons.assignment_rounded,
-                              size: 16,
-                              color: selectedIsHer ? Colors.orange : primaryColor,
-                            ),
-                            const SizedBox(width: 6),
-                            Text(
-                              selectedIsHer ? "Soal Her" : "Soal Utama",
-                              style: GoogleFonts.outfit(
-                                fontSize: 13,
-                                fontWeight: FontWeight.bold,
-                                color: selectedIsHer ? Colors.orange : primaryColor,
-                              ),
-                            ),
-                          ],
-                        ),
-                      )
-                    else
-                      // Toggle for new soal
-                      Row(
+                      ),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          Expanded(
-                            child: GestureDetector(
-                              onTap: () {
-                                setModalState(() => selectedIsHer = false);
-                              },
-                              child: AnimatedContainer(
-                                duration: const Duration(milliseconds: 200),
-                                padding: const EdgeInsets.symmetric(vertical: 14),
-                                decoration: BoxDecoration(
-                                  color: !selectedIsHer
-                                      ? primaryColor.withOpacity(0.15)
-                                      : (isDark ? Colors.white.withOpacity(0.05) : Colors.black.withOpacity(0.03)),
-                                  borderRadius: BorderRadius.circular(14),
-                                  border: Border.all(
-                                    color: !selectedIsHer ? primaryColor : Colors.transparent,
-                                    width: 1.5,
-                                  ),
-                                ),
-                                child: Center(
-                                  child: Row(
-                                    mainAxisSize: MainAxisSize.min,
-                                    children: [
-                                      Icon(
-                                        Icons.assignment_rounded,
-                                        size: 16,
-                                        color: !selectedIsHer ? primaryColor : (isDark ? Colors.white38 : Colors.black38),
-                                      ),
-                                      const SizedBox(width: 6),
-                                      Text(
-                                        "Soal Utama",
-                                        style: GoogleFonts.outfit(
-                                          fontSize: 13,
-                                          fontWeight: FontWeight.bold,
-                                          color: !selectedIsHer ? primaryColor : (isDark ? Colors.white38 : Colors.black38),
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                              ),
-                            ),
+                          Icon(
+                            selectedIsHer ? Icons.refresh_rounded : Icons.assignment_rounded,
+                            size: 16,
+                            color: selectedIsHer ? Colors.orange : primaryColor,
                           ),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: GestureDetector(
-                              onTap: () {
-                                setModalState(() => selectedIsHer = true);
-                              },
-                              child: AnimatedContainer(
-                                duration: const Duration(milliseconds: 200),
-                                padding: const EdgeInsets.symmetric(vertical: 14),
-                                decoration: BoxDecoration(
-                                  color: selectedIsHer
-                                      ? Colors.orange.withOpacity(0.15)
-                                      : (isDark ? Colors.white.withOpacity(0.05) : Colors.black.withOpacity(0.03)),
-                                  borderRadius: BorderRadius.circular(14),
-                                  border: Border.all(
-                                    color: selectedIsHer ? Colors.orange : Colors.transparent,
-                                    width: 1.5,
-                                  ),
-                                ),
-                                child: Center(
-                                  child: Row(
-                                    mainAxisSize: MainAxisSize.min,
-                                    children: [
-                                      Icon(
-                                        Icons.refresh_rounded,
-                                        size: 16,
-                                        color: selectedIsHer ? Colors.orange : (isDark ? Colors.white38 : Colors.black38),
-                                      ),
-                                      const SizedBox(width: 6),
-                                      Text(
-                                        "Soal Her",
-                                        style: GoogleFonts.outfit(
-                                          fontSize: 13,
-                                          fontWeight: FontWeight.bold,
-                                          color: selectedIsHer ? Colors.orange : (isDark ? Colors.white38 : Colors.black38),
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                              ),
+                          const SizedBox(width: 6),
+                          Text(
+                            selectedIsHer ? "Soal Her" : "Soal Utama",
+                            style: GoogleFonts.outfit(
+                              fontSize: 13,
+                              fontWeight: FontWeight.bold,
+                              color: selectedIsHer ? Colors.orange : primaryColor,
                             ),
                           ),
                         ],
                       ),
+                    ),
                     const SizedBox(height: 16),
 
-                    // Konten Soal
+                    // Daftar Soal & Jawaban
                     Text(
-                      "Konten/Pertanyaan Soal",
+                      "Daftar Soal & Kunci Jawaban",
                       style: GoogleFonts.outfit(fontWeight: FontWeight.bold, fontSize: 13, color: isDark ? Colors.white70 : Colors.black54),
                     ),
-                    const SizedBox(height: 6),
-                    TextField(
-                      controller: contentController,
-                      maxLines: 6,
-                      style: textStyle,
-                      decoration: InputDecoration(
-                        hintText: "Tuliskan soal di sini...\n(satu soal per baris)",
-                        hintStyle: GoogleFonts.outfit(color: isDark ? Colors.white30 : Colors.black.withOpacity(0.3)),
-                        filled: true,
-                        fillColor: isDark ? Colors.white.withOpacity(0.05) : Colors.black.withOpacity(0.03),
-                        border: OutlineInputBorder(
+                    const SizedBox(height: 8),
+                    ...List.generate(questionAnswerList.length, (index) {
+                      return Container(
+                        margin: const EdgeInsets.only(bottom: 12),
+                        padding: const EdgeInsets.all(14),
+                        decoration: BoxDecoration(
+                          color: isDark ? Colors.white.withOpacity(0.02) : Colors.black.withOpacity(0.01),
                           borderRadius: BorderRadius.circular(16),
-                          borderSide: BorderSide.none,
+                          border: Border.all(
+                            color: isDark ? Colors.white12 : Colors.black.withOpacity(0.05),
+                            width: 1,
+                          ),
                         ),
-                        contentPadding: const EdgeInsets.all(16),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Container(
+                                  padding: const EdgeInsets.symmetric(vertical: 3, horizontal: 8),
+                                  decoration: BoxDecoration(
+                                    color: primaryColor.withOpacity(0.1),
+                                    borderRadius: BorderRadius.circular(8),
+                                  ),
+                                  child: Text(
+                                    "Nomor ${index + 1}",
+                                    style: GoogleFonts.outfit(
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 11,
+                                      color: primaryColor,
+                                    ),
+                                  ),
+                                ),
+                                if (questionAnswerList.length > 1)
+                                  IconButton(
+                                    icon: const Icon(Icons.delete_outline_rounded, color: Colors.redAccent, size: 20),
+                                    padding: EdgeInsets.zero,
+                                    constraints: const BoxConstraints(),
+                                    onPressed: () {
+                                      setModalState(() {
+                                        questionAnswerList.removeAt(index);
+                                        teksControllers.removeAt(index).dispose();
+                                        jawabanControllers.removeAt(index).dispose();
+                                      });
+                                    },
+                                  ),
+                              ],
+                            ),
+                            const SizedBox(height: 10),
+                            Text(
+                              "Pertanyaan Soal",
+                              style: GoogleFonts.outfit(fontWeight: FontWeight.w600, fontSize: 11, color: isDark ? Colors.white60 : Colors.black54),
+                            ),
+                            const SizedBox(height: 4),
+                            TextField(
+                              controller: teksControllers[index],
+                              maxLines: 2,
+                              style: textStyle,
+                              decoration: InputDecoration(
+                                hintText: "Tuliskan pertanyaan...",
+                                hintStyle: GoogleFonts.outfit(color: isDark ? Colors.white30 : Colors.black.withOpacity(0.3), fontSize: 13),
+                                filled: true,
+                                fillColor: isDark ? Colors.white.withOpacity(0.03) : Colors.black.withOpacity(0.02),
+                                border: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(10),
+                                  borderSide: BorderSide.none,
+                                ),
+                                contentPadding: const EdgeInsets.symmetric(vertical: 8, horizontal: 10),
+                              ),
+                            ),
+                            const SizedBox(height: 10),
+                            Text(
+                              "Kunci Jawaban",
+                              style: GoogleFonts.outfit(fontWeight: FontWeight.w600, fontSize: 11, color: isDark ? Colors.white60 : Colors.black54),
+                            ),
+                            const SizedBox(height: 4),
+                            TextField(
+                              controller: jawabanControllers[index],
+                              maxLines: 2,
+                              style: textStyle,
+                              decoration: InputDecoration(
+                                hintText: "Tuliskan kunci jawaban (opsional)...",
+                                hintStyle: GoogleFonts.outfit(color: isDark ? Colors.white30 : Colors.black.withOpacity(0.3), fontSize: 13),
+                                filled: true,
+                                fillColor: isDark ? Colors.white.withOpacity(0.03) : Colors.black.withOpacity(0.02),
+                                border: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(10),
+                                  borderSide: BorderSide.none,
+                                ),
+                                contentPadding: const EdgeInsets.symmetric(vertical: 8, horizontal: 10),
+                              ),
+                            ),
+                          ],
+                        ),
+                      );
+                    }),
+                    
+                    OutlinedButton.icon(
+                      onPressed: () {
+                        setModalState(() {
+                          questionAnswerList.add({'teks': '', 'jawaban': ''});
+                          teksControllers.add(TextEditingController(text: ''));
+                          jawabanControllers.add(TextEditingController(text: ''));
+                        });
+                      },
+                      icon: const Icon(Icons.add_rounded, size: 18),
+                      label: Text(
+                        "Tambah Soal & Jawaban",
+                        style: GoogleFonts.outfit(fontWeight: FontWeight.bold, fontSize: 13),
+                      ),
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: primaryColor,
+                        side: BorderSide(color: primaryColor, width: 1.5),
+                        padding: const EdgeInsets.symmetric(vertical: 10),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
                       ),
                     ),
                     const SizedBox(height: 24),
@@ -520,8 +586,13 @@ class _TimSoalScreenState extends State<TimSoalScreen> {
                     // Action button
                     ElevatedButton(
                       onPressed: () async {
-                        if (selectedTingkat == null || selectedMapelId == null || contentController.text.trim().isEmpty) {
-                          _showSnackBar("Harap lengkapi semua isian form.", isError: true);
+                        final List<Map<String, dynamic>> finalSoalArray = List.generate(questionAnswerList.length, (idx) => <String, dynamic>{
+                          'teks': teksControllers[idx].text.trim(),
+                          'jawaban': jawabanControllers[idx].text.trim(),
+                        }).where((q) => q['teks']!.isNotEmpty).toList();
+
+                        if (selectedTingkat == null || selectedMapelId == null || finalSoalArray.isEmpty) {
+                          _showSnackBar("Harap lengkapi semua isian form (minimal 1 soal).", isError: true);
                           return;
                         }
 
@@ -541,6 +612,10 @@ class _TimSoalScreenState extends State<TimSoalScreen> {
 
                         try {
                           final tipeUjian = selectedIsHer ? 'SOAL HER' : 'PENILAIAN AKHIR SEMESTER';
+                          
+                          // Format combined string for backward compatibility
+                          final combinedKontenSoal = finalSoalArray.asMap().entries.map((e) => "${e.key + 1}. ${e.value['teks']}").join('\n');
+
                           await _apiService.saveTimSoal(
                             id: existingSoal?['id'],
                             kelasId: kelasId,
@@ -548,7 +623,8 @@ class _TimSoalScreenState extends State<TimSoalScreen> {
                             tahunAjaranId: _selectedTahunAjaran!['id'],
                             semester: _selectedSemester,
                             tipeUjian: tipeUjian,
-                            kontenSoal: contentController.text.trim(),
+                            kontenSoal: combinedKontenSoal,
+                            soalArray: finalSoalArray,
                           );
                           _showSnackBar("Soal berhasil disimpan!");
                           await _loadSoalList();
@@ -577,7 +653,14 @@ class _TimSoalScreenState extends State<TimSoalScreen> {
           },
         );
       },
-    );
+    ).whenComplete(() {
+      for (final c in teksControllers) {
+        c.dispose();
+      }
+      for (final c in jawabanControllers) {
+        c.dispose();
+      }
+    });
   }
 
   InputDecoration _inputDecoration(bool isDark, IconData icon, String hint) {

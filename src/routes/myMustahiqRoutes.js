@@ -217,8 +217,10 @@ function registerMyMustahiqRoutes(app) {
     // If still no class is found/specified, or if isForceClasses is true, return the class list
     if (!kelasId || isForceClasses) {
       const classesResult = await db.query(`
-        SELECT DISTINCT k.id, k.nama, k.tingkat,
+        SELECT DISTINCT k.id, k.nama,
+          CASE WHEN k.nama = 'SP' AND k.tingkat = 1 THEN 99 ELSE k.tingkat END AS tingkat,
           CASE 
+            WHEN k.nama = 'SP' AND k.tingkat = 1 THEN 3
             WHEN k.tingkat = 0 THEN 1
             WHEN k.tingkat = 1 THEN 2
             WHEN k.tingkat = 99 THEN 3
@@ -751,8 +753,10 @@ function registerMyMustahiqRoutes(app) {
 
     // Get classes for the academic year
     const classesResult = await db.query(`
-      SELECT DISTINCT k.id, k.nama, k.tingkat,
+      SELECT DISTINCT k.id, k.nama,
+        CASE WHEN k.nama = 'SP' AND k.tingkat = 1 THEN 99 ELSE k.tingkat END AS tingkat,
         CASE 
+          WHEN k.nama = 'SP' AND k.tingkat = 1 THEN 3
           WHEN k.tingkat = 0 THEN 1
           WHEN k.tingkat = 1 THEN 2
           WHEN k.tingkat = 99 THEN 3
@@ -830,9 +834,10 @@ function registerMyMustahiqRoutes(app) {
     let tingkat = null;
     const kelasId = kelas_id && kelas_id !== 'null' && kelas_id !== 'undefined' ? parseInt(kelas_id, 10) : null;
     if (kelasId) {
-      const kelasRes = await db.query('SELECT tingkat FROM kelas WHERE id = $1', [kelasId]);
+      const kelasRes = await db.query('SELECT tingkat, nama FROM kelas WHERE id = $1', [kelasId]);
       if (kelasRes.rows.length > 0) {
-        tingkat = kelasRes.rows[0].tingkat;
+        const row = kelasRes.rows[0];
+        tingkat = (row.nama === 'SP' && row.tingkat === 1) ? 99 : row.tingkat;
       }
     }
 
@@ -870,7 +875,11 @@ function registerMyMustahiqRoutes(app) {
     `, params);
 
     // Get all classes to resolve name and ID mappings
-    const classesRes = await db.query('SELECT id, nama, tingkat FROM kelas WHERE jenis = \'Diniyah\'');
+    const classesRes = await db.query(`
+      SELECT id, nama, 
+        CASE WHEN nama = 'SP' AND tingkat = 1 THEN 99 ELSE tingkat END AS tingkat 
+      FROM kelas WHERE jenis = 'Diniyah'
+    `);
     // Get all subjects
     const mapelRes = await db.query('SELECT id, nama FROM mata_pelajaran');
 
@@ -891,13 +900,14 @@ function registerMyMustahiqRoutes(app) {
         id: row.id,
         tingkat: row.tingkat,
         kelas_id: classMatch ? classMatch.id : null,
-        kelas_nama: `Tingkat ${row.tingkat}`,
+        kelas_nama: classMatch ? classMatch.nama : (row.tingkat === 99 ? 'Kelas SP' : `Tingkat ${row.tingkat}`),
         semester: row.semester || '-',
         mapel_id: subjectMatch ? subjectMatch.id : null,
         mapel_nama: subjectMatch ? subjectMatch.nama : row.pelajaran,
         tipe_ujian: row.is_her ? 'SOAL HER' : (row.judul || 'Ujian Semester'),
         is_her: row.is_her || false,
         konten_soal: kontenSoal,
+        soal_array: Array.isArray(row.soal) ? row.soal : [],
         dibuat_oleh: 'Administrator',
         created_at: row.created_at,
         updated_at: row.updated_at
@@ -927,9 +937,10 @@ function registerMyMustahiqRoutes(app) {
 
     // 1. Get tingkat from kelas
     const kelasId = parseInt(kelas_id, 10);
-    const kelasRes = await db.query('SELECT tingkat FROM kelas WHERE id = $1', [kelasId]);
+    const kelasRes = await db.query('SELECT tingkat, nama FROM kelas WHERE id = $1', [kelasId]);
     if (kelasRes.rows.length === 0) return res.status(404).json({ error: 'Kelas tidak ditemukan.' });
-    const tingkat = kelasRes.rows[0].tingkat;
+    const row = kelasRes.rows[0];
+    const tingkat = (row.nama === 'SP' && row.tingkat === 1) ? 99 : row.tingkat;
 
     // 2. Get pelajaran name from mata_pelajaran
     const mataPelajaranId = parseInt(mata_pelajaran_id, 10);
@@ -937,18 +948,25 @@ function registerMyMustahiqRoutes(app) {
     if (mapelRes.rows.length === 0) return res.status(404).json({ error: 'Mata pelajaran tidak ditemukan.' });
     const pelajaranName = mapelRes.rows[0].nama;
 
-    // 3. Parse konten_soal
-    const lines = konten_soal.split('\n')
-      .map(line => line.trim())
-      .filter(line => line.length > 0);
+    // 3. Parse konten_soal or use soal_array
+    let questionsArray = [];
+    if (req.body.soal_array && Array.isArray(req.body.soal_array)) {
+      questionsArray = req.body.soal_array.map(q => ({
+        teks: (q.teks || '').trim(),
+        jawaban: (q.jawaban || '').trim()
+      })).filter(q => q.teks.length > 0);
+    } else {
+      const lines = (konten_soal || '').split('\n')
+        .map(line => line.trim())
+        .filter(line => line.length > 0);
 
-    const questionsArray = lines.map(line => {
-      // Strip common numbering prefixes
-      let cleanTeks = line.replace(/^\d+[\.\)\-]\s*/, '')
-                          .replace(/^[a-zA-Z][\.\)\-]\s*/, '')
-                          .trim();
-      return { teks: cleanTeks, jawaban: "" };
-    });
+      questionsArray = lines.map(line => {
+        let cleanTeks = line.replace(/^\d+[\.\)\-]\s*/, '')
+                            .replace(/^[a-zA-Z][\.\)\-]\s*/, '')
+                            .trim();
+        return { teks: cleanTeks, jawaban: "" };
+      });
+    }
 
     const isHerValue = (tipe_ujian === 'SOAL HER');
     const judulValue = tipe_ujian || 'PENILAIAN AKHIR SEMESTER';
@@ -1040,7 +1058,11 @@ function registerMyMustahiqRoutes(app) {
 
     const studentsResult = await db.query(studentsQuery, [kelasId, activeYear.id]);
 
-    const classDetail = await db.query('SELECT id, nama, tingkat FROM kelas WHERE id = $1', [kelasId]);
+    const classDetail = await db.query(`
+      SELECT id, nama, 
+        CASE WHEN nama = 'SP' AND tingkat = 1 THEN 99 ELSE tingkat END AS tingkat 
+      FROM kelas WHERE id = $1
+    `, [kelasId]);
     const tingkat = classDetail.rows[0] ? classDetail.rows[0].tingkat : null;
 
     // Find Muhafadzoh Akbar, Qiroatul Kitab, and Taftisyul Kutub IDs dynamically
@@ -1850,6 +1872,9 @@ function registerMyMustahiqRoutes(app) {
     // Query the class information to get the tingkat
     const classRes = await db.query('SELECT nama, tingkat FROM kelas WHERE id = $1 LIMIT 1', [kelas_id]);
     const classInfo = classRes.rows[0];
+    if (classInfo && classInfo.nama === 'SP' && classInfo.tingkat === 1) {
+      classInfo.tingkat = 99;
+    }
 
     let defaultData = [];
     if (classInfo) {

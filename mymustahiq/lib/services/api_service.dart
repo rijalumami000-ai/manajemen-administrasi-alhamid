@@ -343,6 +343,7 @@ class ApiService {
     required String semester,
     required String tipeUjian,
     required String kontenSoal,
+    List<Map<String, dynamic>>? soalArray,
   }) async {
     try {
       final response = await _dio.post('/my-mustahiq/tim-soal/simpan', data: {
@@ -353,6 +354,7 @@ class ApiService {
         'semester': semester,
         'tipe_ujian': tipeUjian,
         'konten_soal': kontenSoal,
+        if (soalArray != null) 'soal_array': soalArray,
       });
       if (response.statusCode == 200) {
         return response.data;
