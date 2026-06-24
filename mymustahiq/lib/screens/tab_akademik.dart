@@ -11,6 +11,7 @@ import 'password_gate_dialog.dart';
 import '../widgets/muhafadzoh_info_bottom_sheet.dart';
 import '../widgets/qiroah_maqro_bottom_sheet.dart';
 import '../widgets/taftisy_materi_bottom_sheet.dart';
+import '../widgets/ujian_tulis_materi_bottom_sheet.dart';
 
 class TabAkademik extends StatelessWidget {
   const TabAkademik({super.key});
@@ -401,7 +402,26 @@ class TabAkademik extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(width: 16),
-                const Expanded(child: SizedBox()),
+                Expanded(
+                  child: _buildInfoBoxItem(
+                    context: context,
+                    title: 'Materi Ujian Tulis',
+                    desc: 'Daftar acuan batasan materi Ujian Tulis reguler per kelas.',
+                    icon: Icons.border_color_rounded,
+                    colors: isDark
+                        ? [const Color(0xFF1E3A8A), const Color(0xFF0F172A)]
+                        : [const Color(0xFFEFF6FF), const Color(0xFFDBEAFE)],
+                    borderColor: isDark
+                        ? const Color(0xFF3B82F6).withOpacity(0.25)
+                        : const Color(0xFF3B82F6).withOpacity(0.4),
+                    textColor: isDark ? const Color(0xFF60A5FA) : const Color(0xFF1E40AF),
+                    headingColor: isDark ? Colors.white : const Color(0xFF1E40AF),
+                    bodyColor: isDark ? Colors.white.withOpacity(0.6) : const Color(0xFF1E40AF).withOpacity(0.8),
+                    iconColor: isDark ? Colors.white : const Color(0xFF3B82F6),
+                    isDark: isDark,
+                    onTap: () => UjianTulisMateriBottomSheet.show(context),
+                  ),
+                ),
               ],
             ),
           ],
