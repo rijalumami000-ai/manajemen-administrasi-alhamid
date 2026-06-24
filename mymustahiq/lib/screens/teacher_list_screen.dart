@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../services/api_service.dart';
 import '../services/theme_manager.dart';
 import '../models/models.dart';
@@ -441,24 +442,42 @@ class _TeacherListScreenState extends State<TeacherListScreen> {
                 ],
               ),
             ),
-            const SizedBox(width: 10),
-
-            // Call/Copy Action Button
-            IconButton(
-              icon: Container(
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color: (widget.isMustahiq ? const Color(0xFF8B5CF6) : const Color(0xFF0D9488)).withOpacity(0.12),
-                  shape: BoxShape.circle,
+            Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                IconButton(
+                  icon: Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: Colors.green.withOpacity(0.12),
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Icon(
+                      Icons.chat_rounded,
+                      color: Colors.green,
+                      size: 18,
+                    ),
+                  ),
+                  tooltip: 'Hubungi WhatsApp',
+                  onPressed: () => _launchWhatsApp(teacher.noHp, teacher.nama),
                 ),
-                child: Icon(
-                  Icons.copy_rounded,
-                  color: widget.isMustahiq ? const Color(0xFF8B5CF6) : const Color(0xFF0D9488),
-                  size: 18,
+                IconButton(
+                  icon: Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: (widget.isMustahiq ? const Color(0xFF8B5CF6) : const Color(0xFF0D9488)).withOpacity(0.12),
+                      shape: BoxShape.circle,
+                    ),
+                    child: Icon(
+                      Icons.copy_rounded,
+                      color: widget.isMustahiq ? const Color(0xFF8B5CF6) : const Color(0xFF0D9488),
+                      size: 18,
+                    ),
+                  ),
+                  tooltip: 'Salin No HP',
+                  onPressed: () => _copyToClipboard(teacher.noHp, teacher.nama),
                 ),
-              ),
-              tooltip: 'Salin No HP',
-              onPressed: () => _copyToClipboard(teacher.noHp, teacher.nama),
+              ],
             ),
           ],
         ),
@@ -485,5 +504,52 @@ class _TeacherListScreenState extends State<TeacherListScreen> {
         ),
       ),
     );
+  }
+
+  void _launchWhatsApp(String number, String name) async {
+    if (number.isEmpty || number == '-') {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            'Nomor HP tidak tersedia.',
+            style: GoogleFonts.outfit(color: Colors.white, fontSize: 13),
+          ),
+          backgroundColor: Colors.redAccent,
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+        ),
+      );
+      return;
+    }
+
+    String formatted = number.replaceAll(RegExp(r'\D'), ''); // Only digits
+    if (formatted.startsWith('0')) {
+      formatted = '62${formatted.substring(1)}';
+    } else if (formatted.startsWith('8')) {
+      formatted = '62$formatted';
+    }
+
+    final url = Uri.parse('https://wa.me/$formatted');
+    try {
+      if (await canLaunchUrl(url)) {
+        await launchUrl(url, mode: LaunchMode.externalApplication);
+      } else {
+        throw 'Cannot launch URL';
+      }
+    } catch (_) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              'Gagal membuka WhatsApp. Pastikan aplikasi terinstall.',
+              style: GoogleFonts.outfit(color: Colors.white, fontSize: 13),
+            ),
+            backgroundColor: Colors.redAccent,
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+          ),
+        );
+      }
+    }
   }
 }

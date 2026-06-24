@@ -287,12 +287,25 @@ class _TabKelaskuState extends State<TabKelasku> {
                     child: Row(
                       children: [
                         Container(
-                          padding: const EdgeInsets.all(10),
+                          width: 48,
+                          height: 48,
                           decoration: BoxDecoration(
-                            color: const Color(0xFF10B981).withOpacity(0.1),
-                            borderRadius: BorderRadius.circular(14),
+                            shape: BoxShape.circle,
+                            border: Border.all(
+                              color: const Color(0xFF10B981).withOpacity(0.3),
+                              width: 1.5,
+                            ),
                           ),
-                          child: const Icon(Icons.class_rounded, color: Color(0xFF10B981), size: 26),
+                          child: ClipOval(
+                            child: (_data?['guruInfo']?['foto_url'] != null && _data!['guruInfo']['foto_url'].toString().isNotEmpty)
+                                ? Image.network(
+                                    _apiService.getFullImageUrl(_data!['guruInfo']['foto_url']),
+                                    fit: BoxFit.cover,
+                                    errorBuilder: (context, error, stackTrace) =>
+                                        const Icon(Icons.class_rounded, color: Color(0xFF10B981), size: 24),
+                                  )
+                                : const Icon(Icons.class_rounded, color: Color(0xFF10B981), size: 24),
+                          ),
                         ),
                         const SizedBox(width: 14),
                         Expanded(

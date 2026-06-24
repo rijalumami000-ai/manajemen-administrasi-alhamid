@@ -31,7 +31,7 @@ class QiroahMaqroBottomSheet extends StatefulWidget {
 
 class _QiroahMaqroBottomSheetState extends State<QiroahMaqroBottomSheet> {
   final ApiService _apiService = ApiService();
-  late Future<List<dynamic>> _maqroFuture;
+  Future<List<dynamic>>? _maqroFuture;
 
   List<dynamic> _tahunAjaranList = [];
   Map<String, dynamic>? _selectedTahunAjaran;
@@ -257,9 +257,11 @@ class _QiroahMaqroBottomSheetState extends State<QiroahMaqroBottomSheet> {
 
           // Content List
           Expanded(
-            child: FutureBuilder<List<dynamic>>(
-              future: _maqroFuture,
-              builder: (context, snapshot) {
+            child: _maqroFuture == null
+                ? const Center(child: CircularProgressIndicator(color: Colors.orange))
+                : FutureBuilder<List<dynamic>>(
+                    future: _maqroFuture,
+                    builder: (context, snapshot) {
                 if (snapshot.connectionState == ConnectionState.waiting) {
                   return const Center(child: CircularProgressIndicator(color: Colors.orange));
                 }

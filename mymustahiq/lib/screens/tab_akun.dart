@@ -4,6 +4,7 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:local_auth/local_auth.dart';
 import '../services/api_service.dart';
 import '../services/theme_manager.dart';
+import '../services/push_notification_service.dart';
 import 'login_screen.dart';
 
 class TabAkun extends StatefulWidget {
@@ -37,12 +38,23 @@ class _TabAkunState extends State<TabAkun> {
   bool _biometricEnabled = false;
   bool _biometricAvailable = false;
   bool _notificationsEnabled = true;
+  String _selectedSound = 'default';
 
   @override
   void initState() {
     super.initState();
     _fetchProfile();
     _checkBiometricStatus();
+    _loadSoundPreference();
+  }
+
+  Future<void> _loadSoundPreference() async {
+    final sound = await _storage.read(key: 'notification_sound') ?? 'default';
+    if (mounted) {
+      setState(() {
+        _selectedSound = sound;
+      });
+    }
   }
 
   @override
@@ -314,6 +326,116 @@ class _TabAkunState extends State<TabAkun> {
           },
         );
       },
+    );
+  }
+
+  String _getSoundNameLabel(String sound) {
+    switch (sound) {
+      case 'chime':
+        return 'Chime (Ting-ting)';
+      case 'bell':
+        return 'Bell (Kring-kring)';
+      default:
+        return 'Sistem (Default)';
+    }
+  }
+
+  void _showSoundSelectionDialog() {
+    showDialog(
+      context: context,
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (context, setModalState) {
+            return Dialog(
+              backgroundColor: context.cardBg,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(20),
+                side: BorderSide(color: context.borderColor),
+              ),
+              child: Padding(
+                padding: const EdgeInsets.all(22.0),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          'Pilih Nada Dering',
+                          style: GoogleFonts.outfit(
+                            color: context.titleColor,
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        IconButton(
+                          icon: Icon(Icons.close_rounded, color: context.subTitleColor),
+                          onPressed: () => Navigator.pop(context),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 12),
+                    Divider(color: context.borderColor, height: 1),
+                    const SizedBox(height: 12),
+                    _buildSoundOption(setModalState, 'default', 'Sistem (Default)', 'Nada dering bawaan perangkat'),
+                    _buildSoundOption(setModalState, 'chime', 'Chime (Ting-ting)', 'Nada chime pendek dan cerah'),
+                    _buildSoundOption(setModalState, 'bell', 'Bell (Kring-kring)', 'Nada bell berdering tradisional'),
+                  ],
+                ),
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
+  Widget _buildSoundOption(StateSetter setModalState, String key, String title, String subtitle) {
+    final isSelected = _selectedSound == key;
+    return ListTile(
+      onTap: () async {
+        await _storage.write(key: 'notification_sound', value: key);
+        if (mounted) {
+          setState(() {
+            _selectedSound = key;
+          });
+        }
+        setModalState(() {});
+        // Play sound preview
+        await PushNotificationService().playTestSound(key);
+      },
+      contentPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      leading: Container(
+        padding: const EdgeInsets.all(8),
+        decoration: BoxDecoration(
+          color: (isSelected ? const Color(0xFF10B981) : Colors.grey).withOpacity(0.1),
+          shape: BoxShape.circle,
+        ),
+        child: Icon(
+          isSelected ? Icons.music_note_rounded : Icons.music_off_outlined,
+          color: isSelected ? const Color(0xFF10B981) : context.subTitleColor,
+          size: 20,
+        ),
+      ),
+      title: Text(
+        title,
+        style: GoogleFonts.outfit(
+          color: context.titleColor,
+          fontSize: 14,
+          fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+        ),
+      ),
+      subtitle: Text(
+        subtitle,
+        style: GoogleFonts.outfit(
+          color: context.subTitleColor,
+          fontSize: 11,
+        ),
+      ),
+      trailing: isSelected
+          ? const Icon(Icons.check_circle_rounded, color: Color(0xFF10B981), size: 22)
+          : null,
     );
   }
 
@@ -664,6 +786,16 @@ class _TabAkunState extends State<TabAkun> {
                       });
                       _showToast("Pengaturan notifikasi diperbarui", const Color(0xFFEC4899));
                     },
+                  ),
+                  _buildDivider(),
+
+                  // Sound setting tile
+                  _buildListTile(
+                    icon: Icons.music_note_rounded,
+                    title: "Nada Dering Notifikasi",
+                    subtitle: _getSoundNameLabel(_selectedSound),
+                    color: const Color(0xFF8B5CF6),
+                    onTap: _showSoundSelectionDialog,
                   ),
                   _buildDivider(),
 

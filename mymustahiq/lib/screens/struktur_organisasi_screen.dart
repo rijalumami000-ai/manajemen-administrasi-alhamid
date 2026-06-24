@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../services/api_service.dart';
 import '../services/theme_manager.dart';
 
@@ -246,6 +248,51 @@ class _StrukturOrganisasiScreenState extends State<StrukturOrganisasiScreen> wit
                               ],
                             ),
                           ),
+                          if (phone != '-' && phone.toString().trim().isNotEmpty) ...[
+                            const SizedBox(width: 8),
+                            Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                IconButton(
+                                  icon: Container(
+                                    padding: const EdgeInsets.all(8),
+                                    decoration: BoxDecoration(
+                                      color: Colors.green.withOpacity(0.12),
+                                      shape: BoxShape.circle,
+                                    ),
+                                    child: const Icon(
+                                      Icons.chat_rounded,
+                                      color: Colors.green,
+                                      size: 16,
+                                    ),
+                                  ),
+                                  tooltip: 'Hubungi WhatsApp',
+                                  onPressed: () => _launchWhatsApp(phone, name),
+                                  constraints: const BoxConstraints(),
+                                  padding: EdgeInsets.zero,
+                                ),
+                                const SizedBox(height: 8),
+                                IconButton(
+                                  icon: Container(
+                                    padding: const EdgeInsets.all(8),
+                                    decoration: BoxDecoration(
+                                      color: badgeColor.withOpacity(0.12),
+                                      shape: BoxShape.circle,
+                                    ),
+                                    child: Icon(
+                                      Icons.copy_rounded,
+                                      color: badgeColor,
+                                      size: 16,
+                                    ),
+                                  ),
+                                  tooltip: 'Salin No HP',
+                                  onPressed: () => _copyToClipboard(phone, name),
+                                  constraints: const BoxConstraints(),
+                                  padding: EdgeInsets.zero,
+                                ),
+                              ],
+                            ),
+                          ],
                         ],
                       ),
                     ),
@@ -257,5 +304,65 @@ class _StrukturOrganisasiScreenState extends State<StrukturOrganisasiScreen> wit
         );
       },
     );
+  }
+
+  void _copyToClipboard(String number, String name) {
+    if (number.isEmpty || number == '-') return;
+    Clipboard.setData(ClipboardData(text: number));
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Row(
+          children: [
+            const Icon(Icons.check_circle_rounded, color: Colors.white, size: 18),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Text(
+                'Nomor HP $name berhasil disalin!',
+                style: GoogleFonts.outfit(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w500),
+              ),
+            ),
+          ],
+        ),
+        backgroundColor: const Color(0xFF10B981),
+        behavior: SnackBarBehavior.floating,
+        duration: const Duration(seconds: 2),
+        margin: const EdgeInsets.all(16),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+      ),
+    );
+  }
+
+  void _launchWhatsApp(String number, String name) async {
+    if (number.isEmpty || number == '-') return;
+
+    String formatted = number.replaceAll(RegExp(r'\D'), ''); // Only digits
+    if (formatted.startsWith('0')) {
+      formatted = '62${formatted.substring(1)}';
+    } else if (formatted.startsWith('8')) {
+      formatted = '62$formatted';
+    }
+
+    final url = Uri.parse('https://wa.me/$formatted');
+    try {
+      if (await canLaunchUrl(url)) {
+        await launchUrl(url, mode: LaunchMode.externalApplication);
+      } else {
+        throw 'Cannot launch URL';
+      }
+    } catch (_) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              'Gagal membuka WhatsApp. Pastikan aplikasi terinstall.',
+              style: GoogleFonts.outfit(color: Colors.white, fontSize: 13),
+            ),
+            backgroundColor: Colors.redAccent,
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+          ),
+        );
+      }
+    }
   }
 }

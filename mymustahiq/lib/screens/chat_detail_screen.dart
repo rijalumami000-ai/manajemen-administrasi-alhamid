@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import '../services/api_service.dart';
 import '../services/theme_manager.dart';
 
@@ -46,6 +47,16 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
     super.dispose();
   }
 
+  Future<void> _updateLastRead() async {
+    try {
+      const storage = FlutterSecureStorage();
+      await storage.write(
+        key: 'chat_room_last_read_${widget.kelasId}',
+        value: DateTime.now().toIso8601String(),
+      );
+    } catch (_) {}
+  }
+
   Future<void> _loadInitialData() async {
     setState(() {
       _isLoading = true;
@@ -59,6 +70,7 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
 
       // 2. Fetch initial messages
       await _fetchMessages();
+      await _updateLastRead();
       
       setState(() {
         _isLoading = false;
@@ -101,6 +113,7 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
         setState(() {
           _messages = list;
         });
+        await _updateLastRead();
         _scrollToBottom();
       }
     } catch (_) {
@@ -124,6 +137,7 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
       if (res['success'] == true) {
         // Optimistic refresh
         await _fetchMessages();
+        await _updateLastRead();
         _scrollToBottom();
       }
     } catch (e) {

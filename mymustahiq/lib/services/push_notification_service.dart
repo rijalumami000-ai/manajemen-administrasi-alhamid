@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'api_service.dart';
 import '../screens/notifications_screen.dart';
 
@@ -38,18 +39,40 @@ class PushNotificationService {
         sound: true,
       );
 
-      // 3. Configure Android heads-up channel
-      const AndroidNotificationChannel channel = AndroidNotificationChannel(
+      // 3. Configure Android heads-up channels
+      const AndroidNotificationChannel defaultChannel = AndroidNotificationChannel(
         'high_importance_channel', // id
         'High Importance Notifications', // name
-        description: 'This channel is used for important notifications.', // description
+        description: 'This channel is used for important notifications.',
         importance: Importance.max,
         playSound: true,
       );
 
-      await _localNotifications
-          .resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>()
-          ?.createNotificationChannel(channel);
+      const AndroidNotificationChannel chimeChannel = AndroidNotificationChannel(
+        'chime_importance_channel', // id
+        'Chime Notifications', // name
+        description: 'This channel is used for chime sound notifications.',
+        importance: Importance.max,
+        playSound: true,
+        sound: RawResourceAndroidNotificationSound('chime'),
+      );
+
+      const AndroidNotificationChannel bellChannel = AndroidNotificationChannel(
+        'bell_importance_channel', // id
+        'Bell Notifications', // name
+        description: 'This channel is used for bell sound notifications.',
+        importance: Importance.max,
+        playSound: true,
+        sound: RawResourceAndroidNotificationSound('bell'),
+      );
+
+      final androidNotificationPlugin = _localNotifications
+          .resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>();
+      if (androidNotificationPlugin != null) {
+        await androidNotificationPlugin.createNotificationChannel(defaultChannel);
+        await androidNotificationPlugin.createNotificationChannel(chimeChannel);
+        await androidNotificationPlugin.createNotificationChannel(bellChannel);
+      }
 
       // 4. Initialize Local Notifications Plugin
       const AndroidInitializationSettings initializationSettingsAndroid =
@@ -68,24 +91,43 @@ class PushNotificationService {
       );
 
       // 5. Handle foreground notification delivery
-      FirebaseMessaging.onMessage.listen((RemoteMessage message) {
+      FirebaseMessaging.onMessage.listen((RemoteMessage message) async {
         RemoteNotification? notification = message.notification;
         AndroidNotification? android = message.notification?.android;
 
         if (notification != null && android != null) {
+          // Read user sound preference
+          const storage = FlutterSecureStorage();
+          final soundPref = await storage.read(key: 'notification_sound') ?? 'default';
+
+          String targetChannelId = 'high_importance_channel';
+          String targetChannelName = 'High Importance Notifications';
+          AndroidNotificationSound? customSound;
+
+          if (soundPref == 'chime') {
+            targetChannelId = 'chime_importance_channel';
+            targetChannelName = 'Chime Notifications';
+            customSound = const RawResourceAndroidNotificationSound('chime');
+          } else if (soundPref == 'bell') {
+            targetChannelId = 'bell_importance_channel';
+            targetChannelName = 'Bell Notifications';
+            customSound = const RawResourceAndroidNotificationSound('bell');
+          }
+
           _localNotifications.show(
             notification.hashCode,
             notification.title,
             notification.body,
             NotificationDetails(
               android: AndroidNotificationDetails(
-                channel.id,
-                channel.name,
-                channelDescription: channel.description,
+                targetChannelId,
+                targetChannelName,
+                channelDescription: 'Notification channel with selected sound preference.',
                 icon: android.smallIcon ?? '@mipmap/ic_launcher',
                 importance: Importance.max,
                 priority: Priority.high,
                 playSound: true,
+                sound: customSound,
               ),
             ),
           );
@@ -138,6 +180,38 @@ class PushNotificationService {
   void _navigateToNotificationsScreen() {
     navigatorKey.currentState?.push(
       MaterialPageRoute(builder: (context) => const NotificationsScreen()),
+    );
+  }
+
+  Future<void> playTestSound(String soundName) async {
+    String channelId = 'high_importance_channel';
+    String channelName = 'High Importance Notifications';
+    AndroidNotificationSound? customSound;
+
+    if (soundName == 'chime') {
+      channelId = 'chime_importance_channel';
+      channelName = 'Chime Notifications';
+      customSound = const RawResourceAndroidNotificationSound('chime');
+    } else if (soundName == 'bell') {
+      channelId = 'bell_importance_channel';
+      channelName = 'Bell Notifications';
+      customSound = const RawResourceAndroidNotificationSound('bell');
+    }
+
+    await _localNotifications.show(
+      999,
+      'MyMustahiq',
+      'Tes Nada Notifikasi: ${soundName.toUpperCase()}',
+      NotificationDetails(
+        android: AndroidNotificationDetails(
+          channelId,
+          channelName,
+          importance: Importance.max,
+          priority: Priority.high,
+          playSound: true,
+          sound: customSound,
+        ),
+      ),
     );
   }
 }

@@ -19,7 +19,7 @@ class _BukuIndukScreenState extends State<BukuIndukScreen> {
   String? _errorMessage;
   List<dynamic> _santriList = [];
   
-  String _selectedGender = ''; // '' = Semua, 'Laki-laki' = Putra, 'Perempuan' = Putri
+  String _selectedGender = 'Laki-laki'; // Default to Putra, 'Perempuan' = Putri
 
   @override
   void initState() {
@@ -136,8 +136,6 @@ class _BukuIndukScreenState extends State<BukuIndukScreen> {
                 // Gender Chip Filters
                 Row(
                   children: [
-                    _buildFilterChip('', 'Semua'),
-                    const SizedBox(width: 8),
                     _buildFilterChip('Laki-laki', 'Putra'),
                     const SizedBox(width: 8),
                     _buildFilterChip('Perempuan', 'Putri'),

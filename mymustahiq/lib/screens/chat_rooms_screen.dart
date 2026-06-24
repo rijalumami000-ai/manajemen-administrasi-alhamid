@@ -113,14 +113,19 @@ class _ChatRoomsScreenState extends State<ChatRoomsScreen> {
                           final lastMsg = room['last_message'];
                           
                           // Format roles label
-                          final List<String> roleLabels = [];
-                          if (roles.contains('mustahiq')) {
-                            roleLabels.add('Wali Kelas');
+                          String roleText = '';
+                          if (kelasId < 0) {
+                            roleText = 'Grup Guru';
+                          } else {
+                            final List<String> roleLabels = [];
+                            if (roles.contains('mustahiq')) {
+                              roleLabels.add('Wali Kelas');
+                            }
+                            if (roles.contains('munawib')) {
+                              roleLabels.add('Guru Mapel');
+                            }
+                            roleText = roleLabels.join(' & ');
                           }
-                          if (roles.contains('munawib')) {
-                            roleLabels.add('Guru Mapel');
-                          }
-                          final roleText = roleLabels.join(' & ');
 
                           return Container(
                             margin: const EdgeInsets.only(bottom: 14),
@@ -158,30 +163,45 @@ class _ChatRoomsScreenState extends State<ChatRoomsScreen> {
                                   padding: const EdgeInsets.all(16.0),
                                   child: Row(
                                     children: [
-                                      // Class icon decoration
+                                      // Class avatar (Mustahiq's photo or class icon)
                                       Container(
                                         width: 50,
                                         height: 50,
                                         decoration: BoxDecoration(
-                                          gradient: LinearGradient(
-                                            colors: context.isDarkMode
-                                                ? [const Color(0xFF064E3B), const Color(0xFF047857)]
-                                                : [const Color(0xFF10B981).withOpacity(0.2), const Color(0xFF059669).withOpacity(0.35)],
-                                            begin: Alignment.topLeft,
-                                            end: Alignment.bottomRight,
-                                          ),
                                           shape: BoxShape.circle,
                                           border: Border.all(
                                             color: const Color(0xFF10B981).withOpacity(0.3),
                                             width: 1.5,
                                           ),
                                         ),
-                                        child: Center(
-                                          child: Icon(
-                                            Icons.groups_rounded,
-                                            color: context.isDarkMode ? const Color(0xFF34D399) : const Color(0xFF059669),
-                                            size: 26,
-                                          ),
+                                        child: ClipOval(
+                                          child: (kelasId < 0)
+                                              ? Container(
+                                                  decoration: BoxDecoration(
+                                                    gradient: LinearGradient(
+                                                      colors: context.isDarkMode
+                                                          ? [const Color(0xFF8B5CF6), const Color(0xFF6D28D9)]
+                                                          : [const Color(0xFFC084FC), const Color(0xFF8B5CF6)],
+                                                      begin: Alignment.topLeft,
+                                                      end: Alignment.bottomRight,
+                                                    ),
+                                                  ),
+                                                  child: const Center(
+                                                    child: Icon(
+                                                      Icons.domain_verification_rounded,
+                                                      color: Colors.white,
+                                                      size: 26,
+                                                    ),
+                                                  ),
+                                                )
+                                              : (room['mustahiq_foto_url'] != null && room['mustahiq_foto_url'].toString().isNotEmpty)
+                                                  ? Image.network(
+                                                      _apiService.getFullImageUrl(room['mustahiq_foto_url']),
+                                                      fit: BoxFit.cover,
+                                                      errorBuilder: (context, error, stackTrace) =>
+                                                          _buildDefaultClassIcon(context),
+                                                    )
+                                                  : _buildDefaultClassIcon(context),
                                         ),
                                       ),
                                       const SizedBox(width: 16),
@@ -195,7 +215,7 @@ class _ChatRoomsScreenState extends State<ChatRoomsScreen> {
                                               children: [
                                                 Expanded(
                                                   child: Text(
-                                                    'Kelas $kelasNama',
+                                                    '${kelasId < 0 ? "" : "Kelas "}$kelasNama',
                                                     style: GoogleFonts.outfit(
                                                       color: context.titleColor,
                                                       fontSize: 16,
@@ -221,13 +241,13 @@ class _ChatRoomsScreenState extends State<ChatRoomsScreen> {
                                                 Container(
                                                   padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                                                   decoration: BoxDecoration(
-                                                    color: const Color(0xFF10B981).withOpacity(0.12),
+                                                    color: (kelasId < 0 ? const Color(0xFF8B5CF6) : const Color(0xFF10B981)).withOpacity(0.12),
                                                     borderRadius: BorderRadius.circular(6),
                                                   ),
                                                   child: Text(
                                                     roleText,
                                                     style: GoogleFonts.outfit(
-                                                      color: const Color(0xFF059669),
+                                                      color: kelasId < 0 ? const Color(0xFF8B5CF6) : const Color(0xFF059669),
                                                       fontSize: 10,
                                                       fontWeight: FontWeight.bold,
                                                     ),
@@ -331,6 +351,27 @@ class _ChatRoomsScreenState extends State<ChatRoomsScreen> {
               textAlign: TextAlign.center,
             ),
           ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildDefaultClassIcon(BuildContext context) {
+    return Container(
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: context.isDarkMode
+              ? [const Color(0xFF064E3B), const Color(0xFF047857)]
+              : [const Color(0xFF10B981).withOpacity(0.2), const Color(0xFF059669).withOpacity(0.35)],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+      ),
+      child: Center(
+        child: Icon(
+          Icons.groups_rounded,
+          color: context.isDarkMode ? const Color(0xFF34D399) : const Color(0xFF059669),
+          size: 26,
         ),
       ),
     );

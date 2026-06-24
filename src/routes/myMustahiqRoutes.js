@@ -1230,21 +1230,17 @@ function registerMyMustahiqRoutes(app) {
 
     const result = await db.query(`
       SELECT
-        s.id, s.nis, s.nik, s.nama, s.jenis_kelamin,
-        s.tempat_lahir, s.tanggal_lahir, s.alamat,
-        s.tahun_masuk, s.foto_url, s.created_at,
+        s.id, s.nis, s.nama, s.jenis_kelamin,
+        s.tahun_masuk, s.foto_url,
         kd.nama AS kelas_diniyah,
         ks.nama AS kelas_sekolah,
         km.nama AS nama_kamar,
-        o.nama_ayah, o.nama_ibu, o.no_hp_ayah, o.no_hp_ibu,
-        o.pekerjaan_ayah, o.pekerjaan_ibu,
         CASE WHEN sfd.santri_id IS NOT NULL THEN TRUE ELSE FALSE END AS is_face_registered,
         s.qr_code, s.nfc_uid, s.fingerprint_id
       FROM santri s
       LEFT JOIN kelas kd ON s.kelas_diniyah_id = kd.id
       LEFT JOIN kelas ks ON s.kelas_sekolah_id = ks.id
       LEFT JOIN kamar km ON s.kamar_id = km.id
-      LEFT JOIN orangtua o ON s.orangtua_id = o.id
       LEFT JOIN santri_face_data sfd ON s.id = sfd.santri_id
       ${where}
       ORDER BY s.tahun_masuk DESC NULLS LAST, s.nama ASC
@@ -1259,7 +1255,7 @@ function registerMyMustahiqRoutes(app) {
     const result = await db.query(`
       SELECT id, title, body, category, is_read, created_at
       FROM notifications
-      WHERE guru_id = $1
+      WHERE guru_id = $1 AND COALESCE(category, '') != 'Chat'
       ORDER BY created_at DESC
       LIMIT 50
     `, [guruId]);
@@ -1378,6 +1374,46 @@ function registerMyMustahiqRoutes(app) {
       return res.status(404).json({ error: 'Tahun ajaran aktif tidak ditemukan.' });
     }
 
+    // Get levels where this guru is a Mustahiq
+    const tingkatResult = await db.query(`
+      SELECT DISTINCT k.tingkat
+      FROM kelas_tahun_ajaran kta
+      JOIN kelas k ON kta.kelas_id = k.id
+      WHERE kta.mustahiq_id = $1 AND kta.tahun_ajaran_id = $2
+    `, [guruId, activeYear.id]);
+
+    const tingkats = tingkatResult.rows.map(r => r.tingkat);
+    const tingkatRooms = [];
+
+    for (const tingkat of tingkats) {
+      const lastMsgResult = await db.query(`
+        SELECT cm.message, g.nama AS sender_name, cm.created_at, cm.sender_id
+        FROM chat_messages cm
+        JOIN guru g ON cm.sender_id = g.id
+        WHERE cm.tingkat_group = $1 AND cm.kelas_id IS NULL AND cm.tahun_ajaran_id = $2
+          AND NOT ($3 = ANY(COALESCE(cm.deleted_by_guru_ids, '{}')))
+        ORDER BY cm.created_at DESC
+        LIMIT 1
+      `, [tingkat, activeYear.id, guruId]);
+
+      const lastMsg = lastMsgResult.rows.length > 0 ? {
+        message: lastMsgResult.rows[0].message,
+        sender_name: lastMsgResult.rows[0].sender_name,
+        sender_id: lastMsgResult.rows[0].sender_id,
+        created_at: lastMsgResult.rows[0].created_at
+      } : null;
+
+      tingkatRooms.push({
+        kelas_id: -tingkat,
+        roles: ['mustahiq'],
+        kelas_nama: `Grup Mustahiq Tingkat ${tingkat}`,
+        is_tingkat_group: true,
+        tingkat: tingkat,
+        mustahiq_foto_url: null,
+        last_message: lastMsg
+      });
+    }
+
     const query = `
       WITH user_direct_mustahiq_classes AS (
         SELECT kta.kelas_id, k.tingkat
@@ -1417,16 +1453,24 @@ function registerMyMustahiqRoutes(app) {
              uc.roles, 
              k.nama AS kelas_nama,
              (
+               SELECT g_must.foto_url 
+               FROM kelas_tahun_ajaran kta_must
+               JOIN guru g_must ON kta_must.mustahiq_id = g_must.id
+               WHERE kta_must.kelas_id = uc.kelas_id AND kta_must.tahun_ajaran_id = $2
+               LIMIT 1
+             ) AS mustahiq_foto_url,
+             (
                SELECT JSON_BUILD_OBJECT(
                  'message', cm.message,
                  'sender_name', g.nama,
+                 'sender_id', cm.sender_id,
                  'created_at', cm.created_at
                )
                FROM chat_messages cm
                JOIN guru g ON cm.sender_id = g.id
                WHERE cm.kelas_id = uc.kelas_id 
                  AND cm.tahun_ajaran_id = $2
-                 AND NOT ($1 = ANY(cm.deleted_by_guru_ids))
+                 AND NOT ($1 = ANY(COALESCE(cm.deleted_by_guru_ids, '{}')))
                ORDER BY cm.created_at DESC
                LIMIT 1
              ) AS last_message
@@ -1436,10 +1480,11 @@ function registerMyMustahiqRoutes(app) {
     `;
 
     const result = await db.query(query, [guruId, activeYear.id]);
+    const finalRooms = [...tingkatRooms, ...result.rows];
     res.json({
       tahun_ajaran_id: activeYear.id,
       tahun_ajaran_kode: activeYear.kode,
-      rooms: result.rows
+      rooms: finalRooms
     });
   }));
 
@@ -1454,6 +1499,42 @@ function registerMyMustahiqRoutes(app) {
     }
     if (!activeYear) {
       return res.status(404).json({ error: 'Tahun ajaran aktif tidak ditemukan.' });
+    }
+
+    if (kelasId < 0) {
+      const tingkat = -kelasId;
+      // Security check: Mustahiq of same tingkat
+      const accessCheck = await db.query(`
+        SELECT 1 FROM kelas_tahun_ajaran kta
+        JOIN kelas k ON kta.kelas_id = k.id
+        WHERE kta.mustahiq_id = $1 AND kta.tahun_ajaran_id = $2 AND k.tingkat = $3
+        LIMIT 1
+      `, [guruId, activeYear.id, tingkat]);
+
+      if (accessCheck.rows.length === 0) {
+        return res.status(403).json({ error: 'Anda tidak memiliki akses ke ruang obrolan tingkat kelas ini.' });
+      }
+
+      const messagesResult = await db.query(`
+        SELECT 
+          cm.id,
+          cm.kelas_id,
+          cm.tahun_ajaran_id,
+          cm.sender_id,
+          g.nama AS sender_name,
+          g.foto_url AS sender_foto_url,
+          cm.message,
+          cm.created_at
+        FROM chat_messages cm
+        JOIN guru g ON cm.sender_id = g.id
+        WHERE cm.tingkat_group = $1 AND cm.kelas_id IS NULL
+          AND cm.tahun_ajaran_id = $2
+          AND NOT ($3 = ANY(COALESCE(cm.deleted_by_guru_ids, '{}')))
+        ORDER BY cm.created_at ASC
+        LIMIT 100
+      `, [tingkat, activeYear.id, guruId]);
+
+      return res.json(messagesResult.rows);
     }
 
     // Security check: Verify guru belongs to this class/room (Directly or same tingkat Mustahiq)
@@ -1488,7 +1569,7 @@ function registerMyMustahiqRoutes(app) {
       JOIN guru g ON cm.sender_id = g.id
       WHERE cm.kelas_id = $1 
         AND cm.tahun_ajaran_id = $2
-        AND NOT ($3 = ANY(cm.deleted_by_guru_ids))
+        AND NOT ($3 = ANY(COALESCE(cm.deleted_by_guru_ids, '{}')))
       ORDER BY cm.created_at ASC
       LIMIT 100
     `, [kelasId, activeYear.id, guruId]);
@@ -1511,6 +1592,63 @@ function registerMyMustahiqRoutes(app) {
     }
     if (!activeYear) {
       return res.status(404).json({ error: 'Tahun ajaran aktif tidak ditemukan.' });
+    }
+
+    const senderName = req.user.full_name || 'Ustadz';
+
+    if (kelasId < 0) {
+      const tingkat = -kelasId;
+      // Security check: Mustahiq of same tingkat
+      const accessCheck = await db.query(`
+        SELECT 1 FROM kelas_tahun_ajaran kta
+        JOIN kelas k ON kta.kelas_id = k.id
+        WHERE kta.mustahiq_id = $1 AND kta.tahun_ajaran_id = $2 AND k.tingkat = $3
+        LIMIT 1
+      `, [guruId, activeYear.id, tingkat]);
+
+      if (accessCheck.rows.length === 0) {
+        return res.status(403).json({ error: 'Anda tidak memiliki akses ke ruang obrolan tingkat kelas ini.' });
+      }
+
+      // Insert message into tingkat_group
+      const insertRes = await db.query(`
+        INSERT INTO chat_messages (kelas_id, tingkat_group, tahun_ajaran_id, sender_id, message)
+        VALUES (NULL, $1, $2, $3, $4)
+        RETURNING id, created_at
+      `, [tingkat, activeYear.id, guruId, message]);
+
+      const msgObj = {
+        id: insertRes.rows[0].id,
+        kelas_id: kelasId,
+        tahun_ajaran_id: activeYear.id,
+        sender_id: guruId,
+        sender_name: senderName,
+        message: message,
+        created_at: insertRes.rows[0].created_at
+      };
+
+      // Notify other Mustahiqs at same tingkat
+      const otherGurusRes = await db.query(`
+        SELECT DISTINCT kta.mustahiq_id AS guru_id
+        FROM kelas_tahun_ajaran kta
+        JOIN kelas k ON kta.kelas_id = k.id
+        WHERE k.tingkat = $1 AND kta.tahun_ajaran_id = $2 
+          AND kta.mustahiq_id IS NOT NULL AND kta.mustahiq_id != $3
+      `, [tingkat, activeYear.id, guruId]);
+
+      const { sendNotification } = require('../services/notificationService');
+      const otherGurus = otherGurusRes.rows.map(r => r.guru_id);
+
+      for (const targetId of otherGurus) {
+        sendNotification({
+          title: `Pesan baru di Grup Mustahiq Tingkat ${tingkat}`,
+          body: `${senderName}: ${message}`,
+          category: 'Chat',
+          target: targetId
+        }).catch(err => console.error('[FCM Chat Notification Error]', err));
+      }
+
+      return res.json({ success: true, message: msgObj });
     }
 
     // Security check: Verify guru belongs to this class/room (Directly or same tingkat Mustahiq)
@@ -1538,7 +1676,6 @@ function registerMyMustahiqRoutes(app) {
       RETURNING id, created_at
     `, [kelasId, activeYear.id, guruId, message]);
 
-    const senderName = req.user.full_name || 'Ustadz';
     const msgObj = {
       id: insertRes.rows[0].id,
       kelas_id: kelasId,

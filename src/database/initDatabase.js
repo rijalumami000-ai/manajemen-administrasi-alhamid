@@ -120,6 +120,22 @@ async function initDatabase() {
       ) THEN
         ALTER TABLE santri_tahun_ajaran ADD COLUMN aktif_genap BOOLEAN NOT NULL DEFAULT TRUE;
       END IF;
+
+      -- Drop NOT NULL dari kelas_id di chat_messages jika masih NOT NULL
+      IF EXISTS (
+        SELECT 1 FROM information_schema.columns
+        WHERE table_name = 'chat_messages' AND column_name = 'kelas_id' AND is_nullable = 'NO'
+      ) THEN
+        ALTER TABLE chat_messages ALTER COLUMN kelas_id DROP NOT NULL;
+      END IF;
+
+      -- Tambah kolom tingkat_group ke chat_messages jika belum ada
+      IF NOT EXISTS (
+        SELECT 1 FROM information_schema.columns
+        WHERE table_name = 'chat_messages' AND column_name = 'tingkat_group'
+      ) THEN
+        ALTER TABLE chat_messages ADD COLUMN tingkat_group INTEGER DEFAULT NULL;
+      END IF;
     END
     $$;
   `);

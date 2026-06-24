@@ -31,7 +31,7 @@ class MuhafadzohInfoBottomSheet extends StatefulWidget {
 
 class _MuhafadzohInfoBottomSheetState extends State<MuhafadzohInfoBottomSheet> {
   final ApiService _apiService = ApiService();
-  late Future<List<dynamic>> _infoFuture;
+  Future<List<dynamic>>? _infoFuture;
 
   List<dynamic> _tahunAjaranList = [];
   Map<String, dynamic>? _selectedTahunAjaran;
@@ -256,9 +256,11 @@ class _MuhafadzohInfoBottomSheetState extends State<MuhafadzohInfoBottomSheet> {
 
           // Content Table
           Expanded(
-            child: FutureBuilder<List<dynamic>>(
-              future: _infoFuture,
-              builder: (context, snapshot) {
+            child: _infoFuture == null
+                ? const Center(child: CircularProgressIndicator(color: Colors.blue))
+                : FutureBuilder<List<dynamic>>(
+                    future: _infoFuture,
+                    builder: (context, snapshot) {
                 if (snapshot.connectionState == ConnectionState.waiting) {
                   return const Center(child: CircularProgressIndicator(color: Colors.blue));
                 }

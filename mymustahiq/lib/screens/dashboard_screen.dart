@@ -1,6 +1,7 @@
 import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import '../services/theme_manager.dart';
 import '../services/api_service.dart';
 import 'tab_akademik.dart';
@@ -21,6 +22,7 @@ class DashboardScreen extends StatefulWidget {
 class _DashboardScreenState extends State<DashboardScreen> {
   int _currentIndex = 1; // Default to "Kelasku" tab
   int _unreadNotifications = 0;
+  int _unreadChats = 0;
   final ApiService _apiService = ApiService();
 
   final List<Widget> _tabs = const [
@@ -41,6 +43,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
   void initState() {
     super.initState();
     _fetchUnreadNotificationsCount();
+    _fetchUnreadChatsCount();
     PushNotificationService().registerDeviceToken();
   }
 
@@ -58,6 +61,51 @@ class _DashboardScreenState extends State<DashboardScreen> {
     }
   }
 
+  Future<void> _fetchUnreadChatsCount() async {
+    try {
+      final res = await _apiService.getChatRooms();
+      final rooms = res['rooms'] as List<dynamic>? ?? [];
+      int unreadCount = 0;
+      
+      final dashboard = await _apiService.getDashboard();
+      final currentGuruId = dashboard['user']?['guru_id'] ?? dashboard['user']?['id'];
+      
+      const storage = FlutterSecureStorage();
+
+      for (var room in rooms) {
+        final lastMsg = room['last_message'];
+        if (lastMsg != null) {
+          final senderId = lastMsg['sender_id'];
+          if (senderId != currentGuruId) {
+            final kelasId = room['kelas_id'];
+            final lastMsgTimeStr = lastMsg['created_at'];
+            if (lastMsgTimeStr != null) {
+              final lastMsgTime = DateTime.tryParse(lastMsgTimeStr.toString());
+              if (lastMsgTime != null) {
+                final lastReadStr = await storage.read(key: 'chat_room_last_read_$kelasId');
+                if (lastReadStr == null) {
+                  unreadCount++;
+                } else {
+                  final lastRead = DateTime.tryParse(lastReadStr);
+                  if (lastRead == null || lastMsgTime.isAfter(lastRead)) {
+                    unreadCount++;
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+      if (mounted) {
+        setState(() {
+          _unreadChats = unreadCount;
+        });
+      }
+    } catch (_) {
+      // Ignore background fetch error
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -66,14 +114,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
         backgroundColor: context.isDarkMode ? const Color(0xFF0D1527) : Colors.white.withOpacity(0.45),
         elevation: 0,
         centerTitle: true,
-        title: Text(
-          _tabTitles[_currentIndex],
-          style: GoogleFonts.outfit(
-            color: context.titleColor,
-            fontSize: 18,
-            fontWeight: FontWeight.bold,
-          ),
-        ),
+        title: const SizedBox.shrink(), // Removed the page title next to chat icon as requested
         leading: Padding(
           padding: const EdgeInsets.all(10.0),
           child: Container(
@@ -96,12 +137,34 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 context,
                 MaterialPageRoute(builder: (context) => const ChatRoomsScreen()),
               );
+              _fetchUnreadChatsCount();
             },
             child: Center(
-              child: Icon(
-                Icons.chat_bubble_outline_rounded,
-                color: context.titleColor,
-                size: 22,
+              child: Stack(
+                clipBehavior: Clip.none,
+                children: [
+                  Icon(
+                    Icons.chat_bubble_outline_rounded,
+                    color: context.titleColor,
+                    size: 22,
+                  ),
+                  if (_unreadChats > 0)
+                    Positioned(
+                      right: -3,
+                      top: -3,
+                      child: Container(
+                        padding: const EdgeInsets.all(2),
+                        decoration: const BoxDecoration(
+                          color: Colors.redAccent,
+                          shape: BoxShape.circle,
+                        ),
+                        constraints: const BoxConstraints(
+                          minWidth: 10,
+                          minHeight: 10,
+                        ),
+                      ),
+                    ),
+                ],
               ),
             ),
           ),
