@@ -130,5 +130,19 @@ export const nilaiService = {
 
   saveTaftisyMateri: async (data) => {
     return apiPost('/nilai/taftisy-materi', data);
+  },
+
+  fetchMateriUjianTulis: async (tahunAjaranId, kategoriEvaluasiId, kelasId) => {
+    let url = '/nilai/materi-ujian-tulis';
+    const params = [];
+    if (tahunAjaranId) params.push(`tahun_ajaran_id=${tahunAjaranId}`);
+    if (kategoriEvaluasiId) params.push(`kategori_evaluasi_id=${kategoriEvaluasiId}`);
+    if (kelasId) params.push(`kelas_id=${kelasId}`);
+    if (params.length > 0) url += `?${params.join('&')}`;
+    return apiGet(url);
+  },
+
+  saveMateriUjianTulis: async (data) => {
+    return apiPost('/nilai/materi-ujian-tulis', data);
   }
 };

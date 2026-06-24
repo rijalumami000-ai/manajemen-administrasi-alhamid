@@ -28,13 +28,14 @@ class _InformasiUjianScreenState extends State<InformasiUjianScreen> with Single
   List<dynamic> _muhafadzohList = [];
   List<dynamic> _qiroahList = [];
   List<dynamic> _taftisyList = [];
+  List<dynamic> _ujianTulisList = [];
   bool _isLoadingData = false;
   String? _errorMessage;
 
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 3, vsync: this);
+    _tabController = TabController(length: 4, vsync: this);
     _loadFiltersAndData();
   }
 
@@ -99,11 +100,12 @@ class _InformasiUjianScreenState extends State<InformasiUjianScreen> with Single
       final sem = _selectedSemester;
       final kelasId = widget.kelasMustahiq['id'] as int;
 
-      // Fetch all three sources in parallel
+      // Fetch all sources in parallel
       final results = await Future.wait([
         _apiService.getMuhafadzohInfo(tahunAjaranId: taId, semester: sem),
         _apiService.getQiroahMaqro(tahunAjaranId: taId, semester: sem),
         _apiService.getTaftisyMateri(kelasId: kelasId, tahunAjaranId: taId, semester: sem),
+        _apiService.getMateriUjianTulis(kelasId: kelasId, tahunAjaranId: taId, semester: sem),
       ]);
 
       if (mounted) {
@@ -111,6 +113,7 @@ class _InformasiUjianScreenState extends State<InformasiUjianScreen> with Single
           _muhafadzohList = results[0];
           _qiroahList = results[1];
           _taftisyList = results[2];
+          _ujianTulisList = results[3];
           _isLoadingData = false;
         });
       }
@@ -149,11 +152,12 @@ class _InformasiUjianScreenState extends State<InformasiUjianScreen> with Single
           labelColor: const Color(0xFF10B981),
           unselectedLabelColor: Colors.grey,
           indicatorColor: const Color(0xFF10B981),
-          labelStyle: GoogleFonts.outfit(fontWeight: FontWeight.bold, fontSize: 13),
+          labelStyle: GoogleFonts.outfit(fontWeight: FontWeight.bold, fontSize: 11),
           tabs: const [
             Tab(text: "Muhafadzoh"),
-            Tab(text: "Qiroatul Kitab"),
-            Tab(text: "Taftisyul Kutub"),
+            Tab(text: "Qiroah"),
+            Tab(text: "Taftisy"),
+            Tab(text: "Ujian Tulis"),
           ],
         ),
       ),
@@ -262,6 +266,7 @@ class _InformasiUjianScreenState extends State<InformasiUjianScreen> with Single
                           _buildMuhafadzohTab(classTingkat, isDark, headingColor, borderCol),
                           _buildQiroahTab(classTingkat, isDark, headingColor, borderCol),
                           _buildTaftisyTab(isDark, headingColor, borderCol),
+                          _buildUjianTulisTab(isDark, headingColor, borderCol),
                         ],
                       ),
           ),
@@ -665,6 +670,93 @@ class _InformasiUjianScreenState extends State<InformasiUjianScreen> with Single
           ],
         ),
       ),
+    );
+  }
+
+  Widget _buildUjianTulisTab(bool isDark, Color headingColor, Color borderCol) {
+    if (_ujianTulisList.isEmpty) {
+      return _buildEmptyTabWidget("Tidak ada batasan materi Ujian Tulis untuk kelas ini.");
+    }
+
+    return ListView.builder(
+      physics: const BouncingScrollPhysics(),
+      padding: const EdgeInsets.all(16),
+      itemCount: _ujianTulisList.length + 1,
+      itemBuilder: (context, index) {
+        if (index == 0) {
+          return Padding(
+            padding: const EdgeInsets.only(bottom: 16),
+            child: _buildInfoBanner("Daftar batasan materi Ujian Tulis"),
+          );
+        }
+
+        final item = _ujianTulisList[index - 1];
+        final String pelajaran = item['pelajaran']?.toString() ?? '';
+        final String batasAwal = item['batas_awal']?.toString() ?? '';
+        final String batasAkhir = item['batas_akhir']?.toString() ?? '';
+
+        final isAllEmpty = batasAwal.isEmpty && batasAkhir.isEmpty;
+
+        return Card(
+          color: context.cardBg,
+          elevation: 0,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+            side: BorderSide(color: borderCol),
+          ),
+          margin: const EdgeInsets.only(bottom: 10),
+          child: Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Expanded(
+                      child: Text(
+                        pelajaran,
+                        style: GoogleFonts.outfit(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 14,
+                          color: isDark ? const Color(0xFFC7D2FE) : const Color(0xFF312E81),
+                        ),
+                      ),
+                    ),
+                    if (isAllEmpty)
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                        decoration: BoxDecoration(
+                          color: Colors.grey.withOpacity(0.12),
+                          borderRadius: BorderRadius.circular(6),
+                        ),
+                        child: Text(
+                          "Belum diatur",
+                          style: GoogleFonts.outfit(color: Colors.grey, fontSize: 10, fontStyle: FontStyle.italic),
+                        ),
+                      ),
+                  ],
+                ),
+                if (!isAllEmpty) ...[
+                  const SizedBox(height: 12),
+                  const Divider(height: 1),
+                  const SizedBox(height: 12),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: _buildSubGridCell("Batas Awal", batasAwal, isDark),
+                      ),
+                      Expanded(
+                        child: _buildSubGridCell("Batas Akhir", batasAkhir, isDark),
+                      ),
+                    ],
+                  ),
+                ],
+              ],
+            ),
+          ),
+        );
+      },
     );
   }
 }

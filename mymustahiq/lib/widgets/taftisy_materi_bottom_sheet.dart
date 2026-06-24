@@ -459,118 +459,98 @@ class _TaftisyMateriBottomSheetState extends State<TaftisyMateriBottomSheet> {
       );
     }
 
-    final selectedClass = _classes.firstWhere(
-      (c) => c['id'] == _selectedKelasId,
-      orElse: () => null,
-    );
-    final kelasNama = selectedClass != null ? selectedClass['nama']?.toString() ?? '' : '';
-
     return SingleChildScrollView(
       physics: const BouncingScrollPhysics(),
       padding: const EdgeInsets.only(bottom: 24, left: 16, right: 16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          if (kelasNama.isNotEmpty) ...[
-            Center(
-              child: Container(
-                padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
-                decoration: BoxDecoration(
-                  color: isDark ? const Color(0xFF1E3A8A).withOpacity(0.15) : const Color(0xFFEFF6FF),
-                  borderRadius: BorderRadius.circular(10),
-                  border: Border.all(
-                    color: isDark ? const Color(0xFF3B82F6).withOpacity(0.3) : const Color(0xFFBFDBFE),
-                    width: 1,
-                  ),
-                ),
-                child: Text(
-                  "BATASAN MATERI UJIAN TULIS ${kelasNama.toUpperCase()}",
-                  textAlign: TextAlign.center,
-                  style: GoogleFonts.outfit(
-                    fontSize: 13,
-                    fontWeight: FontWeight.bold,
-                    color: isDark ? const Color(0xFF93C5FD) : const Color(0xFF1E40AF),
-                    letterSpacing: 0.5,
-                  ),
-                ),
+      child: Container(
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: borderCol),
+        ),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(16),
+          child: SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            physics: const BouncingScrollPhysics(),
+            child: DataTable(
+              headingRowColor: MaterialStateProperty.all(
+                isDark ? const Color(0xFF1F2937) : const Color(0xFFF3F4F6),
               ),
-            ),
-            const SizedBox(height: 16),
-          ],
-          Container(
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: borderCol),
-            ),
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(16),
-              child: SingleChildScrollView(
-                scrollDirection: Axis.horizontal,
-                physics: const BouncingScrollPhysics(),
-                child: DataTable(
-                  headingRowColor: MaterialStateProperty.all(
-                    isDark ? const Color(0xFF1E3A8A).withOpacity(0.3) : const Color(0xFFDBEAFE),
-                  ),
-                  columnSpacing: 24,
-                  horizontalMargin: 16,
-                  columns: [
-                    DataColumn(
-                      label: Text('No', style: GoogleFonts.outfit(fontWeight: FontWeight.bold, color: headingColor)),
-                    ),
-                    DataColumn(
-                      label: Text('Batas Akhir', style: GoogleFonts.outfit(fontWeight: FontWeight.bold, color: headingColor)),
-                    ),
-                    DataColumn(
-                      label: Text('Batas Awal', style: GoogleFonts.outfit(fontWeight: FontWeight.bold, color: headingColor)),
-                    ),
-                    DataColumn(
-                      label: Text('Halaman', style: GoogleFonts.outfit(fontWeight: FontWeight.bold, color: headingColor)),
-                    ),
-                    DataColumn(
-                      label: Text('Pelajaran', style: GoogleFonts.outfit(fontWeight: FontWeight.bold, color: headingColor)),
-                    ),
-                  ],
-                  rows: List<DataRow>.generate(_taftisyMateri.length, (index) {
-                    final item = _taftisyMateri[index];
-                    final String pelajaran = item['pelajaran']?.toString() ?? '';
-                    final String batasAwal = item['batas_awal']?.toString() ?? '';
-                    final String batasAkhir = item['batas_akhir']?.toString() ?? '';
-                    final String halaman = item['halaman']?.toString() ?? '';
+              columnSpacing: 24,
+              horizontalMargin: 16,
+              columns: [
+                DataColumn(
+                  label: Text('No', style: GoogleFonts.outfit(fontWeight: FontWeight.bold, color: headingColor)),
+                ),
+                DataColumn(
+                  label: Text('Pelajaran', style: GoogleFonts.outfit(fontWeight: FontWeight.bold, color: headingColor)),
+                ),
+                DataColumn(
+                  label: Text('Batas Awal', style: GoogleFonts.outfit(fontWeight: FontWeight.bold, color: headingColor)),
+                ),
+                DataColumn(
+                  label: Text('Batas Akhir', style: GoogleFonts.outfit(fontWeight: FontWeight.bold, color: headingColor)),
+                ),
+                DataColumn(
+                  label: Text('Halaman', style: GoogleFonts.outfit(fontWeight: FontWeight.bold, color: headingColor)),
+                ),
+              ],
+              rows: List<DataRow>.generate(_taftisyMateri.length, (index) {
+                final item = _taftisyMateri[index];
+                final String pelajaran = item['pelajaran']?.toString() ?? '';
+                final String batasAwal = item['batas_awal']?.toString() ?? '';
+                final String batasAkhir = item['batas_akhir']?.toString() ?? '';
+                final String halaman = item['halaman']?.toString() ?? '';
 
-                    Widget buildTextCell(String text, {bool isPelajaran = false}) {
-                      if (text.isEmpty) {
-                        return Text(
-                          "-",
-                          style: GoogleFonts.outfit(color: Colors.grey),
-                        );
-                      }
-                      return Text(
-                        text,
-                        style: GoogleFonts.outfit(
-                          fontWeight: isPelajaran ? FontWeight.w600 : FontWeight.normal,
-                          color: isPelajaran
-                              ? (isDark ? const Color(0xFF93C5FD) : const Color(0xFF1E40AF))
-                              : (isDark ? Colors.white70 : Colors.black87),
-                          fontSize: 13,
-                        ),
-                      );
-                    }
+                final isAllEmpty = batasAwal.isEmpty && batasAkhir.isEmpty && halaman.isEmpty;
 
-                    return DataRow(
-                      cells: [
-                        DataCell(Text((index + 1).toString(), style: GoogleFonts.outfit(color: Colors.grey))),
-                        DataCell(buildTextCell(batasAkhir)),
-                        DataCell(buildTextCell(batasAwal)),
-                        DataCell(buildTextCell(halaman)),
-                        DataCell(buildTextCell(pelajaran, isPelajaran: true)),
-                      ],
+                Widget buildTextCell(String text, {bool isPelajaran = false}) {
+                  if (text.isEmpty) {
+                    return Text(
+                      "-",
+                      style: GoogleFonts.outfit(color: Colors.grey),
                     );
-                  }),
-                ),
-              ),
+                  }
+                  return Text(
+                    text,
+                    style: GoogleFonts.outfit(
+                      fontWeight: isPelajaran ? FontWeight.w600 : FontWeight.normal,
+                      color: isPelajaran
+                          ? (isDark ? const Color(0xFFC7D2FE) : const Color(0xFF312E81))
+                          : (isDark ? Colors.white70 : Colors.black87),
+                      fontSize: 13,
+                    ),
+                  );
+                }
+
+                return DataRow(
+                  cells: [
+                    DataCell(Text((index + 1).toString(), style: GoogleFonts.outfit(color: Colors.grey))),
+                    DataCell(buildTextCell(pelajaran, isPelajaran: true)),
+                    if (isAllEmpty) ...[
+                      DataCell(
+                        Text(
+                          "Belum diatur",
+                          style: GoogleFonts.outfit(
+                            fontStyle: FontStyle.italic,
+                            color: Colors.grey,
+                            fontSize: 12,
+                          ),
+                        ),
+                      ),
+                      const DataCell(Text("")),
+                      const DataCell(Text("")),
+                    ] else ...[
+                      DataCell(buildTextCell(batasAwal)),
+                      DataCell(buildTextCell(batasAkhir)),
+                      DataCell(buildTextCell(halaman)),
+                    ],
+                  ],
+                );
+              }),
             ),
           ),
-        ],
+        ),
       ),
     );
   }

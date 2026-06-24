@@ -187,6 +187,11 @@ export function InformasiUjian() {
   const [taftisyMateri, setTaftisyMateri] = useState([]);
   const [editTaftisyMateri, setEditTaftisyMateri] = useState([]);
   const [isEditingTaftisy, setIsEditingTaftisy] = useState(false);
+
+  // Ujian Tulis states
+  const [ujianTulisMateri, setUjianTulisMateri] = useState([]);
+  const [editUjianTulisMateri, setEditUjianTulisMateri] = useState([]);
+  const [isEditingUjianTulis, setIsEditingUjianTulis] = useState(false);
   
   const [loading, setLoading] = useState(true);
   const [saveLoading, setSaveLoading] = useState(false);
@@ -251,6 +256,7 @@ export function InformasiUjian() {
   useEffect(() => {
     if (tahunAjaran?.id && selectedKategori && selectedKelas) {
       fetchTaftisyData();
+      fetchUjianTulisData();
     }
   }, [tahunAjaran, selectedKategori, selectedKelas]);
 
@@ -290,6 +296,19 @@ export function InformasiUjian() {
     } catch (err) {
       console.error('Failed to fetch taftisy info:', err);
       message.error('Gagal mengambil data batasan materi Taftisyul Kutub.');
+    }
+  };
+
+  const fetchUjianTulisData = async () => {
+    try {
+      setIsEditingUjianTulis(false);
+      const data = await nilaiService.fetchMateriUjianTulis(tahunAjaran.id, selectedKategori, selectedKelas);
+      const sorted = Array.isArray(data) ? data : [];
+      setUjianTulisMateri(sorted);
+      setEditUjianTulisMateri(JSON.parse(JSON.stringify(sorted)));
+    } catch (err) {
+      console.error('Failed to fetch written exam info:', err);
+      message.error('Gagal mengambil data batasan materi Ujian Tulis.');
     }
   };
 
@@ -407,6 +426,39 @@ export function InformasiUjian() {
     setIsEditingTaftisy(false);
   };
 
+  // Ujian Tulis change handlers
+  const handleUjianTulisInputChange = (index, field, value) => {
+    const updated = [...editUjianTulisMateri];
+    updated[index][field] = value;
+    setEditUjianTulisMateri(updated);
+  };
+
+  const handleUjianTulisSave = async () => {
+    if (!tahunAjaran?.id || !selectedKategori || !selectedKelas) return;
+    try {
+      setSaveLoading(true);
+      await nilaiService.saveMateriUjianTulis({
+        tahun_ajaran_id: tahunAjaran.id,
+        kategori_evaluasi_id: selectedKategori,
+        kelas_id: selectedKelas,
+        data: editUjianTulisMateri
+      });
+      message.success('Batasan materi Ujian Tulis berhasil diperbarui!');
+      setUjianTulisMateri(JSON.parse(JSON.stringify(editUjianTulisMateri)));
+      setIsEditingUjianTulis(false);
+    } catch (err) {
+      console.error('Failed to save written exam materi:', err);
+      message.error(err.message || 'Gagal menyimpan batasan materi.');
+    } finally {
+      setSaveLoading(false);
+    }
+  };
+
+  const handleUjianTulisCancel = () => {
+    setEditUjianTulisMateri(JSON.parse(JSON.stringify(ujianTulisMateri)));
+    setIsEditingUjianTulis(false);
+  };
+
   const handleInitializeMuhafadzoh = (type) => {
     const template = type === 'default' ? defaultMuhafadzohTemplate : emptyMuhafadzohTemplate;
     setEditData(JSON.parse(JSON.stringify(template)));
@@ -418,6 +470,92 @@ export function InformasiUjian() {
     setEditQiroahMaqro(JSON.parse(JSON.stringify(template)));
     setIsEditingQiroah(true);
   };
+
+  const ujianTulisColumns = [
+    {
+      title: 'No',
+      key: 'index',
+      width: 60,
+      align: 'center',
+      render: (text, record, index) => index + 1
+    },
+    {
+      title: 'Pelajaran',
+      dataIndex: 'pelajaran',
+      key: 'pelajaran',
+      width: 250,
+      render: (text) => {
+        const isArabic = /[\u0600-\u06FF]/.test(text);
+        return (
+          <Text 
+            strong 
+            className={isArabic ? "arabic-text" : ""}
+            style={isArabic ? { fontSize: '18px', color: '#1a365d' } : { color: '#1a365d' }}
+          >
+            {text}
+          </Text>
+        );
+      }
+    },
+    {
+      title: 'Batas Awal',
+      dataIndex: 'batas_awal',
+      key: 'batas_awal',
+      align: 'center',
+      render: (text, record, index) => {
+        if (isEditingUjianTulis) {
+          const isArabic = /[\u0600-\u06FF]/.test(editUjianTulisMateri[index]?.batas_awal || '');
+          return (
+            <Input 
+              value={editUjianTulisMateri[index]?.batas_awal} 
+              className={isArabic ? "arabic-text" : ""}
+              style={isArabic ? { direction: 'rtl', textAlign: 'right' } : {}}
+              onChange={(e) => handleUjianTulisInputChange(index, 'batas_awal', e.target.value)} 
+            />
+          );
+        }
+        const isArabic = /[\u0600-\u06FF]/.test(text);
+        return (
+          <Text 
+            className={isArabic ? "arabic-text" : ""} 
+            style={isArabic ? { fontSize: '18px', color: '#0f172a' } : { color: '#334155' }} 
+            strong
+          >
+            {text || '-'}
+          </Text>
+        );
+      }
+    },
+    {
+      title: 'Batas Akhir',
+      dataIndex: 'batas_akhir',
+      key: 'batas_akhir',
+      align: 'center',
+      render: (text, record, index) => {
+        if (isEditingUjianTulis) {
+          const isArabic = /[\u0600-\u06FF]/.test(editUjianTulisMateri[index]?.batas_akhir || '');
+          return (
+            <Input 
+              value={editUjianTulisMateri[index]?.batas_akhir} 
+              className={isArabic ? "arabic-text" : ""}
+              style={isArabic ? { direction: 'rtl', textAlign: 'right' } : {}}
+              onChange={(e) => handleUjianTulisInputChange(index, 'batas_akhir', e.target.value)} 
+            />
+          );
+        }
+        const isArabic = /[\u0600-\u06FF]/.test(text);
+        return (
+          <Text 
+            className={isArabic ? "arabic-text" : ""} 
+            style={isArabic ? { fontSize: '18px', color: '#0f172a' } : { color: '#334155' }} 
+            strong
+          >
+            {text || '-'}
+          </Text>
+        );
+      }
+    }
+  ];
 
   const taftisyColumns = [
     {
@@ -1059,6 +1197,104 @@ export function InformasiUjian() {
                       <Table 
                         dataSource={isEditingTaftisy ? editTaftisyMateri : taftisyMateri} 
                         columns={taftisyColumns} 
+                        pagination={false} 
+                        size="middle"
+                        bordered
+                        rowKey={(record, idx) => idx}
+                      />
+                    ) : (
+                      <Alert
+                        message="Jadwal Pelajaran Belum Dikonfigurasi"
+                        description={
+                          <div>
+                            Tidak ditemukan mata pelajaran Reguler untuk tingkat kelas ini pada tahun ajaran dan semester terpilih. 
+                            Silakan konfigurasikan <strong>Jadwal Pelajaran</strong> terlebih dahulu untuk memuat daftar pelajaran secara otomatis.
+                          </div>
+                        }
+                        type="info"
+                        showIcon
+                      />
+                    )}
+                  </Card>
+                </div>
+              )
+            },
+            {
+              key: 'materi-ujian-tulis',
+              label: (
+                <span>
+                  <BookOutlined />
+                  Batas Materi Ujian Tulis
+                </span>
+              ),
+              children: (
+                <div style={{ marginTop: '16px' }}>
+                  <Alert 
+                    message="Informasi Penting & Administratif" 
+                    description={
+                      <div>
+                        Tabel ini merupakan acuan batasan materi (**Batas Awal, Batas Akhir**) Ujian Tulis yang berlaku di Ponpes Al-Hamid. 
+                        <strong> Data pelajaran diambil otomatis dari Jadwal Pelajaran (Reguler) tingkat kelas terkait untuk tahun ajaran dan semester terpilih.</strong>
+                      </div>
+                    } 
+                    type="warning" 
+                    showIcon 
+                    style={{ marginBottom: 20, borderRadius: '8px' }}
+                  />
+
+                  <div style={{ marginBottom: 20, display: 'flex', gap: '12px', alignItems: 'center' }}>
+                    <Text strong>Pilih Kelas Diniyah:</Text>
+                    <Select
+                      style={{ width: 200 }}
+                      placeholder="Pilih Kelas"
+                      value={selectedKelas}
+                      onChange={setSelectedKelas}
+                      options={classList.map(c => ({ value: c.id, label: c.nama }))}
+                      disabled={isEditingUjianTulis}
+                    />
+                  </div>
+
+                  <Card 
+                    title={`Batasan Materi Ujian Tulis - Kelas ${classList.find(c => c.id === selectedKelas)?.nama || ''}`}
+                    extra={
+                      isEditingUjianTulis ? (
+                        <Space>
+                          <Button 
+                            icon={<CloseOutlined />} 
+                            onClick={handleUjianTulisCancel}
+                            disabled={saveLoading}
+                          >
+                            Batal
+                          </Button>
+                          <Button 
+                            type="primary" 
+                            icon={<SaveOutlined />} 
+                            onClick={handleUjianTulisSave}
+                            loading={saveLoading}
+                            style={{ backgroundColor: '#10b981', borderColor: '#10b981' }}
+                          >
+                            Simpan Perubahan
+                          </Button>
+                        </Space>
+                      ) : (
+                        <Button 
+                          type="primary" 
+                          icon={<EditOutlined />} 
+                          onClick={() => setIsEditingUjianTulis(true)}
+                          disabled={isEditing || isEditingQiroah || isEditingTaftisy || !selectedKelas || ujianTulisMateri.length === 0}
+                        >
+                          Ubah Batasan
+                        </Button>
+                      )
+                    }
+                    style={{ borderRadius: '8px', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05), 0 2px 4px -1px rgba(0,0,0,0.06)' }}
+                  >
+                    {!selectedKelas ? (
+                      <Empty description="Silakan pilih kelas diniyah terlebih dahulu." />
+                    ) : ujianTulisMateri.length > 0 || isEditingUjianTulis ? (
+                      <Table 
+                        dataSource={isEditingUjianTulis ? editUjianTulisMateri : ujianTulisMateri} 
+                        columns={ujianTulisColumns} 
                         pagination={false} 
                         size="middle"
                         bordered

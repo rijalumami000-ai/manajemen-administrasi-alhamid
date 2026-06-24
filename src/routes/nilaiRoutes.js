@@ -614,6 +614,89 @@ Write-Host "SCAN_SUCCESS"
     }
   });
 
+  router.get('/materi-ujian-tulis', async (req, res, next) => {
+    const db = require('../../db');
+    const { tahun_ajaran_id, kategori_evaluasi_id, kelas_id } = req.query;
+
+    if (!tahun_ajaran_id || !kategori_evaluasi_id || !kelas_id) {
+      return res.status(400).json({ error: 'tahun_ajaran_id, kategori_evaluasi_id, dan kelas_id wajib disertakan.' });
+    }
+
+    try {
+      const key = `materi_ujian_tulis_${tahun_ajaran_id}_${kategori_evaluasi_id}_${kelas_id}`;
+      const result = await db.query('SELECT value FROM system_settings WHERE key = $1 LIMIT 1', [key]);
+      
+      if (result.rows.length > 0) {
+        return res.json(JSON.parse(result.rows[0].value));
+      }
+
+      // Query the class information to get the tingkat
+      const classRes = await db.query('SELECT nama, tingkat FROM kelas WHERE id = $1 LIMIT 1', [kelas_id]);
+      const classInfo = classRes.rows[0];
+
+      let defaultData = [];
+      if (classInfo) {
+        let tingkat = classInfo.tingkat;
+        if (classInfo.nama === 'SP' && classInfo.tingkat === 1) {
+          tingkat = 99;
+        }
+        // Query the regular subjects from mapel_tingkat for this tingkat, academic year, and category
+        const mapelRes = await db.query(`
+          SELECT DISTINCT mp.nama
+          FROM mapel_tingkat mt
+          JOIN mata_pelajaran mp ON mp.id = mt.mata_pelajaran_id
+          WHERE mt.tingkat = $1
+            AND (mt.tahun_ajaran_id = $2 OR mt.tahun_ajaran_id IS NULL)
+            AND (mt.kategori_evaluasi_id = $3 OR mt.kategori_evaluasi_id IS NULL)
+            AND mp.jenis = 'Reguler'
+          ORDER BY mp.nama
+        `, [tingkat, tahun_ajaran_id, kategori_evaluasi_id]);
+
+        defaultData = mapelRes.rows.map(row => ({
+          pelajaran: row.nama,
+          batas_awal: "",
+          batas_akhir: ""
+        }));
+      }
+
+      // Check if requested year is active
+      const activeYearRes = await db.query('SELECT id FROM tahun_ajaran WHERE is_active = true LIMIT 1');
+      const activeYearId = activeYearRes.rows[0]?.id;
+
+      if (activeYearId && Number(tahun_ajaran_id) === activeYearId && defaultData.length > 0) {
+        // Auto initialize database entry for active year
+        await db.query(
+          "INSERT INTO system_settings (key, value) VALUES ($1, $2) ON CONFLICT (key) DO UPDATE SET value = $2",
+          [key, JSON.stringify(defaultData)]
+        );
+      }
+
+      return res.json(defaultData);
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  router.post('/materi-ujian-tulis', async (req, res, next) => {
+    const db = require('../../db');
+    const { tahun_ajaran_id, kategori_evaluasi_id, kelas_id, data } = req.body;
+
+    if (!tahun_ajaran_id || !kategori_evaluasi_id || !kelas_id || !Array.isArray(data)) {
+      return res.status(400).json({ error: 'tahun_ajaran_id, kategori_evaluasi_id, kelas_id, dan data (array) wajib diisi.' });
+    }
+
+    try {
+      const key = `materi_ujian_tulis_${tahun_ajaran_id}_${kategori_evaluasi_id}_${kelas_id}`;
+      await db.query(
+        "INSERT INTO system_settings (key, value) VALUES ($1, $2) ON CONFLICT (key) DO UPDATE SET value = $2",
+        [key, JSON.stringify(data)]
+      );
+      res.json({ success: true, message: 'Batasan materi ujian tulis berhasil diperbarui.' });
+    } catch (error) {
+      next(error);
+    }
+  });
+
   app.use('/api/nilai', router);
 }
 
