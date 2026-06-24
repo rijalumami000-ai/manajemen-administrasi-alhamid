@@ -132,12 +132,12 @@ export const nilaiService = {
     return apiPost('/nilai/taftisy-materi', data);
   },
 
-  fetchMateriUjianTulis: async (tahunAjaranId, kategoriEvaluasiId, kelasId) => {
+  fetchMateriUjianTulis: async (tahunAjaranId, kategoriEvaluasiId, tingkat) => {
     let url = '/nilai/materi-ujian-tulis';
     const params = [];
     if (tahunAjaranId) params.push(`tahun_ajaran_id=${tahunAjaranId}`);
     if (kategoriEvaluasiId) params.push(`kategori_evaluasi_id=${kategoriEvaluasiId}`);
-    if (kelasId) params.push(`kelas_id=${kelasId}`);
+    if (tingkat !== undefined && tingkat !== null) params.push(`tingkat=${tingkat}`);
     if (params.length > 0) url += `?${params.join('&')}`;
     return apiGet(url);
   },

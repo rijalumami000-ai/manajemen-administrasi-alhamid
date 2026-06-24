@@ -165,6 +165,17 @@ const emptyMaqroTemplate = [
   { kelas: "Enam", maqro: [""] }
 ];
 
+const staticTingkatanList = [
+  { value: 0, label: 'Sifir' },
+  { value: 1, label: 'Kelas 1' },
+  { value: 99, label: 'SP' },
+  { value: 2, label: 'Kelas 2' },
+  { value: 3, label: 'Kelas 3' },
+  { value: 4, label: 'Kelas 4' },
+  { value: 5, label: 'Kelas 5' },
+  { value: 6, label: 'Kelas 6' }
+];
+
 export function InformasiUjian() {
   const [tahunAjaran, setTahunAjaran] = useState(null);
   const [tahunAjaranList, setTahunAjaranList] = useState([]);
@@ -189,6 +200,7 @@ export function InformasiUjian() {
   const [isEditingTaftisy, setIsEditingTaftisy] = useState(false);
 
   // Ujian Tulis states
+  const [selectedTingkatUjianTulis, setSelectedTingkatUjianTulis] = useState(0);
   const [ujianTulisMateri, setUjianTulisMateri] = useState([]);
   const [editUjianTulisMateri, setEditUjianTulisMateri] = useState([]);
   const [isEditingUjianTulis, setIsEditingUjianTulis] = useState(false);
@@ -256,9 +268,15 @@ export function InformasiUjian() {
   useEffect(() => {
     if (tahunAjaran?.id && selectedKategori && selectedKelas) {
       fetchTaftisyData();
-      fetchUjianTulisData();
     }
   }, [tahunAjaran, selectedKategori, selectedKelas]);
+
+  // Fetch ujian tulis data whenever filters or tingkat change
+  useEffect(() => {
+    if (tahunAjaran?.id && selectedKategori && (selectedTingkatUjianTulis !== null && selectedTingkatUjianTulis !== undefined)) {
+      fetchUjianTulisData();
+    }
+  }, [tahunAjaran, selectedKategori, selectedTingkatUjianTulis]);
 
   const fetchData = async () => {
     try {
@@ -302,7 +320,7 @@ export function InformasiUjian() {
   const fetchUjianTulisData = async () => {
     try {
       setIsEditingUjianTulis(false);
-      const data = await nilaiService.fetchMateriUjianTulis(tahunAjaran.id, selectedKategori, selectedKelas);
+      const data = await nilaiService.fetchMateriUjianTulis(tahunAjaran.id, selectedKategori, selectedTingkatUjianTulis);
       const sorted = Array.isArray(data) ? data : [];
       setUjianTulisMateri(sorted);
       setEditUjianTulisMateri(JSON.parse(JSON.stringify(sorted)));
@@ -434,13 +452,13 @@ export function InformasiUjian() {
   };
 
   const handleUjianTulisSave = async () => {
-    if (!tahunAjaran?.id || !selectedKategori || !selectedKelas) return;
+    if (!tahunAjaran?.id || !selectedKategori || selectedTingkatUjianTulis === null || selectedTingkatUjianTulis === undefined) return;
     try {
       setSaveLoading(true);
       await nilaiService.saveMateriUjianTulis({
         tahun_ajaran_id: tahunAjaran.id,
         kategori_evaluasi_id: selectedKategori,
-        kelas_id: selectedKelas,
+        tingkat: selectedTingkatUjianTulis,
         data: editUjianTulisMateri
       });
       message.success('Batasan materi Ujian Tulis berhasil diperbarui!');
@@ -1243,19 +1261,19 @@ export function InformasiUjian() {
                   />
 
                   <div style={{ marginBottom: 20, display: 'flex', gap: '12px', alignItems: 'center' }}>
-                    <Text strong>Pilih Kelas Diniyah:</Text>
+                    <Text strong>Pilih Tingkatan:</Text>
                     <Select
                       style={{ width: 200 }}
-                      placeholder="Pilih Kelas"
-                      value={selectedKelas}
-                      onChange={setSelectedKelas}
-                      options={classList.map(c => ({ value: c.id, label: c.nama }))}
+                      placeholder="Pilih Tingkat"
+                      value={selectedTingkatUjianTulis}
+                      onChange={setSelectedTingkatUjianTulis}
+                      options={staticTingkatanList}
                       disabled={isEditingUjianTulis}
                     />
                   </div>
 
                   <Card 
-                    title={`Batasan Materi Ujian Tulis - Kelas ${classList.find(c => c.id === selectedKelas)?.nama || ''}`}
+                    title={`Batasan Materi Ujian Tulis - ${staticTingkatanList.find(t => t.value === selectedTingkatUjianTulis)?.label || ''}`}
                     extra={
                       isEditingUjianTulis ? (
                         <Space>
@@ -1281,7 +1299,7 @@ export function InformasiUjian() {
                           type="primary" 
                           icon={<EditOutlined />} 
                           onClick={() => setIsEditingUjianTulis(true)}
-                          disabled={isEditing || isEditingQiroah || isEditingTaftisy || !selectedKelas || ujianTulisMateri.length === 0}
+                          disabled={isEditing || isEditingQiroah || isEditingTaftisy || (selectedTingkatUjianTulis === null || selectedTingkatUjianTulis === undefined) || ujianTulisMateri.length === 0}
                         >
                           Ubah Batasan
                         </Button>
@@ -1289,8 +1307,8 @@ export function InformasiUjian() {
                     }
                     style={{ borderRadius: '8px', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05), 0 2px 4px -1px rgba(0,0,0,0.06)' }}
                   >
-                    {!selectedKelas ? (
-                      <Empty description="Silakan pilih kelas diniyah terlebih dahulu." />
+                    {(selectedTingkatUjianTulis === null || selectedTingkatUjianTulis === undefined) ? (
+                      <Empty description="Silakan pilih tingkatan terlebih dahulu." />
                     ) : ujianTulisMateri.length > 0 || isEditingUjianTulis ? (
                       <Table 
                         dataSource={isEditingUjianTulis ? editUjianTulisMateri : ujianTulisMateri} 

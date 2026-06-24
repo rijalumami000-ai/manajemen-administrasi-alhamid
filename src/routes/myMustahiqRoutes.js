@@ -1931,40 +1931,45 @@ function registerMyMustahiqRoutes(app) {
     );
     const kategoriId = katResult.rows[0] ? katResult.rows[0].id : (activeSemester.toLowerCase().includes('genap') ? 2 : 1);
 
-    const key = `materi_ujian_tulis_${activeYear.id}_${kategoriId}_${kelas_id}`;
+    // Query the class information to get the tingkat
+    const classRes = await db.query('SELECT nama, tingkat FROM kelas WHERE id = $1 LIMIT 1', [kelas_id]);
+    const classInfo = classRes.rows[0];
+    let tingkat = null;
+    if (classInfo) {
+      tingkat = classInfo.tingkat;
+      if (classInfo.nama === 'SP' && classInfo.tingkat === 1) {
+        tingkat = 99;
+      }
+    }
+
+    if (tingkat === null) {
+      return res.status(400).json({ error: 'Kelas tidak ditemukan atau tidak valid.' });
+    }
+
+    const key = `materi_ujian_tulis_${activeYear.id}_${kategoriId}_${tingkat}`;
     const result = await db.query("SELECT value FROM system_settings WHERE key = $1 LIMIT 1", [key]);
 
     if (result.rows.length > 0) {
       return res.json(JSON.parse(result.rows[0].value));
     }
 
-    // Query the class information to get the tingkat
-    const classRes = await db.query('SELECT nama, tingkat FROM kelas WHERE id = $1 LIMIT 1', [kelas_id]);
-    const classInfo = classRes.rows[0];
-    if (classInfo && classInfo.nama === 'SP' && classInfo.tingkat === 1) {
-      classInfo.tingkat = 99;
-    }
+    // Query the regular subjects from mapel_tingkat for this tingkat, academic year, and category
+    const mapelRes = await db.query(`
+      SELECT DISTINCT mp.nama
+      FROM mapel_tingkat mt
+      JOIN mata_pelajaran mp ON mp.id = mt.mata_pelajaran_id
+      WHERE mt.tingkat = $1
+        AND (mt.tahun_ajaran_id = $2 OR mt.tahun_ajaran_id IS NULL)
+        AND (mt.kategori_evaluasi_id = $3 OR mt.kategori_evaluasi_id IS NULL)
+        AND mp.jenis = 'Reguler'
+      ORDER BY mp.nama
+    `, [tingkat, activeYear.id, kategoriId]);
 
-    let defaultData = [];
-    if (classInfo) {
-      // Query the regular subjects from mapel_tingkat for this tingkat, academic year, and category
-      const mapelRes = await db.query(`
-        SELECT DISTINCT mp.nama
-        FROM mapel_tingkat mt
-        JOIN mata_pelajaran mp ON mp.id = mt.mata_pelajaran_id
-        WHERE mt.tingkat = $1
-          AND (mt.tahun_ajaran_id = $2 OR mt.tahun_ajaran_id IS NULL)
-          AND (mt.kategori_evaluasi_id = $3 OR mt.kategori_evaluasi_id IS NULL)
-          AND mp.jenis = 'Reguler'
-        ORDER BY mp.nama
-      `, [classInfo.tingkat, activeYear.id, kategoriId]);
-
-      defaultData = mapelRes.rows.map(row => ({
-        pelajaran: row.nama,
-        batas_awal: "",
-        batas_akhir: ""
-      }));
-    }
+    const defaultData = mapelRes.rows.map(row => ({
+      pelajaran: row.nama,
+      batas_awal: "",
+      batas_akhir: ""
+    }));
 
     // Check if requested year is active
     const activeYearRes2 = await db.query('SELECT id FROM tahun_ajaran WHERE is_active = true LIMIT 1');
