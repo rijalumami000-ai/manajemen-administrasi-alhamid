@@ -49,7 +49,7 @@ function initFCM() {
   }
 }
 
-async function sendNotification({ title, body, category, target }) {
+async function sendNotification({ title, body, category, target, data }) {
   // 1. Identify target guru IDs
   let guruIds = [];
   if (target === 'all') {
@@ -120,16 +120,21 @@ async function sendNotification({ title, body, category, target }) {
   
   // Send multicast message
   try {
+    const fcmData = Object.keys(data || {}).reduce((acc, key) => {
+      acc[key] = String(data[key]);
+      return acc;
+    }, {
+      category: category || 'Pengumuman',
+      click_action: 'FLUTTER_NOTIFICATION_CLICK',
+    });
+
     const response = await messagingInstance.sendEachForMulticast({
       tokens: tokens,
       notification: {
         title: title,
         body: body,
       },
-      data: {
-        category: category || 'Pengumuman',
-        click_action: 'FLUTTER_NOTIFICATION_CLICK',
-      },
+      data: fcmData,
       android: {
         notification: {
           sound: 'default',

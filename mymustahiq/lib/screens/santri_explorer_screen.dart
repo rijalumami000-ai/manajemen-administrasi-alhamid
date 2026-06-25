@@ -4,6 +4,8 @@ import '../services/api_service.dart';
 import '../services/theme_manager.dart';
 import '../models/models.dart';
 import 'santri_detail_screen.dart';
+import '../services/network_service.dart';
+import '../widgets/offline_widget.dart';
 
 class SantriExplorerScreen extends StatefulWidget {
   final int? kelasId;
@@ -82,6 +84,14 @@ class _SantriExplorerScreenState extends State<SantriExplorerScreen> {
       _isLoading = true;
       _errorMessage = null;
     });
+
+    if (!NetworkService().isOnline) {
+      setState(() {
+        _isLoading = false;
+        _errorMessage = 'NO_INTERNET';
+      });
+      return;
+    }
 
     try {
       if (_tahunAjaranList.isEmpty) {
@@ -277,31 +287,33 @@ class _SantriExplorerScreenState extends State<SantriExplorerScreen> {
               ),
             )
           : _errorMessage != null && !hasClassLoaded
-              ? Center(
-                  child: Padding(
-                    padding: const EdgeInsets.all(24.0),
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        const Icon(Icons.error_outline_rounded, color: Colors.amber, size: 48),
-                        const SizedBox(height: 16),
-                        Text(
-                          _errorMessage!,
-                          textAlign: TextAlign.center,
-                          style: GoogleFonts.outfit(color: context.titleColor, fontSize: 15),
+              ? (_errorMessage == 'NO_INTERNET'
+                  ? OfflineWidget(onRetry: _fetchStudentsData)
+                  : Center(
+                      child: Padding(
+                        padding: const EdgeInsets.all(24.0),
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            const Icon(Icons.error_outline_rounded, color: Colors.amber, size: 48),
+                            const SizedBox(height: 16),
+                            Text(
+                              _errorMessage!,
+                              textAlign: TextAlign.center,
+                              style: GoogleFonts.outfit(color: context.titleColor, fontSize: 15),
+                            ),
+                            const SizedBox(height: 20),
+                            ElevatedButton(
+                              onPressed: _fetchStudentsData,
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: const Color(0xFF064E3B),
+                              ),
+                              child: Text('Coba Lagi', style: GoogleFonts.outfit(color: Colors.white)),
+                            ),
+                          ],
                         ),
-                        const SizedBox(height: 20),
-                        ElevatedButton(
-                          onPressed: _fetchStudentsData,
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: const Color(0xFF064E3B),
-                          ),
-                          child: Text('Coba Lagi', style: GoogleFonts.outfit(color: Colors.white)),
-                        ),
-                      ],
-                    ),
-                  ),
-                )
+                      ),
+                    ))
               : Column(
                   children: [
                     // Year & Semester Filter Bar

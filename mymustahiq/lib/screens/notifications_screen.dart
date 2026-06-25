@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../services/api_service.dart';
 import '../services/theme_manager.dart';
+import '../services/network_service.dart';
+import '../widgets/offline_widget.dart';
 
 class NotificationsScreen extends StatefulWidget {
   const NotificationsScreen({super.key});
@@ -28,6 +30,14 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
       _isLoading = true;
       _errorMessage = null;
     });
+
+    if (!NetworkService().isOnline) {
+      setState(() {
+        _isLoading = false;
+        _errorMessage = 'NO_INTERNET';
+      });
+      return;
+    }
 
     try {
       final list = await _apiService.getNotifications();
@@ -511,6 +521,9 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
   }
 
   Widget _buildErrorWidget() {
+    if (_errorMessage == 'NO_INTERNET') {
+      return OfflineWidget(onRetry: _fetchNotifications);
+    }
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(24.0),

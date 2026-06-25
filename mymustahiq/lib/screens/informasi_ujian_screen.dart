@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../services/api_service.dart';
 import '../services/theme_manager.dart';
+import '../services/network_service.dart';
+import '../widgets/offline_widget.dart';
 
 class InformasiUjianScreen extends StatefulWidget {
   final Map<String, dynamic> kelasMustahiq;
@@ -60,6 +62,13 @@ class _InformasiUjianScreenState extends State<InformasiUjianScreen> with Single
   }
 
   Future<void> _loadFiltersAndData() async {
+    if (!NetworkService().isOnline) {
+      setState(() {
+        _loadingFilters = false;
+        _errorMessage = 'NO_INTERNET';
+      });
+      return;
+    }
     try {
       final taResult = await _apiService.getTahunAjaranList();
       _tahunAjaranList = taResult['tahunAjaran'] ?? [];
@@ -94,6 +103,14 @@ class _InformasiUjianScreenState extends State<InformasiUjianScreen> with Single
       _isLoadingData = true;
       _errorMessage = null;
     });
+
+    if (!NetworkService().isOnline) {
+      setState(() {
+        _isLoadingData = false;
+        _errorMessage = 'NO_INTERNET';
+      });
+      return;
+    }
 
     try {
       final taId = _selectedTahunAjaran!['id'] as int;
@@ -276,6 +293,9 @@ class _InformasiUjianScreenState extends State<InformasiUjianScreen> with Single
   }
 
   Widget _buildErrorWidget() {
+    if (_errorMessage == 'NO_INTERNET') {
+      return OfflineWidget(onRetry: _fetchTabsData);
+    }
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(24.0),

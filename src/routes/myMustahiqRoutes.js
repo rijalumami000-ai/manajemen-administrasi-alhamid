@@ -1380,6 +1380,25 @@ function registerMyMustahiqRoutes(app) {
     res.json({ suggestions: result.rows });
   }));
 
+  // === ADMIN: DELETE KOTAK SARAN ===
+  router.delete('/admin/suggestions/:id', asyncHandler(async (req, res) => {
+    if (req.user.role !== 'admin') {
+      return res.status(403).json({ error: 'Akses ditolak. Hanya admin yang diperbolehkan.' });
+    }
+
+    const id = parseInt(req.params.id, 10);
+    if (isNaN(id)) {
+      return res.status(400).json({ error: 'ID saran tidak valid.' });
+    }
+
+    const result = await db.query('DELETE FROM saran_aplikasi WHERE id = $1 RETURNING id', [id]);
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'Saran tidak ditemukan.' });
+    }
+
+    res.json({ success: true, message: 'Saran berhasil dihapus.' });
+  }));
+
   // === ADMIN: PUSH NOTIFICATION MANUAL ===
   router.post('/admin/push-notification', asyncHandler(async (req, res) => {
     if (req.user.role !== 'admin') {
@@ -1698,7 +1717,11 @@ function registerMyMustahiqRoutes(app) {
           title: `Pesan baru di Grup Mustahiq Tingkat ${tingkat}`,
           body: `${senderName}: ${message}`,
           category: 'Chat',
-          target: targetId
+          target: targetId,
+          data: {
+            kelas_id: kelasId,
+            kelas_nama: `Tingkat ${tingkat}`
+          }
         }).catch(err => console.error('[FCM Chat Notification Error]', err));
       }
 
@@ -1768,7 +1791,11 @@ function registerMyMustahiqRoutes(app) {
         title: `Pesan baru di Kelas ${classNama}`,
         body: `${senderName}: ${message}`,
         category: 'Chat',
-        target: targetId
+        target: targetId,
+        data: {
+          kelas_id: kelasId,
+          kelas_nama: classNama
+        }
       }).catch(err => console.error('[FCM Chat Notification Error]', err));
     }
 

@@ -1,4 +1,4 @@
-import { apiGet, apiPost } from './apiClient';
+import { apiGet, apiPost, apiDelete } from './apiClient';
 
 export const myMustahiqService = {
   // Get all teachers with credentials info (Admin only)
@@ -24,5 +24,10 @@ export const myMustahiqService = {
   // Fetch all suggestions (Admin only)
   async fetchSuggestions() {
     return apiGet('/my-mustahiq/admin/suggestions', { noCache: true });
+  },
+
+  // Delete a suggestion (Admin only)
+  async deleteSuggestion(id) {
+    return apiDelete(`/my-mustahiq/admin/suggestions/${id}`);
   }
 };

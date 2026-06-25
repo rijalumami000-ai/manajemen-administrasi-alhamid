@@ -3,6 +3,8 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import '../services/api_service.dart';
 import '../services/theme_manager.dart';
+import '../services/network_service.dart';
+import '../widgets/offline_widget.dart';
 import 'chat_detail_screen.dart';
 
 class ChatRoomsScreen extends StatefulWidget {
@@ -30,6 +32,14 @@ class _ChatRoomsScreenState extends State<ChatRoomsScreen> {
       _isLoading = true;
       _errorMessage = null;
     });
+
+    if (!NetworkService().isOnline) {
+      setState(() {
+        _errorMessage = 'NO_INTERNET';
+        _isLoading = false;
+      });
+      return;
+    }
 
     try {
       final dashboard = await _apiService.getDashboard();
@@ -338,6 +348,9 @@ class _ChatRoomsScreenState extends State<ChatRoomsScreen> {
   }
 
   Widget _buildErrorWidget() {
+    if (_errorMessage == 'NO_INTERNET') {
+      return OfflineWidget(onRetry: _fetchRooms);
+    }
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(24.0),

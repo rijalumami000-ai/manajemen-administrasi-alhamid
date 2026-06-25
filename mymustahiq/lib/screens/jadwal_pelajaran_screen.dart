@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../services/api_service.dart';
 import '../services/theme_manager.dart';
+import '../services/network_service.dart';
+import '../widgets/offline_widget.dart';
 
 class JadwalPelajaranScreen extends StatefulWidget {
   const JadwalPelajaranScreen({super.key});
@@ -71,6 +73,14 @@ class _JadwalPelajaranScreenState extends State<JadwalPelajaranScreen> {
       _isLoadingClasses = true;
       _errorMessage = null;
     });
+
+    if (!NetworkService().isOnline) {
+      setState(() {
+        _isLoadingClasses = false;
+        _errorMessage = 'NO_INTERNET';
+      });
+      return;
+    }
 
     try {
       if (_tahunAjaranList.isEmpty) {
@@ -247,31 +257,33 @@ class _JadwalPelajaranScreenState extends State<JadwalPelajaranScreen> {
             child: _isLoadingClasses
                 ? const Center(child: CircularProgressIndicator(color: Color(0xFF10B981)))
                 : _errorMessage != null && !isClassSelected
-                    ? Center(
-                        child: Padding(
-                          padding: const EdgeInsets.all(24.0),
-                          child: Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              const Icon(Icons.error_outline_rounded, color: Colors.amber, size: 48),
-                              const SizedBox(height: 16),
-                              Text(
-                                _errorMessage!,
-                                textAlign: TextAlign.center,
-                                style: GoogleFonts.outfit(color: context.titleColor, fontSize: 15),
+                    ? (_errorMessage == 'NO_INTERNET'
+                        ? OfflineWidget(onRetry: _fetchClasses)
+                        : Center(
+                            child: Padding(
+                              padding: const EdgeInsets.all(24.0),
+                              child: Column(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  const Icon(Icons.error_outline_rounded, color: Colors.amber, size: 48),
+                                  const SizedBox(height: 16),
+                                  Text(
+                                    _errorMessage!,
+                                    textAlign: TextAlign.center,
+                                    style: GoogleFonts.outfit(color: context.titleColor, fontSize: 15),
+                                  ),
+                                  const SizedBox(height: 20),
+                                  ElevatedButton(
+                                    onPressed: _fetchClasses,
+                                    style: ElevatedButton.styleFrom(
+                                      backgroundColor: const Color(0xFF064E3B),
+                                    ),
+                                    child: Text('Coba Lagi', style: GoogleFonts.outfit(color: Colors.white)),
+                                  ),
+                                ],
                               ),
-                              const SizedBox(height: 20),
-                              ElevatedButton(
-                                onPressed: _fetchClasses,
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: const Color(0xFF064E3B),
-                                ),
-                                child: Text('Coba Lagi', style: GoogleFonts.outfit(color: Colors.white)),
-                              ),
-                            ],
-                          ),
-                        ),
-                      )
+                            ),
+                          ))
                     : !isClassSelected
                         ? _buildClassGrid()
                         : _buildScheduleView(orderMalam),

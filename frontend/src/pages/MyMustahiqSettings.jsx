@@ -164,6 +164,26 @@ export function MyMustahiqSettings() {
     });
   };
 
+  const handleDeleteSuggestion = (id) => {
+    Modal.confirm({
+      title: 'Hapus Saran / Masukan?',
+      content: 'Apakah Anda yakin ingin menghapus saran/masukan ini secara permanen dari sistem?',
+      okText: 'Ya, Hapus',
+      okType: 'danger',
+      cancelText: 'Batal',
+      onOk: async () => {
+        try {
+          const res = await myMustahiqService.deleteSuggestion(id);
+          message.success(res.message || 'Saran berhasil dihapus!');
+          loadData();
+        } catch (err) {
+          console.error('Failed to delete suggestion:', err);
+          message.error(err.message || 'Gagal menghapus saran.');
+        }
+      }
+    });
+  };
+
   if (loading) {
     return <LoadingState message="Memuat data kredensial guru..." />;
   }
@@ -304,6 +324,22 @@ export function MyMustahiqSettings() {
       dataIndex: 'isi_saran',
       key: 'isi_saran',
       render: (text) => <div style={{ whiteSpace: 'pre-wrap', color: '#434343' }}>{text}</div>
+    },
+    {
+      title: 'Aksi',
+      key: 'actions',
+      width: 130,
+      render: (_, record) => (
+        <Button 
+          type="primary"
+          danger
+          ghost
+          icon={<DeleteOutlined />}
+          onClick={() => handleDeleteSuggestion(record.id)}
+        >
+          Hapus
+        </Button>
+      )
     }
   ];
 

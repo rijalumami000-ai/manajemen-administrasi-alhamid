@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
@@ -6,6 +7,7 @@ import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'api_service.dart';
 import '../screens/notifications_screen.dart';
+import '../screens/chat_detail_screen.dart';
 
 final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 
@@ -86,6 +88,16 @@ class PushNotificationService {
         initializationSettings,
         onDidReceiveNotificationResponse: (NotificationResponse response) {
           // Handle foreground notification tap
+          final payload = response.payload;
+          if (payload != null && payload.isNotEmpty) {
+            try {
+              final Map<String, dynamic> data = jsonDecode(payload);
+              _handleNotificationData(data);
+              return;
+            } catch (e) {
+              print('Error parsing local notification payload: $e');
+            }
+          }
           _navigateToNotificationsScreen();
         },
       );
@@ -130,6 +142,7 @@ class PushNotificationService {
                 sound: customSound,
               ),
             ),
+            payload: jsonEncode(message.data),
           );
         }
       });
@@ -174,6 +187,29 @@ class PushNotificationService {
   }
 
   void _handleNotificationClick(RemoteMessage message) {
+    _handleNotificationData(message.data);
+  }
+
+  void _handleNotificationData(Map<String, dynamic> data) {
+    final category = data['category'];
+    if (category == 'Chat') {
+      final kelasIdStr = data['kelas_id'];
+      final kelasNama = data['kelas_nama'] ?? 'Obrolan';
+      if (kelasIdStr != null) {
+        final kelasId = int.tryParse(kelasIdStr);
+        if (kelasId != null) {
+          navigatorKey.currentState?.push(
+            MaterialPageRoute(
+              builder: (context) => ChatDetailScreen(
+                kelasId: kelasId,
+                kelasNama: kelasNama,
+              ),
+            ),
+          );
+          return;
+        }
+      }
+    }
     _navigateToNotificationsScreen();
   }
 
