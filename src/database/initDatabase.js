@@ -136,6 +136,15 @@ async function initDatabase() {
       ) THEN
         ALTER TABLE chat_messages ADD COLUMN tingkat_group INTEGER DEFAULT NULL;
       END IF;
+
+      -- Buat tabel saran_aplikasi jika belum ada
+      CREATE TABLE IF NOT EXISTS saran_aplikasi (
+        id SERIAL PRIMARY KEY,
+        guru_id INTEGER REFERENCES guru(id) ON DELETE SET NULL,
+        kelas_id INTEGER REFERENCES kelas(id) ON DELETE SET NULL,
+        isi_saran TEXT NOT NULL,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      );
     END
     $$;
   `);

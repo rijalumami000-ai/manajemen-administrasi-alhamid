@@ -6,6 +6,7 @@ import 'screens/dashboard_screen.dart';
 
 import 'services/theme_manager.dart';
 import 'services/push_notification_service.dart';
+import 'services/network_service.dart';
 
 import 'widgets/glass_background.dart';
 
@@ -13,6 +14,7 @@ void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await ThemeManager().init();
   await PushNotificationService().initialize();
+  await NetworkService().initialize();
   runApp(const MyMustahiqApp());
 }
 
@@ -169,101 +171,159 @@ class _InAppSplashScreenState extends State<InAppSplashScreen> with SingleTicker
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Scaffold(
-      backgroundColor: context.scaffoldBg,
-      body: Stack(
-        fit: StackFit.expand,
-        children: [
-          Center(
-            child: AnimatedBuilder(
-              animation: _controller,
-              builder: (context, child) {
-                return Opacity(
-                  opacity: _fadeAnimation.value,
-                  child: Transform.scale(
-                    scale: _scaleAnimation.value,
-                    child: child,
-                  ),
-                );
-              },
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Container(
-                    width: 130,
-                    height: 130,
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(28),
-                      boxShadow: [
-                        BoxShadow(
-                          color: const Color(0xFF10B981).withOpacity(context.isDarkMode ? 0.2 : 0.08),
-                          blurRadius: 30,
-                          offset: const Offset(0, 10),
-                        ),
-                      ],
+      body: Container(
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            colors: isDark
+                ? [const Color(0xFF070B13), const Color(0xFF0D1627), const Color(0xFF070B13)]
+                : [const Color(0xFFE8F5E9), Colors.white, const Color(0xFFE8F5E9)],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+        ),
+        child: Stack(
+          fit: StackFit.expand,
+          children: [
+            // Abstract background glowing decoration
+            Positioned(
+              top: -100,
+              right: -100,
+              child: Container(
+                width: 300,
+                height: 300,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: const Color(0xFF10B981).withOpacity(isDark ? 0.08 : 0.05),
+                ),
+              ),
+            ),
+            Positioned(
+              bottom: -150,
+              left: -150,
+              child: Container(
+                width: 400,
+                height: 400,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: const Color(0xFF10B981).withOpacity(isDark ? 0.05 : 0.03),
+                ),
+              ),
+            ),
+            Center(
+              child: AnimatedBuilder(
+                animation: _controller,
+                builder: (context, child) {
+                  return Opacity(
+                    opacity: _fadeAnimation.value,
+                    child: Transform.scale(
+                      scale: _scaleAnimation.value,
+                      child: child,
                     ),
+                  );
+                },
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    // Glowing border app icon card container
+                    Container(
+                      width: 140,
+                      height: 140,
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(36),
+                        border: Border.all(
+                          color: const Color(0xFF10B981).withOpacity(isDark ? 0.25 : 0.15),
+                          width: 2,
+                        ),
+                        boxShadow: [
+                          BoxShadow(
+                            color: const Color(0xFF10B981).withOpacity(isDark ? 0.35 : 0.15),
+                            blurRadius: 40,
+                            offset: const Offset(0, 15),
+                          ),
+                        ],
+                      ),
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(34),
+                        child: Image.asset(
+                          'assets/images/app_icon.png',
+                          fit: BoxFit.cover,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 28),
+                    Text(
+                      'MyMustahiq',
+                      style: GoogleFonts.outfit(
+                        color: isDark ? Colors.white : const Color(0xFF0F172A),
+                        fontSize: 32,
+                        fontWeight: FontWeight.bold,
+                        letterSpacing: 1.0,
+                      ),
+                    ),
+                    const SizedBox(height: 10),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF10B981).withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: Text(
+                        'Manajemen Administrasi Pesantren',
+                        style: GoogleFonts.outfit(
+                          color: const Color(0xFF10B981),
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                          letterSpacing: 0.5,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            Positioned(
+              bottom: 70,
+              left: 40,
+              right: 40,
+              child: Column(
+                children: [
+                  SizedBox(
+                    width: 160,
                     child: ClipRRect(
-                      borderRadius: BorderRadius.circular(28),
-                      child: Image.asset(
-                        'assets/images/app_icon.png',
-                        fit: BoxFit.cover,
+                      borderRadius: BorderRadius.circular(4),
+                      child: const LinearProgressIndicator(
+                        color: Color(0xFF10B981),
+                        backgroundColor: Colors.transparent,
+                        minHeight: 4,
                       ),
                     ),
                   ),
-                  const SizedBox(height: 24),
+                  const SizedBox(height: 16),
                   Text(
-                    'MyMustahiq',
+                    'Memuat data ustadz...',
                     style: GoogleFonts.outfit(
-                      color: context.titleColor,
-                      fontSize: 28,
-                      fontWeight: FontWeight.bold,
-                      letterSpacing: 0.8,
+                      color: isDark ? Colors.white38 : Colors.black38,
+                      fontSize: 12,
+                      letterSpacing: 0.3,
                     ),
                   ),
-                  const SizedBox(height: 8),
+                  const SizedBox(height: 32),
                   Text(
-                    'Manajemen Administrasi Pesantren',
+                    'PESANTREN AL-HAMID',
                     style: GoogleFonts.outfit(
-                      color: context.subTitleColor,
-                      fontSize: 14,
-                      fontWeight: FontWeight.w400,
-                      letterSpacing: 0.5,
+                      color: isDark ? Colors.white12 : Colors.black12,
+                      fontSize: 10,
+                      fontWeight: FontWeight.bold,
+                      letterSpacing: 2.0,
                     ),
                   ),
                 ],
               ),
             ),
-          ),
-          Positioned(
-            bottom: 60,
-            left: 40,
-            right: 40,
-            child: Column(
-              children: [
-                SizedBox(
-                  width: 140,
-                  child: ClipRRect(
-                    borderRadius: BorderRadius.circular(4),
-                    child: const LinearProgressIndicator(
-                      color: Color(0xFF10B981),
-                      backgroundColor: Colors.transparent,
-                      minHeight: 3.5,
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 16),
-                Text(
-                  'Memuat data...',
-                  style: GoogleFonts.outfit(
-                    color: context.bodyColor.withOpacity(0.5),
-                    fontSize: 12,
-                    letterSpacing: 0.3,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }

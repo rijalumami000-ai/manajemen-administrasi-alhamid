@@ -439,6 +439,144 @@ class _TabAkunState extends State<TabAkun> {
     );
   }
 
+  void _showFeedbackDialog() {
+    final controller = TextEditingController();
+    bool isSending = false;
+
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (context, setModalState) {
+            return Dialog(
+              backgroundColor: context.cardBg,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(20),
+                side: BorderSide(color: context.borderColor),
+              ),
+              child: Padding(
+                padding: const EdgeInsets.all(22.0),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          'Kotak Saran & Masukan',
+                          style: GoogleFonts.outfit(
+                            color: context.titleColor,
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        IconButton(
+                          icon: Icon(Icons.close_rounded, color: context.subTitleColor),
+                          onPressed: isSending ? null : () => Navigator.pop(context),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 12),
+                    Divider(color: context.borderColor, height: 1),
+                    const SizedBox(height: 12),
+                    Text(
+                      'Tulis saran, keluhan, masukan, atau kendala Anda terkait aplikasi di bawah ini untuk kami tindaklanjuti di web admin.',
+                      style: GoogleFonts.outfit(
+                        color: context.bodyColor,
+                        fontSize: 12,
+                        height: 1.4,
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    TextField(
+                      controller: controller,
+                      maxLines: 4,
+                      maxLength: 500,
+                      enabled: !isSending,
+                      style: GoogleFonts.outfit(color: context.titleColor, fontSize: 13),
+                      decoration: InputDecoration(
+                        hintText: 'Tulis masukan Anda di sini...',
+                        hintStyle: GoogleFonts.outfit(color: context.subTitleColor.withOpacity(0.6), fontSize: 13),
+                        filled: true,
+                        fillColor: context.cardBg.withOpacity(0.5),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: BorderSide(color: context.borderColor),
+                        ),
+                        focusedBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: const BorderSide(color: Color(0xFF10B981)),
+                        ),
+                        contentPadding: const EdgeInsets.all(12),
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    SizedBox(
+                      width: double.infinity,
+                      child: ElevatedButton(
+                        onPressed: isSending
+                            ? null
+                            : () async {
+                                final text = controller.text.trim();
+                                if (text.isEmpty) {
+                                  _showToast('Saran tidak boleh kosong.', Colors.amber);
+                                  return;
+                                }
+
+                                setModalState(() {
+                                  isSending = true;
+                                });
+
+                                try {
+                                  await _apiService.submitSuggestion(text);
+                                  if (context.mounted) {
+                                    Navigator.pop(context);
+                                  }
+                                  _showToast('Saran Anda berhasil dikirim. Terima kasih!', const Color(0xFF10B981));
+                                } catch (e) {
+                                  setModalState(() {
+                                    isSending = false;
+                                  });
+                                  _showToast('Gagal mengirim saran: ${e.toString().replaceFirst('Exception: ', '')}', Colors.redAccent);
+                                }
+                              },
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFF064E3B),
+                          padding: const EdgeInsets.symmetric(vertical: 14),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          elevation: 0,
+                        ),
+                        child: isSending
+                            ? const SizedBox(
+                                width: 20,
+                                height: 20,
+                                child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
+                              )
+                            : Text(
+                                'KIRIM SARAN',
+                                style: GoogleFonts.outfit(
+                                  color: Colors.white,
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.bold,
+                                  letterSpacing: 0.5,
+                                ),
+                              ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
   void _showFAQDialog() {
     showDialog(
       context: context,
@@ -796,6 +934,16 @@ class _TabAkunState extends State<TabAkun> {
                     subtitle: _getSoundNameLabel(_selectedSound),
                     color: const Color(0xFF8B5CF6),
                     onTap: _showSoundSelectionDialog,
+                  ),
+                  _buildDivider(),
+
+                  // Kotak Saran Tile
+                  _buildListTile(
+                    icon: Icons.rate_review_outlined,
+                    title: "Kotak Saran & Masukan",
+                    subtitle: "Kirim masukan/saran pengembangan aplikasi",
+                    color: const Color(0xFF10B981),
+                    onTap: _showFeedbackDialog,
                   ),
                   _buildDivider(),
 

@@ -5,6 +5,8 @@ import 'package:url_launcher/url_launcher.dart';
 import '../services/api_service.dart';
 import '../services/theme_manager.dart';
 import '../models/models.dart';
+import '../services/network_service.dart';
+import '../widgets/offline_widget.dart';
 
 class TeacherListScreen extends StatefulWidget {
   final bool isMustahiq; // true for Mustahiq, false for Munawib
@@ -74,6 +76,14 @@ class _TeacherListScreenState extends State<TeacherListScreen> {
       _isLoading = true;
       _errorMessage = null;
     });
+
+    if (!NetworkService().isOnline) {
+      setState(() {
+        _isLoading = false;
+        _errorMessage = 'NO_INTERNET';
+      });
+      return;
+    }
 
     try {
       final res = widget.isMustahiq
@@ -201,31 +211,33 @@ class _TeacherListScreenState extends State<TeacherListScreen> {
               ),
             )
           : _errorMessage != null
-              ? Center(
-                  child: Padding(
-                    padding: const EdgeInsets.all(24.0),
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        const Icon(Icons.error_outline_rounded, color: Colors.amber, size: 48),
-                        const SizedBox(height: 16),
-                        Text(
-                          _errorMessage!,
-                          textAlign: TextAlign.center,
-                          style: GoogleFonts.outfit(color: context.titleColor, fontSize: 15),
+              ? (_errorMessage == 'NO_INTERNET'
+                  ? OfflineWidget(onRetry: _fetchTeachersData)
+                  : Center(
+                      child: Padding(
+                        padding: const EdgeInsets.all(24.0),
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            const Icon(Icons.error_outline_rounded, color: Colors.amber, size: 48),
+                            const SizedBox(height: 16),
+                            Text(
+                              _errorMessage!,
+                              textAlign: TextAlign.center,
+                              style: GoogleFonts.outfit(color: context.titleColor, fontSize: 15),
+                            ),
+                            const SizedBox(height: 20),
+                            ElevatedButton(
+                              onPressed: _fetchTeachersData,
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: const Color(0xFF064E3B),
+                              ),
+                              child: Text('Coba Lagi', style: GoogleFonts.outfit(color: Colors.white)),
+                            ),
+                          ],
                         ),
-                        const SizedBox(height: 20),
-                        ElevatedButton(
-                          onPressed: _fetchTeachersData,
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: const Color(0xFF064E3B),
-                          ),
-                          child: Text('Coba Lagi', style: GoogleFonts.outfit(color: Colors.white)),
-                        ),
-                      ],
-                    ),
-                  ),
-                )
+                      ),
+                    ))
               : Column(
                   children: [
                     // Search Bar & Subtitle
@@ -529,26 +541,30 @@ class _TeacherListScreenState extends State<TeacherListScreen> {
       formatted = '62$formatted';
     }
 
-    final url = Uri.parse('https://wa.me/$formatted');
+    final url = Uri.parse('whatsapp://send?phone=$formatted');
+    final webUrl = Uri.parse('https://wa.me/$formatted');
     try {
-      if (await canLaunchUrl(url)) {
-        await launchUrl(url, mode: LaunchMode.externalApplication);
-      } else {
-        throw 'Cannot launch URL';
+      final launched = await launchUrl(url, mode: LaunchMode.externalApplication);
+      if (!launched) {
+        await launchUrl(webUrl, mode: LaunchMode.externalApplication);
       }
     } catch (_) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              'Gagal membuka WhatsApp. Pastikan aplikasi terinstall.',
-              style: GoogleFonts.outfit(color: Colors.white, fontSize: 13),
+      try {
+        await launchUrl(webUrl, mode: LaunchMode.externalApplication);
+      } catch (err) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(
+                'Gagal membuka WhatsApp. Pastikan aplikasi terinstall.',
+                style: GoogleFonts.outfit(color: Colors.white, fontSize: 13),
+              ),
+              backgroundColor: Colors.redAccent,
+              behavior: SnackBarBehavior.floating,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
             ),
-            backgroundColor: Colors.redAccent,
-            behavior: SnackBarBehavior.floating,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-          ),
-        );
+          );
+        }
       }
     }
   }

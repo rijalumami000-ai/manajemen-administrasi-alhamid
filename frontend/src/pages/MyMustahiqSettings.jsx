@@ -9,6 +9,7 @@ const { Title, Paragraph } = Typography;
 
 export function MyMustahiqSettings() {
   const [gurus, setGurus] = useState([]);
+  const [suggestions, setSuggestions] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [searchText, setSearchText] = useState('');
@@ -61,11 +62,18 @@ export function MyMustahiqSettings() {
     try {
       setLoading(true);
       setError(null);
-      const data = await myMustahiqService.fetchGurus();
-      setGurus(data.gurus || []);
+      const [guruData, sugData] = await Promise.all([
+        myMustahiqService.fetchGurus(),
+        myMustahiqService.fetchSuggestions().catch(e => {
+          console.error('Failed to load suggestions:', e);
+          return { suggestions: [] };
+        })
+      ]);
+      setGurus(guruData.gurus || []);
+      setSuggestions(sugData.suggestions || []);
     } catch (err) {
-      console.error('Failed to load gurus:', err);
-      setError('Gagal memuat data guru. Pastikan Anda masuk sebagai Administrator.');
+      console.error('Failed to load MyMustahiq settings:', err);
+      setError('Gagal memuat data. Pastikan Anda masuk sebagai Administrator.');
     } finally {
       setLoading(false);
     }
@@ -253,6 +261,52 @@ export function MyMustahiqSettings() {
     }
   ];
 
+  const suggestionColumns = [
+    {
+      title: 'Tanggal Kirim',
+      dataIndex: 'created_at',
+      key: 'created_at',
+      width: 180,
+      render: (text) => {
+        if (!text) return '-';
+        const date = new Date(text);
+        return date.toLocaleString('id-ID', {
+          day: '2-digit',
+          month: 'long',
+          year: 'numeric',
+          hour: '2-digit',
+          minute: '2-digit'
+        }) + ' WIB';
+      },
+      sorter: (a, b) => new Date(a.created_at) - new Date(b.created_at),
+      defaultSortOrder: 'descend'
+    },
+    {
+      title: 'Ustadz Pengirim',
+      key: 'ustadz',
+      width: 250,
+      render: (_, record) => (
+        <div>
+          <strong style={{ color: '#262626' }}>{record.guru_nama}</strong>
+          {record.guru_nip && <div style={{ fontSize: '12px', color: '#8c8c8c' }}>NIP: {record.guru_nip}</div>}
+        </div>
+      )
+    },
+    {
+      title: 'Kelas Binaan',
+      dataIndex: 'kelas_nama',
+      key: 'kelas_nama',
+      width: 150,
+      render: (text) => text ? <Tag color="cyan">Kelas {text}</Tag> : <Tag color="orange">Bukan Wali Kelas</Tag>
+    },
+    {
+      title: 'Isi Masukan / Saran',
+      dataIndex: 'isi_saran',
+      key: 'isi_saran',
+      render: (text) => <div style={{ whiteSpace: 'pre-wrap', color: '#434343' }}>{text}</div>
+    }
+  ];
+
   return (
     <div className="mymustahiq-settings-page" style={{ padding: '24px' }}>
       <PageHeader
@@ -392,6 +446,27 @@ export function MyMustahiqSettings() {
                   >
                     Kirim Jadwal Malam Ini ke Seluruh Ustadz terkait
                   </Button>
+                </Card>
+              </div>
+            )
+          },
+          {
+            key: 'suggestions',
+            label: 'Saran & Masukan Aplikasi',
+            children: (
+              <div style={{ marginTop: '16px' }}>
+                <Card style={{ borderRadius: '8px' }}>
+                  <div style={{ marginBottom: '16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <Title level={4} style={{ margin: 0 }}>Saran & Masukan Pengguna</Title>
+                    <Button onClick={loadData} type="default">Muat Ulang</Button>
+                  </div>
+                  <Table
+                    columns={suggestionColumns}
+                    dataSource={suggestions}
+                    rowKey="id"
+                    pagination={{ pageSize: 10, showSizeChanger: true }}
+                    bordered
+                  />
                 </Card>
               </div>
             )

@@ -745,6 +745,24 @@ class ApiService {
       rethrow;
     }
   }
+
+  // Submit Suggestion/Feedback
+  Future<Map<String, dynamic>> submitSuggestion(String suggestion) async {
+    try {
+      final response = await _dio.post('/my-mustahiq/suggestions', data: {
+        'suggestion': suggestion,
+      });
+      if (response.statusCode == 200) {
+        return response.data;
+      }
+      throw Exception('Gagal mengirimkan saran.');
+    } catch (e) {
+      if (e is DioException && e.response != null) {
+        throw Exception(e.response?.data['error'] ?? 'Gagal mengirimkan saran.');
+      }
+      rethrow;
+    }
+  }
 }
 
 

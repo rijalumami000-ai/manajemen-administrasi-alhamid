@@ -74,12 +74,14 @@ async function sendNotification({ title, body, category, target }) {
   if (guruIds.length === 0) return { success: true, sentCount: 0 };
 
   // 2. Insert into notifications table (in-app notifications)
-  for (const guruId of guruIds) {
-    await db.query(
-      `INSERT INTO notifications (guru_id, title, body, category, is_read, created_at)
-       VALUES ($1, $2, $3, $4, FALSE, NOW())`,
-      [guruId, title, body, category || 'Pengumuman']
-    );
+  if (category !== 'Chat') {
+    for (const guruId of guruIds) {
+      await db.query(
+        `INSERT INTO notifications (guru_id, title, body, category, is_read, created_at)
+         VALUES ($1, $2, $3, $4, FALSE, NOW())`,
+        [guruId, title, body, category || 'Pengumuman']
+      );
+    }
   }
 
   // 3. Send via FCM

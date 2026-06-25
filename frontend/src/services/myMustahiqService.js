@@ -19,5 +19,10 @@ export const myMustahiqService = {
   // Trigger daily schedule push notification (Admin only)
   async triggerDailySchedulePush() {
     return apiPost('/my-mustahiq/admin/trigger-scheduler');
+  },
+
+  // Fetch all suggestions (Admin only)
+  async fetchSuggestions() {
+    return apiGet('/my-mustahiq/admin/suggestions', { noCache: true });
   }
 };

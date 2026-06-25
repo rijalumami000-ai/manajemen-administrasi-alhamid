@@ -1326,6 +1326,60 @@ function registerMyMustahiqRoutes(app) {
     res.json({ success: true, message: 'Token FCM berhasil didaftarkan.' });
   }));
 
+  // === KOTAK SARAN: SUBMIT SUGGESTION ===
+  router.post('/suggestions', asyncHandler(async (req, res) => {
+    const guruId = req.user.guru_id;
+    const { suggestion } = req.body;
+    if (!suggestion || suggestion.trim() === '') {
+      return res.status(400).json({ error: 'Isi saran tidak boleh kosong.' });
+    }
+
+    const activeYear = await getActiveTahunAjaran();
+    let classId = null;
+
+    if (activeYear) {
+      const classRes = await db.query(`
+        SELECT kelas_id 
+        FROM kelas_tahun_ajaran 
+        WHERE mustahiq_id = $1 AND tahun_ajaran_id = $2
+        LIMIT 1
+      `, [guruId, activeYear.id]);
+      if (classRes.rows.length > 0) {
+        classId = classRes.rows[0].kelas_id;
+      }
+    }
+
+    await db.query(`
+      INSERT INTO saran_aplikasi (guru_id, kelas_id, isi_saran)
+      VALUES ($1, $2, $3)
+    `, [guruId, classId, suggestion]);
+
+    res.json({ success: true, message: 'Terima kasih! Saran Anda berhasil dikirim.' });
+  }));
+
+  // === ADMIN: GET KOTAK SARAN ===
+  router.get('/admin/suggestions', asyncHandler(async (req, res) => {
+    if (req.user.role !== 'admin') {
+      return res.status(403).json({ error: 'Akses ditolak. Hanya admin yang diperbolehkan.' });
+    }
+
+    const result = await db.query(`
+      SELECT 
+        sa.id,
+        sa.isi_saran,
+        sa.created_at,
+        g.nama AS guru_nama,
+        g.nip AS guru_nip,
+        k.nama AS kelas_nama
+      FROM saran_aplikasi sa
+      LEFT JOIN guru g ON sa.guru_id = g.id
+      LEFT JOIN kelas k ON sa.kelas_id = k.id
+      ORDER BY sa.created_at DESC
+    `);
+
+    res.json({ suggestions: result.rows });
+  }));
+
   // === ADMIN: PUSH NOTIFICATION MANUAL ===
   router.post('/admin/push-notification', asyncHandler(async (req, res) => {
     if (req.user.role !== 'admin') {

@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../services/api_service.dart';
 import '../services/theme_manager.dart';
+import '../services/network_service.dart';
+import '../widgets/offline_widget.dart';
 import 'santri_explorer_screen.dart';
 import 'weekly_schedule_screen.dart';
 import 'informasi_ujian_screen.dart';
@@ -32,6 +34,14 @@ class _TabKelaskuState extends State<TabKelasku> {
       _errorMessage = null;
       _weeklyClassSchedule = {};
     });
+
+    if (!NetworkService().isOnline) {
+      setState(() {
+        _isLoading = false;
+        _errorMessage = 'NO_INTERNET';
+      });
+      return;
+    }
 
     try {
       final res = await _apiService.getDashboard();
@@ -112,19 +122,18 @@ class _TabKelaskuState extends State<TabKelasku> {
     }
 
     if (_errorMessage != null) {
+      if (_errorMessage == 'NO_INTERNET') {
+        return OfflineWidget(onRetry: _fetchDashboardData);
+      }
       return Center(
         child: Padding(
           padding: const EdgeInsets.all(24.0),
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              const Icon(Icons.wifi_off_rounded, color: Colors.amber, size: 48),
+              const Icon(Icons.error_outline_rounded, color: Colors.amber, size: 48),
               const SizedBox(height: 16),
-              Text(
-                _errorMessage!,
-                textAlign: TextAlign.center,
-                style: GoogleFonts.outfit(color: context.titleColor, fontSize: 15),
-              ),
+              Text(_errorMessage!, textAlign: TextAlign.center, style: GoogleFonts.outfit(color: context.titleColor, fontSize: 15)),
               const SizedBox(height: 20),
               ElevatedButton(
                 onPressed: _fetchDashboardData,

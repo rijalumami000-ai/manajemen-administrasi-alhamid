@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import '../services/api_service.dart';
 import '../services/theme_manager.dart';
 import 'chat_detail_screen.dart';
@@ -16,6 +17,7 @@ class _ChatRoomsScreenState extends State<ChatRoomsScreen> {
   bool _isLoading = true;
   String? _errorMessage;
   List<dynamic> _rooms = [];
+  Map<int, bool> _unreadMap = {};
 
   @override
   void initState() {
@@ -30,9 +32,46 @@ class _ChatRoomsScreenState extends State<ChatRoomsScreen> {
     });
 
     try {
+      final dashboard = await _apiService.getDashboard();
+      final currentGuruId = dashboard['user']?['guru_id'] ?? dashboard['user']?['id'];
+
       final data = await _apiService.getChatRooms();
+      final rooms = data['rooms'] ?? [];
+
+      const storage = FlutterSecureStorage();
+      final Map<int, bool> unreadMap = {};
+
+      for (var room in rooms) {
+        final kelasId = room['kelas_id'];
+        final lastMsg = room['last_message'];
+        bool isUnread = false;
+
+        if (lastMsg != null) {
+          final senderId = lastMsg['sender_id'];
+          if (senderId != currentGuruId) {
+            final lastMsgTimeStr = lastMsg['created_at'];
+            if (lastMsgTimeStr != null) {
+              final lastMsgTime = DateTime.tryParse(lastMsgTimeStr.toString());
+              if (lastMsgTime != null) {
+                final lastReadStr = await storage.read(key: 'chat_room_last_read_$kelasId');
+                if (lastReadStr == null) {
+                  isUnread = true;
+                } else {
+                  final lastRead = DateTime.tryParse(lastReadStr);
+                  if (lastRead == null || lastMsgTime.isAfter(lastRead)) {
+                    isUnread = true;
+                  }
+                }
+              }
+            }
+          }
+        }
+        unreadMap[kelasId] = isUnread;
+      }
+
       setState(() {
-        _rooms = data['rooms'] ?? [];
+        _rooms = rooms;
+        _unreadMap = unreadMap;
         _isLoading = false;
       });
     } catch (e) {
@@ -271,6 +310,16 @@ class _ChatRoomsScreenState extends State<ChatRoomsScreen> {
                                         ),
                                       ),
                                       const SizedBox(width: 4),
+                                      if (_unreadMap[kelasId] == true)
+                                        Container(
+                                          margin: const EdgeInsets.only(right: 8),
+                                          width: 8,
+                                          height: 8,
+                                          decoration: const BoxDecoration(
+                                            color: Colors.redAccent,
+                                            shape: BoxShape.circle,
+                                          ),
+                                        ),
                                       Icon(
                                         Icons.chevron_right_rounded,
                                         color: context.subTitleColor.withOpacity(0.6),

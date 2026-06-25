@@ -11,6 +11,7 @@ import 'tab_akun.dart';
 import 'notifications_screen.dart';
 import 'chat_rooms_screen.dart';
 import '../services/push_notification_service.dart';
+import '../services/network_service.dart';
 
 class DashboardScreen extends StatefulWidget {
   const DashboardScreen({super.key});
@@ -45,6 +46,110 @@ class _DashboardScreenState extends State<DashboardScreen> {
     _fetchUnreadNotificationsCount();
     _fetchUnreadChatsCount();
     PushNotificationService().registerDeviceToken();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _checkAndShowWelcomeDialog();
+    });
+  }
+
+  Future<void> _checkAndShowWelcomeDialog() async {
+    const storage = FlutterSecureStorage();
+    final welcomeShown = await storage.read(key: 'welcome_dialog_shown');
+    if (welcomeShown != 'true') {
+      if (!mounted) return;
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (context) {
+          return Dialog(
+            backgroundColor: context.cardBg,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(24),
+              side: BorderSide(color: context.borderColor),
+            ),
+            child: Container(
+              padding: const EdgeInsets.all(24),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF10B981).withOpacity(0.1),
+                      shape: BoxShape.circle,
+                    ),
+                    child: Image.asset(
+                      'assets/images/logo.png',
+                      height: 60,
+                      width: 60,
+                      errorBuilder: (context, error, stackTrace) =>
+                          const Icon(Icons.star_rounded, color: Color(0xFF10B981), size: 40),
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+                  Text(
+                    'Ahlan wa Sahlan!',
+                    style: GoogleFonts.outfit(
+                      color: context.titleColor,
+                      fontSize: 22,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+                  Text(
+                    'Selamat datang di aplikasi MyMustahiq.',
+                    textAlign: TextAlign.center,
+                    style: GoogleFonts.outfit(
+                      color: const Color(0xFF10B981),
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  Text(
+                    'Aplikasi ini dirancang khusus untuk mempermudah ustadz dan mustahiq dalam mengelola administrasi kelas, jadwal mengajar, input nilai santri, serta koordinasi obrolan secara terintegrasi.',
+                    textAlign: TextAlign.center,
+                    style: GoogleFonts.outfit(
+                      color: context.bodyColor,
+                      fontSize: 13,
+                      height: 1.5,
+                    ),
+                  ),
+                  const SizedBox(height: 24),
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton(
+                      onPressed: () async {
+                        await storage.write(key: 'welcome_dialog_shown', value: 'true');
+                        if (context.mounted) {
+                          Navigator.pop(context);
+                        }
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFF064E3B),
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(14),
+                        ),
+                        elevation: 0,
+                      ),
+                      child: Text(
+                        'MULAI JELAJAHI',
+                        style: GoogleFonts.outfit(
+                          color: Colors.white,
+                          fontSize: 14,
+                          fontWeight: FontWeight.bold,
+                          letterSpacing: 0.8,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          );
+        },
+      );
+    }
   }
 
   Future<void> _fetchUnreadNotificationsCount() async {
@@ -131,6 +236,48 @@ class _DashboardScreenState extends State<DashboardScreen> {
           ),
         ),
         actions: [
+          StreamBuilder<bool>(
+            stream: NetworkService().onConnectionChange,
+            initialData: NetworkService().isOnline,
+            builder: (context, snapshot) {
+              final isOnline = snapshot.data ?? true;
+              return Container(
+                margin: const EdgeInsets.symmetric(vertical: 12),
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                decoration: BoxDecoration(
+                  color: (isOnline ? const Color(0xFF10B981) : Colors.redAccent).withOpacity(0.12),
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(
+                    color: (isOnline ? const Color(0xFF10B981) : Colors.redAccent).withOpacity(0.3),
+                    width: 1,
+                  ),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Container(
+                      width: 6,
+                      height: 6,
+                      decoration: BoxDecoration(
+                        color: isOnline ? const Color(0xFF10B981) : Colors.redAccent,
+                        shape: BoxShape.circle,
+                      ),
+                    ),
+                    const SizedBox(width: 4),
+                    Text(
+                      isOnline ? 'Online' : 'Offline',
+                      style: GoogleFonts.outfit(
+                        color: isOnline ? const Color(0xFF10B981) : Colors.redAccent,
+                        fontSize: 10,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ],
+                ),
+              );
+            },
+          ),
+          const SizedBox(width: 8),
           GestureDetector(
             onTap: () async {
               await Navigator.push(
