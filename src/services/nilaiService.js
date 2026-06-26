@@ -409,7 +409,37 @@ class NilaiService {
       query += ` ORDER BY s.nama ASC`;
 
       const result = await db.query(query, [tahunAjaranId, kelasId, kategoriId]);
-      return result.rows;
+      const rows = result.rows;
+
+      if (rows.length > 0) {
+        const santriIds = rows.map(r => r.santri_id);
+        const detailRes = await db.query(
+          `SELECT santri_id, bulan, sakit, izin, alpa 
+           FROM absensi_bulanan_santri 
+           WHERE tahun_ajaran_id = $1 AND kategori_evaluasi_id = $2 AND santri_id = ANY($3)`,
+          [tahunAjaranId, kategoriId, santriIds]
+        );
+
+        // Buat map santri_id -> detail_absensi { [bulan]: { sakit, izin, alpa } }
+        const detailMap = {};
+        detailRes.rows.forEach(d => {
+          if (!detailMap[d.santri_id]) {
+            detailMap[d.santri_id] = {};
+          }
+          detailMap[d.santri_id][d.bulan] = {
+            sakit: d.sakit || 0,
+            izin: d.izin || 0,
+            alpa: d.alpa || 0
+          };
+        });
+
+        // Masukkan detail ke rows
+        rows.forEach(row => {
+          row.detail_absensi = detailMap[row.santri_id] || {};
+        });
+      }
+
+      return rows;
     } catch (error) {
       handleDatabaseError(error);
     }
@@ -422,6 +452,44 @@ class NilaiService {
       
       for (const item of dataList) {
         if (!item.santri_id) continue;
+        
+        let finalSakit = item.sakit || 0;
+        let finalIzin = item.izin || 0;
+        let finalAlpa = item.alpa || 0;
+
+        // Jika ada detail_absensi yang dikirim, simpan detail bulanan dan akumulasikan ke total
+        if (item.detail_absensi && typeof item.detail_absensi === 'object') {
+          let totalSakit = 0;
+          let totalIzin = 0;
+          let totalAlpa = 0;
+
+          for (const bulan in item.detail_absensi) {
+            const detail = item.detail_absensi[bulan];
+            const s = detail.sakit || 0;
+            const i = detail.izin || 0;
+            const a = detail.alpa || 0;
+
+            await client.query(
+              `INSERT INTO absensi_bulanan_santri (santri_id, tahun_ajaran_id, kategori_evaluasi_id, bulan, sakit, izin, alpa)
+               VALUES ($1, $2, $3, $4, $5, $6, $7)
+               ON CONFLICT (santri_id, tahun_ajaran_id, kategori_evaluasi_id, bulan)
+               DO UPDATE SET 
+                sakit = EXCLUDED.sakit,
+                izin = EXCLUDED.izin,
+                alpa = EXCLUDED.alpa,
+                updated_at = NOW()`,
+              [item.santri_id, tahunAjaranId, kategoriId, bulan, s, i, a]
+            );
+
+            totalSakit += s;
+            totalIzin += i;
+            totalAlpa += a;
+          }
+
+          finalSakit = totalSakit;
+          finalIzin = totalIzin;
+          finalAlpa = totalAlpa;
+        }
         
         await client.query(
           `INSERT INTO rapor_santri 
@@ -441,9 +509,9 @@ class NilaiService {
             item.santri_id, 
             tahunAjaranId, 
             kategoriId, 
-            item.sakit || 0, 
-            item.izin || 0, 
-            item.alpa || 0, 
+            finalSakit, 
+            finalIzin, 
+            finalAlpa, 
             item.keaktifan || null, 
             item.akhlaq || null, 
             item.kerapihan || null, 

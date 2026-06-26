@@ -26,6 +26,7 @@ const migrations = [
   { name: 'add_mymustahiq_credentials_to_guru',  fn: require('./migrations/add_mymustahiq_credentials_to_guru') },
   { name: 'add_notifications_tables',            fn: require('./migrations/add_notifications_tables') },
   { name: 'add_chat_messages_table',             fn: require('./migrations/add_chat_messages_table') },
+  { name: 'add_absensi_bulanan_table',           fn: require('./migrations/add_absensi_bulanan_table') },
 ];
 
 async function runAll() {

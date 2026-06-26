@@ -1316,6 +1316,7 @@ export const ManajemenNilai = ({ mode = 'input' }) => {
                 selectedKelasDetail={selectedKelasDetail} 
                 selectedKategori={selectedKategori} 
                 kelasName={kelas.find(k => k.id === selectedKelasDetail)?.nama}
+                kategoriNama={kategori.find(k => k.id === selectedKategori)?.nama}
               />
             ) : <Empty description="Silakan pilih Tingkat dan Kelas terlebih dahulu" />}
           </Col>

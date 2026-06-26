@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../services/api_service.dart';
 import '../services/theme_manager.dart';
+import '../services/network_service.dart';
+import 'offline_widget.dart';
 
 class MuhafadzohInfoBottomSheet extends StatefulWidget {
   final int? tahunAjaranId;
@@ -45,6 +47,15 @@ class _MuhafadzohInfoBottomSheetState extends State<MuhafadzohInfoBottomSheet> {
   }
 
   Future<void> _loadFiltersAndData() async {
+    if (!NetworkService().isOnline) {
+      if (mounted) {
+        setState(() {
+          _loadingFilters = false;
+          _infoFuture = Future.error('NO_INTERNET');
+        });
+      }
+      return;
+    }
     try {
       final taResult = await _apiService.getTahunAjaranList();
       _tahunAjaranList = taResult['tahunAjaran'] ?? [];
@@ -80,6 +91,12 @@ class _MuhafadzohInfoBottomSheetState extends State<MuhafadzohInfoBottomSheet> {
   }
 
   void _loadData() {
+    if (!NetworkService().isOnline) {
+      setState(() {
+        _infoFuture = Future.error('NO_INTERNET');
+      });
+      return;
+    }
     setState(() {
       _infoFuture = _apiService.getMuhafadzohInfo(
         tahunAjaranId: _selectedTahunAjaran?['id'],
@@ -265,6 +282,9 @@ class _MuhafadzohInfoBottomSheetState extends State<MuhafadzohInfoBottomSheet> {
                   return const Center(child: CircularProgressIndicator(color: Colors.blue));
                 }
                 if (snapshot.hasError) {
+                  if (snapshot.error.toString() == 'NO_INTERNET') {
+                    return OfflineWidget(onRetry: _loadFiltersAndData);
+                  }
                   return Center(
                     child: Padding(
                       padding: const EdgeInsets.all(24.0),
