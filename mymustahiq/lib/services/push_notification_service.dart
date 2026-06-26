@@ -85,7 +85,7 @@ class PushNotificationService {
       );
 
       await _localNotifications.initialize(
-        initializationSettings,
+        settings: initializationSettings,
         onDidReceiveNotificationResponse: (NotificationResponse response) {
           // Handle foreground notification tap
           final payload = response.payload;
@@ -127,10 +127,10 @@ class PushNotificationService {
           }
 
           _localNotifications.show(
-            notification.hashCode,
-            notification.title,
-            notification.body,
-            NotificationDetails(
+            id: notification.hashCode,
+            title: notification.title,
+            body: notification.body,
+            notificationDetails: NotificationDetails(
               android: AndroidNotificationDetails(
                 targetChannelId,
                 targetChannelName,
@@ -235,10 +235,10 @@ class PushNotificationService {
     }
 
     await _localNotifications.show(
-      999,
-      'MyMustahiq',
-      'Tes Nada Notifikasi: ${soundName.toUpperCase()}',
-      NotificationDetails(
+      id: 999,
+      title: 'MyMustahiq',
+      body: 'Tes Nada Notifikasi: ${soundName.toUpperCase()}',
+      notificationDetails: NotificationDetails(
         android: AndroidNotificationDetails(
           channelId,
           channelName,

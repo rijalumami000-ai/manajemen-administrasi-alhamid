@@ -419,7 +419,7 @@ class _SantriDetailScreenState extends State<SantriDetailScreen> with SingleTick
           if (muhafadzoh.isNotEmpty) ...[
             _buildSectionTitle("NILAI MUHAFADZOH (HAFALAN)"),
             const SizedBox(height: 12),
-            _buildGradesCardList(muhafadzoh, const Color(0xFF10B981)),
+            _buildSpecialGradesCardList(muhafadzoh, const Color(0xFF10B981), "Muhafadzoh Akbar"),
             const SizedBox(height: 30),
           ],
 
@@ -427,7 +427,7 @@ class _SantriDetailScreenState extends State<SantriDetailScreen> with SingleTick
           if (qiroatul.isNotEmpty) ...[
             _buildSectionTitle("NILAI QIROATUL KITAB (BACAAN)"),
             const SizedBox(height: 12),
-            _buildGradesCardList(qiroatul, const Color(0xFF3B82F6)),
+            _buildSpecialGradesCardList(qiroatul, const Color(0xFF3B82F6), "Qiroatul Kitab"),
             const SizedBox(height: 30),
           ],
 
@@ -455,6 +455,122 @@ class _SantriDetailScreenState extends State<SantriDetailScreen> with SingleTick
             const SizedBox(height: 30),
           ],
         ],
+      ),
+    );
+  }
+
+  Widget _buildSpecialGradesCardList(List<dynamic> group, Color themeColor, String defaultTitle) {
+    return Container(
+      decoration: BoxDecoration(
+        color: context.cardBg,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: context.borderColor),
+      ),
+      child: ListView.separated(
+        shrinkWrap: true,
+        physics: const NeverScrollableScrollPhysics(),
+        itemCount: group.length,
+        separatorBuilder: (context, index) => _buildDivider(),
+        itemBuilder: (context, index) {
+          final item = group[index];
+          final rawScore = item['nilai_angka'];
+          final double? score = rawScore != null ? (double.tryParse(rawScore.toString()) ?? 0.0) : null;
+          final String kitab = item['kitab_nama'] ?? '-';
+          final String predikat = item['predikat'] ?? '-';
+          final String capaian = item['capaian']?.toString() ?? '';
+          
+          final bool hasNumericScore = score != null && score > 0;
+          final bool hasTextCapaian = capaian.trim().isNotEmpty;
+
+          return Padding(
+            padding: const EdgeInsets.all(20),
+            child: Row(
+              children: [
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        defaultTitle,
+                        style: GoogleFonts.outfit(
+                          color: context.titleColor,
+                          fontSize: 15,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        "Kitab: $kitab • Predikat: $predikat",
+                        style: GoogleFonts.outfit(
+                          color: context.subTitleColor,
+                          fontSize: 12,
+                        ),
+                      ),
+                      if (hasNumericScore && hasTextCapaian) ...[
+                        const SizedBox(height: 8),
+                        Text(
+                          "Catatan: $capaian",
+                          style: GoogleFonts.inter(
+                            color: context.bodyColor,
+                            fontSize: 12,
+                            fontStyle: FontStyle.italic,
+                          ),
+                        ),
+                      ]
+                    ],
+                  ),
+                ),
+                if (hasNumericScore)
+                  Container(
+                    width: 55,
+                    height: 55,
+                    alignment: Alignment.center,
+                    decoration: BoxDecoration(
+                      color: themeColor.withOpacity(0.12),
+                      shape: BoxShape.circle,
+                      border: Border.all(color: themeColor.withOpacity(0.3), width: 1),
+                    ),
+                    child: Text(
+                      score.toStringAsFixed(score % 1 == 0 ? 0 : 1),
+                      style: GoogleFonts.outfit(
+                        color: themeColor,
+                        fontSize: 18,
+                        fontWeight: FontWeight.w900,
+                      ),
+                    ),
+                  )
+                else if (!hasNumericScore && hasTextCapaian)
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                    decoration: BoxDecoration(
+                      color: themeColor.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(10),
+                      border: Border.all(color: themeColor.withOpacity(0.2), width: 1),
+                    ),
+                    child: Text(
+                      capaian,
+                      style: GoogleFonts.outfit(
+                        color: themeColor,
+                        fontSize: 14,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  )
+                else
+                  Container(
+                    width: 55,
+                    height: 55,
+                    alignment: Alignment.center,
+                    decoration: BoxDecoration(
+                      color: context.isDarkMode ? Colors.white.withOpacity(0.05) : Colors.black.withOpacity(0.03),
+                      shape: BoxShape.circle,
+                    ),
+                    child: Icon(Icons.remove_rounded, color: context.subTitleColor),
+                  ),
+              ],
+            ),
+          );
+        },
       ),
     );
   }

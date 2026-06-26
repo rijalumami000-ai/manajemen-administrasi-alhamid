@@ -105,7 +105,7 @@ class _TabAkunState extends State<TabAkun> {
       try {
         final didAuth = await _auth.authenticate(
           localizedReason: 'Aktifkan login biometrik untuk MyMustahiq',
-          options: const AuthenticationOptions(biometricOnly: true),
+          biometricOnly: true,
         );
         if (didAuth) {
           await _storage.write(key: 'biometric_enabled', value: 'true');

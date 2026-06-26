@@ -93,7 +93,7 @@ class _LoginScreenState extends State<LoginScreen> {
     try {
       final didAuth = await _auth.authenticate(
         localizedReason: 'Login ke MyMustahiq menggunakan biometrik',
-        options: const AuthenticationOptions(biometricOnly: true),
+        biometricOnly: true,
       );
 
       if (!didAuth) return;

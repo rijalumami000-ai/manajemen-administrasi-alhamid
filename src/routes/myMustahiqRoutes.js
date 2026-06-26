@@ -344,13 +344,17 @@ function registerMyMustahiqRoutes(app) {
         kam.gedung AS kamar_gedung,
         s.foto_url,
         kta.muhafadzoh_mapel_id,
-        kta.qiroatul_mapel_id
+        kta.qiroatul_mapel_id,
+        mp_muh.nama AS muhafadzoh_kitab,
+        mp_qir.nama AS qiroatul_kitab
       FROM santri_tahun_ajaran sta
       JOIN santri s ON sta.santri_id = s.id
       LEFT JOIN kelas kd ON sta.kelas_diniyah_id = kd.id
       LEFT JOIN kelas ks ON sta.kelas_sekolah_id = ks.id
       LEFT JOIN kamar kam ON sta.kamar_id = kam.id
       LEFT JOIN kelas_tahun_ajaran kta ON kta.kelas_id = sta.kelas_diniyah_id AND kta.tahun_ajaran_id = sta.tahun_ajaran_id
+      LEFT JOIN mata_pelajaran mp_muh ON kta.muhafadzoh_mapel_id = mp_muh.id
+      LEFT JOIN mata_pelajaran mp_qir ON kta.qiroatul_mapel_id = mp_qir.id
       WHERE sta.santri_id = $1 AND sta.tahun_ajaran_id = $2
     `, [santriId, activeYear.id]);
 
@@ -359,10 +363,6 @@ function registerMyMustahiqRoutes(app) {
     }
 
     const profile = profileResult.rows[0];
-
-    // Extract mapping config
-    const muhafadzohMapelId = profile.muhafadzoh_mapel_id;
-    const qiroatulMapelId = profile.qiroatul_mapel_id;
 
     // 2. Fetch grades for selected year and semester (kategori_evaluasi_id)
     const gradesResult = await db.query(`
@@ -386,10 +386,13 @@ function registerMyMustahiqRoutes(app) {
     // Categorize grades (especially Muhafadzoh and Qiroatul Kitab under Opsi A)
     const grades = gradesResult.rows.map(g => {
       let type = 'Lainnya';
-      if (g.mata_pelajaran_id === muhafadzohMapelId || g.mapel_jenis === 'Muhafadzoh') {
+      let kitabNama = null;
+      if (g.mata_pelajaran_id === 10 || g.mapel_jenis === 'Muhafadzoh') {
         type = 'Muhafadzoh';
-      } else if (g.mata_pelajaran_id === qiroatulMapelId || g.mapel_jenis === 'Qiroah') {
+        kitabNama = profile.muhafadzoh_kitab || '-';
+      } else if (g.mata_pelajaran_id === 11 || g.mapel_jenis === 'Qiroah') {
         type = 'Qiroatul Kitab';
+        kitabNama = profile.qiroatul_kitab || '-';
       } else if (g.mapel_jenis === 'Taftisyul Kutub' || (g.mata_pelajaran || '').toLowerCase().includes('taftisy') || g.mapel_jenis === 'Taftisy') {
         type = 'Taftisyul Kutub';
       } else if (g.kategori_jenis === 'Semester' || (g.kategori_evaluasi || '').toLowerCase().includes('ujian')) {
@@ -398,7 +401,8 @@ function registerMyMustahiqRoutes(app) {
 
       return {
         ...g,
-        tipe_kategori: type
+        tipe_kategori: type,
+        kitab_nama: kitabNama
       };
     });
 
