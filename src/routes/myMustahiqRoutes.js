@@ -418,6 +418,32 @@ function registerMyMustahiqRoutes(app) {
       ORDER BY tanggal DESC
     `, [santriId]);
 
+    // 5. Fetch rapor data (sakit, izin, alpa, keaktifan, akhlaq, kerapihan, catatan, keputusan_kenaikan)
+    const raporRes = await db.query(`
+      SELECT sakit, izin, alpa, keaktifan, akhlaq, kerapihan, catatan, keputusan_kenaikan 
+      FROM rapor_santri 
+      WHERE santri_id = $1 AND tahun_ajaran_id = $2 AND kategori_evaluasi_id = $3
+    `, [santriId, activeYear.id, kategoriId]);
+    const rapor = raporRes.rows[0] || {
+      sakit: 0,
+      izin: 0,
+      alpa: 0,
+      keaktifan: null,
+      akhlaq: null,
+      kerapihan: null,
+      catatan: '',
+      keputusan_kenaikan: ''
+    };
+
+    // 6. Fetch monthly attendance detail
+    const absensiDetailRes = await db.query(`
+      SELECT bulan, sakit, izin, alpa 
+      FROM absensi_bulanan_santri 
+      WHERE santri_id = $1 AND tahun_ajaran_id = $2 AND kategori_evaluasi_id = $3
+      ORDER BY id ASC
+    `, [santriId, activeYear.id, kategoriId]);
+    const absensiDetail = absensiDetailRes.rows;
+
     res.json({
       tahunAjaran: activeYear.kode,
       tahunAjaranId: activeYear.id,
@@ -446,7 +472,9 @@ function registerMyMustahiqRoutes(app) {
       },
       nilai: grades,
       prestasi: achievementsResult.rows,
-      pelanggaran: violationsResult.rows
+      pelanggaran: violationsResult.rows,
+      rapor: rapor,
+      absensi_detail: absensiDetail
     });
   }));
 
