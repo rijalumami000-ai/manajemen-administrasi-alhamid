@@ -242,6 +242,7 @@ class _LaporanAkademikScreenState extends State<LaporanAkademikScreen> {
               return GestureDetector(
                 onTap: () {
                   setState(() { _selectedKelas = kelas as Map<String, dynamic>; });
+                  _fetchLaporanAkademik();
                 },
                 child: AnimatedContainer(
                   duration: const Duration(milliseconds: 200),
@@ -257,36 +258,20 @@ class _LaporanAkademikScreenState extends State<LaporanAkademikScreen> {
                         : [],
                   ),
                   alignment: Alignment.center,
-                  child: Text(
-                    kelas['nama'] ?? '-',
-                    style: GoogleFonts.outfit(
-                      color: isSelected ? Colors.white : context.titleColor,
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
+                  child: _isLoadingData && isSelected
+                      ? const SizedBox(width: 24, height: 24, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+                      : Text(
+                          kelas['nama'] ?? '-',
+                          style: GoogleFonts.outfit(
+                            color: isSelected ? Colors.white : context.titleColor,
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
                 ),
               );
             },
           ),
-          const SizedBox(height: 24),
-          if (_selectedKelas != null)
-            ElevatedButton.icon(
-              onPressed: _isLoadingData ? null : _fetchLaporanAkademik,
-              icon: _isLoadingData
-                  ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
-                  : const Icon(Icons.table_chart_rounded, size: 20),
-              label: Text(
-                _isLoadingData ? 'Memuat...' : 'Tampilkan Laporan Kelas ${_selectedKelas!['nama']}',
-                style: GoogleFonts.outfit(fontWeight: FontWeight.bold),
-              ),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF10B981),
-                foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(vertical: 16),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-              ),
-            ),
         ],
       ),
     );
@@ -404,6 +389,7 @@ class _LaporanAkademikScreenState extends State<LaporanAkademikScreen> {
           no: index + 1,
           nama: s['nama'] ?? '-',
           nis: s['nis'] ?? '-',
+          fotoUrl: s['foto_url'],
           rightWidget: muhafadzoh != null
               ? _buildMuhafadzohRow(muhafadzoh, const Color(0xFF10B981))
               : _buildEmptyValueWidget(),
@@ -427,8 +413,9 @@ class _LaporanAkademikScreenState extends State<LaporanAkademikScreen> {
           no: index + 1,
           nama: s['nama'] ?? '-',
           nis: s['nis'] ?? '-',
+          fotoUrl: s['foto_url'],
           rightWidget: qiroatul != null
-              ? _buildMuhafadzohRow(qiroatul, const Color(0xFF3B82F6))
+              ? _buildQiroahRow(qiroatul, const Color(0xFF3B82F6))
               : _buildEmptyValueWidget(),
         );
       },
@@ -450,6 +437,7 @@ class _LaporanAkademikScreenState extends State<LaporanAkademikScreen> {
           no: index + 1,
           nama: s['nama'] ?? '-',
           nis: s['nis'] ?? '-',
+          fotoUrl: s['foto_url'],
           bottomContent: taftisyul.isNotEmpty
               ? Padding(
                   padding: const EdgeInsets.only(top: 8.0),
@@ -502,6 +490,7 @@ class _LaporanAkademikScreenState extends State<LaporanAkademikScreen> {
           no: index + 1,
           nama: s['nama'] ?? '-',
           nis: s['nis'] ?? '-',
+          fotoUrl: s['foto_url'],
           bottomContent: ujianTulis.isNotEmpty
               ? Padding(
                   padding: const EdgeInsets.only(top: 8.0),
@@ -550,6 +539,7 @@ class _LaporanAkademikScreenState extends State<LaporanAkademikScreen> {
           no: index + 1,
           nama: s['nama'] ?? '-',
           nis: s['nis'] ?? '-',
+          fotoUrl: s['foto_url'],
           bottomContent: rapor != null
               ? Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -578,7 +568,7 @@ class _LaporanAkademikScreenState extends State<LaporanAkademikScreen> {
                           borderRadius: BorderRadius.circular(8),
                         ),
                         child: Text(
-                          'Catatan Wali: "${rapor['catatan']}"',
+                          'Catatan Wali Kelas: "${rapor['catatan']}"',
                           style: GoogleFonts.inter(
                             color: context.bodyColor,
                             fontSize: 11,
@@ -603,7 +593,7 @@ class _LaporanAkademikScreenState extends State<LaporanAkademikScreen> {
                             const SizedBox(width: 6),
                             Expanded(
                               child: Text(
-                                rapor['keputusan_kenaikan'],
+                                'Naik ke kelas ${rapor['keputusan_kenaikan']}',
                                 style: GoogleFonts.outfit(color: const Color(0xFF10B981), fontSize: 12, fontWeight: FontWeight.bold),
                               ),
                             ),
@@ -628,9 +618,15 @@ class _LaporanAkademikScreenState extends State<LaporanAkademikScreen> {
     required int no,
     required String nama,
     required String nis,
+    String? fotoUrl,
     Widget? rightWidget,
     Widget? bottomContent,
   }) {
+    final baseUrl = 'https://alhamidcintamulya.my.id';
+    final fullFotoUrl = fotoUrl != null && fotoUrl.isNotEmpty
+        ? (fotoUrl.startsWith('http') ? fotoUrl : '$baseUrl$fotoUrl')
+        : null;
+
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
@@ -642,36 +638,61 @@ class _LaporanAkademikScreenState extends State<LaporanAkademikScreen> {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
             children: [
+              // Nomor urut kecil
               Container(
-                width: 28,
-                height: 28,
+                width: 22,
+                height: 22,
                 alignment: Alignment.center,
                 decoration: const BoxDecoration(
                   color: Color(0xFF10B981),
                   shape: BoxShape.circle,
                 ),
                 child: Text('$no',
-                    style: GoogleFonts.outfit(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold)),
+                    style: GoogleFonts.outfit(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold)),
               ),
-              const SizedBox(width: 12),
+              const SizedBox(width: 8),
+              // Foto
+              Container(
+                width: 38,
+                height: 38,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: context.isDarkMode ? Colors.white.withOpacity(0.08) : const Color(0xFFE2E8F0),
+                  border: Border.all(color: context.borderColor, width: 1),
+                  image: fullFotoUrl != null
+                      ? DecorationImage(image: NetworkImage(fullFotoUrl), fit: BoxFit.cover)
+                      : null,
+                ),
+                child: fullFotoUrl == null
+                    ? Icon(Icons.person_rounded, size: 22, color: context.subTitleColor)
+                    : null,
+              ),
+              const SizedBox(width: 10),
+              // Nama & NIS - expanded agar nama tidak wrap lebih dari 1 baris
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
                       nama,
-                      style: GoogleFonts.outfit(color: context.titleColor, fontSize: 14, fontWeight: FontWeight.bold),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: GoogleFonts.outfit(color: context.titleColor, fontSize: 13, fontWeight: FontWeight.bold),
                     ),
-                    const SizedBox(height: 2),
+                    const SizedBox(height: 1),
                     Text(
                       'NIS: $nis',
-                      style: GoogleFonts.outfit(color: context.subTitleColor, fontSize: 11),
+                      style: GoogleFonts.outfit(color: context.subTitleColor, fontSize: 10),
                     ),
                   ],
                 ),
               ),
-              if (rightWidget != null) rightWidget,
+              if (rightWidget != null) ...[
+                const SizedBox(width: 8),
+                rightWidget,
+              ],
             ],
           ),
           if (bottomContent != null) bottomContent,
@@ -699,62 +720,117 @@ class _LaporanAkademikScreenState extends State<LaporanAkademikScreen> {
     final hasNumeric = nilaiAngka != null && nilaiAngka > 0;
     final hasCapaian = capaian.isNotEmpty;
 
-    return Container(
-      constraints: const BoxConstraints(maxWidth: 200),
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-      decoration: BoxDecoration(
-        color: color.withOpacity(0.06),
-        borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: color.withOpacity(0.2)),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(kitab,
-                    overflow: TextOverflow.ellipsis,
-                    style: GoogleFonts.outfit(color: context.titleColor, fontSize: 11, fontWeight: FontWeight.bold)),
-                const SizedBox(height: 1),
-                Text('Predikat: $predikat',
-                    overflow: TextOverflow.ellipsis,
-                    style: GoogleFonts.outfit(color: context.subTitleColor, fontSize: 9)),
-              ],
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.end,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        // Nilai (bulatan atau teks)
+        if (hasNumeric)
+          Container(
+            width: 36,
+            height: 36,
+            alignment: Alignment.center,
+            decoration: BoxDecoration(
+              color: color.withOpacity(0.12),
+              shape: BoxShape.circle,
+              border: Border.all(color: color.withOpacity(0.3), width: 1.5),
             ),
+            child: Text(
+              nilaiAngka.toStringAsFixed(nilaiAngka % 1 == 0 ? 0 : 1),
+              style: GoogleFonts.outfit(color: color, fontSize: 13, fontWeight: FontWeight.w900),
+            ),
+          )
+        else if (hasCapaian)
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+            decoration: BoxDecoration(
+              color: color.withOpacity(0.1),
+              borderRadius: BorderRadius.circular(6),
+              border: Border.all(color: color.withOpacity(0.25)),
+            ),
+            child: Text(capaian, style: GoogleFonts.outfit(color: color, fontSize: 10, fontWeight: FontWeight.bold)),
+          )
+        else
+          Icon(Icons.remove_rounded, color: context.subTitleColor, size: 16),
+        const SizedBox(height: 2),
+        // Nama kitab
+        SizedBox(
+          width: 90,
+          child: Text(
+            kitab,
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+            textAlign: TextAlign.right,
+            style: GoogleFonts.outfit(color: context.titleColor, fontSize: 9, fontWeight: FontWeight.w600),
           ),
-          const SizedBox(width: 8),
-          if (hasNumeric)
-            Container(
-              width: 32,
-              height: 32,
-              alignment: Alignment.center,
-              decoration: BoxDecoration(
-                color: color.withOpacity(0.12),
-                shape: BoxShape.circle,
-                border: Border.all(color: color.withOpacity(0.3), width: 1.5),
-              ),
-              child: Text(
-                nilaiAngka.toStringAsFixed(nilaiAngka % 1 == 0 ? 0 : 1),
-                style: GoogleFonts.outfit(color: color, fontSize: 12, fontWeight: FontWeight.w900),
-              ),
-            )
-          else if (hasCapaian)
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-              decoration: BoxDecoration(
-                color: color.withOpacity(0.1),
-                borderRadius: BorderRadius.circular(6),
-                border: Border.all(color: color.withOpacity(0.25)),
-              ),
-              child: Text(capaian, style: GoogleFonts.outfit(color: color, fontSize: 10, fontWeight: FontWeight.bold)),
-            )
-          else
-            Icon(Icons.remove_rounded, color: context.subTitleColor, size: 16),
-        ],
-      ),
+        ),
+        // Predikat
+        SizedBox(
+          width: 90,
+          child: Text(
+            predikat,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            textAlign: TextAlign.right,
+            style: GoogleFonts.outfit(color: color, fontSize: 9),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildQiroahRow(Map<String, dynamic> n, Color color) {
+    final kitab = n['kitab']?.toString() ?? '-';
+    final nilaiAngka = double.tryParse(n['nilai_angka']?.toString() ?? '');
+    final capaian = n['capaian']?.toString().trim() ?? '';
+    final hasNumeric = nilaiAngka != null && nilaiAngka > 0;
+    final hasCapaian = capaian.isNotEmpty;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.end,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        // Nilai
+        if (hasNumeric)
+          Container(
+            width: 36,
+            height: 36,
+            alignment: Alignment.center,
+            decoration: BoxDecoration(
+              color: color.withOpacity(0.12),
+              shape: BoxShape.circle,
+              border: Border.all(color: color.withOpacity(0.3), width: 1.5),
+            ),
+            child: Text(
+              nilaiAngka.toStringAsFixed(nilaiAngka % 1 == 0 ? 0 : 1),
+              style: GoogleFonts.outfit(color: color, fontSize: 13, fontWeight: FontWeight.w900),
+            ),
+          )
+        else if (hasCapaian)
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+            decoration: BoxDecoration(
+              color: color.withOpacity(0.1),
+              borderRadius: BorderRadius.circular(6),
+              border: Border.all(color: color.withOpacity(0.25)),
+            ),
+            child: Text(capaian, style: GoogleFonts.outfit(color: color, fontSize: 10, fontWeight: FontWeight.bold)),
+          )
+        else
+          Icon(Icons.remove_rounded, color: context.subTitleColor, size: 16),
+        const SizedBox(height: 2),
+        // Nama kitab saja (tanpa predikat)
+        SizedBox(
+          width: 90,
+          child: Text(
+            kitab,
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+            textAlign: TextAlign.right,
+            style: GoogleFonts.outfit(color: context.titleColor, fontSize: 9, fontWeight: FontWeight.w600),
+          ),
+        ),
+      ],
     );
   }
 

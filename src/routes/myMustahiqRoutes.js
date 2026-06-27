@@ -2310,8 +2310,9 @@ function registerMyMustahiqRoutes(app) {
     // Ambil list santri di kelas ini
     const isGenap = activeSemester.toLowerCase().includes('genap');
     let santriQuery = `
-      SELECT sta.santri_id AS id, sta.nis, sta.nama
+      SELECT sta.santri_id AS id, sta.nis, sta.nama, s.foto_url
       FROM santri_tahun_ajaran sta
+      JOIN santri s ON s.id = sta.santri_id
       WHERE sta.kelas_diniyah_id = $1 AND sta.tahun_ajaran_id = $2 AND sta.status = 'aktif'
     `;
     if (isGenap) santriQuery += ' AND sta.aktif_genap = TRUE';
@@ -2366,19 +2367,33 @@ function registerMyMustahiqRoutes(app) {
       const nilaiBySantri = nilaiMap[s.id] || [];
       const rapor = raporMap[s.id] || null;
 
-      const muhafadzoh = nilaiBySantri.find(n => n.mata_pelajaran_id === muhafadzohMapelId || n.mapel_jenis === 'Muhafadzoh');
-      const qiroatul   = nilaiBySantri.find(n => n.mata_pelajaran_id === qiroatulMapelId   || n.mapel_jenis === 'Qiroah');
-      const taftisyul  = nilaiBySantri.filter(n => n.mapel_jenis === 'Taftisyul Kutub' || n.mapel_jenis === 'Taftisy');
+      // Muhafadzoh & Qiroah: HANYA ambil berdasarkan mata_pelajaran_id yang sudah dikonfigurasi di kelas
+      const muhafadzoh = muhafadzohMapelId
+        ? nilaiBySantri.find(n => n.mata_pelajaran_id === muhafadzohMapelId)
+        : null;
+      const qiroatul = qiroatulMapelId
+        ? nilaiBySantri.find(n => n.mata_pelajaran_id === qiroatulMapelId)
+        : null;
+      const taftisyulIds = new Set();
+      const taftisyul = nilaiBySantri.filter(n => {
+        if (n.mapel_jenis === 'Taftisyul Kutub' || n.mapel_jenis === 'Taftisy') {
+          taftisyulIds.add(n.mata_pelajaran_id);
+          return true;
+        }
+        return false;
+      });
+      // Ujian Tulis: HANYA mapel yang bukan muhafadzoh, bukan qiroah, dan bukan taftisyul
       const ujianTulis = nilaiBySantri.filter(n =>
-        n.mapel_jenis === 'Reguler' &&
         n.mata_pelajaran_id !== muhafadzohMapelId &&
-        n.mata_pelajaran_id !== qiroatulMapelId
+        n.mata_pelajaran_id !== qiroatulMapelId &&
+        !taftisyulIds.has(n.mata_pelajaran_id)
       );
 
       return {
         id: s.id,
         nis: s.nis,
         nama: s.nama,
+        foto_url: s.foto_url || null,
         muhafadzoh: muhafadzoh ? {
           kitab: muhafadzohKitab,
           nilai_angka: muhafadzoh.nilai_angka,
