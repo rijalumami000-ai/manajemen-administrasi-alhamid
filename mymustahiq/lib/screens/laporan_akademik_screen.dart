@@ -318,122 +318,142 @@ class _LaporanAkademikScreenState extends State<LaporanAkademikScreen> {
       );
     }
 
-    return Column(
-      children: [
-        // Header
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
-          color: context.isDarkMode ? const Color(0xFF0D1527) : const Color(0xFFF0FDF4),
-          child: Row(
-            children: [
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Kelas $kelasNama — $tahunAjaran (Sem. $semester)',
-                      style: GoogleFonts.outfit(color: context.titleColor, fontWeight: FontWeight.bold, fontSize: 14),
-                    ),
-                    Text('${santriList.length} santri',
-                        style: GoogleFonts.outfit(color: context.subTitleColor, fontSize: 12)),
-                  ],
-                ),
-              ),
-              TextButton.icon(
-                onPressed: () => setState(() { _laporanData = null; }),
-                icon: const Icon(Icons.swap_horiz_rounded, size: 16, color: Color(0xFF10B981)),
-                label: Text('Ganti Kelas', style: GoogleFonts.outfit(color: const Color(0xFF10B981), fontSize: 12)),
-              ),
-            ],
-          ),
-        ),
-        const Divider(height: 1),
-        Expanded(
-          child: ListView.separated(
-            physics: const BouncingScrollPhysics(),
-            padding: const EdgeInsets.all(16),
-            itemCount: santriList.length,
-            separatorBuilder: (_, __) => const SizedBox(height: 14),
-            itemBuilder: (context, index) {
-              final s = santriList[index] as Map<String, dynamic>;
-              return _buildSantriCard(s, index + 1, isSemesterGenap);
-            },
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildSantriCard(Map<String, dynamic> s, int no, bool isSemesterGenap) {
-    final muhafadzoh = s['muhafadzoh'] as Map<String, dynamic>?;
-    final qiroatul   = s['qiroatul']   as Map<String, dynamic>?;
-    final taftisyul  = s['taftisyul']  as List<dynamic>? ?? [];
-    final ujianTulis = s['ujian_tulis'] as List<dynamic>? ?? [];
-    final rapor      = s['rapor']      as Map<String, dynamic>?;
-
-    return Container(
-      decoration: BoxDecoration(
-        color: context.cardBg,
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: context.borderColor),
-      ),
+    return DefaultTabController(
+      length: 5,
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          // Header Santri
+          // Header Kelas
           Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-            decoration: BoxDecoration(
-              color: const Color(0xFF10B981).withOpacity(0.08),
-              borderRadius: const BorderRadius.only(
-                  topLeft: Radius.circular(18), topRight: Radius.circular(18)),
-            ),
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+            color: context.isDarkMode ? const Color(0xFF0D1527) : const Color(0xFFF0FDF4),
             child: Row(
               children: [
-                Container(
-                  width: 32, height: 32,
-                  alignment: Alignment.center,
-                  decoration: const BoxDecoration(color: Color(0xFF10B981), shape: BoxShape.circle),
-                  child: Text('$no', style: GoogleFonts.outfit(color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold)),
-                ),
-                const SizedBox(width: 12),
                 Expanded(
-                  child: Text(s['nama'] ?? '-',
-                      style: GoogleFonts.outfit(color: context.titleColor, fontSize: 15, fontWeight: FontWeight.bold)),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Kelas $kelasNama — $tahunAjaran (Sem. $semester)',
+                        style: GoogleFonts.outfit(color: context.titleColor, fontWeight: FontWeight.bold, fontSize: 14),
+                      ),
+                      Text('${santriList.length} santri',
+                          style: GoogleFonts.outfit(color: context.subTitleColor, fontSize: 12)),
+                    ],
+                  ),
                 ),
-                Text('NIS: ${s['nis'] ?? '-'}',
-                    style: GoogleFonts.outfit(color: context.subTitleColor, fontSize: 11)),
+                TextButton.icon(
+                  onPressed: () => setState(() { _laporanData = null; }),
+                  icon: const Icon(Icons.swap_horiz_rounded, size: 16, color: Color(0xFF10B981)),
+                  label: Text('Ganti Kelas', style: GoogleFonts.outfit(color: const Color(0xFF10B981), fontSize: 12)),
+                ),
               ],
             ),
           ),
+          const Divider(height: 1),
 
-          Padding(
-            padding: const EdgeInsets.all(14),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
+          // Tab Bar Kategori Nilai
+          Container(
+            color: context.isDarkMode ? const Color(0xFF0D1527) : Colors.white,
+            child: TabBar(
+              indicatorColor: const Color(0xFF10B981),
+              labelColor: const Color(0xFF10B981),
+              unselectedLabelColor: context.subTitleColor,
+              labelStyle: GoogleFonts.outfit(fontWeight: FontWeight.bold, fontSize: 13),
+              unselectedLabelStyle: GoogleFonts.outfit(fontWeight: FontWeight.normal, fontSize: 13),
+              isScrollable: true,
+              tabs: const [
+                Tab(text: "Muhafadzoh Akbar"),
+                Tab(text: "Qiroatul Kitab"),
+                Tab(text: "Taftisyul Kutub"),
+                Tab(text: "Ujian Tulis"),
+                Tab(text: "Rapor & Absensi"),
+              ],
+            ),
+          ),
+          const Divider(height: 1),
+
+          // Tab View Konten
+          Expanded(
+            child: TabBarView(
               children: [
+                _buildMuhafadzohList(santriList),
+                _buildQiroahList(santriList),
+                _buildTaftisyulList(santriList),
+                _buildUjianTulisList(santriList),
+                _buildRaporList(santriList, isSemesterGenap),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 
-                // Muhafadzoh
-                if (muhafadzoh != null) ...[
-                  _buildNilaiSectionHeader('Muhafadzoh Akbar', const Color(0xFF10B981), Icons.menu_book_rounded),
-                  const SizedBox(height: 8),
-                  _buildMuhafadzohRow(muhafadzoh, const Color(0xFF10B981)),
-                  const SizedBox(height: 12),
-                ],
+  // --- 1. TAB MUHAFADZOH LIST ---
+  Widget _buildMuhafadzohList(List<dynamic> santriList) {
+    return ListView.separated(
+      physics: const BouncingScrollPhysics(),
+      padding: const EdgeInsets.all(16),
+      itemCount: santriList.length,
+      separatorBuilder: (_, __) => const SizedBox(height: 10),
+      itemBuilder: (context, index) {
+        final s = santriList[index] as Map<String, dynamic>;
+        final muhafadzoh = s['muhafadzoh'] as Map<String, dynamic>?;
 
-                // Qiroatul Kitab
-                if (qiroatul != null) ...[
-                  _buildNilaiSectionHeader('Qiroatul Kitab', const Color(0xFF3B82F6), Icons.auto_stories_rounded),
-                  const SizedBox(height: 8),
-                  _buildMuhafadzohRow(qiroatul, const Color(0xFF3B82F6)),
-                  const SizedBox(height: 12),
-                ],
+        return _buildBaseSantriRow(
+          no: index + 1,
+          nama: s['nama'] ?? '-',
+          nis: s['nis'] ?? '-',
+          rightWidget: muhafadzoh != null
+              ? _buildMuhafadzohRow(muhafadzoh, const Color(0xFF10B981))
+              : _buildEmptyValueWidget(),
+        );
+      },
+    );
+  }
 
-                // Taftisyul Kutub
-                if (taftisyul.isNotEmpty) ...[
-                  _buildNilaiSectionHeader('Taftisyul Kutub', const Color(0xFF8B5CF6), Icons.library_books_rounded),
-                  const SizedBox(height: 8),
-                  Wrap(
+  // --- 2. TAB QIROAH LIST ---
+  Widget _buildQiroahList(List<dynamic> santriList) {
+    return ListView.separated(
+      physics: const BouncingScrollPhysics(),
+      padding: const EdgeInsets.all(16),
+      itemCount: santriList.length,
+      separatorBuilder: (_, __) => const SizedBox(height: 10),
+      itemBuilder: (context, index) {
+        final s = santriList[index] as Map<String, dynamic>;
+        final qiroatul = s['qiroatul'] as Map<String, dynamic>?;
+
+        return _buildBaseSantriRow(
+          no: index + 1,
+          nama: s['nama'] ?? '-',
+          nis: s['nis'] ?? '-',
+          rightWidget: qiroatul != null
+              ? _buildMuhafadzohRow(qiroatul, const Color(0xFF3B82F6))
+              : _buildEmptyValueWidget(),
+        );
+      },
+    );
+  }
+
+  // --- 3. TAB TAFTISYUL KUTUB LIST ---
+  Widget _buildTaftisyulList(List<dynamic> santriList) {
+    return ListView.separated(
+      physics: const BouncingScrollPhysics(),
+      padding: const EdgeInsets.all(16),
+      itemCount: santriList.length,
+      separatorBuilder: (_, __) => const SizedBox(height: 10),
+      itemBuilder: (context, index) {
+        final s = santriList[index] as Map<String, dynamic>;
+        final taftisyul = s['taftisyul'] as List<dynamic>? ?? [];
+
+        return _buildBaseSantriRow(
+          no: index + 1,
+          nama: s['nama'] ?? '-',
+          nis: s['nis'] ?? '-',
+          bottomContent: taftisyul.isNotEmpty
+              ? Padding(
+                  padding: const EdgeInsets.only(top: 8.0),
+                  child: Wrap(
                     spacing: 8,
                     runSpacing: 8,
                     children: taftisyul.map<Widget>((t) {
@@ -445,30 +465,47 @@ class _LaporanAkademikScreenState extends State<LaporanAkademikScreen> {
                       return Container(
                         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                         decoration: BoxDecoration(
-                          color: color.withOpacity(0.1),
+                          color: color.withOpacity(0.08),
                           borderRadius: BorderRadius.circular(8),
-                          border: Border.all(color: color.withOpacity(0.3)),
+                          border: Border.all(color: color.withOpacity(0.2)),
                         ),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(t['mata_pelajaran'] ?? '-',
-                                style: GoogleFonts.outfit(color: context.subTitleColor, fontSize: 10)),
-                            const SizedBox(height: 2),
-                            Text(val, style: GoogleFonts.outfit(color: color, fontSize: 13, fontWeight: FontWeight.bold)),
-                          ],
+                        child: Text(
+                          '${t['mata_pelajaran']}: $val',
+                          style: GoogleFonts.outfit(color: color, fontSize: 11, fontWeight: FontWeight.bold),
                         ),
                       );
                     }).toList(),
                   ),
-                  const SizedBox(height: 12),
-                ],
+                )
+              : Padding(
+                  padding: const EdgeInsets.only(top: 6.0),
+                  child: Text('Belum ada nilai Taftisyul Kutub',
+                      style: GoogleFonts.outfit(color: context.subTitleColor, fontSize: 11, fontStyle: FontStyle.italic)),
+                ),
+        );
+      },
+    );
+  }
 
-                // Ujian Tulis
-                if (ujianTulis.isNotEmpty) ...[
-                  _buildNilaiSectionHeader('Ujian Tulis Semester', const Color(0xFFF59E0B), Icons.edit_note_rounded),
-                  const SizedBox(height: 8),
-                  Wrap(
+  // --- 4. TAB UJIAN TULIS LIST ---
+  Widget _buildUjianTulisList(List<dynamic> santriList) {
+    return ListView.separated(
+      physics: const BouncingScrollPhysics(),
+      padding: const EdgeInsets.all(16),
+      itemCount: santriList.length,
+      separatorBuilder: (_, __) => const SizedBox(height: 10),
+      itemBuilder: (context, index) {
+        final s = santriList[index] as Map<String, dynamic>;
+        final ujianTulis = s['ujian_tulis'] as List<dynamic>? ?? [];
+
+        return _buildBaseSantriRow(
+          no: index + 1,
+          nama: s['nama'] ?? '-',
+          nis: s['nis'] ?? '-',
+          bottomContent: ujianTulis.isNotEmpty
+              ? Padding(
+                  padding: const EdgeInsets.only(top: 8.0),
+                  child: Wrap(
                     spacing: 8,
                     runSpacing: 8,
                     children: ujianTulis.map<Widget>((u) {
@@ -478,113 +515,179 @@ class _LaporanAkademikScreenState extends State<LaporanAkademikScreen> {
                         decoration: BoxDecoration(
                           color: const Color(0xFFF59E0B).withOpacity(0.08),
                           borderRadius: BorderRadius.circular(8),
-                          border: Border.all(color: const Color(0xFFF59E0B).withOpacity(0.25)),
+                          border: Border.all(color: const Color(0xFFF59E0B).withOpacity(0.2)),
                         ),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(u['mata_pelajaran'] ?? '-',
-                                style: GoogleFonts.outfit(color: context.subTitleColor, fontSize: 10)),
-                            const SizedBox(height: 2),
-                            Text(
-                              score.toStringAsFixed(score % 1 == 0 ? 0 : 1),
-                              style: GoogleFonts.outfit(color: const Color(0xFFF59E0B), fontSize: 15, fontWeight: FontWeight.w900),
-                            ),
-                          ],
+                        child: Text(
+                          '${u['mata_pelajaran']}: ${score.toStringAsFixed(score % 1 == 0 ? 0 : 1)}',
+                          style: GoogleFonts.outfit(color: const Color(0xFFF59E0B), fontSize: 11, fontWeight: FontWeight.bold),
                         ),
                       );
                     }).toList(),
                   ),
-                  const SizedBox(height: 12),
-                ],
+                )
+              : Padding(
+                  padding: const EdgeInsets.only(top: 6.0),
+                  child: Text('Belum ada nilai Ujian Tulis',
+                      style: GoogleFonts.outfit(color: context.subTitleColor, fontSize: 11, fontStyle: FontStyle.italic)),
+                ),
+        );
+      },
+    );
+  }
 
-                // Rapor
-                if (rapor != null) ...[
-                  _buildNilaiSectionHeader('Rapor', const Color(0xFF64748B), Icons.summarize_rounded),
-                  const SizedBox(height: 8),
-                  Row(
-                    children: [
-                      _buildAbsensiChip('Sakit', rapor['sakit'] ?? 0, const Color(0xFFF59E0B)),
-                      const SizedBox(width: 8),
-                      _buildAbsensiChip('Izin', rapor['izin'] ?? 0, const Color(0xFF3B82F6)),
-                      const SizedBox(width: 8),
-                      _buildAbsensiChip('Alpa', rapor['alpa'] ?? 0, const Color(0xFFEF4444)),
-                    ],
-                  ),
-                  const SizedBox(height: 8),
-                  Wrap(
-                    spacing: 8,
-                    runSpacing: 6,
-                    children: [
-                      _buildKepribadianChip('Akhlaq', rapor['akhlaq']),
-                      _buildKepribadianChip('Keaktifan', rapor['keaktifan']),
-                      _buildKepribadianChip('Kerapihan', rapor['kerapihan']),
-                    ],
-                  ),
-                  if ((rapor['catatan'] ?? '').toString().trim().isNotEmpty) ...[
+  // --- 5. TAB RAPOR & ABSENSI LIST ---
+  Widget _buildRaporList(List<dynamic> santriList, bool isSemesterGenap) {
+    return ListView.separated(
+      physics: const BouncingScrollPhysics(),
+      padding: const EdgeInsets.all(16),
+      itemCount: santriList.length,
+      separatorBuilder: (_, __) => const SizedBox(height: 10),
+      itemBuilder: (context, index) {
+        final s = santriList[index] as Map<String, dynamic>;
+        final rapor = s['rapor'] as Map<String, dynamic>?;
+
+        return _buildBaseSantriRow(
+          no: index + 1,
+          nama: s['nama'] ?? '-',
+          nis: s['nis'] ?? '-',
+          bottomContent: rapor != null
+              ? Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
                     const SizedBox(height: 8),
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                      decoration: BoxDecoration(
-                        color: context.isDarkMode ? Colors.white.withOpacity(0.04) : Colors.black.withOpacity(0.03),
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: Row(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Icon(Icons.format_quote_rounded, color: context.subTitleColor.withOpacity(0.5), size: 16),
-                          const SizedBox(width: 6),
-                          Expanded(
-                            child: Text(rapor['catatan'],
-                                style: GoogleFonts.inter(color: context.bodyColor, fontSize: 12,
-                                    fontStyle: FontStyle.italic, height: 1.4)),
+                    // Row Absensi & Kepribadian
+                    Wrap(
+                      spacing: 8,
+                      runSpacing: 8,
+                      children: [
+                        _buildAbsensiChip('Sakit', rapor['sakit'] ?? 0, const Color(0xFFF59E0B)),
+                        _buildAbsensiChip('Izin', rapor['izin'] ?? 0, const Color(0xFF3B82F6)),
+                        _buildAbsensiChip('Alpa', rapor['alpa'] ?? 0, const Color(0xFFEF4444)),
+                        _buildKepribadianChip('Akhlaq', rapor['akhlaq']),
+                        _buildKepribadianChip('Keaktifan', rapor['keaktifan']),
+                        _buildKepribadianChip('Kerapihan', rapor['kerapihan']),
+                      ],
+                    ),
+                    // Catatan Wali Kelas
+                    if ((rapor['catatan'] ?? '').toString().trim().isNotEmpty) ...[
+                      const SizedBox(height: 8),
+                      Container(
+                        padding: const EdgeInsets.all(10),
+                        decoration: BoxDecoration(
+                          color: context.isDarkMode ? Colors.white.withOpacity(0.04) : Colors.black.withOpacity(0.03),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Text(
+                          'Catatan Wali: "${rapor['catatan']}"',
+                          style: GoogleFonts.inter(
+                            color: context.bodyColor,
+                            fontSize: 11,
+                            fontStyle: FontStyle.italic,
                           ),
-                        ],
+                        ),
                       ),
+                    ],
+                    // Keputusan Kenaikan
+                    if (isSemesterGenap && (rapor['keputusan_kenaikan'] ?? '').toString().trim().isNotEmpty) ...[
+                      const SizedBox(height: 8),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF10B981).withOpacity(0.08),
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(color: const Color(0xFF10B981).withOpacity(0.2)),
+                        ),
+                        child: Row(
+                          children: [
+                            const Icon(Icons.campaign_rounded, color: Color(0xFF10B981), size: 14),
+                            const SizedBox(width: 6),
+                            Expanded(
+                              child: Text(
+                                rapor['keputusan_kenaikan'],
+                                style: GoogleFonts.outfit(color: const Color(0xFF10B981), fontSize: 12, fontWeight: FontWeight.bold),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ],
+                )
+              : Padding(
+                  padding: const EdgeInsets.only(top: 6.0),
+                  child: Text('Belum ada data rapor & absensi',
+                      style: GoogleFonts.outfit(color: context.subTitleColor, fontSize: 11, fontStyle: FontStyle.italic)),
+                ),
+        );
+      },
+    );
+  }
+
+  // --- BASE SANTRI ROW CONTAINER ---
+  Widget _buildBaseSantriRow({
+    required int no,
+    required String nama,
+    required String nis,
+    Widget? rightWidget,
+    Widget? bottomContent,
+  }) {
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: context.cardBg,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: context.borderColor),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Row(
+            children: [
+              Container(
+                width: 28,
+                height: 28,
+                alignment: Alignment.center,
+                decoration: const BoxDecoration(
+                  color: Color(0xFF10B981),
+                  shape: BoxShape.circle,
+                ),
+                child: Text('$no',
+                    style: GoogleFonts.outfit(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold)),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      nama,
+                      style: GoogleFonts.outfit(color: context.titleColor, fontSize: 14, fontWeight: FontWeight.bold),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      'NIS: $nis',
+                      style: GoogleFonts.outfit(color: context.subTitleColor, fontSize: 11),
                     ),
                   ],
-                  if (isSemesterGenap && (rapor['keputusan_kenaikan'] ?? '').toString().trim().isNotEmpty) ...[
-                    const SizedBox(height: 8),
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFF10B981).withOpacity(0.08),
-                        borderRadius: BorderRadius.circular(8),
-                        border: Border.all(color: const Color(0xFF10B981).withOpacity(0.2)),
-                      ),
-                      child: Row(
-                        children: [
-                          const Icon(Icons.campaign_rounded, color: Color(0xFF10B981), size: 16),
-                          const SizedBox(width: 8),
-                          Expanded(
-                            child: Text(rapor['keputusan_kenaikan'],
-                                style: GoogleFonts.outfit(color: const Color(0xFF10B981), fontSize: 13,
-                                    fontWeight: FontWeight.bold)),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ],
-              ],
-            ),
+                ),
+              ),
+              if (rightWidget != null) rightWidget,
+            ],
           ),
+          if (bottomContent != null) bottomContent,
         ],
       ),
     );
   }
 
-  Widget _buildNilaiSectionHeader(String title, Color color, IconData icon) {
-    return Row(
-      children: [
-        Container(
-          padding: const EdgeInsets.all(5),
-          decoration: BoxDecoration(color: color.withOpacity(0.12), shape: BoxShape.circle),
-          child: Icon(icon, color: color, size: 14),
-        ),
-        const SizedBox(width: 8),
-        Text(title, style: GoogleFonts.outfit(color: color, fontSize: 12, fontWeight: FontWeight.bold)),
-      ],
+  Widget _buildEmptyValueWidget() {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+      decoration: BoxDecoration(
+        color: context.isDarkMode ? Colors.white.withOpacity(0.04) : Colors.black.withOpacity(0.03),
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Text('-', style: GoogleFonts.outfit(color: context.subTitleColor, fontSize: 14, fontWeight: FontWeight.bold)),
     );
   }
 
@@ -597,28 +700,36 @@ class _LaporanAkademikScreenState extends State<LaporanAkademikScreen> {
     final hasCapaian = capaian.isNotEmpty;
 
     return Container(
-      padding: const EdgeInsets.all(12),
+      constraints: const BoxConstraints(maxWidth: 200),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
       decoration: BoxDecoration(
         color: color.withOpacity(0.06),
         borderRadius: BorderRadius.circular(10),
         border: Border.all(color: color.withOpacity(0.2)),
       ),
       child: Row(
+        mainAxisSize: MainAxisSize.min,
         children: [
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
               children: [
-                Text(kitab, style: GoogleFonts.outfit(color: context.titleColor, fontSize: 13, fontWeight: FontWeight.bold)),
-                const SizedBox(height: 2),
-                Text('Predikat: $predikat', style: GoogleFonts.outfit(color: context.subTitleColor, fontSize: 11)),
+                Text(kitab,
+                    overflow: TextOverflow.ellipsis,
+                    style: GoogleFonts.outfit(color: context.titleColor, fontSize: 11, fontWeight: FontWeight.bold)),
+                const SizedBox(height: 1),
+                Text('Predikat: $predikat',
+                    overflow: TextOverflow.ellipsis,
+                    style: GoogleFonts.outfit(color: context.subTitleColor, fontSize: 9)),
               ],
             ),
           ),
-          const SizedBox(width: 10),
+          const SizedBox(width: 8),
           if (hasNumeric)
             Container(
-              width: 44, height: 44,
+              width: 32,
+              height: 32,
               alignment: Alignment.center,
               decoration: BoxDecoration(
                 color: color.withOpacity(0.12),
@@ -626,22 +737,22 @@ class _LaporanAkademikScreenState extends State<LaporanAkademikScreen> {
                 border: Border.all(color: color.withOpacity(0.3), width: 1.5),
               ),
               child: Text(
-                nilaiAngka!.toStringAsFixed(nilaiAngka % 1 == 0 ? 0 : 1),
-                style: GoogleFonts.outfit(color: color, fontSize: 16, fontWeight: FontWeight.w900),
+                nilaiAngka.toStringAsFixed(nilaiAngka % 1 == 0 ? 0 : 1),
+                style: GoogleFonts.outfit(color: color, fontSize: 12, fontWeight: FontWeight.w900),
               ),
             )
           else if (hasCapaian)
             Container(
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
               decoration: BoxDecoration(
                 color: color.withOpacity(0.1),
-                borderRadius: BorderRadius.circular(8),
+                borderRadius: BorderRadius.circular(6),
                 border: Border.all(color: color.withOpacity(0.25)),
               ),
-              child: Text(capaian, style: GoogleFonts.outfit(color: color, fontSize: 12, fontWeight: FontWeight.bold)),
+              child: Text(capaian, style: GoogleFonts.outfit(color: color, fontSize: 10, fontWeight: FontWeight.bold)),
             )
           else
-            Icon(Icons.remove_rounded, color: context.subTitleColor),
+            Icon(Icons.remove_rounded, color: context.subTitleColor, size: 16),
         ],
       ),
     );
@@ -649,17 +760,17 @@ class _LaporanAkademikScreenState extends State<LaporanAkademikScreen> {
 
   Widget _buildAbsensiChip(String label, dynamic value, Color color) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
         color: color.withOpacity(0.08),
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: BorderRadius.circular(6),
         border: Border.all(color: color.withOpacity(0.2)),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Text('$label ', style: GoogleFonts.outfit(color: color, fontSize: 11, fontWeight: FontWeight.w600)),
-          Text('${value ?? 0}', style: GoogleFonts.outfit(color: color, fontSize: 13, fontWeight: FontWeight.w900)),
+          Text('$label ', style: GoogleFonts.outfit(color: color, fontSize: 10, fontWeight: FontWeight.w600)),
+          Text('${value ?? 0}', style: GoogleFonts.outfit(color: color, fontSize: 11, fontWeight: FontWeight.w900)),
         ],
       ),
     );
@@ -667,20 +778,21 @@ class _LaporanAkademikScreenState extends State<LaporanAkademikScreen> {
 
   Widget _buildKepribadianChip(String label, String? val) {
     String textVal = val ?? '-';
-    if (val == 'A') textVal = 'A - Sangat Baik';
-    if (val == 'B') textVal = 'B - Baik';
-    if (val == 'C') textVal = 'C - Cukup';
-    if (val == 'D') textVal = 'D - Kurang';
+    if (val == 'A') textVal = 'A';
+    if (val == 'B') textVal = 'B';
+    if (val == 'C') textVal = 'C';
+    if (val == 'D') textVal = 'D';
     final color = val == null ? context.subTitleColor : const Color(0xFF6366F1);
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
         color: color.withOpacity(0.06),
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: BorderRadius.circular(6),
         border: Border.all(color: color.withOpacity(0.2)),
       ),
       child: Text('$label: $textVal',
-          style: GoogleFonts.outfit(color: color, fontSize: 11, fontWeight: FontWeight.w600)),
+          style: GoogleFonts.outfit(color: color, fontSize: 10, fontWeight: FontWeight.w600)),
     );
   }
 }
+
