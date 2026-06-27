@@ -763,6 +763,36 @@ class ApiService {
       rethrow;
     }
   }
+
+  // --- LAPORAN AKADEMIK SISWA ---
+  Future<Map<String, dynamic>> getLaporanAkademik({
+    required int kelasId,
+    int? tahunAjaranId,
+    String? semester,
+  }) async {
+    try {
+      final Map<String, dynamic> queryParams = {'kelas_id': kelasId};
+      if (tahunAjaranId != null) queryParams['tahun_ajaran_id'] = tahunAjaranId;
+      if (semester != null) queryParams['semester'] = semester;
+
+      final response = await _dio.get(
+        '/my-mustahiq/laporan-akademik',
+        queryParameters: queryParams,
+      );
+      if (response.statusCode == 200) {
+        return response.data;
+      }
+      throw Exception('Gagal mengambil laporan akademik.');
+    } catch (e) {
+      if (e is DioException && e.response != null) {
+        throw Exception(e.response?.data['error'] ?? 'Gagal mengambil laporan akademik.');
+      }
+      rethrow;
+    }
+  }
 }
+
+
+
 
 

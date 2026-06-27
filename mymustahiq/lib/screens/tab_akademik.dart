@@ -7,6 +7,7 @@ import 'struktur_organisasi_screen.dart';
 import 'teacher_list_screen.dart';
 import 'tim_soal_screen.dart';
 import 'input_nilai_screen.dart';
+import 'laporan_akademik_screen.dart';
 import 'password_gate_dialog.dart';
 import '../widgets/muhafadzoh_info_bottom_sheet.dart';
 import '../widgets/qiroah_maqro_bottom_sheet.dart';
@@ -314,7 +315,106 @@ class TabAkademik extends StatelessWidget {
             ),
             const SizedBox(height: 16),
 
-            // 3. SUB ITEMS ROW (Tim Soal & Input Nilai)
+            // 3. LAPORAN AKADEMIK SISWA CARD (Full Width)
+            GestureDetector(
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => const LaporanAkademikScreen()),
+                );
+              },
+              child: Container(
+                width: double.infinity,
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: isDark
+                        ? [const Color(0xFF312E81), const Color(0xFF0F172A)]
+                        : [const Color(0xFFEEF2FF), const Color(0xFFE0E7FF)],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
+                  borderRadius: BorderRadius.circular(22),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(isDark ? 0.3 : 0.04),
+                      blurRadius: 12,
+                      offset: const Offset(0, 5),
+                    ),
+                  ],
+                  border: Border.all(
+                    color: isDark
+                        ? const Color(0xFF818CF8).withOpacity(0.3)
+                        : const Color(0xFF6366F1).withOpacity(0.4),
+                    width: 1.5,
+                  ),
+                ),
+                padding: const EdgeInsets.all(22),
+                child: Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(14),
+                      decoration: BoxDecoration(
+                        color: isDark ? Colors.white.withOpacity(0.06) : Colors.white.withOpacity(0.6),
+                        borderRadius: BorderRadius.circular(16),
+                        border: isDark ? null : Border.all(color: Colors.white, width: 1.5),
+                      ),
+                      child: Icon(
+                        Icons.table_chart_rounded,
+                        color: isDark ? Colors.white : const Color(0xFF6366F1),
+                        size: 32,
+                      ),
+                    ),
+                    const SizedBox(width: 18),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Laporan Akademik Siswa',
+                            style: GoogleFonts.outfit(
+                              color: isDark ? Colors.white : const Color(0xFF312E81),
+                              fontSize: 17,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          const SizedBox(height: 6),
+                          Text(
+                            'Tampilkan nilai & rapor seluruh santri dalam satu kelas sekaligus: Muhafadzoh, Qiroah, Taftisy, Ujian Tulis, Absensi, Kepribadian, dan Kenaikan Kelas.',
+                            style: GoogleFonts.outfit(
+                              color: isDark ? Colors.white.withOpacity(0.6) : const Color(0xFF312E81).withOpacity(0.8),
+                              fontSize: 11,
+                              height: 1.4,
+                            ),
+                          ),
+                          const SizedBox(height: 10),
+                          Row(
+                            children: [
+                              Text(
+                                'Buka Laporan',
+                                style: GoogleFonts.outfit(
+                                  color: isDark ? const Color(0xFFA5B4FC) : const Color(0xFF4338CA),
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                              const SizedBox(width: 6),
+                              Icon(
+                                Icons.arrow_forward_rounded,
+                                color: isDark ? const Color(0xFFA5B4FC) : const Color(0xFF4338CA),
+                                size: 13,
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            const SizedBox(height: 16),
+
+            // 4. SUB ITEMS ROW (Tim Soal & Input Nilai)
             Row(
               children: [
                 Expanded(child: _buildSubItem(context, subItems[0], isDark, isLeft: true)),

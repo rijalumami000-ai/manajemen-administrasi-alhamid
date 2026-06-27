@@ -439,6 +439,27 @@ function registerMyMustahiqRoutes(app) {
       keputusan_kenaikan: ''
     };
 
+    // Cari kelas santri di tahun ajaran berikutnya (untuk info "naik ke kelas X")
+    let kelasNaikKe = '';
+    try {
+      const nextYearRes = await db.query(`
+        SELECT k.nama AS kelas_nama
+        FROM santri_tahun_ajaran sta
+        JOIN kelas k ON sta.kelas_diniyah_id = k.id
+        JOIN tahun_ajaran ta ON sta.tahun_ajaran_id = ta.id
+        WHERE sta.santri_id = $1 AND ta.tahun_mulai > (
+          SELECT tahun_mulai FROM tahun_ajaran WHERE id = $2
+        )
+        ORDER BY ta.tahun_mulai ASC
+        LIMIT 1
+      `, [santriId, activeYear.id]);
+      if (nextYearRes.rows.length > 0) {
+        kelasNaikKe = nextYearRes.rows[0].kelas_nama;
+      }
+    } catch (_) { /* abaikan jika error */ }
+
+    rapor.kelas_naik_ke = kelasNaikKe;
+
     // 6. Fetch monthly attendance detail
     const absensiDetailRes = await db.query(`
       SELECT bulan, sakit, izin, alpa 
@@ -2236,7 +2257,175 @@ function registerMyMustahiqRoutes(app) {
     return res.json(defaultData);
   }));
 
+  /**
+   * GET /api/my-mustahiq/laporan-akademik
+   * Mengembalikan data matriks nilai & rapor seluruh santri per kelas.
+   * Query params: kelas_id (wajib), tahun_ajaran_id, semester
+   */
+  router.get('/laporan-akademik', asyncHandler(async (req, res) => {
+    const { kelas_id, tahun_ajaran_id, semester } = req.query;
+
+    if (!kelas_id || kelas_id === 'null' || kelas_id === 'undefined') {
+      return res.status(400).json({ error: 'Parameter kelas_id wajib disertakan.' });
+    }
+    const kelasId = parseInt(kelas_id, 10);
+
+    const parsedTahunAjaranId = tahun_ajaran_id && tahun_ajaran_id !== 'null' && tahun_ajaran_id !== 'undefined'
+      ? parseInt(tahun_ajaran_id, 10) : null;
+    const activeYear = parsedTahunAjaranId
+      ? (await db.query('SELECT id, kode FROM tahun_ajaran WHERE id = $1', [parsedTahunAjaranId])).rows[0]
+      : await getActiveTahunAjaran();
+
+    if (!activeYear) return res.status(404).json({ error: 'Tahun ajaran tidak ditemukan.' });
+
+    const semResult = await db.query("SELECT value FROM system_settings WHERE key = 'active_semester' LIMIT 1");
+    const activeSemester = semester || (semResult.rows[0] ? semResult.rows[0].value : 'Ganjil');
+
+    // Cari kategori evaluasi
+    const katResult = await db.query(
+      "SELECT id FROM kategori_evaluasi WHERE LOWER(nama) LIKE $1 LIMIT 1",
+      [`%semester ${activeSemester.toLowerCase()}%`]
+    );
+    const kategoriId = katResult.rows[0] ? katResult.rows[0].id : (activeSemester.toLowerCase().includes('genap') ? 2 : 1);
+
+    // Info kelas
+    const classRes = await db.query('SELECT id, nama, tingkat FROM kelas WHERE id = $1', [kelasId]);
+    if (classRes.rows.length === 0) return res.status(404).json({ error: 'Kelas tidak ditemukan.' });
+    const kelasInfo = classRes.rows[0];
+
+    // Muhafadzoh & Qiroah mapel_id untuk kelas ini
+    const ktaRes = await db.query(
+      'SELECT muhafadzoh_mapel_id, qiroatul_mapel_id FROM kelas_tahun_ajaran WHERE kelas_id = $1 AND tahun_ajaran_id = $2 LIMIT 1',
+      [kelasId, activeYear.id]
+    );
+    const muhafadzohMapelId = ktaRes.rows[0]?.muhafadzoh_mapel_id;
+    const qiroatulMapelId   = ktaRes.rows[0]?.qiroatul_mapel_id;
+    const muhafadzohKitab   = muhafadzohMapelId
+      ? (await db.query('SELECT nama FROM mata_pelajaran WHERE id=$1',[muhafadzohMapelId])).rows[0]?.nama || '-'
+      : '-';
+    const qiroatulKitab     = qiroatulMapelId
+      ? (await db.query('SELECT nama FROM mata_pelajaran WHERE id=$1',[qiroatulMapelId])).rows[0]?.nama || '-'
+      : '-';
+
+    // Ambil list santri di kelas ini
+    const isGenap = activeSemester.toLowerCase().includes('genap');
+    let santriQuery = `
+      SELECT sta.santri_id AS id, sta.nis, sta.nama
+      FROM santri_tahun_ajaran sta
+      WHERE sta.kelas_diniyah_id = $1 AND sta.tahun_ajaran_id = $2 AND sta.status = 'aktif'
+    `;
+    if (isGenap) santriQuery += ' AND sta.aktif_genap = TRUE';
+    else santriQuery += ' AND sta.aktif_ganjil = TRUE';
+    santriQuery += ' ORDER BY sta.nama';
+    const santriRes = await db.query(santriQuery, [kelasId, activeYear.id]);
+    const santriList = santriRes.rows;
+
+    if (santriList.length === 0) {
+      return res.json({
+        kelas: kelasInfo, tahunAjaran: activeYear.kode, tahunAjaranId: activeYear.id,
+        semester: activeSemester, santri: []
+      });
+    }
+
+    const santriIds = santriList.map(s => s.id);
+    const idPlaceholders = santriIds.map((_, i) => `$${i + 3}`).join(', ');
+
+    // Ambil semua nilai sekaligus
+    const nilaiRes = await db.query(`
+      SELECT n.santri_id, n.mata_pelajaran_id, mp.nama AS mata_pelajaran,
+             mp.jenis AS mapel_jenis, n.nilai_angka, n.predikat, n.capaian
+      FROM nilai_santri n
+      JOIN mata_pelajaran mp ON n.mata_pelajaran_id = mp.id
+      WHERE n.santri_id IN (${idPlaceholders})
+        AND n.tahun_ajaran_id = $1
+        AND n.kategori_evaluasi_id = $2
+    `, [activeYear.id, kategoriId, ...santriIds]);
+
+    // Ambil semua rapor sekaligus
+    const raporRes = await db.query(`
+      SELECT santri_id, sakit, izin, alpa, akhlaq, keaktifan, kerapihan, catatan, keputusan_kenaikan
+      FROM rapor_santri
+      WHERE santri_id IN (${idPlaceholders})
+        AND tahun_ajaran_id = $1
+        AND kategori_evaluasi_id = $2
+    `, [activeYear.id, kategoriId, ...santriIds]);
+
+    // Index nilai & rapor per santri_id
+    const nilaiMap = {};
+    for (const n of nilaiRes.rows) {
+      if (!nilaiMap[n.santri_id]) nilaiMap[n.santri_id] = [];
+      nilaiMap[n.santri_id].push(n);
+    }
+    const raporMap = {};
+    for (const r of raporRes.rows) {
+      raporMap[r.santri_id] = r;
+    }
+
+    // Susun data per santri
+    const result = santriList.map(s => {
+      const nilaiBySantri = nilaiMap[s.id] || [];
+      const rapor = raporMap[s.id] || null;
+
+      const muhafadzoh = nilaiBySantri.find(n => n.mata_pelajaran_id === muhafadzohMapelId || n.mapel_jenis === 'Muhafadzoh');
+      const qiroatul   = nilaiBySantri.find(n => n.mata_pelajaran_id === qiroatulMapelId   || n.mapel_jenis === 'Qiroah');
+      const taftisyul  = nilaiBySantri.filter(n => n.mapel_jenis === 'Taftisyul Kutub' || n.mapel_jenis === 'Taftisy');
+      const ujianTulis = nilaiBySantri.filter(n =>
+        n.mapel_jenis === 'Reguler' &&
+        n.mata_pelajaran_id !== muhafadzohMapelId &&
+        n.mata_pelajaran_id !== qiroatulMapelId
+      );
+
+      return {
+        id: s.id,
+        nis: s.nis,
+        nama: s.nama,
+        muhafadzoh: muhafadzoh ? {
+          kitab: muhafadzohKitab,
+          nilai_angka: muhafadzoh.nilai_angka,
+          capaian: muhafadzoh.capaian,
+          predikat: muhafadzoh.predikat,
+        } : null,
+        qiroatul: qiroatul ? {
+          kitab: qiroatulKitab,
+          nilai_angka: qiroatul.nilai_angka,
+          capaian: qiroatul.capaian,
+          predikat: qiroatul.predikat,
+        } : null,
+        taftisyul: taftisyul.map(t => ({
+          mata_pelajaran: t.mata_pelajaran,
+          nilai: t.predikat?.trim() || t.capaian?.trim() || '-',
+        })),
+        ujian_tulis: ujianTulis.map(u => ({
+          mata_pelajaran: u.mata_pelajaran,
+          nilai_angka: u.nilai_angka,
+          predikat: u.predikat,
+        })),
+        rapor: rapor ? {
+          sakit: rapor.sakit ?? 0,
+          izin: rapor.izin ?? 0,
+          alpa: rapor.alpa ?? 0,
+          akhlaq: rapor.akhlaq,
+          keaktifan: rapor.keaktifan,
+          kerapihan: rapor.kerapihan,
+          catatan: rapor.catatan || '',
+          keputusan_kenaikan: rapor.keputusan_kenaikan || '',
+        } : null,
+      };
+    });
+
+    return res.json({
+      kelas: kelasInfo,
+      tahunAjaran: activeYear.kode,
+      tahunAjaranId: activeYear.id,
+      semester: activeSemester,
+      muhafadzoh_kitab: muhafadzohKitab,
+      qiroatul_kitab: qiroatulKitab,
+      santri: result,
+    });
+  }));
+
   app.use('/api/my-mustahiq', router);
+
 }
 
 module.exports = registerMyMustahiqRoutes;

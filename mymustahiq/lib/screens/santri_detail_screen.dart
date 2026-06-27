@@ -435,7 +435,7 @@ class _SantriDetailScreenState extends State<SantriDetailScreen> with SingleTick
           if (taftisyul.isNotEmpty) ...[
             _buildSectionTitle("NILAI TAFTISYUL KUTUB (MAKNA KITAB)"),
             const SizedBox(height: 12),
-            _buildGradesCardList(taftisyul, const Color(0xFF8B5CF6)),
+            _buildGradesCardList(taftisyul, const Color(0xFF8B5CF6), isTaftisyul: true),
             const SizedBox(height: 30),
           ],
 
@@ -443,7 +443,7 @@ class _SantriDetailScreenState extends State<SantriDetailScreen> with SingleTick
           if (ujianTulis.isNotEmpty) ...[
             _buildSectionTitle("NILAI UJIAN TULIS SEMESTER"),
             const SizedBox(height: 12),
-            _buildGradesCardList(ujianTulis, const Color(0xFFF59E0B)),
+            _buildGradesCardList(ujianTulis, const Color(0xFFF59E0B), isTaftisyul: false),
             const SizedBox(height: 30),
           ],
 
@@ -451,7 +451,7 @@ class _SantriDetailScreenState extends State<SantriDetailScreen> with SingleTick
           if (lainnya.isNotEmpty) ...[
             _buildSectionTitle("NILAI MATA PELAJARAN REGULER LAINNYA"),
             const SizedBox(height: 12),
-            _buildGradesCardList(lainnya, const Color(0xFF64748B)),
+            _buildGradesCardList(lainnya, const Color(0xFF64748B), isTaftisyul: false),
             const SizedBox(height: 30),
           ],
         ],
@@ -575,7 +575,7 @@ class _SantriDetailScreenState extends State<SantriDetailScreen> with SingleTick
     );
   }
 
-  Widget _buildGradesCardList(List<dynamic> group, Color themeColor) {
+  Widget _buildGradesCardList(List<dynamic> group, Color themeColor, {bool isTaftisyul = false}) {
     return Container(
       decoration: BoxDecoration(
         color: context.cardBg,
@@ -589,6 +589,69 @@ class _SantriDetailScreenState extends State<SantriDetailScreen> with SingleTick
         separatorBuilder: (context, index) => _buildDivider(),
         itemBuilder: (context, index) {
           final item = group[index];
+
+          if (isTaftisyul) {
+            // Untuk Taftisyul Kutub: tampilkan Tam/Naqish dari predikat atau capaian
+            final String taftisVal = (item['predikat']?.toString().trim().isNotEmpty == true
+                ? item['predikat'].toString()
+                : item['capaian']?.toString().trim() ?? '-');
+
+            final bool isTam = taftisVal.toLowerCase().contains('tam') &&
+                !taftisVal.toLowerCase().contains('naq');
+            final Color taftisColor = isTam
+                ? const Color(0xFF10B981)
+                : (taftisVal == '-' ? const Color(0xFF94A3B8) : const Color(0xFFEF4444));
+
+            return Padding(
+              padding: const EdgeInsets.all(20),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          item['mata_pelajaran'] ?? '-',
+                          style: GoogleFonts.outfit(
+                            color: context.titleColor,
+                            fontSize: 15,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          item['kategori_evaluasi'] ?? '-',
+                          style: GoogleFonts.outfit(
+                            color: context.subTitleColor,
+                            fontSize: 12,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                    decoration: BoxDecoration(
+                      color: taftisColor.withOpacity(0.12),
+                      borderRadius: BorderRadius.circular(10),
+                      border: Border.all(color: taftisColor.withOpacity(0.35), width: 1.5),
+                    ),
+                    child: Text(
+                      taftisVal,
+                      style: GoogleFonts.outfit(
+                        color: taftisColor,
+                        fontSize: 14,
+                        fontWeight: FontWeight.w900,
+                        letterSpacing: 0.5,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            );
+          }
+
+          // Nilai biasa (Ujian Tulis, Lainnya)
           final double score = double.tryParse(item['nilai_angka']?.toString() ?? '0') ?? 0.0;
           return Padding(
             padding: const EdgeInsets.all(20),
@@ -895,6 +958,7 @@ class _SantriDetailScreenState extends State<SantriDetailScreen> with SingleTick
     final kerapihan = rapor['kerapihan'];
     final catatan = rapor['catatan'] ?? '';
     final keputusanKenaikan = rapor['keputusan_kenaikan'] ?? '';
+    final kelasNaikKe = rapor['kelas_naik_ke'] ?? '';
 
     final isSemesterGenap = _selectedSemester.toLowerCase() == 'genap';
 
@@ -1133,6 +1197,23 @@ class _SantriDetailScreenState extends State<SantriDetailScreen> with SingleTick
                             fontWeight: FontWeight.bold,
                           ),
                         ),
+                        if (kelasNaikKe.trim().isNotEmpty) ...[
+                          const SizedBox(height: 6),
+                          Row(
+                            children: [
+                              const Icon(Icons.arrow_upward_rounded, color: Color(0xFF10B981), size: 14),
+                              const SizedBox(width: 4),
+                              Text(
+                                "Naik ke kelas $kelasNaikKe",
+                                style: GoogleFonts.outfit(
+                                  color: const Color(0xFF10B981),
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
                       ],
                     ),
                   ),
