@@ -717,15 +717,20 @@ class _LaporanAkademikScreenState extends State<LaporanAkademikScreen> {
     final predikat = n['predikat']?.toString() ?? '-';
     final nilaiAngka = double.tryParse(n['nilai_angka']?.toString() ?? '');
     final capaian = n['capaian']?.toString().trim() ?? '';
-    final hasNumeric = nilaiAngka != null && nilaiAngka > 0;
-    final hasCapaian = capaian.isNotEmpty;
+
+    final tipeInput = _laporanData?['muhafadzoh_tipe_input']?.toString() ?? 'Angka';
+    final isTeks = tipeInput.toLowerCase() == 'teks';
+
+    // Prioritas berdasarkan tipeInput
+    final showCapaian = isTeks ? capaian.isNotEmpty : (capaian.isNotEmpty && (nilaiAngka == null || nilaiAngka <= 0));
+    final showNumeric = !showCapaian && nilaiAngka != null && nilaiAngka > 0;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.end,
       mainAxisSize: MainAxisSize.min,
       children: [
         // Nilai (bulatan atau teks)
-        if (hasNumeric)
+        if (showNumeric)
           Container(
             width: 36,
             height: 36,
@@ -740,7 +745,7 @@ class _LaporanAkademikScreenState extends State<LaporanAkademikScreen> {
               style: GoogleFonts.outfit(color: color, fontSize: 13, fontWeight: FontWeight.w900),
             ),
           )
-        else if (hasCapaian)
+        else if (showCapaian)
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
             decoration: BoxDecoration(
@@ -783,15 +788,20 @@ class _LaporanAkademikScreenState extends State<LaporanAkademikScreen> {
     final kitab = n['kitab']?.toString() ?? '-';
     final nilaiAngka = double.tryParse(n['nilai_angka']?.toString() ?? '');
     final capaian = n['capaian']?.toString().trim() ?? '';
-    final hasNumeric = nilaiAngka != null && nilaiAngka > 0;
-    final hasCapaian = capaian.isNotEmpty;
+
+    final tipeInput = _laporanData?['qiroatul_tipe_input']?.toString() ?? 'Angka';
+    final isTeks = tipeInput.toLowerCase() == 'teks';
+
+    // Prioritas berdasarkan tipeInput
+    final showCapaian = isTeks ? capaian.isNotEmpty : (capaian.isNotEmpty && (nilaiAngka == null || nilaiAngka <= 0));
+    final showNumeric = !showCapaian && nilaiAngka != null && nilaiAngka > 0;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.end,
       mainAxisSize: MainAxisSize.min,
       children: [
         // Nilai
-        if (hasNumeric)
+        if (showNumeric)
           Container(
             width: 36,
             height: 36,
@@ -806,7 +816,7 @@ class _LaporanAkademikScreenState extends State<LaporanAkademikScreen> {
               style: GoogleFonts.outfit(color: color, fontSize: 13, fontWeight: FontWeight.w900),
             ),
           )
-        else if (hasCapaian)
+        else if (showCapaian)
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
             decoration: BoxDecoration(
@@ -833,6 +843,8 @@ class _LaporanAkademikScreenState extends State<LaporanAkademikScreen> {
       ],
     );
   }
+
+
 
   Widget _buildAbsensiChip(String label, dynamic value, Color color) {
     return Container(

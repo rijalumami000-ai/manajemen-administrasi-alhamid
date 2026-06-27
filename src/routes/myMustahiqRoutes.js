@@ -2293,7 +2293,33 @@ function registerMyMustahiqRoutes(app) {
     if (classRes.rows.length === 0) return res.status(404).json({ error: 'Kelas tidak ditemukan.' });
     const kelasInfo = classRes.rows[0];
 
-    // Muhafadzoh & Qiroah mapel_id untuk kelas ini
+    const tingkat = kelasInfo.nama === 'SP' && kelasInfo.tingkat === 1 ? 99 : kelasInfo.tingkat;
+    const muhafadzohTingkat = tingkat === 99 ? 2 : tingkat;
+
+    // Ambil tipe_input kriteria nilai secara dinamis dari database
+    const muhSet = await db.query(`
+      SELECT tipe_input FROM setting_kriteria_nilai
+      WHERE (tahun_ajaran_id = $1 OR tahun_ajaran_id IS NULL)
+        AND (kategori_evaluasi_id = $2 OR kategori_evaluasi_id IS NULL)
+        AND (mata_pelajaran_id = 10 OR (mata_pelajaran_id IS NULL AND jenis_mapel = 'Muhafadzoh'))
+        AND tingkat = $3
+      ORDER BY tahun_ajaran_id DESC NULLS LAST, kategori_evaluasi_id DESC NULLS LAST, mata_pelajaran_id NULLS LAST
+      LIMIT 1
+    `, [activeYear.id, kategoriId, muhafadzohTingkat]);
+    const muhafadzohTipeInput = muhSet.rows[0]?.tipe_input || 'Angka';
+
+    const qirSet = await db.query(`
+      SELECT tipe_input FROM setting_kriteria_nilai
+      WHERE (tahun_ajaran_id = $1 OR tahun_ajaran_id IS NULL)
+        AND (kategori_evaluasi_id = $2 OR kategori_evaluasi_id IS NULL)
+        AND (mata_pelajaran_id = 11 OR (mata_pelajaran_id IS NULL AND jenis_mapel = 'Qiroah'))
+        AND tingkat = $3
+      ORDER BY tahun_ajaran_id DESC NULLS LAST, kategori_evaluasi_id DESC NULLS LAST, mata_pelajaran_id NULLS LAST
+      LIMIT 1
+    `, [activeYear.id, kategoriId, muhafadzohTingkat]);
+    const qiroatulTipeInput = qirSet.rows[0]?.tipe_input || 'Angka';
+
+    // Muhafadzoh & Qiroah mapel_id untuk kelas ini (untuk mendapatkan nama kitab target kelas)
     const ktaRes = await db.query(
       'SELECT muhafadzoh_mapel_id, qiroatul_mapel_id FROM kelas_tahun_ajaran WHERE kelas_id = $1 AND tahun_ajaran_id = $2 LIMIT 1',
       [kelasId, activeYear.id]
@@ -2367,25 +2393,25 @@ function registerMyMustahiqRoutes(app) {
       const nilaiBySantri = nilaiMap[s.id] || [];
       const rapor = raporMap[s.id] || null;
 
-      // Muhafadzoh & Qiroah: HANYA ambil berdasarkan mata_pelajaran_id yang sudah dikonfigurasi di kelas
-      const muhafadzoh = muhafadzohMapelId
-        ? nilaiBySantri.find(n => n.mata_pelajaran_id === muhafadzohMapelId)
-        : null;
-      const qiroatul = qiroatulMapelId
-        ? nilaiBySantri.find(n => n.mata_pelajaran_id === qiroatulMapelId)
-        : null;
+      // Muhafadzoh oral grade: mapel_id = 10 (Muhafadzoh Akbar)
+      const muhafadzoh = nilaiBySantri.find(n => n.mata_pelajaran_id === 10) || nilaiBySantri.find(n => n.mapel_jenis === 'Muhafadzoh');
+      // Qiroah oral grade: mapel_id = 11 (Qiroatul Kitab)
+      const qiroatul = nilaiBySantri.find(n => n.mata_pelajaran_id === 11) || nilaiBySantri.find(n => n.mapel_jenis === 'Qiroah');
+
       const taftisyulIds = new Set();
       const taftisyul = nilaiBySantri.filter(n => {
-        if (n.mapel_jenis === 'Taftisyul Kutub' || n.mapel_jenis === 'Taftisy') {
+        if (n.mapel_jenis === 'Taftisyul Kutub' || n.mapel_jenis === 'Taftisy' || n.mata_pelajaran_id === 12) {
           taftisyulIds.add(n.mata_pelajaran_id);
           return true;
         }
         return false;
       });
-      // Ujian Tulis: HANYA mapel yang bukan muhafadzoh, bukan qiroah, dan bukan taftisyul
+
+      // Ujian Tulis: HANYA mata pelajaran dengan jenis 'Reguler' (tidak termasuk Muhafadzoh Akbar, Qiroatul Kitab, atau Taftisyul Kutub)
       const ujianTulis = nilaiBySantri.filter(n =>
-        n.mata_pelajaran_id !== muhafadzohMapelId &&
-        n.mata_pelajaran_id !== qiroatulMapelId &&
+        n.mapel_jenis === 'Reguler' &&
+        n.mata_pelajaran_id !== 10 &&
+        n.mata_pelajaran_id !== 11 &&
         !taftisyulIds.has(n.mata_pelajaran_id)
       );
 
@@ -2435,6 +2461,8 @@ function registerMyMustahiqRoutes(app) {
       semester: activeSemester,
       muhafadzoh_kitab: muhafadzohKitab,
       qiroatul_kitab: qiroatulKitab,
+      muhafadzoh_tipe_input: muhafadzohTipeInput,
+      qiroatul_tipe_input: qiroatulTipeInput,
       santri: result,
     });
   }));
