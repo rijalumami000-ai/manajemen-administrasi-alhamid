@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../services/theme_manager.dart';
 import 'buku_induk_screen.dart';
+import 'santri_explorer_screen.dart';
 import 'struktur_organisasi_screen.dart';
 import 'teacher_list_screen.dart';
 
@@ -13,6 +14,22 @@ class TabAdministratif extends StatelessWidget {
     final isDark = context.isDarkMode;
 
     final items = [
+      {
+        'title': 'Profil Santri',
+        'desc': 'Cari data profil lengkap santri, riwayat prestasi, pelanggaran, serta rekapitulasi nilai per kelas.',
+        'icon': Icons.badge_rounded,
+        'colors': isDark
+            ? [const Color(0xFF1E3A8A), const Color(0xFF0F172A)]
+            : [const Color(0xFFEFF6FF), const Color(0xFFDBEAFE)],
+        'borderColor': isDark
+            ? const Color(0xFF3B82F6).withOpacity(0.3)
+            : const Color(0xFF3B82F6).withOpacity(0.4),
+        'textColor': isDark ? const Color(0xFF60A5FA) : const Color(0xFF1E40AF),
+        'headingColor': isDark ? Colors.white : const Color(0xFF1E3A8A),
+        'bodyColor': isDark ? Colors.white.withOpacity(0.6) : const Color(0xFF1E3A8A).withOpacity(0.8),
+        'iconColor': isDark ? Colors.white : const Color(0xFF3B82F6),
+        'screen': const SantriExplorerScreen(),
+      },
       {
         'title': 'Buku Induk',
         'desc': 'Data induk profil santri lengkap dikelompokkan berdasarkan tahun masuk serta filter jenis kelamin.',

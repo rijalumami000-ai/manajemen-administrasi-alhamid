@@ -32,13 +32,13 @@ class ThemeManager extends ChangeNotifier {
 extension ThemeContext on BuildContext {
   bool get isDarkMode => Theme.of(this).brightness == Brightness.dark;
   
-  Color get scaffoldBg => isDarkMode ? const Color(0xFF070B13) : Colors.transparent;
-  Color get cardBg => isDarkMode ? const Color(0xFF131C2E) : Colors.white.withOpacity(0.55);
-  Color get surfaceBg => isDarkMode ? const Color(0xFF0D1527) : Colors.white.withOpacity(0.35);
-  Color get inputBg => isDarkMode ? const Color(0xFF131B2E) : Colors.white.withOpacity(0.45);
+  Color get scaffoldBg => isDarkMode ? const Color(0xFF070B13) : const Color(0xFFF8FAFC);
+  Color get cardBg => isDarkMode ? const Color(0xFF131C2E) : Colors.white;
+  Color get surfaceBg => isDarkMode ? const Color(0xFF0D1527) : const Color(0xFFF1F5F9);
+  Color get inputBg => isDarkMode ? const Color(0xFF131B2E) : const Color(0xFFF1F5F9);
   
   Color get titleColor => isDarkMode ? Colors.white : const Color(0xFF0F172A);
   Color get bodyColor => isDarkMode ? const Color(0xFF94A3B8) : const Color(0xFF334155);
   Color get subTitleColor => isDarkMode ? const Color(0xFF64748B) : const Color(0xFF475569);
-  Color get borderColor => isDarkMode ? Colors.white.withOpacity(0.04) : Colors.white.withOpacity(0.55);
+  Color get borderColor => isDarkMode ? Colors.white.withOpacity(0.04) : const Color(0xFFE2E8F0);
 }

@@ -33,7 +33,7 @@ class _SantriDetailScreenState extends State<SantriDetailScreen> with SingleTick
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 4, vsync: this);
+    _tabController = TabController(length: 5, vsync: this);
     _fetchDetailData();
   }
 
@@ -292,6 +292,7 @@ class _SantriDetailScreenState extends State<SantriDetailScreen> with SingleTick
                           Tab(text: "Profil"),
                           Tab(text: "Akademik"),
                           Tab(text: "Catatan"),
+                          Tab(text: "Absensi & Kepribadian"),
                           Tab(text: "Rapor"),
                         ],
                       ),
@@ -305,7 +306,8 @@ class _SantriDetailScreenState extends State<SantriDetailScreen> with SingleTick
                           _buildProfilTab(profile),
                           _buildAkademikTab(grades),
                           _buildCatatanTab(achievements, violations),
-                          _buildRaporTab(rapor, absensiDetail),
+                          _buildAbsensiKepribadianTab(rapor, absensiDetail),
+                          _buildRaporRekapTab(rapor),
                         ],
                       ),
                     ),
@@ -482,6 +484,9 @@ class _SantriDetailScreenState extends State<SantriDetailScreen> with SingleTick
           final bool hasNumericScore = score != null && score > 0;
           final bool hasTextCapaian = capaian.trim().isNotEmpty;
 
+          final bool isRodi = defaultTitle.contains("Muhafadzoh") && predikat.toLowerCase().contains("rodi");
+          final Color activeColor = isRodi ? const Color(0xFFEF4444) : themeColor;
+
           return Padding(
             padding: const EdgeInsets.all(20),
             child: Row(
@@ -502,8 +507,9 @@ class _SantriDetailScreenState extends State<SantriDetailScreen> with SingleTick
                       Text(
                         "Kitab: $kitab • Predikat: $predikat",
                         style: GoogleFonts.outfit(
-                          color: context.subTitleColor,
+                          color: isRodi ? const Color(0xFFEF4444) : context.subTitleColor,
                           fontSize: 12,
+                          fontWeight: isRodi ? FontWeight.bold : FontWeight.normal,
                         ),
                       ),
                       if (hasNumericScore && hasTextCapaian) ...[
@@ -526,14 +532,14 @@ class _SantriDetailScreenState extends State<SantriDetailScreen> with SingleTick
                     height: 55,
                     alignment: Alignment.center,
                     decoration: BoxDecoration(
-                      color: themeColor.withOpacity(0.12),
+                      color: activeColor.withOpacity(0.12),
                       shape: BoxShape.circle,
-                      border: Border.all(color: themeColor.withOpacity(0.3), width: 1),
+                      border: Border.all(color: activeColor.withOpacity(0.3), width: 1),
                     ),
                     child: Text(
                       score.toStringAsFixed(score % 1 == 0 ? 0 : 1),
                       style: GoogleFonts.outfit(
-                        color: themeColor,
+                        color: activeColor,
                         fontSize: 18,
                         fontWeight: FontWeight.w900,
                       ),
@@ -543,14 +549,14 @@ class _SantriDetailScreenState extends State<SantriDetailScreen> with SingleTick
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
                     decoration: BoxDecoration(
-                      color: themeColor.withOpacity(0.1),
+                      color: activeColor.withOpacity(0.1),
                       borderRadius: BorderRadius.circular(10),
-                      border: Border.all(color: themeColor.withOpacity(0.2), width: 1),
+                      border: Border.all(color: activeColor.withOpacity(0.2), width: 1),
                     ),
                     child: Text(
                       capaian,
                       style: GoogleFonts.outfit(
-                        color: themeColor,
+                        color: activeColor,
                         fontSize: 14,
                         fontWeight: FontWeight.bold,
                       ),
@@ -653,6 +659,9 @@ class _SantriDetailScreenState extends State<SantriDetailScreen> with SingleTick
 
           // Nilai biasa (Ujian Tulis, Lainnya)
           final double score = double.tryParse(item['nilai_angka']?.toString() ?? '0') ?? 0.0;
+          final bool isLowScore = !isTaftisyul && score < 51;
+          final Color activeColor = isLowScore ? const Color(0xFFEF4444) : themeColor;
+
           return Padding(
             padding: const EdgeInsets.all(20),
             child: Row(
@@ -696,14 +705,14 @@ class _SantriDetailScreenState extends State<SantriDetailScreen> with SingleTick
                   height: 50,
                   alignment: Alignment.center,
                   decoration: BoxDecoration(
-                    color: themeColor.withOpacity(0.12),
+                    color: activeColor.withOpacity(0.12),
                     shape: BoxShape.circle,
-                    border: Border.all(color: themeColor.withOpacity(0.3), width: 1),
+                    border: Border.all(color: activeColor.withOpacity(0.3), width: 1),
                   ),
                   child: Text(
                     score.toStringAsFixed(score % 1 == 0 ? 0 : 1),
                     style: GoogleFonts.outfit(
-                      color: themeColor,
+                      color: activeColor,
                       fontSize: 18,
                       fontWeight: FontWeight.w900,
                     ),
@@ -938,12 +947,12 @@ class _SantriDetailScreenState extends State<SantriDetailScreen> with SingleTick
     );
   }
 
-  // ===== TAB 4: RAPOR (ABSENSI, KEPRIBADIAN, CATATAN WALI, KENAIKAN) =====
-  Widget _buildRaporTab(Map<String, dynamic>? rapor, List<dynamic> absensiDetail) {
+  // ===== TAB 4: ABSENSI & KEPRIBADIAN =====
+  Widget _buildAbsensiKepribadianTab(Map<String, dynamic>? rapor, List<dynamic> absensiDetail) {
     if (rapor == null) {
       return Center(
         child: Text(
-          "Tidak ada data rapor untuk santri ini.",
+          "Tidak ada data absensi & kepribadian untuk santri ini.",
           style: GoogleFonts.outfit(color: context.subTitleColor, fontSize: 14),
         ),
       );
@@ -956,11 +965,6 @@ class _SantriDetailScreenState extends State<SantriDetailScreen> with SingleTick
     final akhlaq = rapor['akhlaq'];
     final keaktifan = rapor['keaktifan'];
     final kerapihan = rapor['kerapihan'];
-    final catatan = rapor['catatan'] ?? '';
-    final keputusanKenaikan = rapor['keputusan_kenaikan'] ?? '';
-    final kelasNaikKe = rapor['kelas_naik_ke'] ?? '';
-
-    final isSemesterGenap = _selectedSemester.toLowerCase() == 'genap';
 
     return SingleChildScrollView(
       physics: const BouncingScrollPhysics(),
@@ -981,53 +985,27 @@ class _SantriDetailScreenState extends State<SantriDetailScreen> with SingleTick
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                // Summary Cards row
                 Row(
                   children: [
-                    Expanded(
-                      child: _buildAbsensiSummaryCard(
-                        "Sakit",
-                        totalSakit,
-                        const Color(0xFFF59E0B), // Amber/Orange
-                      ),
-                    ),
+                    Expanded(child: _buildAbsensiSummaryCard("Sakit", totalSakit, const Color(0xFFF59E0B))),
                     const SizedBox(width: 12),
-                    Expanded(
-                      child: _buildAbsensiSummaryCard(
-                        "Izin",
-                        totalIzin,
-                        const Color(0xFF3B82F6), // Blue
-                      ),
-                    ),
+                    Expanded(child: _buildAbsensiSummaryCard("Izin", totalIzin, const Color(0xFF3B82F6))),
                     const SizedBox(width: 12),
-                    Expanded(
-                      child: _buildAbsensiSummaryCard(
-                        "Alpa",
-                        totalAlpa,
-                        const Color(0xFFEF4444), // Red
-                      ),
-                    ),
+                    Expanded(child: _buildAbsensiSummaryCard("Alpa", totalAlpa, const Color(0xFFEF4444))),
                   ],
                 ),
                 if (absensiDetail.isNotEmpty) ...[
                   const SizedBox(height: 20),
                   Text(
                     "Detail Absensi Bulanan:",
-                    style: GoogleFonts.outfit(
-                      color: context.titleColor,
-                      fontSize: 13,
-                      fontWeight: FontWeight.bold,
-                    ),
+                    style: GoogleFonts.outfit(color: context.titleColor, fontSize: 13, fontWeight: FontWeight.bold),
                   ),
                   const SizedBox(height: 10),
                   ListView.separated(
                     shrinkWrap: true,
                     physics: const NeverScrollableScrollPhysics(),
                     itemCount: absensiDetail.length,
-                    separatorBuilder: (context, index) => Divider(
-                      color: context.borderColor.withOpacity(0.5),
-                      height: 12,
-                    ),
+                    separatorBuilder: (context, index) => Divider(color: context.borderColor.withOpacity(0.5), height: 12),
                     itemBuilder: (context, index) {
                       final item = absensiDetail[index];
                       final bSakit = item['sakit'] ?? 0;
@@ -1038,14 +1016,7 @@ class _SantriDetailScreenState extends State<SantriDetailScreen> with SingleTick
                         child: Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
-                            Text(
-                              item['bulan'] ?? '-',
-                              style: GoogleFonts.outfit(
-                                color: context.titleColor,
-                                fontSize: 13,
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
+                            Text(item['bulan'] ?? '-', style: GoogleFonts.outfit(color: context.titleColor, fontSize: 13, fontWeight: FontWeight.w600)),
                             Row(
                               children: [
                                 _buildAbsensiMiniBadge("S", bSakit, const Color(0xFFF59E0B)),
@@ -1078,32 +1049,69 @@ class _SantriDetailScreenState extends State<SantriDetailScreen> with SingleTick
             ),
             child: Column(
               children: [
-                _buildKepribadianRow(
-                  "Akhlaq / Kelakuan",
-                  akhlaq,
-                  Icons.favorite_rounded,
-                  const Color(0xFF10B981), // Emerald
-                ),
+                _buildKepribadianRow("Akhlaq / Kelakuan", akhlaq, Icons.favorite_rounded, const Color(0xFF10B981)),
                 _buildDivider(),
-                _buildKepribadianRow(
-                  "Keaktifan / Kerajinan",
-                  keaktifan,
-                  Icons.directions_run_rounded,
-                  const Color(0xFF3B82F6), // Blue
-                ),
+                _buildKepribadianRow("Keaktifan / Kerajinan", keaktifan, Icons.directions_run_rounded, const Color(0xFF3B82F6)),
                 _buildDivider(),
-                _buildKepribadianRow(
-                  "Kerapihan / Kebersihan",
-                  kerapihan,
-                  Icons.checkroom_rounded,
-                  const Color(0xFF8B5CF6), // Purple
-                ),
+                _buildKepribadianRow("Kerapihan / Kebersihan", kerapihan, Icons.checkroom_rounded, const Color(0xFF8B5CF6)),
+              ],
+            ),
+          ),
+          const SizedBox(height: 30),
+        ],
+      ),
+    );
+  }
+
+  // ===== TAB 5: RAPOR (STATISTIK TOTAL, RATA-RATA, PERINGKAT, CATATAN WALI, KENAIKAN) =====
+  Widget _buildRaporRekapTab(Map<String, dynamic>? rapor) {
+    if (rapor == null) {
+      return Center(
+        child: Text(
+          "Tidak ada data rapor untuk santri ini.",
+          style: GoogleFonts.outfit(color: context.subTitleColor, fontSize: 14),
+        ),
+      );
+    }
+
+    final catatan = rapor['catatan'] ?? '';
+    final keputusanKenaikan = rapor['keputusan_kenaikan'] ?? '';
+    final kelasNaikKe = rapor['kelas_naik_ke'] ?? '';
+    final isSemesterGenap = _selectedSemester.toLowerCase() == 'genap';
+
+    final totalNilai = rapor['total_nilai'] ?? 0;
+    final rataRata = rapor['rata_rata'] ?? 0;
+    final peringkat = rapor['peringkat'] ?? '-';
+
+    return SingleChildScrollView(
+      physics: const BouncingScrollPhysics(),
+      padding: const EdgeInsets.all(24),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          // 1. REKAP HASIL UJIAN
+          _buildSectionTitle("STATISTIK REKAP HASIL UJIAN"),
+          const SizedBox(height: 12),
+          Container(
+            padding: const EdgeInsets.all(20),
+            decoration: BoxDecoration(
+              color: context.cardBg,
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(color: context.borderColor),
+            ),
+            child: Row(
+              children: [
+                Expanded(child: _buildRaporStatCard("Total Nilai", "$totalNilai", const Color(0xFF10B981))),
+                const SizedBox(width: 12),
+                Expanded(child: _buildRaporStatCard("Rata-Rata", "$rataRata", const Color(0xFF3B82F6))),
+                const SizedBox(width: 12),
+                Expanded(child: _buildRaporStatCard("Peringkat", "$peringkat", const Color(0xFF8B5CF6), isBold: true)),
               ],
             ),
           ),
           const SizedBox(height: 30),
 
-          // 3. CATATAN WALI KELAS
+          // 2. CATATAN WALI KELAS
           _buildSectionTitle("CATATAN WALI KELAS"),
           const SizedBox(height: 12),
           Container(
@@ -1116,17 +1124,11 @@ class _SantriDetailScreenState extends State<SantriDetailScreen> with SingleTick
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Icon(
-                  Icons.format_quote_rounded,
-                  color: const Color(0xFF10B981).withOpacity(0.6),
-                  size: 32,
-                ),
+                Icon(Icons.format_quote_rounded, color: const Color(0xFF10B981).withOpacity(0.6), size: 32),
                 const SizedBox(width: 12),
                 Expanded(
                   child: Text(
-                    catatan.trim().isNotEmpty
-                        ? catatan
-                        : "Tidak ada catatan dari wali kelas.",
+                    catatan.trim().isNotEmpty ? catatan : "Tidak ada catatan dari wali kelas.",
                     style: GoogleFonts.inter(
                       color: catatan.trim().isNotEmpty ? context.titleColor : context.subTitleColor,
                       fontSize: 14,
@@ -1139,7 +1141,7 @@ class _SantriDetailScreenState extends State<SantriDetailScreen> with SingleTick
             ),
           ),
           
-          // 4. KEPUTUSAN KENAIKAN KELAS (Semester Genap Only)
+          // 3. KEPUTUSAN KENAIKAN KELAS (Semester Genap Only)
           if (isSemesterGenap) ...[
             const SizedBox(height: 30),
             _buildSectionTitle("KEPUTUSAN KENAIKAN KELAS"),
@@ -1155,9 +1157,7 @@ class _SantriDetailScreenState extends State<SantriDetailScreen> with SingleTick
                   end: Alignment.bottomRight,
                 ),
                 borderRadius: BorderRadius.circular(20),
-                border: Border.all(
-                  color: const Color(0xFF10B981).withOpacity(0.3),
-                ),
+                border: Border.all(color: const Color(0xFF10B981).withOpacity(0.3)),
               ),
               child: Row(
                 children: [
@@ -1167,11 +1167,7 @@ class _SantriDetailScreenState extends State<SantriDetailScreen> with SingleTick
                       color: const Color(0xFF10B981).withOpacity(0.2),
                       shape: BoxShape.circle,
                     ),
-                    child: const Icon(
-                      Icons.campaign_rounded,
-                      color: Color(0xFF10B981),
-                      size: 28,
-                    ),
+                    child: const Icon(Icons.campaign_rounded, color: Color(0xFF10B981), size: 28),
                   ),
                   const SizedBox(width: 16),
                   Expanded(
@@ -1188,30 +1184,14 @@ class _SantriDetailScreenState extends State<SantriDetailScreen> with SingleTick
                         ),
                         const SizedBox(height: 4),
                         Text(
-                          keputusanKenaikan.trim().isNotEmpty
-                              ? keputusanKenaikan
-                              : "Belum ditentukan / Masih diproses",
-                          style: GoogleFonts.outfit(
-                            color: context.titleColor,
-                            fontSize: 16,
-                            fontWeight: FontWeight.bold,
-                          ),
+                          keputusanKenaikan.trim().isNotEmpty ? keputusanKenaikan : "Belum ditentukan / Masih diproses",
+                          style: GoogleFonts.outfit(color: context.titleColor, fontSize: 16, fontWeight: FontWeight.bold),
                         ),
                         if (kelasNaikKe.trim().isNotEmpty) ...[
-                          const SizedBox(height: 6),
-                          Row(
-                            children: [
-                              const Icon(Icons.arrow_upward_rounded, color: Color(0xFF10B981), size: 14),
-                              const SizedBox(width: 4),
-                              Text(
-                                "Naik ke kelas $kelasNaikKe",
-                                style: GoogleFonts.outfit(
-                                  color: const Color(0xFF10B981),
-                                  fontSize: 13,
-                                  fontWeight: FontWeight.w600,
-                                ),
-                              ),
-                            ],
+                          const SizedBox(height: 4),
+                          Text(
+                            "Naik ke kelas $kelasNaikKe",
+                            style: GoogleFonts.outfit(color: const Color(0xFF10B981), fontSize: 13, fontWeight: FontWeight.bold),
                           ),
                         ],
                       ],
@@ -1221,7 +1201,6 @@ class _SantriDetailScreenState extends State<SantriDetailScreen> with SingleTick
               ),
             ),
           ],
-          const SizedBox(height: 30),
         ],
       ),
     );
@@ -1364,6 +1343,38 @@ class _SantriDetailScreenState extends State<SantriDetailScreen> with SingleTick
                 ),
               ),
             ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildRaporStatCard(String label, String value, Color color, {bool isBold = false}) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: color.withOpacity(0.08),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: color.withOpacity(0.2), width: 1),
+      ),
+      child: Column(
+        children: [
+          Text(
+            label,
+            style: GoogleFonts.outfit(
+              color: color,
+              fontSize: 11,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            value,
+            style: GoogleFonts.outfit(
+              color: color,
+              fontSize: isBold ? 22 : 20,
+              fontWeight: isBold ? FontWeight.w900 : FontWeight.bold,
+            ),
+          ),
         ],
       ),
     );

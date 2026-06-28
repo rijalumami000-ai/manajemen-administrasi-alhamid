@@ -789,6 +789,23 @@ class ApiService {
       }
       rethrow;
     }
+  // --- SCAN KARTU UJIAN ---
+  Future<Map<String, dynamic>> scanKartuUjian(String code) async {
+    try {
+      final response = await _dio.get(
+        '/my-mustahiq/scan-kartu-ujian',
+        queryParameters: {'code': code},
+      );
+      if (response.statusCode == 200) {
+        return response.data;
+      }
+      throw Exception('Gagal memverifikasi kartu ujian.');
+    } catch (e) {
+      if (e is DioException && e.response != null) {
+        throw Exception(e.response?.data['error'] ?? 'Gagal memverifikasi kartu ujian.');
+      }
+      rethrow;
+    }
   }
 }
 

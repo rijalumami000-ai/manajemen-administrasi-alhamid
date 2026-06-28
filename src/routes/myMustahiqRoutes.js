@@ -325,6 +325,7 @@ function registerMyMustahiqRoutes(app) {
     const profileResult = await db.query(`
       SELECT 
         sta.santri_id AS id,
+        sta.kelas_diniyah_id,
         sta.nis,
         sta.nik,
         sta.nama,
@@ -459,6 +460,78 @@ function registerMyMustahiqRoutes(app) {
     } catch (_) { /* abaikan jika error */ }
 
     rapor.kelas_naik_ke = kelasNaikKe;
+
+    // Calculate student ranking within class
+    let totalNilai = 0;
+    let mapelCount = 0;
+    let rataRata = 0;
+    let peringkat = '-';
+    let peringkatManual = null;
+
+    if (profile.kelas_diniyah_id) {
+      try {
+        const classSantriRes = await db.query(`
+          SELECT santri_id FROM santri_tahun_ajaran
+          WHERE kelas_diniyah_id = $1 AND tahun_ajaran_id = $2 AND status = 'aktif'
+        `, [profile.kelas_diniyah_id, activeYear.id]);
+        
+        const classSantriIds = classSantriRes.rows.map(r => r.santri_id);
+        if (classSantriIds.length > 0) {
+          const cPlaceholders = classSantriIds.map((_, i) => `$${i + 3}`).join(', ');
+          const cNilaiRes = await db.query(`
+            SELECT n.santri_id, mp.jenis AS mapel_jenis, n.nilai_angka
+            FROM nilai_santri n
+            JOIN mata_pelajaran mp ON n.mata_pelajaran_id = mp.id
+            WHERE n.santri_id IN (${cPlaceholders}) AND n.tahun_ajaran_id = $1 AND n.kategori_evaluasi_id = $2
+          `, [activeYear.id, kategoriId, ...classSantriIds]);
+
+          const cRaporRes = await db.query(`
+            SELECT santri_id, peringkat_manual FROM rapor_santri
+            WHERE santri_id IN (${cPlaceholders}) AND tahun_ajaran_id = $1 AND kategori_evaluasi_id = $2
+          `, [activeYear.id, kategoriId, ...classSantriIds]);
+
+          const cRaporMap = {};
+          cRaporRes.rows.forEach(r => cRaporMap[r.santri_id] = r.peringkat_manual);
+
+          const cRekapMap = {};
+          for (const sId of classSantriIds) {
+            cRekapMap[sId] = { santri_id: sId, total: 0, count: 0, peringkat_manual: cRaporMap[sId] || null };
+          }
+          for (const row of cNilaiRes.rows) {
+            if (row.mapel_jenis === 'Reguler' || row.mapel_jenis === 'Qiroah') {
+              if (row.nilai_angka !== null && row.nilai_angka !== undefined) {
+                if (cRekapMap[row.santri_id]) {
+                  cRekapMap[row.santri_id].total += Number(row.nilai_angka);
+                  cRekapMap[row.santri_id].count++;
+                }
+              }
+            }
+          }
+
+          const cRekapArr = Object.values(cRekapMap);
+          cRekapArr.sort((a, b) => b.total - a.total);
+          cRekapArr.forEach((item, idx) => {
+            item.peringkat = item.peringkat_manual || (idx + 1);
+          });
+
+          const myRank = cRekapArr.find(r => r.santri_id == santriId);
+          if (myRank) {
+            totalNilai = myRank.total;
+            mapelCount = myRank.count;
+            rataRata = mapelCount > 0 ? Number((totalNilai / mapelCount).toFixed(2)) : 0;
+            peringkat = myRank.peringkat;
+            peringkatManual = myRank.peringkat_manual;
+          }
+        }
+      } catch (err) {
+        console.error('Error calculating rank in santri detail:', err);
+      }
+    }
+
+    rapor.total_nilai = totalNilai;
+    rapor.rata_rata = rataRata;
+    rapor.peringkat = peringkat;
+    rapor.peringkat_manual = peringkatManual;
 
     // 6. Fetch monthly attendance detail
     const absensiDetailRes = await db.query(`
@@ -2370,7 +2443,7 @@ function registerMyMustahiqRoutes(app) {
 
     // Ambil semua rapor sekaligus
     const raporRes = await db.query(`
-      SELECT santri_id, sakit, izin, alpa, akhlaq, keaktifan, kerapihan, catatan, keputusan_kenaikan
+      SELECT santri_id, sakit, izin, alpa, akhlaq, keaktifan, kerapihan, catatan, keputusan_kenaikan, peringkat_manual
       FROM rapor_santri
       WHERE santri_id IN (${idPlaceholders})
         AND tahun_ajaran_id = $1
@@ -2388,10 +2461,46 @@ function registerMyMustahiqRoutes(app) {
       raporMap[r.santri_id] = r;
     }
 
+    // Hitung statistik total_nilai, rata_rata, dan peringkat untuk setiap santri di kelas ini
+    const rekapClassMap = {};
+    for (const s of santriList) {
+      const nList = nilaiMap[s.id] || [];
+      let total = 0;
+      let count = 0;
+      for (const n of nList) {
+        if (n.mapel_jenis === 'Reguler' || n.mapel_jenis === 'Qiroah') {
+          if (n.nilai_angka !== null && n.nilai_angka !== undefined) {
+            total += Number(n.nilai_angka);
+            count++;
+          }
+        }
+      }
+      rekapClassMap[s.id] = {
+        santri_id: s.id,
+        total_nilai: total,
+        mapel_count: count,
+        rata_rata: count > 0 ? Number((total / count).toFixed(2)) : 0,
+        peringkat_manual: raporMap[s.id]?.peringkat_manual || null
+      };
+    }
+
+    const rekapClassArr = Object.values(rekapClassMap);
+    rekapClassArr.sort((a, b) => b.total_nilai - a.total_nilai);
+    rekapClassArr.forEach((item, idx) => {
+      item.peringkat_sistem = idx + 1;
+      item.peringkat = item.peringkat_manual || item.peringkat_sistem;
+    });
+
+    const rankResultMap = {};
+    for (const item of rekapClassArr) {
+      rankResultMap[item.santri_id] = item;
+    }
+
     // Susun data per santri
     const result = santriList.map(s => {
       const nilaiBySantri = nilaiMap[s.id] || [];
       const rapor = raporMap[s.id] || null;
+      const rankInfo = rankResultMap[s.id] || { total_nilai: 0, rata_rata: 0, peringkat: '-', peringkat_manual: null };
 
       // Muhafadzoh oral grade: mapel_id = 10 (Muhafadzoh Akbar)
       const muhafadzoh = nilaiBySantri.find(n => n.mata_pelajaran_id === 10) || nilaiBySantri.find(n => n.mapel_jenis === 'Muhafadzoh');
@@ -2441,16 +2550,20 @@ function registerMyMustahiqRoutes(app) {
           nilai_angka: u.nilai_angka,
           predikat: u.predikat,
         })),
-        rapor: rapor ? {
-          sakit: rapor.sakit ?? 0,
-          izin: rapor.izin ?? 0,
-          alpa: rapor.alpa ?? 0,
-          akhlaq: rapor.akhlaq,
-          keaktifan: rapor.keaktifan,
-          kerapihan: rapor.kerapihan,
-          catatan: rapor.catatan || '',
-          keputusan_kenaikan: rapor.keputusan_kenaikan || '',
-        } : null,
+        rapor: {
+          sakit: rapor?.sakit ?? 0,
+          izin: rapor?.izin ?? 0,
+          alpa: rapor?.alpa ?? 0,
+          akhlaq: rapor?.akhlaq || null,
+          keaktifan: rapor?.keaktifan || null,
+          kerapihan: rapor?.kerapihan || null,
+          catatan: rapor?.catatan || '',
+          keputusan_kenaikan: rapor?.keputusan_kenaikan || '',
+          total_nilai: rankInfo.total_nilai,
+          rata_rata: rankInfo.rata_rata,
+          peringkat: rankInfo.peringkat,
+          peringkat_manual: rankInfo.peringkat_manual || null,
+        },
       };
     });
 
@@ -2464,6 +2577,56 @@ function registerMyMustahiqRoutes(app) {
       muhafadzoh_tipe_input: muhafadzohTipeInput,
       qiroatul_tipe_input: qiroatulTipeInput,
       santri: result,
+    });
+  }));
+
+  /**
+   * GET /api/my-mustahiq/scan-kartu-ujian
+   * Verifikasi & ambil data kartu ujian santri via QR / NIS / Nomor Peserta
+   */
+  router.get('/scan-kartu-ujian', asyncHandler(async (req, res) => {
+    const { code } = req.query;
+    if (!code || !code.trim()) {
+      return res.status(400).json({ error: 'Kode QR / NIS / Nomor Peserta wajib diisi.' });
+    }
+    const cleanCode = code.trim();
+
+    const activeYear = await getActiveTahunAjaran();
+    const semResult = await db.query("SELECT value FROM system_settings WHERE key = 'active_semester' LIMIT 1");
+    const activeSemester = semResult.rows[0] ? semResult.rows[0].value : 'Ganjil';
+
+    // Query santri by qr_code, nis, id, or no_peserta
+    const santriRes = await db.query(`
+      SELECT s.id, s.nis, s.nama, s.jenis_kelamin, s.foto_url, s.qr_code,
+             kd.nama AS kelas_diniyah, pu.no_peserta, pu.urutan_di_kelas, pu.urutan_global
+      FROM santri s
+      LEFT JOIN kelas kd ON s.kelas_diniyah_id = kd.id
+      LEFT JOIN peserta_ujian pu ON pu.santri_id = s.id AND pu.tahun_ajaran_id = $2 AND pu.semester = $3
+      WHERE s.qr_code = $1 OR s.nis = $1 OR pu.no_peserta = $1 OR CAST(s.id AS TEXT) = $1
+      LIMIT 1
+    `, [cleanCode, activeYear?.id || 0, activeSemester]);
+
+    if (santriRes.rows.length === 0) {
+      return res.status(404).json({ error: 'Data Kartu Ujian santri tidak ditemukan.' });
+    }
+
+    const item = santriRes.rows[0];
+    res.json({
+      success: true,
+      tahunAjaran: activeYear?.kode || '-',
+      semester: activeSemester,
+      santri: {
+        id: item.id,
+        nis: item.nis,
+        nama: item.nama,
+        jenis_kelamin: item.jenis_kelamin,
+        foto_url: item.foto_url,
+        kelas: item.kelas_diniyah || '-',
+        no_peserta: item.no_peserta || `P-${item.nis}`,
+        urutan_di_kelas: item.urutan_di_kelas || 1,
+        urutan_global: item.urutan_global || 1,
+        status_ujian: 'Terverifikasi (Aktif)',
+      }
     });
   }));
 

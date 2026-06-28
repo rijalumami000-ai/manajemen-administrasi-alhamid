@@ -304,7 +304,7 @@ class _LaporanAkademikScreenState extends State<LaporanAkademikScreen> {
     }
 
     return DefaultTabController(
-      length: 5,
+      length: 6,
       child: Column(
         children: [
           // Header Kelas
@@ -351,7 +351,8 @@ class _LaporanAkademikScreenState extends State<LaporanAkademikScreen> {
                 Tab(text: "Qiroatul Kitab"),
                 Tab(text: "Taftisyul Kutub"),
                 Tab(text: "Ujian Tulis"),
-                Tab(text: "Rapor & Absensi"),
+                Tab(text: "Absensi & Kepribadian"),
+                Tab(text: "Rapor"),
               ],
             ),
           ),
@@ -365,7 +366,8 @@ class _LaporanAkademikScreenState extends State<LaporanAkademikScreen> {
                 _buildQiroahList(santriList),
                 _buildTaftisyulList(santriList),
                 _buildUjianTulisList(santriList),
-                _buildRaporList(santriList, isSemesterGenap),
+                _buildAbsensiKepribadianList(santriList),
+                _buildRaporRekapList(santriList, isSemesterGenap),
               ],
             ),
           ),
@@ -499,16 +501,18 @@ class _LaporanAkademikScreenState extends State<LaporanAkademikScreen> {
                     runSpacing: 8,
                     children: ujianTulis.map<Widget>((u) {
                       final score = double.tryParse(u['nilai_angka']?.toString() ?? '') ?? 0.0;
+                      final isRed = score < 51;
+                      final color = isRed ? const Color(0xFFEF4444) : const Color(0xFFF59E0B);
                       return Container(
                         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                         decoration: BoxDecoration(
-                          color: const Color(0xFFF59E0B).withOpacity(0.08),
+                          color: color.withOpacity(0.08),
                           borderRadius: BorderRadius.circular(8),
-                          border: Border.all(color: const Color(0xFFF59E0B).withOpacity(0.2)),
+                          border: Border.all(color: color.withOpacity(0.2)),
                         ),
                         child: Text(
                           '${u['mata_pelajaran']}: ${score.toStringAsFixed(score % 1 == 0 ? 0 : 1)}',
-                          style: GoogleFonts.outfit(color: const Color(0xFFF59E0B), fontSize: 11, fontWeight: FontWeight.bold),
+                          style: GoogleFonts.outfit(color: color, fontSize: 11, fontWeight: FontWeight.bold),
                         ),
                       );
                     }).toList(),
@@ -524,8 +528,8 @@ class _LaporanAkademikScreenState extends State<LaporanAkademikScreen> {
     );
   }
 
-  // --- 5. TAB RAPOR & ABSENSI LIST ---
-  Widget _buildRaporList(List<dynamic> santriList, bool isSemesterGenap) {
+  // --- 5. TAB ABSENSI & KEPRIBADIAN LIST ---
+  Widget _buildAbsensiKepribadianList(List<dynamic> santriList) {
     return ListView.separated(
       physics: const BouncingScrollPhysics(),
       padding: const EdgeInsets.all(16),
@@ -556,6 +560,49 @@ class _LaporanAkademikScreenState extends State<LaporanAkademikScreen> {
                         _buildKepribadianChip('Akhlaq', rapor['akhlaq']),
                         _buildKepribadianChip('Keaktifan', rapor['keaktifan']),
                         _buildKepribadianChip('Kerapihan', rapor['kerapihan']),
+                      ],
+                    ),
+                  ],
+                )
+              : Padding(
+                  padding: const EdgeInsets.only(top: 6.0),
+                  child: Text('Belum ada data absensi & kepribadian',
+                      style: GoogleFonts.outfit(color: context.subTitleColor, fontSize: 11, fontStyle: FontStyle.italic)),
+                ),
+        );
+      },
+    );
+  }
+
+  // --- 6. TAB RAPOR REKAP LIST (TOTAL, RATA-RATA, PERINGKAT, CATATAN WALI, KENAIKAN) ---
+  Widget _buildRaporRekapList(List<dynamic> santriList, bool isSemesterGenap) {
+    return ListView.separated(
+      physics: const BouncingScrollPhysics(),
+      padding: const EdgeInsets.all(16),
+      itemCount: santriList.length,
+      separatorBuilder: (_, __) => const SizedBox(height: 10),
+      itemBuilder: (context, index) {
+        final s = santriList[index] as Map<String, dynamic>;
+        final rapor = s['rapor'] as Map<String, dynamic>?;
+
+        return _buildBaseSantriRow(
+          no: index + 1,
+          nama: s['nama'] ?? '-',
+          nis: s['nis'] ?? '-',
+          fotoUrl: s['foto_url'],
+          bottomContent: rapor != null
+              ? Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    const SizedBox(height: 8),
+                    // Row Total Nilai, Rata-Rata, Peringkat
+                    Wrap(
+                      spacing: 8,
+                      runSpacing: 8,
+                      children: [
+                        _buildStatChip('Total Nilai', '${rapor['total_nilai'] ?? 0}', const Color(0xFF10B981)),
+                        _buildStatChip('Rata-Rata', '${rapor['rata_rata'] ?? 0}', const Color(0xFF3B82F6)),
+                        _buildStatChip('Peringkat', '${rapor['peringkat'] ?? '-'}', const Color(0xFF8B5CF6), isBold: true),
                       ],
                     ),
                     // Catatan Wali Kelas
@@ -605,7 +652,7 @@ class _LaporanAkademikScreenState extends State<LaporanAkademikScreen> {
                 )
               : Padding(
                   padding: const EdgeInsets.only(top: 6.0),
-                  child: Text('Belum ada data rapor & absensi',
+                  child: Text('Belum ada data rapor rekap',
                       style: GoogleFonts.outfit(color: context.subTitleColor, fontSize: 11, fontStyle: FontStyle.italic)),
                 ),
         );
@@ -721,6 +768,10 @@ class _LaporanAkademikScreenState extends State<LaporanAkademikScreen> {
     final tipeInput = _laporanData?['muhafadzoh_tipe_input']?.toString() ?? 'Angka';
     final isTeks = tipeInput.toLowerCase() == 'teks';
 
+    // Check predikat Rodi' -> Merah
+    final isRodi = predikat.toLowerCase().contains('rodi');
+    final activeColor = isRodi ? const Color(0xFFEF4444) : color;
+
     // Prioritas berdasarkan tipeInput
     final showCapaian = isTeks ? capaian.isNotEmpty : (capaian.isNotEmpty && (nilaiAngka == null || nilaiAngka <= 0));
     final showNumeric = !showCapaian && nilaiAngka != null && nilaiAngka > 0;
@@ -736,24 +787,24 @@ class _LaporanAkademikScreenState extends State<LaporanAkademikScreen> {
             height: 36,
             alignment: Alignment.center,
             decoration: BoxDecoration(
-              color: color.withOpacity(0.12),
+              color: activeColor.withOpacity(0.12),
               shape: BoxShape.circle,
-              border: Border.all(color: color.withOpacity(0.3), width: 1.5),
+              border: Border.all(color: activeColor.withOpacity(0.3), width: 1.5),
             ),
             child: Text(
               nilaiAngka.toStringAsFixed(nilaiAngka % 1 == 0 ? 0 : 1),
-              style: GoogleFonts.outfit(color: color, fontSize: 13, fontWeight: FontWeight.w900),
+              style: GoogleFonts.outfit(color: activeColor, fontSize: 13, fontWeight: FontWeight.w900),
             ),
           )
         else if (showCapaian)
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
             decoration: BoxDecoration(
-              color: color.withOpacity(0.1),
+              color: activeColor.withOpacity(0.1),
               borderRadius: BorderRadius.circular(6),
-              border: Border.all(color: color.withOpacity(0.25)),
+              border: Border.all(color: activeColor.withOpacity(0.25)),
             ),
-            child: Text(capaian, style: GoogleFonts.outfit(color: color, fontSize: 10, fontWeight: FontWeight.bold)),
+            child: Text(capaian, style: GoogleFonts.outfit(color: activeColor, fontSize: 10, fontWeight: FontWeight.bold)),
           )
         else
           Icon(Icons.remove_rounded, color: context.subTitleColor, size: 16),
@@ -777,7 +828,7 @@ class _LaporanAkademikScreenState extends State<LaporanAkademikScreen> {
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
             textAlign: TextAlign.right,
-            style: GoogleFonts.outfit(color: color, fontSize: 9),
+            style: GoogleFonts.outfit(color: activeColor, fontSize: 9, fontWeight: isRodi ? FontWeight.bold : FontWeight.normal),
           ),
         ),
       ],
@@ -880,6 +931,24 @@ class _LaporanAkademikScreenState extends State<LaporanAkademikScreen> {
       ),
       child: Text('$label: $textVal',
           style: GoogleFonts.outfit(color: color, fontSize: 10, fontWeight: FontWeight.w600)),
+    );
+  }
+
+  Widget _buildStatChip(String label, String val, Color color, {bool isBold = false}) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      decoration: BoxDecoration(
+        color: color.withOpacity(0.08),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: color.withOpacity(0.25)),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text('$label: ', style: GoogleFonts.outfit(color: color, fontSize: 11, fontWeight: FontWeight.w500)),
+          Text(val, style: GoogleFonts.outfit(color: color, fontSize: 12, fontWeight: isBold ? FontWeight.w900 : FontWeight.bold)),
+        ],
+      ),
     );
   }
 }
