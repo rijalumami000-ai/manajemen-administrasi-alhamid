@@ -273,14 +273,14 @@ class _SantriDetailScreenState extends State<SantriDetailScreen> with SingleTick
 
                     // Custom Tab Bar
                     Container(
-                      color: context.isDarkMode ? const Color(0xFF0D1527) : Colors.white,
-                      decoration: context.isDarkMode
-                          ? null
-                          : BoxDecoration(
-                              border: Border(
+                      decoration: BoxDecoration(
+                        color: context.isDarkMode ? const Color(0xFF0D1527) : Colors.white,
+                        border: context.isDarkMode
+                            ? null
+                            : Border(
                                 bottom: BorderSide(color: context.borderColor),
                               ),
-                            ),
+                      ),
                       child: TabBar(
                         controller: _tabController,
                         indicatorColor: const Color(0xFF10B981),
