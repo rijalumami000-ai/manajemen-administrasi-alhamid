@@ -6,6 +6,3 @@
 -keep class com.dexterous.flutterlocalnotifications.** { *; }
 -keep class io.flutter.plugins.firebase.messaging.** { *; }
 -keep class com.google.firebase.messaging.** { *; }
-
-# Keep raw audio resources
--keepresources raw/*
