@@ -1,3 +1,4 @@
+import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
@@ -42,8 +43,16 @@ class _ScanKartuUjianScreenState extends State<ScanKartuUjianScreen> with Single
     super.dispose();
   }
 
-  Future<void> _performScan(String code) async {
-    if (code.trim().isEmpty) return;
+  Future<void> _performScan(String rawCode) async {
+    if (rawCode.trim().isEmpty) return;
+
+    String cleanCode = rawCode.trim();
+    try {
+      if (cleanCode.startsWith('http://') || cleanCode.startsWith('https://')) {
+        final uri = Uri.parse(cleanCode);
+        cleanCode = uri.queryParameters['code'] ?? uri.pathSegments.last;
+      }
+    } catch (_) {}
 
     setState(() {
       _isLoading = true;
@@ -52,17 +61,59 @@ class _ScanKartuUjianScreenState extends State<ScanKartuUjianScreen> with Single
     });
 
     try {
-      final res = await _apiService.scanKartuUjian(code.trim());
+      final res = await _apiService.scanKartuUjian(cleanCode);
       setState(() {
         _scanResult = res;
         _isLoading = false;
       });
+      if (mounted) {
+        _showVerificationDialog(res);
+      }
     } catch (e) {
       setState(() {
         _errorMessage = e.toString().replaceFirst('Exception: ', '');
         _isLoading = false;
       });
     }
+  }
+
+  void _showVerificationDialog(Map<String, dynamic> data) {
+    showDialog(
+      context: context,
+      barrierDismissible: true,
+      builder: (context) {
+        return BackdropFilter(
+          filter: ui.ImageFilter.blur(sigmaX: 12, sigmaY: 12),
+          child: Dialog(
+            backgroundColor: Colors.transparent,
+            insetPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
+            child: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  _buildDigitalKartuUjian(data),
+                  const SizedBox(height: 16),
+                  ElevatedButton.icon(
+                    onPressed: () => Navigator.pop(context),
+                    icon: const Icon(Icons.check_circle_rounded, color: Colors.white, size: 20),
+                    label: Text(
+                      'Tutup & Selesai Verifikasi',
+                      style: GoogleFonts.outfit(fontSize: 14, fontWeight: FontWeight.bold),
+                    ),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFF10B981),
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        );
+      },
+    );
   }
 
   @override
@@ -252,8 +303,22 @@ class _ScanKartuUjianScreenState extends State<ScanKartuUjianScreen> with Single
                 ),
               ),
 
-            if (_scanResult != null && _scanResult!['santri'] != null)
-              _buildDigitalKartuUjian(_scanResult!),
+            if (_scanResult != null && _scanResult!['santri'] != null) ...[
+              const SizedBox(height: 12),
+              OutlinedButton.icon(
+                onPressed: () => _showVerificationDialog(_scanResult!),
+                icon: const Icon(Icons.qr_code_2_rounded, color: Color(0xFF10B981)),
+                label: Text(
+                  'Buka Kembali Kartu Verifikasi',
+                  style: GoogleFonts.outfit(color: const Color(0xFF10B981), fontWeight: FontWeight.bold),
+                ),
+                style: OutlinedButton.styleFrom(
+                  side: const BorderSide(color: Color(0xFF10B981), width: 1.5),
+                  padding: const EdgeInsets.all(14),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                ),
+              ),
+            ],
           ],
         ),
       ),

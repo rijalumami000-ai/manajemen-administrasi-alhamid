@@ -126,9 +126,8 @@ class PushNotificationService {
       // 5. Handle foreground notification delivery
       FirebaseMessaging.onMessage.listen((RemoteMessage message) async {
         RemoteNotification? notification = message.notification;
-        AndroidNotification? android = message.notification?.android;
 
-        if (notification != null && android != null) {
+        if (notification != null) {
           // Read user sound preference & category
           const storage = FlutterSecureStorage();
           final soundPref = await storage.read(key: 'notification_sound') ?? 'default';
@@ -138,7 +137,7 @@ class PushNotificationService {
           AndroidNotificationSound? customSound;
 
           final category = message.data['category'] ?? '';
-          final title = notification.title ?? '';
+          final title = notification.title ?? 'Notifikasi MyMustahiq';
 
           if (soundPref == 'chime') {
             targetChannelId = 'chime_importance_channel';
@@ -167,11 +166,13 @@ class PushNotificationService {
                 targetChannelId,
                 targetChannelName,
                 channelDescription: 'Notification channel with selected sound preference.',
-                icon: android.smallIcon ?? '@mipmap/ic_launcher',
+                icon: '@mipmap/ic_launcher',
                 importance: Importance.max,
                 priority: Priority.high,
                 playSound: true,
                 sound: customSound,
+                visibility: NotificationVisibility.public,
+                ticker: title,
               ),
             ),
             payload: jsonEncode(message.data),
