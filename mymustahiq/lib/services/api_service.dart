@@ -789,6 +789,8 @@ class ApiService {
       }
       rethrow;
     }
+  }
+
   // --- SCAN KARTU UJIAN ---
   Future<Map<String, dynamic>> scanKartuUjian(String code) async {
     try {
