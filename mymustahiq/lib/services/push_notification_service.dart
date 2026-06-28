@@ -5,6 +5,7 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:audioplayers/audioplayers.dart';
 import 'api_service.dart';
 import '../screens/notifications_screen.dart';
 import '../screens/chat_detail_screen.dart';
@@ -68,12 +69,32 @@ class PushNotificationService {
         sound: RawResourceAndroidNotificationSound('bell'),
       );
 
+      const AndroidNotificationChannel jadwalChannel = AndroidNotificationChannel(
+        'jadwal_importance_channel', // id
+        'Jadwal Notifications', // name
+        description: 'This channel is used for schedule voice notifications.',
+        importance: Importance.max,
+        playSound: true,
+        sound: RawResourceAndroidNotificationSound('jadwal'),
+      );
+
+      const AndroidNotificationChannel pesanMasukChannel = AndroidNotificationChannel(
+        'pesan_masuk_importance_channel', // id
+        'Pesan Masuk Notifications', // name
+        description: 'This channel is used for incoming message voice notifications.',
+        importance: Importance.max,
+        playSound: true,
+        sound: RawResourceAndroidNotificationSound('pesan_masuk'),
+      );
+
       final androidNotificationPlugin = _localNotifications
           .resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>();
       if (androidNotificationPlugin != null) {
         await androidNotificationPlugin.createNotificationChannel(defaultChannel);
         await androidNotificationPlugin.createNotificationChannel(chimeChannel);
         await androidNotificationPlugin.createNotificationChannel(bellChannel);
+        await androidNotificationPlugin.createNotificationChannel(jadwalChannel);
+        await androidNotificationPlugin.createNotificationChannel(pesanMasukChannel);
       }
 
       // 4. Initialize Local Notifications Plugin
@@ -108,13 +129,16 @@ class PushNotificationService {
         AndroidNotification? android = message.notification?.android;
 
         if (notification != null && android != null) {
-          // Read user sound preference
+          // Read user sound preference & category
           const storage = FlutterSecureStorage();
           final soundPref = await storage.read(key: 'notification_sound') ?? 'default';
 
           String targetChannelId = 'high_importance_channel';
           String targetChannelName = 'High Importance Notifications';
           AndroidNotificationSound? customSound;
+
+          final category = message.data['category'] ?? '';
+          final title = notification.title ?? '';
 
           if (soundPref == 'chime') {
             targetChannelId = 'chime_importance_channel';
@@ -124,6 +148,14 @@ class PushNotificationService {
             targetChannelId = 'bell_importance_channel';
             targetChannelName = 'Bell Notifications';
             customSound = const RawResourceAndroidNotificationSound('bell');
+          } else if (soundPref == 'jadwal' || category.toLowerCase().contains('jadwal') || title.toLowerCase().contains('jadwal')) {
+            targetChannelId = 'jadwal_importance_channel';
+            targetChannelName = 'Jadwal Notifications';
+            customSound = const RawResourceAndroidNotificationSound('jadwal');
+          } else if (soundPref == 'pesan_masuk' || category.toLowerCase().contains('chat') || category.toLowerCase().contains('pesan') || title.toLowerCase().contains('pesan')) {
+            targetChannelId = 'pesan_masuk_importance_channel';
+            targetChannelName = 'Pesan Masuk Notifications';
+            customSound = const RawResourceAndroidNotificationSound('pesan_masuk');
           }
 
           _localNotifications.show(
@@ -220,34 +252,29 @@ class PushNotificationService {
   }
 
   Future<void> playTestSound(String soundName) async {
-    String channelId = 'high_importance_channel';
-    String channelName = 'High Importance Notifications';
-    AndroidNotificationSound? customSound;
-
-    if (soundName == 'chime') {
-      channelId = 'chime_importance_channel';
-      channelName = 'Chime Notifications';
-      customSound = const RawResourceAndroidNotificationSound('chime');
-    } else if (soundName == 'bell') {
-      channelId = 'bell_importance_channel';
-      channelName = 'Bell Notifications';
-      customSound = const RawResourceAndroidNotificationSound('bell');
+    try {
+      if (soundName == 'default') {
+        String channelId = 'high_importance_channel';
+        await _localNotifications.show(
+          id: 999,
+          title: 'MyMustahiq',
+          body: 'Tes Nada Notifikasi: Sistem (Default)',
+          notificationDetails: NotificationDetails(
+            android: AndroidNotificationDetails(
+              channelId,
+              'High Importance Notifications',
+              importance: Importance.max,
+              priority: Priority.high,
+              playSound: true,
+            ),
+          ),
+        );
+      } else {
+        final player = AudioPlayer();
+        await player.play(AssetSource('sounds/$soundName.wav'));
+      }
+    } catch (e) {
+      print('Error playing test sound: $e');
     }
-
-    await _localNotifications.show(
-      id: 999,
-      title: 'MyMustahiq',
-      body: 'Tes Nada Notifikasi: ${soundName.toUpperCase()}',
-      notificationDetails: NotificationDetails(
-        android: AndroidNotificationDetails(
-          channelId,
-          channelName,
-          importance: Importance.max,
-          priority: Priority.high,
-          playSound: true,
-          sound: customSound,
-        ),
-      ),
-    );
   }
 }

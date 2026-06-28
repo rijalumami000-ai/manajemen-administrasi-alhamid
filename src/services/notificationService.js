@@ -128,6 +128,19 @@ async function sendNotification({ title, body, category, target, data }) {
       click_action: 'FLUTTER_NOTIFICATION_CLICK',
     });
 
+    let soundName = 'default';
+    let channelId = 'high_importance_channel';
+    const catLower = (category || '').toLowerCase();
+    const titleLower = (title || '').toLowerCase();
+
+    if (catLower.includes('jadwal') || titleLower.includes('jadwal')) {
+      soundName = 'jadwal';
+      channelId = 'jadwal_importance_channel';
+    } else if (catLower.includes('chat') || catLower.includes('pesan') || titleLower.includes('pesan')) {
+      soundName = 'pesan_masuk';
+      channelId = 'pesan_masuk_importance_channel';
+    }
+
     const response = await messagingInstance.sendEachForMulticast({
       tokens: tokens,
       notification: {
@@ -136,8 +149,10 @@ async function sendNotification({ title, body, category, target, data }) {
       },
       data: fcmData,
       android: {
+        priority: 'high',
         notification: {
-          sound: 'default',
+          sound: soundName,
+          channelId: channelId,
           priority: 'high',
         }
       }

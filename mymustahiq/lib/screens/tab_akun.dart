@@ -381,6 +381,8 @@ class _TabAkunState extends State<TabAkun> {
                     _buildSoundOption(setModalState, 'default', 'Sistem (Default)', 'Nada dering bawaan perangkat'),
                     _buildSoundOption(setModalState, 'chime', 'Chime (Ting-ting)', 'Nada chime pendek dan cerah'),
                     _buildSoundOption(setModalState, 'bell', 'Bell (Kring-kring)', 'Nada bell berdering tradisional'),
+                    _buildSoundOption(setModalState, 'jadwal', 'Suara Jadwal Mengajar', 'Suara "Ada jadwal mengajar untuk malam ini, semangat"'),
+                    _buildSoundOption(setModalState, 'pesan_masuk', 'Suara Pesan Masuk', 'Suara "Ada pesan masuk"'),
                   ],
                 ),
               ),

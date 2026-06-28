@@ -432,34 +432,16 @@ class _SantriExplorerScreenState extends State<SantriExplorerScreen> {
                                 child: GridView.builder(
                                   physics: const BouncingScrollPhysics(),
                                   gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                                    crossAxisCount: 2,
-                                    crossAxisSpacing: 14,
-                                    mainAxisSpacing: 14,
-                                    childAspectRatio: 1.1,
+                                    crossAxisCount: 3,
+                                    crossAxisSpacing: 12,
+                                    mainAxisSpacing: 12,
+                                    childAspectRatio: 1.6,
                                   ),
                                   itemCount: _availableClasses.length,
                                   itemBuilder: (context, index) {
                                     final kelas = _availableClasses[index];
                                     final namaKelas = kelas['nama'] ?? '';
-                                    
-                                    // Deterministic styling based on index and theme
-                                    final List<Color> cardColors = context.isDarkMode
-                                        ? (index % 3 == 0
-                                            ? [const Color(0xFF064E3B).withOpacity(0.4), const Color(0xFF022C22).withOpacity(0.6)]
-                                            : index % 3 == 1
-                                                ? [const Color(0xFF1E3A8A).withOpacity(0.4), const Color(0xFF172554).withOpacity(0.6)]
-                                                : [const Color(0xFF78350F).withOpacity(0.4), const Color(0xFF451A03).withOpacity(0.6)])
-                                        : (index % 3 == 0
-                                            ? [const Color(0xFFECFDF5), const Color(0xFFD1FAE5)]
-                                            : index % 3 == 1
-                                                ? [const Color(0xFFEFF6FF), const Color(0xFFDBEAFE)]
-                                                : [const Color(0xFFFFFBEB), const Color(0xFFFEF3C7)]);
-
-                                    final Color accentColor = index % 3 == 0
-                                        ? const Color(0xFF10B981)
-                                        : index % 3 == 1
-                                            ? const Color(0xFF3B82F6)
-                                            : const Color(0xFFF59E0B);
+                                    final isSelected = _selectedKelasId == kelas['id'];
 
                                     return GestureDetector(
                                       onTap: () {
@@ -468,80 +450,27 @@ class _SantriExplorerScreenState extends State<SantriExplorerScreen> {
                                         });
                                         _fetchStudentsData();
                                       },
-                                      child: Container(
+                                      child: AnimatedContainer(
+                                        duration: const Duration(milliseconds: 200),
                                         decoration: BoxDecoration(
-                                          gradient: LinearGradient(
-                                            colors: cardColors,
-                                            begin: Alignment.topLeft,
-                                            end: Alignment.bottomRight,
-                                          ),
-                                          borderRadius: BorderRadius.circular(20),
+                                          color: isSelected ? const Color(0xFF10B981) : context.cardBg,
+                                          borderRadius: BorderRadius.circular(14),
                                           border: Border.all(
-                                            color: accentColor.withOpacity(context.isDarkMode ? 0.2 : 0.6),
-                                            width: 1.2,
+                                            color: isSelected ? const Color(0xFF10B981) : context.borderColor,
+                                            width: isSelected ? 2 : 1,
                                           ),
-                                          boxShadow: [
-                                            BoxShadow(
-                                              color: Colors.black.withOpacity(context.isDarkMode ? 0.2 : 0.04),
-                                              blurRadius: 6,
-                                              offset: const Offset(0, 3),
-                                            )
-                                          ],
+                                          boxShadow: isSelected
+                                              ? [BoxShadow(color: const Color(0xFF10B981).withOpacity(0.3), blurRadius: 12, offset: const Offset(0, 4))]
+                                              : [],
                                         ),
-                                        padding: const EdgeInsets.all(16),
-                                        child: Column(
-                                          crossAxisAlignment: CrossAxisAlignment.start,
-                                          children: [
-                                            Container(
-                                              padding: const EdgeInsets.all(8),
-                                              decoration: BoxDecoration(
-                                                color: context.isDarkMode ? Colors.white.withOpacity(0.06) : Colors.white,
-                                                borderRadius: BorderRadius.circular(10),
-                                                boxShadow: context.isDarkMode
-                                                    ? null
-                                                    : [
-                                                        BoxShadow(
-                                                          color: Colors.black.withOpacity(0.05),
-                                                          blurRadius: 4,
-                                                          offset: const Offset(0, 1),
-                                                        )
-                                                      ],
-                                              ),
-                                              child: Icon(
-                                                Icons.groups_rounded,
-                                                color: accentColor,
-                                                size: 18,
-                                              ),
-                                            ),
-                                            const Spacer(),
-                                            Text(
-                                              namaKelas,
-                                              style: GoogleFonts.outfit(
-                                                color: context.titleColor,
-                                                fontSize: 15,
-                                                fontWeight: FontWeight.bold,
-                                              ),
-                                            ),
-                                            const SizedBox(height: 3),
-                                            Row(
-                                              children: [
-                                                Text(
-                                                  "Lihat Santri",
-                                                  style: GoogleFonts.outfit(
-                                                    color: accentColor,
-                                                    fontSize: 10,
-                                                    fontWeight: FontWeight.bold,
-                                                  ),
-                                                ),
-                                                const SizedBox(width: 4),
-                                                Icon(
-                                                  Icons.arrow_forward_rounded,
-                                                  color: accentColor,
-                                                  size: 10,
-                                                ),
-                                              ],
-                                            ),
-                                          ],
+                                        alignment: Alignment.center,
+                                        child: Text(
+                                          namaKelas,
+                                          style: GoogleFonts.outfit(
+                                            color: isSelected ? Colors.white : context.titleColor,
+                                            fontSize: 18,
+                                            fontWeight: FontWeight.bold,
+                                          ),
                                         ),
                                       ),
                                     );

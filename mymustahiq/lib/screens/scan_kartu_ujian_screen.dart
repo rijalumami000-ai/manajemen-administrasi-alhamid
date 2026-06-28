@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:mobile_scanner/mobile_scanner.dart';
 import '../services/api_service.dart';
 import '../services/theme_manager.dart';
 
@@ -13,11 +14,13 @@ class ScanKartuUjianScreen extends StatefulWidget {
 class _ScanKartuUjianScreenState extends State<ScanKartuUjianScreen> with SingleTickerProviderStateMixin {
   final ApiService _apiService = ApiService();
   final TextEditingController _codeController = TextEditingController();
+  final MobileScannerController _scannerController = MobileScannerController();
 
   late AnimationController _scannerAnimController;
   late Animation<double> _animation;
 
   bool _isLoading = false;
+  bool _isScanCooldown = false;
   String? _errorMessage;
   Map<String, dynamic>? _scanResult;
 
@@ -35,6 +38,7 @@ class _ScanKartuUjianScreenState extends State<ScanKartuUjianScreen> with Single
   void dispose() {
     _scannerAnimController.dispose();
     _codeController.dispose();
+    _scannerController.dispose();
     super.dispose();
   }
 
@@ -103,7 +107,7 @@ class _ScanKartuUjianScreenState extends State<ScanKartuUjianScreen> with Single
                     ),
                   ),
                   const SizedBox(height: 16),
-                  // Animated Scanner Viewfinder Box
+                  // Animated Scanner Viewfinder Box with Live Camera
                   Container(
                     width: 220,
                     height: 220,
@@ -112,53 +116,72 @@ class _ScanKartuUjianScreenState extends State<ScanKartuUjianScreen> with Single
                       borderRadius: BorderRadius.circular(20),
                       border: Border.all(color: const Color(0xFF10B981).withOpacity(0.5), width: 2),
                     ),
-                    child: Stack(
-                      children: [
-                        // Corners
-                        Positioned(
-                          top: 10, left: 10,
-                          child: Container(width: 20, height: 20, decoration: const BoxDecoration(border: Border(top: BorderSide(color: Color(0xFF10B981), width: 3), left: BorderSide(color: Color(0xFF10B981), width: 3)))),
-                        ),
-                        Positioned(
-                          top: 10, right: 10,
-                          child: Container(width: 20, height: 20, decoration: const BoxDecoration(border: Border(top: BorderSide(color: Color(0xFF10B981), width: 3), right: BorderSide(color: Color(0xFF10B981), width: 3)))),
-                        ),
-                        Positioned(
-                          bottom: 10, left: 10,
-                          child: Container(width: 20, height: 20, decoration: const BoxDecoration(border: Border(bottom: BorderSide(color: Color(0xFF10B981), width: 3), left: BorderSide(color: Color(0xFF10B981), width: 3)))),
-                        ),
-                        Positioned(
-                          bottom: 10, right: 10,
-                          child: Container(width: 20, height: 20, decoration: const BoxDecoration(border: Border(bottom: BorderSide(color: Color(0xFF10B981), width: 3), right: BorderSide(color: Color(0xFF10B981), width: 3)))),
-                        ),
-                        Center(
-                          child: Icon(Icons.qr_code_scanner_rounded, size: 80, color: context.subTitleColor.withOpacity(0.3)),
-                        ),
-                        // Laser Anim
-                        AnimatedBuilder(
-                          animation: _animation,
-                          builder: (context, child) {
-                            return Positioned(
-                              top: _animation.value * 200,
-                              left: 20,
-                              right: 20,
-                              child: Container(
-                                height: 3,
-                                decoration: BoxDecoration(
-                                  color: const Color(0xFF10B981),
-                                  boxShadow: [
-                                    BoxShadow(
-                                      color: const Color(0xFF10B981).withOpacity(0.8),
-                                      blurRadius: 8,
-                                      spreadRadius: 2,
-                                    )
-                                  ],
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(18),
+                      child: Stack(
+                        children: [
+                          MobileScanner(
+                            controller: _scannerController,
+                            onDetect: (capture) {
+                              if (_isLoading || _isScanCooldown) return;
+                              final List<Barcode> barcodes = capture.barcodes;
+                              for (final barcode in barcodes) {
+                                final String? code = barcode.rawValue;
+                                if (code != null && code.trim().isNotEmpty) {
+                                  _isScanCooldown = true;
+                                  _performScan(code).then((_) {
+                                    Future.delayed(const Duration(seconds: 3), () {
+                                      if (mounted) setState(() => _isScanCooldown = false);
+                                    });
+                                  });
+                                  break;
+                                }
+                              }
+                            },
+                          ),
+                          // Corners Overlay
+                          Positioned(
+                            top: 10, left: 10,
+                            child: Container(width: 20, height: 20, decoration: const BoxDecoration(border: Border(top: BorderSide(color: Color(0xFF10B981), width: 3), left: BorderSide(color: Color(0xFF10B981), width: 3)))),
+                          ),
+                          Positioned(
+                            top: 10, right: 10,
+                            child: Container(width: 20, height: 20, decoration: const BoxDecoration(border: Border(top: BorderSide(color: Color(0xFF10B981), width: 3), right: BorderSide(color: Color(0xFF10B981), width: 3)))),
+                          ),
+                          Positioned(
+                            bottom: 10, left: 10,
+                            child: Container(width: 20, height: 20, decoration: const BoxDecoration(border: Border(bottom: BorderSide(color: Color(0xFF10B981), width: 3), left: BorderSide(color: Color(0xFF10B981), width: 3)))),
+                          ),
+                          Positioned(
+                            bottom: 10, right: 10,
+                            child: Container(width: 20, height: 20, decoration: const BoxDecoration(border: Border(bottom: BorderSide(color: Color(0xFF10B981), width: 3), right: BorderSide(color: Color(0xFF10B981), width: 3)))),
+                          ),
+                          // Laser Anim Overlay
+                          AnimatedBuilder(
+                            animation: _animation,
+                            builder: (context, child) {
+                              return Positioned(
+                                top: _animation.value * 200,
+                                left: 20,
+                                right: 20,
+                                child: Container(
+                                  height: 3,
+                                  decoration: BoxDecoration(
+                                    color: const Color(0xFF10B981),
+                                    boxShadow: [
+                                      BoxShadow(
+                                        color: const Color(0xFF10B981).withOpacity(0.8),
+                                        blurRadius: 8,
+                                        spreadRadius: 2,
+                                      )
+                                    ],
+                                  ),
                                 ),
-                              ),
-                            );
-                          },
-                        ),
-                      ],
+                              );
+                            },
+                          ),
+                        ],
+                      ),
                     ),
                   ),
                   const SizedBox(height: 20),
