@@ -540,7 +540,20 @@ function registerMyMustahiqRoutes(app) {
       WHERE santri_id = $1 AND tahun_ajaran_id = $2 AND kategori_evaluasi_id = $3
       ORDER BY id ASC
     `, [santriId, activeYear.id, kategoriId]);
-    const absensiDetail = absensiDetailRes.rows;
+    
+    const isGenap = activeSemester.toLowerCase().includes('genap');
+    const defaultMonths = isGenap 
+      ? ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni']
+      : ['Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
+
+    const existingMap = {};
+    absensiDetailRes.rows.forEach(r => {
+      existingMap[r.bulan] = r;
+    });
+
+    const absensiDetail = defaultMonths.map(m => {
+      return existingMap[m] || { bulan: m, sakit: 0, izin: 0, alpa: 0 };
+    });
 
     res.json({
       tahunAjaran: activeYear.kode,
