@@ -117,6 +117,7 @@ class _KelaskuRaporInputScreenState extends State<KelaskuRaporInputScreen> {
         data: listData,
       );
 
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
@@ -133,6 +134,7 @@ class _KelaskuRaporInputScreenState extends State<KelaskuRaporInputScreen> {
       setState(() {
         _isLoading = false;
       });
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
