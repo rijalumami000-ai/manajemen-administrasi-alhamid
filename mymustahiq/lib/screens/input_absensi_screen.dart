@@ -190,6 +190,7 @@ class _InputAbsensiScreenState extends State<InputAbsensiScreen> {
         data: dataList,
       );
 
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
@@ -205,6 +206,7 @@ class _InputAbsensiScreenState extends State<InputAbsensiScreen> {
       setState(() {
         _isLoading = false;
       });
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('Gagal menyimpan: $e', style: GoogleFonts.outfit(color: Colors.white)),
