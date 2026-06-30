@@ -1,8 +1,12 @@
 import 'dart:async';
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:image_picker/image_picker.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:path/path.dart' as p;
 import '../services/api_service.dart';
 import '../services/theme_manager.dart';
 
@@ -40,10 +44,15 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
   Timer? _pollingTimer;
   bool _isPollingActive = false;
 
+  Map<String, dynamic>? _data;
+  String _wallpaperType = 'default';
+  String? _wallpaperImagePath;
+
   @override
   void initState() {
     super.initState();
     _loadInitialData();
+    _loadWallpaperSettings();
   }
 
   @override
@@ -73,6 +82,7 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
     try {
       // 1. Fetch current user info to distinguish "my" messages
       final dashboard = await _apiService.getDashboard();
+      _data = dashboard;
       _myGuruId = dashboard['guruInfo']?['id'];
 
       // 2. Fetch initial messages
@@ -212,6 +222,10 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
   }
 
   void _showLongPressOptions(dynamic msg) {
+    final isMe = msg['sender_id'] == _myGuruId;
+    final bool isClassMustahiq = _myGuruId != null && _data?['kelasMustahiq']?['id'] == widget.kelasId;
+    final bool canDeleteForEveryone = isMe || isClassMustahiq;
+
     showModalBottomSheet(
       context: context,
       backgroundColor: context.cardBg,
@@ -227,7 +241,7 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
             mainAxisSize: MainAxisSize.min,
             children: [
               ListTile(
-                leading: const Icon(Icons.delete_outline_rounded, color: Colors.redAccent),
+                leading: const Icon(Icons.delete_outline_rounded, color: Colors.blueAccent),
                 title: Text(
                   'Hapus untuk saya',
                   style: GoogleFonts.outfit(
@@ -244,6 +258,25 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
                   _deleteMessageForSelf(msg['id']);
                 },
               ),
+              if (canDeleteForEveryone)
+                ListTile(
+                  leading: const Icon(Icons.delete_forever_rounded, color: Colors.redAccent),
+                  title: Text(
+                    'Hapus untuk semua orang',
+                    style: GoogleFonts.outfit(
+                      color: Colors.redAccent,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  subtitle: Text(
+                    'Menghapus pesan ini untuk semua anggota kelas.',
+                    style: GoogleFonts.outfit(color: context.bodyColor, fontSize: 11),
+                  ),
+                  onTap: () {
+                    Navigator.pop(context);
+                    _deleteMessageForEveryone(msg['id']);
+                  },
+                ),
             ],
           ),
         );
@@ -349,6 +382,11 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
               onPressed: () => _launchWhatsApp(widget.mustahiqNoHp!, widget.mustahiqNama ?? ''),
             ),
           IconButton(
+            icon: Icon(Icons.palette_rounded, color: context.titleColor, size: 20),
+            tooltip: 'Ganti Wallpaper/Tema',
+            onPressed: _showWallpaperSelectionDialog,
+          ),
+          IconButton(
             icon: Icon(Icons.refresh_rounded, color: context.titleColor),
             onPressed: () async {
               await _fetchMessages();
@@ -357,12 +395,13 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
           ),
         ],
       ),
-      body: _isLoading
-          ? const Center(child: CircularProgressIndicator(color: Color(0xFF10B981)))
-          : _errorMessage != null
-              ? _buildErrorWidget()
-              : Column(
-                  children: [
+      body: _buildWallpaperBackground(
+        _isLoading
+            ? const Center(child: CircularProgressIndicator(color: Color(0xFF10B981)))
+            : _errorMessage != null
+                ? _buildErrorWidget()
+                : Column(
+                    children: [
                     // Chat messages list
                     Expanded(
                       child: _messages.isEmpty
@@ -398,18 +437,43 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
     String text,
     String timeStr,
   ) {
-    // Bubble design - premium Glassmorphic tints
-    final Color bubbleBg = isMe
-        ? (context.isDarkMode
-            ? const Color(0xFF047857).withOpacity(0.4)
-            : const Color(0xFF10B981).withOpacity(0.20))
-        : (context.isDarkMode
-            ? const Color(0xFF1E293B).withOpacity(0.45)
-            : Colors.white.withOpacity(0.65));
+    final isDark = context.isDarkMode;
+    
+    final Color textColor = isMe
+        ? Colors.white
+        : (isDark ? Colors.white : const Color(0xFF1E293B));
 
-    final Color bubbleBorderColor = isMe
-        ? const Color(0xFF10B981).withOpacity(0.3)
-        : Colors.white.withOpacity(0.7);
+    final BoxDecoration bubbleDecoration = BoxDecoration(
+      gradient: isMe
+          ? const LinearGradient(
+              colors: [Color(0xFF10B981), Color(0xFF059669)],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            )
+          : null,
+      color: isMe
+          ? null
+          : (isDark ? const Color(0xFF1E293B).withOpacity(0.7) : Colors.white.withOpacity(0.85)),
+      borderRadius: BorderRadius.only(
+        topLeft: const Radius.circular(16),
+        topRight: const Radius.circular(16),
+        bottomLeft: Radius.circular(isMe ? 16 : 4),
+        bottomRight: Radius.circular(isMe ? 4 : 16),
+      ),
+      border: Border.all(
+        color: isMe
+            ? const Color(0xFF10B981).withOpacity(0.3)
+            : (isDark ? Colors.white.withOpacity(0.08) : const Color(0xFFE2E8F0)),
+        width: 1,
+      ),
+      boxShadow: [
+        BoxShadow(
+          color: Colors.black.withOpacity(isDark ? 0.15 : 0.03),
+          blurRadius: 6,
+          offset: const Offset(0, 3),
+        ),
+      ],
+    );
 
     return Align(
       alignment: isMe ? Alignment.centerRight : Alignment.centerLeft,
@@ -417,7 +481,7 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
         margin: const EdgeInsets.only(bottom: 12),
         constraints: BoxConstraints(maxWidth: MediaQuery.of(context).size.width * 0.85),
         child: Row(
-          mainAxisAlignment: isMe ? MainAxisAlignment.end : Alignment.centerLeft,
+          mainAxisAlignment: isMe ? MainAxisAlignment.end : MainAxisAlignment.start,
           crossAxisAlignment: CrossAxisAlignment.start,
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -454,14 +518,38 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
                   // Sender name (only for others)
                   if (!isMe)
                     Padding(
-                      padding: const EdgeInsets.only(left: 6, bottom: 3),
-                      child: Text(
-                        senderName,
-                        style: GoogleFonts.outfit(
-                          color: const Color(0xFF10B981),
-                          fontSize: 10,
-                          fontWeight: FontWeight.bold,
-                        ),
+                      padding: const EdgeInsets.only(left: 6, bottom: 4),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            senderName,
+                            style: GoogleFonts.outfit(
+                              color: const Color(0xFF10B981),
+                              fontSize: 11,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          if (widget.mustahiqNama != null && senderName == widget.mustahiqNama) ...[
+                            const SizedBox(width: 6),
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFF10B981).withOpacity(0.12),
+                                borderRadius: BorderRadius.circular(6),
+                                border: Border.all(color: const Color(0xFF10B981).withOpacity(0.3), width: 0.8),
+                              ),
+                              child: Text(
+                                'Wali Kelas',
+                                style: GoogleFonts.outfit(
+                                  color: const Color(0xFF059669),
+                                  fontSize: 8,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ],
                       ),
                     ),
                   
@@ -470,40 +558,17 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
                     onLongPress: () => _showLongPressOptions(msg),
                     child: Container(
                       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-                      decoration: BoxDecoration(
-                        color: bubbleBg,
-                        borderRadius: BorderRadius.only(
-                          topLeft: const Radius.circular(16),
-                          topRight: const Radius.circular(16),
-                          bottomLeft: Radius.circular(isMe ? 16 : 0),
-                          bottomRight: Radius.circular(isMe ? 0 : 16),
-                        ),
-                        border: Border.all(color: bubbleBorderColor, width: 1.2),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withOpacity(context.isDarkMode ? 0.2 : 0.02),
-                            blurRadius: 8,
-                            offset: const Offset(0, 3),
-                          ),
-                        ],
-                      ),
+                      decoration: bubbleDecoration,
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.end,
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          Text(
-                            text,
-                            style: GoogleFonts.outfit(
-                              color: context.titleColor,
-                              fontSize: 14,
-                              height: 1.4,
-                            ),
-                          ),
+                          _buildBubbleContent(text, textColor, isMe),
                           const SizedBox(height: 4),
                           Text(
                             timeStr,
                             style: GoogleFonts.outfit(
-                              color: context.subTitleColor,
+                              color: isMe ? Colors.white70 : context.subTitleColor,
                               fontSize: 9,
                             ),
                           ),
@@ -516,6 +581,123 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _buildBubbleContent(String text, Color textColor, bool isMe) {
+    if (text.startsWith('[image:') && text.endsWith(']')) {
+      final String path = text.substring(7, text.length - 1);
+      final File file = File(path);
+      if (file.existsSync()) {
+        return ClipRRect(
+          borderRadius: BorderRadius.circular(12),
+          child: Image.file(
+            file,
+            maxHeight: 200,
+            fit: BoxFit.cover,
+            errorBuilder: (context, error, stackTrace) =>
+                _buildImagePlaceholder(textColor),
+          ),
+        );
+      } else {
+        return _buildImagePlaceholder(textColor);
+      }
+    } else if (text.startsWith('[sticker:') && text.endsWith(']')) {
+      final String stickerName = text.substring(9, text.length - 1);
+      return _buildStickerWidget(stickerName);
+    }
+    
+    // Default text message
+    return Text(
+      text,
+      style: GoogleFonts.outfit(
+        color: textColor,
+        fontSize: 14,
+        height: 1.4,
+      ),
+    );
+  }
+
+  Widget _buildStickerWidget(String stickerName) {
+    String emoji = '✨';
+    String label = 'Semangat!';
+    List<Color> gradient = [const Color(0xFFF59E0B), const Color(0xFFD97706)];
+    
+    if (stickerName == 'hebat') {
+      emoji = '🏆';
+      label = 'Luar Biasa!';
+      gradient = [const Color(0xFF10B981), const Color(0xFF059669)];
+    } else if (stickerName == 'syukron') {
+      emoji = '🙏';
+      label = 'Syukron Katsir';
+      gradient = [const Color(0xFF8B5CF6), const Color(0xFF6D28D9)];
+    } else if (stickerName == 'fahimtum') {
+      emoji = '💡';
+      label = 'Fahimtum?';
+      gradient = [const Color(0xFF3B82F6), const Color(0xFF1D4ED8)];
+    } else if (stickerName == 'belajar') {
+      emoji = '📚';
+      label = 'Yuk Belajar!';
+      gradient = [const Color(0xFFEC4899), const Color(0xFFBE185D)];
+    }
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: gradient,
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: gradient[0].withOpacity(0.4),
+            blurRadius: 8,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(
+            emoji,
+            style: const TextStyle(fontSize: 32),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            label,
+            style: GoogleFonts.outfit(
+              color: Colors.white,
+              fontSize: 12,
+              fontWeight: FontWeight.bold,
+              letterSpacing: 0.5,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildImagePlaceholder(Color textColor) {
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: Colors.black.withOpacity(0.05),
+        borderRadius: BorderRadius.circular(10),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(Icons.image_not_supported_rounded, color: textColor.withOpacity(0.6), size: 18),
+          const SizedBox(width: 8),
+          Text(
+            'Gambar Lokal (Tidak diunggah)',
+            style: GoogleFonts.outfit(color: textColor.withOpacity(0.8), fontSize: 12),
+          ),
+        ],
       ),
     );
   }
@@ -539,6 +721,19 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
       child: SafeArea(
         child: Row(
           children: [
+            IconButton(
+              icon: Icon(Icons.sticky_note_2_outlined, color: context.subTitleColor, size: 22),
+              padding: EdgeInsets.zero,
+              constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
+              onPressed: _showStickerSheet,
+            ),
+            IconButton(
+              icon: Icon(Icons.add_photo_alternate_outlined, color: context.subTitleColor, size: 22),
+              padding: EdgeInsets.zero,
+              constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
+              onPressed: _sendImage,
+            ),
+            const SizedBox(width: 8),
             Expanded(
               child: Container(
                 decoration: BoxDecoration(
@@ -737,6 +932,318 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
             ),
           );
         }
+      }
+    }
+  }
+
+  Future<void> _deleteMessageForEveryone(int messageId) async {
+    try {
+      await _apiService.deleteChatMessageForEveryone(messageId);
+      setState(() {
+        _messages.removeWhere((msg) => msg['id'] == messageId);
+      });
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              'Pesan dihapus untuk semua orang',
+              style: GoogleFonts.outfit(color: Colors.white, fontSize: 13),
+            ),
+            backgroundColor: const Color(0xFF10B981),
+            duration: const Duration(seconds: 2),
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Gagal menghapus pesan: ${e.toString().replaceFirst('Exception: ', '')}'),
+            backgroundColor: Colors.redAccent,
+          ),
+        );
+      }
+    }
+  }
+
+  Widget _buildWallpaperBackground(Widget child) {
+    if (_wallpaperType == 'color_emerald') {
+      return Container(
+        color: context.isDarkMode ? const Color(0xFF022C22) : const Color(0xFFECFDF5),
+        child: child,
+      );
+    } else if (_wallpaperType == 'color_indigo') {
+      return Container(
+        color: context.isDarkMode ? const Color(0xFF172554) : const Color(0xFFEFF6FF),
+        child: child,
+      );
+    } else if (_wallpaperType == 'color_slate') {
+      return Container(
+        color: context.isDarkMode ? const Color(0xFF0F172A) : const Color(0xFFF1F5F9),
+        child: child,
+      );
+    } else if (_wallpaperType == 'custom_image' && _wallpaperImagePath != null && _wallpaperImagePath!.isNotEmpty) {
+      return Container(
+        decoration: BoxDecoration(
+          image: DecorationImage(
+            image: FileImage(File(_wallpaperImagePath!)),
+            fit: BoxFit.cover,
+          ),
+        ),
+        child: child,
+      );
+    }
+    return Container(
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: context.isDarkMode
+              ? [const Color(0xFF0F172A), const Color(0xFF0D1527)]
+              : [const Color(0xFFF8FAFC), const Color(0xFFF1F5F9)],
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+        ),
+      ),
+      child: child,
+    );
+  }
+
+  Future<void> _showWallpaperSelectionDialog() async {
+    showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          backgroundColor: context.cardBg,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          title: Text(
+            'Pilih Tema Wallpaper',
+            style: GoogleFonts.outfit(color: context.titleColor, fontWeight: FontWeight.bold, fontSize: 16),
+          ),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                _buildWallpaperOptionTile('Default Gradien', 'default', Icons.gradient_rounded, null),
+                _buildWallpaperOptionTile('Emerald Green', 'color_emerald', Icons.circle_rounded, const Color(0xFF10B981)),
+                _buildWallpaperOptionTile('Indigo Blue', 'color_indigo', Icons.circle_rounded, const Color(0xFF3B82F6)),
+                _buildWallpaperOptionTile('Slate Grey', 'color_slate', Icons.circle_rounded, const Color(0xFF64748B)),
+                const Divider(),
+                _buildWallpaperOptionTile('Pilih dari Galeri', 'custom_gallery', Icons.photo_library_rounded, null),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildWallpaperOptionTile(String title, String value, IconData icon, Color? tintColor) {
+    return ListTile(
+      leading: Icon(icon, color: tintColor ?? context.titleColor.withOpacity(0.7), size: 22),
+      title: Text(title, style: GoogleFonts.outfit(color: context.titleColor, fontSize: 13, fontWeight: FontWeight.w500)),
+      onTap: () {
+        Navigator.pop(context);
+        if (value == 'custom_gallery') {
+          _pickWallpaperFromGallery();
+        } else {
+          _saveWallpaper(value, null);
+        }
+      },
+    );
+  }
+
+  Future<void> _pickWallpaperFromGallery() async {
+    try {
+      final ImagePicker picker = ImagePicker();
+      final XFile? image = await picker.pickImage(source: ImageSource.gallery);
+      if (image != null) {
+        _saveWallpaper('custom_image', image.path);
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Gagal memilih gambar: $e'),
+            backgroundColor: Colors.redAccent,
+          ),
+        );
+      }
+    }
+  }
+
+  Future<void> _loadWallpaperSettings() async {
+    try {
+      const storage = FlutterSecureStorage();
+      final type = await storage.read(key: 'chat_wallpaper_type_${widget.kelasId}');
+      final path = await storage.read(key: 'chat_wallpaper_path_${widget.kelasId}');
+      if (mounted) {
+        setState(() {
+          _wallpaperType = type ?? 'default';
+          _wallpaperImagePath = path;
+        });
+      }
+    } catch (_) {}
+  }
+
+  Future<void> _saveWallpaper(String type, String? path) async {
+    try {
+      const storage = FlutterSecureStorage();
+      await storage.write(key: 'chat_wallpaper_type_${widget.kelasId}', value: type);
+      if (path != null) {
+        await storage.write(key: 'chat_wallpaper_path_${widget.kelasId}', value: path);
+      } else {
+        await storage.delete(key: 'chat_wallpaper_path_${widget.kelasId}');
+      }
+      setState(() {
+        _wallpaperType = type;
+        _wallpaperImagePath = path;
+      });
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Wallpaper berhasil diubah!', style: GoogleFonts.outfit(color: Colors.white, fontSize: 13)),
+            backgroundColor: const Color(0xFF10B981),
+            duration: const Duration(seconds: 1),
+          ),
+        );
+      }
+    } catch (_) {}
+  }
+
+  Future<void> _sendImage() async {
+    try {
+      final ImagePicker picker = ImagePicker();
+      final XFile? image = await picker.pickImage(source: ImageSource.gallery, imageQuality: 85);
+      if (image == null) return;
+
+      setState(() {
+        _isSending = true;
+      });
+
+      final Directory appDocDir = await getApplicationDocumentsDirectory();
+      final String fileName = 'chat_img_${DateTime.now().millisecondsSinceEpoch}${p.extension(image.path)}';
+      final String localPath = p.join(appDocDir.path, fileName);
+      
+      final File localFile = await File(image.path).copy(localPath);
+
+      final text = '[image:${localFile.path}]';
+      final res = await _apiService.sendChatMessage(widget.kelasId, text);
+      if (res['success'] == true) {
+        await _fetchMessages();
+        await _updateLastRead();
+        _scrollToBottom();
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Gagal mengirim gambar: ${e.toString().replaceFirst('Exception: ', '')}'),
+            backgroundColor: Colors.redAccent,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isSending = false;
+        });
+      }
+    }
+  }
+
+  void _showStickerSheet() {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: context.cardBg,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.only(
+          topLeft: Radius.circular(20),
+          topRight: Radius.circular(20),
+        ),
+      ),
+      builder: (context) {
+        return SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.all(20.0),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Kirim Stiker Premium',
+                  style: GoogleFonts.outfit(color: context.titleColor, fontWeight: FontWeight.bold, fontSize: 16),
+                ),
+                const SizedBox(height: 16),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceAround,
+                  children: [
+                    _buildStickerOption('semangat', '🔥', 'Semangat'),
+                    _buildStickerOption('hebat', '🏆', 'Hebat'),
+                    _buildStickerOption('syukron', '🙏', 'Syukron'),
+                    _buildStickerOption('fahimtum', '💡', 'Fahimtum'),
+                    _buildStickerOption('belajar', '📚', 'Belajar'),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildStickerOption(String name, String emoji, String label) {
+    return GestureDetector(
+      onTap: () {
+        Navigator.pop(context);
+        _sendSticker(name);
+      },
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: const Color(0xFF10B981).withOpacity(0.08),
+              shape: BoxShape.circle,
+            ),
+            child: Text(emoji, style: const TextStyle(fontSize: 24)),
+          ),
+          const SizedBox(height: 6),
+          Text(
+            label,
+            style: GoogleFonts.outfit(color: context.titleColor, fontSize: 10, fontWeight: FontWeight.w600),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _sendSticker(String stickerName) async {
+    try {
+      setState(() {
+        _isSending = true;
+      });
+      final text = '[sticker:$stickerName]';
+      final res = await _apiService.sendChatMessage(widget.kelasId, text);
+      if (res['success'] == true) {
+        await _fetchMessages();
+        await _updateLastRead();
+        _scrollToBottom();
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Gagal mengirim stiker: $e'),
+            backgroundColor: Colors.redAccent,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isSending = false;
+        });
       }
     }
   }

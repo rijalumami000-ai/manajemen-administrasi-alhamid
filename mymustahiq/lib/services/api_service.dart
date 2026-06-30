@@ -618,6 +618,22 @@ class ApiService {
     }
   }
 
+  // Delete a message for everyone
+  Future<Map<String, dynamic>> deleteChatMessageForEveryone(int messageId) async {
+    try {
+      final response = await _dio.delete('/my-mustahiq/chats/messages/$messageId/delete-everyone');
+      if (response.statusCode == 200) {
+        return response.data;
+      }
+      throw Exception('Gagal menghapus pesan untuk semua orang.');
+    } catch (e) {
+      if (e is DioException && e.response != null) {
+        throw Exception(e.response?.data['error'] ?? 'Gagal menghapus pesan.');
+      }
+      rethrow;
+    }
+  }
+
   // Get Muhafadzoh Score Guidelines / Info
   Future<List<dynamic>> getMuhafadzohInfo({int? tahunAjaranId, String? semester}) async {
     try {

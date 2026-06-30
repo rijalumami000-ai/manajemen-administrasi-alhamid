@@ -1967,6 +1967,50 @@ function registerMyMustahiqRoutes(app) {
     res.json({ success: true, message: 'Pesan berhasil dihapus untuk Anda.' });
   }));
 
+  // === CHAT GROUPS: DELETE MESSAGE FOR EVERYONE ===
+  router.delete('/chats/messages/:message_id/delete-everyone', asyncHandler(async (req, res) => {
+    const guruId = req.user.guru_id;
+    const messageId = parseInt(req.params.message_id, 10);
+
+    if (isNaN(messageId)) {
+      return res.status(400).json({ error: 'ID pesan tidak valid.' });
+    }
+
+    const msgCheck = await db.query(`
+      SELECT sender_id, kelas_id, tingkat_group FROM chat_messages WHERE id = $1
+    `, [messageId]);
+
+    if (msgCheck.rows.length === 0) {
+      return res.status(404).json({ error: 'Pesan tidak ditemukan.' });
+    }
+
+    const message = msgCheck.rows[0];
+    let canDelete = message.sender_id === guruId;
+
+    if (!canDelete && message.kelas_id) {
+      const activeYear = await getActiveTahunAjaran();
+      if (activeYear) {
+        const mustahiqCheck = await db.query(`
+          SELECT 1 FROM kelas_tahun_ajaran
+          WHERE kelas_id = $1 AND mustahiq_id = $2 AND tahun_ajaran_id = $3
+        `, [message.kelas_id, guruId, activeYear.id]);
+        if (mustahiqCheck.rows.length > 0) {
+          canDelete = true;
+        }
+      }
+    }
+
+    if (!canDelete) {
+      return res.status(403).json({ error: 'Anda tidak memiliki hak untuk menghapus pesan ini untuk semua orang.' });
+    }
+
+    await db.query(`
+      DELETE FROM chat_messages WHERE id = $1
+    `, [messageId]);
+
+    res.json({ success: true, message: 'Pesan berhasil dihapus untuk semua orang.' });
+  }));
+
   // === MUHAFADZOH SCORE RULES / GUIDELINES ===
   router.get('/muhafadzoh-info', asyncHandler(async (req, res) => {
     let { tahun_ajaran_id, semester } = req.query;
