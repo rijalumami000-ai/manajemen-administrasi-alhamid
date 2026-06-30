@@ -368,24 +368,31 @@ class _DashboardScreenState extends State<DashboardScreen> {
       body: Stack(
         children: [
           // Subtle ambient glow
-          if (context.isDarkMode)
-            Positioned(
-              top: -80,
-              right: -80,
-              child: Container(
-                width: 280,
-                height: 280,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  gradient: RadialGradient(
-                    colors: [
-                      const Color(0xFF064E3B).withOpacity(0.12),
-                      Colors.transparent,
-                    ],
-                  ),
-                ),
+          Positioned.fill(
+            child: Container(
+              decoration: BoxDecoration(
+                gradient: context.isDarkMode
+                    ? const RadialGradient(
+                        center: Alignment(0.7, -0.8),
+                        radius: 1.0,
+                        colors: [
+                          Color(0xFF0D2818),
+                          Color(0xFF070B13),
+                        ],
+                      )
+                    : const LinearGradient(
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                        colors: [
+                          Color(0xFFF0FDF8),
+                          Color(0xFFF8FAFC),
+                          Color(0xFFEFF6FF),
+                        ],
+                        stops: [0.0, 0.5, 1.0],
+                      ),
               ),
             ),
+          ),
           // Tab content
           SafeArea(
             child: IndexedStack(
@@ -399,33 +406,36 @@ class _DashboardScreenState extends State<DashboardScreen> {
         color: Colors.transparent,
         child: SafeArea(
           child: Padding(
-            padding: context.isDarkMode 
-                ? EdgeInsets.zero 
-                : const EdgeInsets.fromLTRB(16, 4, 16, 12),
+            padding: const EdgeInsets.fromLTRB(16, 6, 16, 14),
             child: ClipRRect(
-              borderRadius: BorderRadius.circular(context.isDarkMode ? 0 : 24),
+              borderRadius: BorderRadius.circular(28),
               child: BackdropFilter(
-                filter: ui.ImageFilter.blur(
-                  sigmaX: context.isDarkMode ? 0 : 15.0,
-                  sigmaY: context.isDarkMode ? 0 : 15.0,
-                ),
+                filter: ui.ImageFilter.blur(sigmaX: 20.0, sigmaY: 20.0),
                 child: Container(
                   decoration: BoxDecoration(
-                    color: context.isDarkMode 
-                        ? const Color(0xFF0D1527) 
-                        : Colors.white.withOpacity(0.55),
-                    borderRadius: BorderRadius.circular(context.isDarkMode ? 0 : 24),
+                    color: context.isDarkMode
+                        ? const Color(0xFF0D1527).withOpacity(0.88)
+                        : Colors.white.withOpacity(0.72),
+                    borderRadius: BorderRadius.circular(28),
                     border: Border.all(
-                      color: context.isDarkMode 
-                          ? context.borderColor 
-                          : Colors.white.withOpacity(0.65),
-                      width: context.isDarkMode ? 1 : 1.5,
+                      color: context.isDarkMode
+                          ? Colors.white.withOpacity(0.07)
+                          : Colors.white.withOpacity(0.85),
+                      width: 1.5,
                     ),
                     boxShadow: [
                       BoxShadow(
-                        color: Colors.black.withOpacity(context.isDarkMode ? 0.3 : 0.03),
-                        blurRadius: 20,
-                        offset: const Offset(0, -4),
+                        color: context.isDarkMode
+                            ? Colors.black.withOpacity(0.45)
+                            : const Color(0xFF10B981).withOpacity(0.08),
+                        blurRadius: 30,
+                        spreadRadius: 0,
+                        offset: const Offset(0, 8),
+                      ),
+                      BoxShadow(
+                        color: Colors.black.withOpacity(context.isDarkMode ? 0.2 : 0.04),
+                        blurRadius: 12,
+                        offset: const Offset(0, 2),
                       ),
                     ],
                   ),

@@ -32,7 +32,7 @@ class ThemeManager extends ChangeNotifier {
 extension ThemeContext on BuildContext {
   bool get isDarkMode => Theme.of(this).brightness == Brightness.dark;
   
-  Color get scaffoldBg => isDarkMode ? const Color(0xFF070B13) : const Color(0xFFF8FAFC);
+  Color get scaffoldBg => isDarkMode ? const Color(0xFF070B13) : const Color(0xFFF4FBF8);
   Color get cardBg => isDarkMode ? const Color(0xFF131C2E).withOpacity(0.85) : Colors.white.withOpacity(0.88);
   Color get surfaceBg => isDarkMode ? const Color(0xFF0D1527).withOpacity(0.85) : const Color(0xFFF1F5F9).withOpacity(0.88);
   Color get inputBg => isDarkMode ? const Color(0xFF131B2E).withOpacity(0.85) : const Color(0xFFF1F5F9).withOpacity(0.88);
