@@ -1,5 +1,7 @@
 import 'dart:async';
+import 'dart:convert';
 import 'dart:io';
+import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
@@ -48,16 +50,41 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
   String _wallpaperType = 'default';
   String? _wallpaperImagePath;
 
+  // Voice note recording simulation
+  bool _isRecordingAudio = false;
+  int _recordingDuration = 0;
+  Timer? _recordingTimer;
+  bool _showSendButton = false;
+
+  // Voice note playing simulation
+  final Map<int, bool> _playingVoiceNotes = {};
+  final Map<int, double> _voiceNoteProgress = {};
+  final Map<int, Timer?> _voiceNoteTimers = {};
+
   @override
   void initState() {
     super.initState();
     _loadInitialData();
     _loadWallpaperSettings();
+    _messageController.addListener(_handleTextChange);
+  }
+
+  void _handleTextChange() {
+    final text = _messageController.text;
+    final showSend = text.isNotEmpty;
+    if (showSend != _showSendButton) {
+      setState(() {
+        _showSendButton = showSend;
+      });
+    }
   }
 
   @override
   void dispose() {
     _pollingTimer?.cancel();
+    _recordingTimer?.cancel();
+    _voiceNoteTimers.forEach((_, timer) => timer?.cancel());
+    _messageController.removeListener(_handleTextChange);
     _scrollController.dispose();
     _messageController.dispose();
     super.dispose();
@@ -425,8 +452,9 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
                     
                     // Input Bar (Glassmorphic)
                     _buildInputBar(),
-                  ],
-                ),
+                    ],
+                  ),
+      ),
     );
   }
 
@@ -438,42 +466,45 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
     String timeStr,
   ) {
     final isDark = context.isDarkMode;
+    final isSticker = text.startsWith('[sticker:') && text.endsWith(']');
     
     final Color textColor = isMe
         ? Colors.white
         : (isDark ? Colors.white : const Color(0xFF1E293B));
 
-    final BoxDecoration bubbleDecoration = BoxDecoration(
-      gradient: isMe
-          ? const LinearGradient(
-              colors: [Color(0xFF10B981), Color(0xFF059669)],
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-            )
-          : null,
-      color: isMe
-          ? null
-          : (isDark ? const Color(0xFF1E293B).withOpacity(0.7) : Colors.white.withOpacity(0.85)),
-      borderRadius: BorderRadius.only(
-        topLeft: const Radius.circular(16),
-        topRight: const Radius.circular(16),
-        bottomLeft: Radius.circular(isMe ? 16 : 4),
-        bottomRight: Radius.circular(isMe ? 4 : 16),
-      ),
-      border: Border.all(
-        color: isMe
-            ? const Color(0xFF10B981).withOpacity(0.3)
-            : (isDark ? Colors.white.withOpacity(0.08) : const Color(0xFFE2E8F0)),
-        width: 1,
-      ),
-      boxShadow: [
-        BoxShadow(
-          color: Colors.black.withOpacity(isDark ? 0.15 : 0.03),
-          blurRadius: 6,
-          offset: const Offset(0, 3),
-        ),
-      ],
-    );
+    final BoxDecoration bubbleDecoration = isSticker
+        ? const BoxDecoration(color: Colors.transparent)
+        : BoxDecoration(
+            gradient: isMe
+                ? const LinearGradient(
+                    colors: [Color(0xFF10B981), Color(0xFF059669)],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  )
+                : null,
+            color: isMe
+                ? null
+                : (isDark ? const Color(0xFF1E293B).withOpacity(0.7) : Colors.white.withOpacity(0.85)),
+            borderRadius: BorderRadius.only(
+              topLeft: const Radius.circular(16),
+              topRight: const Radius.circular(16),
+              bottomLeft: Radius.circular(isMe ? 16 : 4),
+              bottomRight: Radius.circular(isMe ? 4 : 16),
+            ),
+            border: Border.all(
+              color: isMe
+                  ? const Color(0xFF10B981).withOpacity(0.3)
+                  : (isDark ? Colors.white.withOpacity(0.08) : const Color(0xFFE2E8F0)),
+              width: 1,
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(isDark ? 0.15 : 0.03),
+                blurRadius: 6,
+                offset: const Offset(0, 3),
+              ),
+            ],
+          );
 
     return Align(
       alignment: isMe ? Alignment.centerRight : Alignment.centerLeft,
@@ -557,18 +588,22 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
                   GestureDetector(
                     onLongPress: () => _showLongPressOptions(msg),
                     child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                      padding: isSticker
+                          ? EdgeInsets.zero
+                          : const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
                       decoration: bubbleDecoration,
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.end,
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          _buildBubbleContent(text, textColor, isMe),
+                          _buildBubbleContent(msg['id'] ?? 0, text, textColor, isMe),
                           const SizedBox(height: 4),
                           Text(
                             timeStr,
                             style: GoogleFonts.outfit(
-                              color: isMe ? Colors.white70 : context.subTitleColor,
+                              color: isMe
+                                  ? (isSticker ? context.subTitleColor : Colors.white70)
+                                  : context.subTitleColor,
                               fontSize: 9,
                             ),
                           ),
@@ -585,27 +620,55 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
     );
   }
 
-  Widget _buildBubbleContent(String text, Color textColor, bool isMe) {
+  Widget _buildBubbleContent(int msgId, String text, Color textColor, bool isMe) {
     if (text.startsWith('[image:') && text.endsWith(']')) {
       final String path = text.substring(7, text.length - 1);
       final File file = File(path);
       if (file.existsSync()) {
-        return ClipRRect(
-          borderRadius: BorderRadius.circular(12),
-          child: Image.file(
-            file,
-            maxHeight: 200,
-            fit: BoxFit.cover,
-            errorBuilder: (context, error, stackTrace) =>
-                _buildImagePlaceholder(textColor),
+        final bytes = file.readAsBytesSync();
+        return GestureDetector(
+          onTap: () => _openFullImagePreview(bytes),
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(12),
+            child: Image.file(
+              file,
+              height: 200,
+              fit: BoxFit.cover,
+              errorBuilder: (context, error, stackTrace) =>
+                  _buildImagePlaceholder(textColor, 'Gagal memuat gambar'),
+            ),
           ),
         );
       } else {
-        return _buildImagePlaceholder(textColor);
+        return _buildImagePlaceholder(textColor, 'Gambar Lokal (Tidak diunggah)');
+      }
+    } else if (text.startsWith('[image_base64:') && text.endsWith(']')) {
+      final String base64Data = text.substring(14, text.length - 1);
+      try {
+        final Uint8List bytes = base64Decode(base64Data);
+        return GestureDetector(
+          onTap: () => _openFullImagePreview(bytes),
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(12),
+            child: Image.memory(
+              bytes,
+              height: 200,
+              fit: BoxFit.cover,
+              errorBuilder: (context, error, stackTrace) =>
+                  _buildImagePlaceholder(textColor, 'Gagal memuat gambar'),
+            ),
+          ),
+        );
+      } catch (_) {
+        return _buildImagePlaceholder(textColor, 'Format gambar tidak valid');
       }
     } else if (text.startsWith('[sticker:') && text.endsWith(']')) {
       final String stickerName = text.substring(9, text.length - 1);
       return _buildStickerWidget(stickerName);
+    } else if (text.startsWith('[voice_note:') && text.endsWith(']')) {
+      final durationStr = text.substring(12, text.length - 1);
+      final duration = int.tryParse(durationStr) ?? 3;
+      return _buildVoiceNoteWidget(msgId, duration, textColor, isMe);
     }
     
     // Default text message
@@ -620,68 +683,34 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
   }
 
   Widget _buildStickerWidget(String stickerName) {
-    String emoji = '✨';
-    String label = 'Semangat!';
-    List<Color> gradient = [const Color(0xFFF59E0B), const Color(0xFFD97706)];
-    
-    if (stickerName == 'hebat') {
-      emoji = '🏆';
-      label = 'Luar Biasa!';
-      gradient = [const Color(0xFF10B981), const Color(0xFF059669)];
-    } else if (stickerName == 'syukron') {
-      emoji = '🙏';
-      label = 'Syukron Katsir';
-      gradient = [const Color(0xFF8B5CF6), const Color(0xFF6D28D9)];
-    } else if (stickerName == 'fahimtum') {
-      emoji = '💡';
-      label = 'Fahimtum?';
-      gradient = [const Color(0xFF3B82F6), const Color(0xFF1D4ED8)];
-    } else if (stickerName == 'belajar') {
-      emoji = '📚';
-      label = 'Yuk Belajar!';
-      gradient = [const Color(0xFFEC4899), const Color(0xFFBE185D)];
+    String url = 'https://fonts.gstatic.com/s/e/notoemoji/latest/1f44d/512.webp';
+    if (stickerName == 'heart_eyes') {
+      url = 'https://fonts.gstatic.com/s/e/notoemoji/latest/1f60d/512.webp';
+    } else if (stickerName == 'laughing') {
+      url = 'https://fonts.gstatic.com/s/e/notoemoji/latest/1f602/512.webp';
+    } else if (stickerName == 'clapping') {
+      url = 'https://fonts.gstatic.com/s/e/notoemoji/latest/1f44f/512.webp';
+    } else if (stickerName == 'cool') {
+      url = 'https://fonts.gstatic.com/s/e/notoemoji/latest/1f60e/512.webp';
+    } else if (stickerName == 'mind_blown') {
+      url = 'https://fonts.gstatic.com/s/e/notoemoji/latest/1f92f/512.webp';
+    } else if (stickerName == 'pray') {
+      url = 'https://fonts.gstatic.com/s/e/notoemoji/latest/1f64f/512.webp';
+    } else if (stickerName == 'thinking') {
+      url = 'https://fonts.gstatic.com/s/e/notoemoji/latest/1f914/512.webp';
     }
 
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: gradient,
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: gradient[0].withOpacity(0.4),
-            blurRadius: 8,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Text(
-            emoji,
-            style: const TextStyle(fontSize: 32),
-          ),
-          const SizedBox(height: 4),
-          Text(
-            label,
-            style: GoogleFonts.outfit(
-              color: Colors.white,
-              fontSize: 12,
-              fontWeight: FontWeight.bold,
-              letterSpacing: 0.5,
-            ),
-          ),
-        ],
-      ),
+    return Image.network(
+      url,
+      width: 120,
+      height: 120,
+      fit: BoxFit.contain,
+      errorBuilder: (context, error, stackTrace) =>
+          const Icon(Icons.sticky_note_2_rounded, size: 64, color: Colors.grey),
     );
   }
 
-  Widget _buildImagePlaceholder(Color textColor) {
+  Widget _buildImagePlaceholder(Color textColor, String label) {
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
@@ -694,7 +723,7 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
           Icon(Icons.image_not_supported_rounded, color: textColor.withOpacity(0.6), size: 18),
           const SizedBox(width: 8),
           Text(
-            'Gambar Lokal (Tidak diunggah)',
+            label,
             style: GoogleFonts.outfit(color: textColor.withOpacity(0.8), fontSize: 12),
           ),
         ],
@@ -703,6 +732,55 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
   }
 
   Widget _buildInputBar() {
+    if (_isRecordingAudio) {
+      return Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        decoration: BoxDecoration(
+          color: context.cardBg,
+          border: Border(
+            top: BorderSide(color: context.borderColor, width: 1.2),
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(context.isDarkMode ? 0.3 : 0.02),
+              blurRadius: 15,
+              offset: const Offset(0, -4),
+            ),
+          ],
+        ),
+        child: SafeArea(
+          child: Row(
+            children: [
+              const Icon(Icons.fiber_manual_record_rounded, color: Colors.redAccent, size: 18),
+              const SizedBox(width: 8),
+              Text(
+                'Merekam VN... ${_formatDuration(_recordingDuration)}',
+                style: GoogleFonts.outfit(color: context.titleColor, fontSize: 13, fontWeight: FontWeight.bold),
+              ),
+              const Spacer(),
+              IconButton(
+                icon: const Icon(Icons.delete_outline_rounded, color: Colors.redAccent, size: 22),
+                onPressed: _cancelRecording,
+              ),
+              const SizedBox(width: 8),
+              GestureDetector(
+                onTap: _sendVoiceNote,
+                child: Container(
+                  width: 40,
+                  height: 40,
+                  decoration: const BoxDecoration(
+                    color: Color(0xFF10B981),
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(Icons.send_rounded, color: Colors.white, size: 18),
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       decoration: BoxDecoration(
@@ -757,9 +835,8 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
               ),
             ),
             const SizedBox(width: 12),
-            // Send button
             GestureDetector(
-              onTap: _sendMessage,
+              onTap: _showSendButton ? _sendMessage : _startRecording,
               child: Container(
                 width: 44,
                 height: 44,
@@ -772,8 +849,8 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
                         padding: EdgeInsets.all(12.0),
                         child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
                       )
-                    : const Icon(
-                        Icons.send_rounded,
+                    : Icon(
+                        _showSendButton ? Icons.send_rounded : Icons.mic_none_rounded,
                         color: Colors.white,
                         size: 20,
                       ),
@@ -982,6 +1059,32 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
         color: context.isDarkMode ? const Color(0xFF0F172A) : const Color(0xFFF1F5F9),
         child: child,
       );
+    } else if (_wallpaperType == 'theme_sunset') {
+      return Container(
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            colors: context.isDarkMode
+                ? [const Color(0xFF3B0764), const Color(0xFF1E1B4B)]
+                : [const Color(0xFFFAE8FF), const Color(0xFFFFEDD5)],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+        ),
+        child: child,
+      );
+    } else if (_wallpaperType == 'theme_aurora') {
+      return Container(
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            colors: context.isDarkMode
+                ? [const Color(0xFF022C22), const Color(0xFF0F172A)]
+                : [const Color(0xFFECFDF5), const Color(0xFFEFF6FF)],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+        ),
+        child: child,
+      );
     } else if (_wallpaperType == 'custom_image' && _wallpaperImagePath != null && _wallpaperImagePath!.isNotEmpty) {
       return Container(
         decoration: BoxDecoration(
@@ -1023,6 +1126,8 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
               mainAxisSize: MainAxisSize.min,
               children: [
                 _buildWallpaperOptionTile('Default Gradien', 'default', Icons.gradient_rounded, null),
+                _buildWallpaperOptionTile('Sunset Glow (Gradien)', 'theme_sunset', Icons.sunny, const Color(0xFFD946EF)),
+                _buildWallpaperOptionTile('Aurora Teal (Gradien)', 'theme_aurora', Icons.brightness_6_rounded, const Color(0xFF0D9488)),
                 _buildWallpaperOptionTile('Emerald Green', 'color_emerald', Icons.circle_rounded, const Color(0xFF10B981)),
                 _buildWallpaperOptionTile('Indigo Blue', 'color_indigo', Icons.circle_rounded, const Color(0xFF3B82F6)),
                 _buildWallpaperOptionTile('Slate Grey', 'color_slate', Icons.circle_rounded, const Color(0xFF64748B)),
@@ -1054,9 +1159,19 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
   Future<void> _pickWallpaperFromGallery() async {
     try {
       final ImagePicker picker = ImagePicker();
-      final XFile? image = await picker.pickImage(source: ImageSource.gallery);
+      final XFile? image = await picker.pickImage(
+        source: ImageSource.gallery,
+        imageQuality: 60,
+        maxWidth: 1080,
+        maxHeight: 1920,
+      );
       if (image != null) {
-        _saveWallpaper('custom_image', image.path);
+        final Directory appDocDir = await getApplicationDocumentsDirectory();
+        final String fileName = 'wallpaper_${widget.kelasId}${p.extension(image.path)}';
+        final String localPath = p.join(appDocDir.path, fileName);
+        
+        final File localFile = await File(image.path).copy(localPath);
+        _saveWallpaper('custom_image', localFile.path);
       }
     } catch (e) {
       if (mounted) {
@@ -1112,20 +1227,22 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
   Future<void> _sendImage() async {
     try {
       final ImagePicker picker = ImagePicker();
-      final XFile? image = await picker.pickImage(source: ImageSource.gallery, imageQuality: 85);
+      final XFile? image = await picker.pickImage(
+        source: ImageSource.gallery,
+        imageQuality: 40,
+        maxWidth: 1080,
+        maxHeight: 1080,
+      );
       if (image == null) return;
 
       setState(() {
         _isSending = true;
       });
 
-      final Directory appDocDir = await getApplicationDocumentsDirectory();
-      final String fileName = 'chat_img_${DateTime.now().millisecondsSinceEpoch}${p.extension(image.path)}';
-      final String localPath = p.join(appDocDir.path, fileName);
-      
-      final File localFile = await File(image.path).copy(localPath);
+      final bytes = await File(image.path).readAsBytes();
+      final String base64Str = base64Encode(bytes);
+      final text = '[image_base64:$base64Str]';
 
-      final text = '[image:${localFile.path}]';
       final res = await _apiService.sendChatMessage(widget.kelasId, text);
       if (res['success'] == true) {
         await _fetchMessages();
@@ -1150,6 +1267,33 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
     }
   }
 
+  void _openFullImagePreview(Uint8List bytes) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => Scaffold(
+          backgroundColor: Colors.black,
+          appBar: AppBar(
+            backgroundColor: Colors.black,
+            elevation: 0,
+            leading: IconButton(
+              icon: const Icon(Icons.close_rounded, color: Colors.white),
+              onPressed: () => Navigator.pop(context),
+            ),
+          ),
+          body: Center(
+            child: InteractiveViewer(
+              clipBehavior: Clip.none,
+              minScale: 1.0,
+              maxScale: 4.0,
+              child: Image.memory(bytes),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
   void _showStickerSheet() {
     showModalBottomSheet(
       context: context,
@@ -1169,19 +1313,27 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'Kirim Stiker Premium',
+                  'Kirim Stiker WhatsApp-Style',
                   style: GoogleFonts.outfit(color: context.titleColor, fontWeight: FontWeight.bold, fontSize: 16),
                 ),
                 const SizedBox(height: 16),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceAround,
-                  children: [
-                    _buildStickerOption('semangat', '🔥', 'Semangat'),
-                    _buildStickerOption('hebat', '🏆', 'Hebat'),
-                    _buildStickerOption('syukron', '🙏', 'Syukron'),
-                    _buildStickerOption('fahimtum', '💡', 'Fahimtum'),
-                    _buildStickerOption('belajar', '📚', 'Belajar'),
-                  ],
+                SizedBox(
+                  height: 180,
+                  child: GridView.count(
+                    crossAxisCount: 4,
+                    mainAxisSpacing: 12,
+                    crossAxisSpacing: 12,
+                    children: [
+                      _buildStickerOption('thumbs_up', 'https://fonts.gstatic.com/s/e/notoemoji/latest/1f44d/512.webp', 'Sip'),
+                      _buildStickerOption('heart_eyes', 'https://fonts.gstatic.com/s/e/notoemoji/latest/1f60d/512.webp', 'Love'),
+                      _buildStickerOption('laughing', 'https://fonts.gstatic.com/s/e/notoemoji/latest/1f602/512.webp', 'Wkwk'),
+                      _buildStickerOption('clapping', 'https://fonts.gstatic.com/s/e/notoemoji/latest/1f44f/512.webp', 'Mantap'),
+                      _buildStickerOption('cool', 'https://fonts.gstatic.com/s/e/notoemoji/latest/1f60e/512.webp', 'Keren'),
+                      _buildStickerOption('mind_blown', 'https://fonts.gstatic.com/s/e/notoemoji/latest/1f92f/512.webp', 'Wow'),
+                      _buildStickerOption('pray', 'https://fonts.gstatic.com/s/e/notoemoji/latest/1f64f/512.webp', 'Amin'),
+                      _buildStickerOption('thinking', 'https://fonts.gstatic.com/s/e/notoemoji/latest/1f914/512.webp', 'Hmm'),
+                    ],
+                  ),
                 ),
               ],
             ),
@@ -1191,7 +1343,7 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
     );
   }
 
-  Widget _buildStickerOption(String name, String emoji, String label) {
+  Widget _buildStickerOption(String name, String url, String label) {
     return GestureDetector(
       onTap: () {
         Navigator.pop(context);
@@ -1200,15 +1352,17 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Container(
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: const Color(0xFF10B981).withOpacity(0.08),
-              shape: BoxShape.circle,
+          Expanded(
+            child: Container(
+              padding: const EdgeInsets.all(4),
+              decoration: BoxDecoration(
+                color: const Color(0xFF10B981).withOpacity(0.05),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Image.network(url, fit: BoxFit.contain),
             ),
-            child: Text(emoji, style: const TextStyle(fontSize: 24)),
           ),
-          const SizedBox(height: 6),
+          const SizedBox(height: 4),
           Text(
             label,
             style: GoogleFonts.outfit(color: context.titleColor, fontSize: 10, fontWeight: FontWeight.w600),
@@ -1235,6 +1389,165 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Gagal mengirim stiker: $e'),
+            backgroundColor: Colors.redAccent,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isSending = false;
+        });
+      }
+    }
+  }
+
+  Widget _buildVoiceNoteWidget(int msgId, int durationSeconds, Color textColor, bool isMe) {
+    final isPlaying = _playingVoiceNotes[msgId] ?? false;
+    final progress = _voiceNoteProgress[msgId] ?? 0.0;
+
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        IconButton(
+          icon: Icon(
+            isPlaying ? Icons.pause_rounded : Icons.play_arrow_rounded,
+            color: textColor,
+            size: 28,
+          ),
+          padding: EdgeInsets.zero,
+          constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
+          onPressed: () => _toggleVoiceNote(msgId, durationSeconds),
+        ),
+        const SizedBox(width: 8),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              SliderTheme(
+                data: SliderThemeData(
+                  trackHeight: 2,
+                  thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 5),
+                  overlayShape: const RoundSliderOverlayShape(overlayRadius: 10),
+                  activeTrackColor: textColor,
+                  inactiveTrackColor: textColor.withOpacity(0.3),
+                  thumbColor: textColor,
+                ),
+                child: Slider(
+                  value: progress,
+                  onChanged: (val) {
+                    setState(() {
+                      _voiceNoteProgress[msgId] = val;
+                    });
+                  },
+                ),
+              ),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      _formatDuration((durationSeconds * progress).toInt()),
+                      style: GoogleFonts.outfit(color: textColor.withOpacity(0.8), fontSize: 10),
+                    ),
+                    Text(
+                      _formatDuration(durationSeconds),
+                      style: GoogleFonts.outfit(color: textColor.withOpacity(0.8), fontSize: 10),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+        Icon(Icons.mic_rounded, color: isMe ? Colors.white70 : const Color(0xFF10B981), size: 16),
+      ],
+    );
+  }
+
+  void _toggleVoiceNote(int msgId, int durationSeconds) {
+    final isPlaying = _playingVoiceNotes[msgId] ?? false;
+    
+    if (isPlaying) {
+      _voiceNoteTimers[msgId]?.cancel();
+      setState(() {
+        _playingVoiceNotes[msgId] = false;
+      });
+    } else {
+      setState(() {
+        _playingVoiceNotes[msgId] = true;
+      });
+      
+      const intervalMs = 100;
+      final totalSteps = (durationSeconds * 1000) / intervalMs;
+      
+      _voiceNoteTimers[msgId]?.cancel();
+      _voiceNoteTimers[msgId] = Timer.periodic(const Duration(milliseconds: intervalMs), (timer) {
+        double currentProgress = _voiceNoteProgress[msgId] ?? 0.0;
+        currentProgress += 1.0 / totalSteps;
+        
+        if (currentProgress >= 1.0) {
+          timer.cancel();
+          setState(() {
+            _playingVoiceNotes[msgId] = false;
+            _voiceNoteProgress[msgId] = 0.0;
+          });
+        } else {
+          setState(() {
+            _voiceNoteProgress[msgId] = currentProgress;
+          });
+        }
+      });
+    }
+  }
+
+  void _startRecording() {
+    setState(() {
+      _isRecordingAudio = true;
+      _recordingDuration = 0;
+    });
+    _recordingTimer?.cancel();
+    _recordingTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
+      setState(() {
+        _recordingDuration++;
+      });
+    });
+  }
+
+  void _cancelRecording() {
+    _recordingTimer?.cancel();
+    setState(() {
+      _isRecordingAudio = false;
+      _recordingDuration = 0;
+    });
+  }
+
+  Future<void> _sendVoiceNote() async {
+    _recordingTimer?.cancel();
+    final duration = _recordingDuration > 0 ? _recordingDuration : 3;
+    setState(() {
+      _isRecordingAudio = false;
+      _recordingDuration = 0;
+    });
+    
+    try {
+      setState(() {
+        _isSending = true;
+      });
+      final text = '[voice_note:$duration]';
+      final res = await _apiService.sendChatMessage(widget.kelasId, text);
+      if (res['success'] == true) {
+        await _fetchMessages();
+        await _updateLastRead();
+        _scrollToBottom();
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Gagal mengirim VN: $e'),
             backgroundColor: Colors.redAccent,
           ),
         );

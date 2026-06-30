@@ -4,6 +4,7 @@ import 'package:flutter_native_splash/flutter_native_splash.dart';
 import 'services/api_service.dart';
 import 'screens/login_screen.dart';
 import 'screens/dashboard_screen.dart';
+import 'screens/splash_screen.dart';
 
 import 'services/theme_manager.dart';
 import 'services/push_notification_service.dart';
@@ -76,6 +77,9 @@ class _AuthenticationWrapperState extends State<AuthenticationWrapper> {
   void initState() {
     super.initState();
     _checkTokenValidity();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      FlutterNativeSplash.remove();
+    });
   }
 
   Future<void> _checkTokenValidity() async {
@@ -103,9 +107,6 @@ class _AuthenticationWrapperState extends State<AuthenticationWrapper> {
       await Future.delayed(Duration(milliseconds: 5000 - elapsed));
     }
 
-    // Remove native splash screen and reveal app UI
-    FlutterNativeSplash.remove();
-
     if (mounted) {
       setState(() {
         _isAuthenticated = authenticated;
@@ -117,7 +118,7 @@ class _AuthenticationWrapperState extends State<AuthenticationWrapper> {
   @override
   Widget build(BuildContext context) {
     if (_checkingAuth) {
-      return const Scaffold(backgroundColor: Color(0xFF070B13));
+      return const SplashScreen();
     }
 
     return _isAuthenticated ? const DashboardScreen() : const LoginScreen();
