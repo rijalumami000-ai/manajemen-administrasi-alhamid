@@ -121,9 +121,13 @@ class _InputAbsensiScreenState extends State<InputAbsensiScreen> {
       _kategoriEvaluasiId = res['kategoriId'];
       _months = res['months'] ?? [];
 
-      // Set default month if available
+      // Set default month if available, keeping the currently selected month if it exists in the list
       if (_months.isNotEmpty) {
-        _selectedMonth = _months.first;
+        if (_selectedMonth == null || !_months.contains(_selectedMonth)) {
+          _selectedMonth = _months.first;
+        }
+      } else {
+        _selectedMonth = null;
       }
 
       setState(() {
@@ -564,28 +568,33 @@ class _InputAbsensiScreenState extends State<InputAbsensiScreen> {
                           
                           // Counters Row
                           Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
-                              _buildCounterButton(
-                                label: "Sakit",
-                                value: localData['sakit'] ?? 0,
-                                color: const Color(0xFFF59E0B),
-                                onDecrement: () => _adjustCount(id, 'sakit', -1),
-                                onIncrement: () => _adjustCount(id, 'sakit', 1),
+                              Expanded(
+                                child: _buildCounterButton(
+                                  label: "Sakit",
+                                  value: localData['sakit'] ?? 0,
+                                  color: const Color(0xFFF59E0B),
+                                  onDecrement: () => _adjustCount(id, 'sakit', -1),
+                                  onIncrement: () => _adjustCount(id, 'sakit', 1),
+                                ),
                               ),
-                              _buildCounterButton(
-                                label: "Izin",
-                                value: localData['izin'] ?? 0,
-                                color: const Color(0xFF3B82F6),
-                                onDecrement: () => _adjustCount(id, 'izin', -1),
-                                onIncrement: () => _adjustCount(id, 'izin', 1),
+                              Expanded(
+                                child: _buildCounterButton(
+                                  label: "Izin",
+                                  value: localData['izin'] ?? 0,
+                                  color: const Color(0xFF3B82F6),
+                                  onDecrement: () => _adjustCount(id, 'izin', -1),
+                                  onIncrement: () => _adjustCount(id, 'izin', 1),
+                                ),
                               ),
-                              _buildCounterButton(
-                                label: "Alpa",
-                                value: localData['alpa'] ?? 0,
-                                color: const Color(0xFFEF4444),
-                                onDecrement: () => _adjustCount(id, 'alpa', -1),
-                                onIncrement: () => _adjustCount(id, 'alpa', 1),
+                              Expanded(
+                                child: _buildCounterButton(
+                                  label: "Alpa",
+                                  value: localData['alpa'] ?? 0,
+                                  color: const Color(0xFFEF4444),
+                                  onDecrement: () => _adjustCount(id, 'alpa', -1),
+                                  onIncrement: () => _adjustCount(id, 'alpa', 1),
+                                ),
                               ),
                             ],
                           ),
@@ -626,25 +635,31 @@ class _InputAbsensiScreenState extends State<InputAbsensiScreen> {
             mainAxisSize: MainAxisSize.min,
             children: [
               IconButton(
-                icon: const Icon(Icons.remove_rounded, size: 16),
+                icon: const Icon(Icons.remove_rounded, size: 14),
                 color: color,
                 padding: EdgeInsets.zero,
-                constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
+                constraints: const BoxConstraints(minWidth: 28, minHeight: 28),
+                style: IconButton.styleFrom(
+                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                ),
                 onPressed: onDecrement,
               ),
               Container(
                 alignment: Alignment.center,
-                constraints: const BoxConstraints(minWidth: 28),
+                constraints: const BoxConstraints(minWidth: 20),
                 child: Text(
                   "$value",
-                  style: GoogleFonts.outfit(color: countColor, fontSize: 13, fontWeight: FontWeight.bold),
+                  style: GoogleFonts.outfit(color: countColor, fontSize: 12, fontWeight: FontWeight.bold),
                 ),
               ),
               IconButton(
-                icon: const Icon(Icons.add_rounded, size: 16),
+                icon: const Icon(Icons.add_rounded, size: 14),
                 color: color,
                 padding: EdgeInsets.zero,
-                constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
+                constraints: const BoxConstraints(minWidth: 28, minHeight: 28),
+                style: IconButton.styleFrom(
+                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                ),
                 onPressed: onIncrement,
               ),
             ],

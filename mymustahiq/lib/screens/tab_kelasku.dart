@@ -186,83 +186,12 @@ class _TabKelaskuState extends State<TabKelasku> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              // Welcome Banner
-              Container(
-                padding: const EdgeInsets.all(20),
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    colors: context.isDarkMode
-                        ? [
-                            const Color(0xFF064E3B).withOpacity(0.2),
-                            const Color(0xFF131B2E),
-                          ]
-                        : [
-                            const Color(0xFF10B981).withOpacity(0.08),
-                            context.cardBg,
-                          ],
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                  ),
-                  borderRadius: BorderRadius.circular(20),
-                  border: Border.all(
-                    color: const Color(0xFF10B981).withOpacity(context.isDarkMode ? 0.15 : 0.3),
-                  ),
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        Container(
-                          padding: const EdgeInsets.all(10),
-                          decoration: BoxDecoration(
-                            color: const Color(0xFF10B981).withOpacity(0.15),
-                            borderRadius: BorderRadius.circular(14),
-                          ),
-                          child: const Icon(Icons.mosque_rounded, color: Color(0xFF10B981), size: 24),
-                        ),
-                        const SizedBox(width: 14),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                "Assalamu'alaikum,",
-                                style: GoogleFonts.outfit(color: context.bodyColor, fontSize: 12),
-                              ),
-                              Text(
-                                guruName,
-                                style: GoogleFonts.outfit(
-                                  color: context.titleColor,
-                                  fontSize: 18,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                            ],
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 12),
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFF10B981).withOpacity(0.15),
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: Text(
-                        "T.A $activeYear ($semester)",
-                        style: GoogleFonts.outfit(
-                          color: const Color(0xFF10B981),
-                          fontSize: 11,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
+              // Premium Animated Card Welcome Banner
+              PremiumAnimatedCard(
+                name: guruName,
+                activeYear: activeYear,
+                semester: semester,
+                isMustahiq: isMustahiq,
               ),
               const SizedBox(height: 24),
 
@@ -793,6 +722,250 @@ class _TabKelaskuState extends State<TabKelasku> {
                 ],
               ),
       ),
+    );
+  }
+}
+
+class PremiumAnimatedCard extends StatefulWidget {
+  final String name;
+  final String activeYear;
+  final String semester;
+  final bool isMustahiq;
+
+  const PremiumAnimatedCard({
+    super.key,
+    required this.name,
+    required this.activeYear,
+    required this.semester,
+    required this.isMustahiq,
+  });
+
+  @override
+  State<PremiumAnimatedCard> createState() => _PremiumAnimatedCardState();
+}
+
+class _PremiumAnimatedCardState extends State<PremiumAnimatedCard>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _controller;
+  late Animation<double> _scaleAnimation;
+  late Animation<double> _glowAnimation;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(seconds: 5),
+    )..repeat(reverse: true);
+
+    _scaleAnimation = Tween<double>(begin: 0.98, end: 1.02).animate(
+      CurvedAnimation(parent: _controller, curve: Curves.easeInOut),
+    );
+
+    _glowAnimation = Tween<double>(begin: 4.0, end: 14.0).animate(
+      CurvedAnimation(parent: _controller, curve: Curves.easeInOut),
+    );
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final isDark = context.isDarkMode;
+
+    final List<Color> gradientColors = isDark
+        ? [
+            const Color(0xFF065F46), // Emerald
+            const Color(0xFF0F766E), // Teal
+            const Color(0xFF1E293B), // Slate
+          ]
+        : [
+            const Color(0xFF10B981), // Emerald
+            const Color(0xFF0D9488), // Teal
+            const Color(0xFF3B82F6), // Royal Blue
+          ];
+
+    return AnimatedBuilder(
+      animation: _controller,
+      builder: (context, child) {
+        return ScaleTransition(
+          scale: _scaleAnimation,
+          child: Container(
+            height: 140,
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(20),
+              boxShadow: [
+                BoxShadow(
+                  color: (isDark ? const Color(0xFF10B981) : const Color(0xFF0D9488))
+                      .withOpacity(isDark ? 0.2 : 0.15),
+                  blurRadius: _glowAnimation.value,
+                  spreadRadius: 1,
+                  offset: const Offset(0, 4),
+                ),
+              ],
+            ),
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(20),
+              child: Stack(
+                children: [
+                  // Animated Gradient Background
+                  Container(
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        colors: gradientColors,
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                        transform: GradientRotation(_controller.value * 2 * 3.14159),
+                      ),
+                    ),
+                  ),
+                  
+                  // Floating glassmorphic bubble 1
+                  Positioned(
+                    top: -20 + (10 * _scaleAnimation.value),
+                    right: -20 + (5 * _scaleAnimation.value),
+                    child: Container(
+                      width: 100,
+                      height: 100,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: Colors.white.withOpacity(0.08),
+                      ),
+                    ),
+                  ),
+                  
+                  // Floating glassmorphic bubble 2
+                  Positioned(
+                    bottom: -20 - (5 * _scaleAnimation.value),
+                    left: 20 + (10 * _scaleAnimation.value),
+                    child: Container(
+                      width: 70,
+                      height: 70,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: Colors.white.withOpacity(0.05),
+                      ),
+                    ),
+                  ),
+                  
+                  // Content padding
+                  Padding(
+                    padding: const EdgeInsets.all(18.0),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Row(
+                              children: [
+                                Container(
+                                  padding: const EdgeInsets.all(8),
+                                  decoration: BoxDecoration(
+                                    color: Colors.white.withOpacity(0.2),
+                                    borderRadius: BorderRadius.circular(10),
+                                    border: Border.all(
+                                      color: Colors.white.withOpacity(0.3),
+                                      width: 1,
+                                    ),
+                                  ),
+                                  child: const Icon(
+                                    Icons.mosque_rounded,
+                                    color: Colors.white,
+                                    size: 18,
+                                  ),
+                                ),
+                                const SizedBox(width: 12),
+                                Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      "Assalamu'alaikum,",
+                                      style: GoogleFonts.outfit(
+                                        color: Colors.white.withOpacity(0.85),
+                                        fontSize: 11,
+                                      ),
+                                    ),
+                                    Text(
+                                      widget.name,
+                                      style: GoogleFonts.outfit(
+                                        color: Colors.white,
+                                        fontSize: 16,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ],
+                            ),
+                            
+                            // Role Badge
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                              decoration: BoxDecoration(
+                                color: Colors.white.withOpacity(0.2),
+                                borderRadius: BorderRadius.circular(20),
+                                border: Border.all(
+                                  color: Colors.white.withOpacity(0.3),
+                                  width: 1,
+                                ),
+                              ),
+                              child: Row(
+                                children: [
+                                  const Icon(
+                                    Icons.workspace_premium_rounded,
+                                    color: Colors.white,
+                                    size: 12,
+                                  ),
+                                  const SizedBox(width: 4),
+                                  Text(
+                                    widget.isMustahiq ? "MUSTAHIQ" : "GURU MAPEL",
+                                    style: GoogleFonts.outfit(
+                                      color: Colors.white,
+                                      fontSize: 9,
+                                      fontWeight: FontWeight.w900,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                        
+                        // Academic Year
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                          decoration: BoxDecoration(
+                            color: Colors.white.withOpacity(0.15),
+                            borderRadius: BorderRadius.circular(8),
+                            border: Border.all(
+                              color: Colors.white.withOpacity(0.15),
+                              width: 1,
+                            ),
+                          ),
+                          child: Text(
+                            "Tahun Ajaran ${widget.activeYear} (${widget.semester})",
+                            style: GoogleFonts.outfit(
+                              color: Colors.white,
+                              fontSize: 10,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        );
+      },
     );
   }
 }

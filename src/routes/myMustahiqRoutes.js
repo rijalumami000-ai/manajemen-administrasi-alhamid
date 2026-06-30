@@ -1609,6 +1609,8 @@ function registerMyMustahiqRoutes(app) {
         is_tingkat_group: true,
         tingkat: tingkat,
         mustahiq_foto_url: null,
+        mustahiq_no_hp: null,
+        mustahiq_nama: null,
         last_message: lastMsg
       });
     }
@@ -1658,6 +1660,20 @@ function registerMyMustahiqRoutes(app) {
                WHERE kta_must.kelas_id = uc.kelas_id AND kta_must.tahun_ajaran_id = $2
                LIMIT 1
              ) AS mustahiq_foto_url,
+             (
+               SELECT g_must.no_hp 
+               FROM kelas_tahun_ajaran kta_must
+               JOIN guru g_must ON kta_must.mustahiq_id = g_must.id
+               WHERE kta_must.kelas_id = uc.kelas_id AND kta_must.tahun_ajaran_id = $2
+               LIMIT 1
+             ) AS mustahiq_no_hp,
+             (
+               SELECT g_must.nama 
+               FROM kelas_tahun_ajaran kta_must
+               JOIN guru g_must ON kta_must.mustahiq_id = g_must.id
+               WHERE kta_must.kelas_id = uc.kelas_id AND kta_must.tahun_ajaran_id = $2
+               LIMIT 1
+             ) AS mustahiq_nama,
              (
                SELECT JSON_BUILD_OBJECT(
                  'message', cm.message,

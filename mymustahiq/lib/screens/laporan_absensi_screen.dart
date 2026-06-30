@@ -455,11 +455,11 @@ class _LaporanAbsensiScreenState extends State<LaporanAbsensiScreen> {
                               // Totals Wrap
                               Row(
                                 children: [
-                                  _buildTotalBadge('S: ${total['sakit'] ?? 0}', const Color(0xFFF59E0B)),
+                                  _buildTotalBadge('Sakit: ${total['sakit'] ?? 0}', const Color(0xFFF59E0B)),
                                   const SizedBox(width: 4),
-                                  _buildTotalBadge('I: ${total['izin'] ?? 0}', const Color(0xFF3B82F6)),
+                                  _buildTotalBadge('Izin: ${total['izin'] ?? 0}', const Color(0xFF3B82F6)),
                                   const SizedBox(width: 4),
-                                  _buildTotalBadge('A: ${total['alpa'] ?? 0}', const Color(0xFFEF4444)),
+                                  _buildTotalBadge('Alpa: ${total['alpa'] ?? 0}', const Color(0xFFEF4444)),
                                 ],
                               ),
                             ],
@@ -495,7 +495,7 @@ class _LaporanAbsensiScreenState extends State<LaporanAbsensiScreen> {
                                   ),
                                 ),
                                 child: Text(
-                                  "$mName: ${sCount}S, ${iCount}I, ${aCount}A",
+                                  "$mName: $sCount Sakit, $iCount Izin, $aCount Alpa",
                                   style: GoogleFonts.outfit(
                                     color: hasAbsen ? const Color(0xFF10B981) : context.subTitleColor,
                                     fontSize: 10,

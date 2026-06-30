@@ -362,7 +362,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
               ),
             ),
           ),
-
+          const SizedBox(width: 12),
         ],
       ),
       body: Stack(

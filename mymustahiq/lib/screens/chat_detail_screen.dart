@@ -2,17 +2,24 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../services/api_service.dart';
 import '../services/theme_manager.dart';
 
 class ChatDetailScreen extends StatefulWidget {
   final int kelasId;
   final String kelasNama;
+  final String? mustahiqFotoUrl;
+  final String? mustahiqNoHp;
+  final String? mustahiqNama;
 
   const ChatDetailScreen({
     super.key,
     required this.kelasId,
     required this.kelasNama,
+    this.mustahiqFotoUrl,
+    this.mustahiqNoHp,
+    this.mustahiqNama,
   });
 
   @override
@@ -265,27 +272,82 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
           icon: Icon(Icons.arrow_back_ios_new_rounded, color: context.titleColor, size: 20),
           onPressed: () => Navigator.pop(context),
         ),
-        title: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+        title: Row(
           children: [
-            Text(
-              'Kelas ${widget.kelasNama}',
-              style: GoogleFonts.outfit(
-                color: context.titleColor,
-                fontWeight: FontWeight.bold,
-                fontSize: 16,
+            Container(
+              width: 32,
+              height: 32,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                border: Border.all(
+                  color: const Color(0xFF10B981).withOpacity(0.3),
+                  width: 1.2,
+                ),
+              ),
+              child: ClipOval(
+                child: (widget.kelasId < 0)
+                    ? Container(
+                        decoration: const BoxDecoration(
+                          gradient: LinearGradient(
+                            colors: [Color(0xFF8B5CF6), Color(0xFF6D28D9)],
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
+                          ),
+                        ),
+                        child: const Center(
+                          child: Icon(
+                            Icons.domain_verification_rounded,
+                            color: Colors.white,
+                            size: 16,
+                          ),
+                        ),
+                      )
+                    : (widget.mustahiqFotoUrl != null && widget.mustahiqFotoUrl!.isNotEmpty)
+                        ? Image.network(
+                            _apiService.getFullImageUrl(widget.mustahiqFotoUrl!),
+                            fit: BoxFit.cover,
+                            errorBuilder: (context, error, stackTrace) =>
+                                _buildDefaultClassIcon(context),
+                          )
+                        : _buildDefaultClassIcon(context),
               ),
             ),
-            Text(
-              'Diskusi Wali Kelas & Munawib',
-              style: GoogleFonts.outfit(
-                color: context.subTitleColor,
-                fontSize: 10,
+            const SizedBox(width: 8),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    widget.kelasId < 0 ? widget.kelasNama : 'Kelas ${widget.kelasNama}',
+                    style: GoogleFonts.outfit(
+                      color: context.titleColor,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 14,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  Text(
+                    widget.kelasId < 0 ? 'Grup Guru' : 'Diskusi Wali Kelas & Munawib',
+                    style: GoogleFonts.outfit(
+                      color: context.subTitleColor,
+                      fontSize: 9,
+                    ),
+                  ),
+                ],
               ),
             ),
           ],
         ),
         actions: [
+          if (widget.mustahiqNoHp != null &&
+              widget.mustahiqNoHp!.isNotEmpty &&
+              widget.mustahiqNoHp != '-')
+            IconButton(
+              icon: const Icon(Icons.chat_rounded, color: Color(0xFF10B981), size: 22),
+              tooltip: 'WhatsApp Wali Kelas',
+              onPressed: () => _launchWhatsApp(widget.mustahiqNoHp!, widget.mustahiqNama ?? ''),
+            ),
           IconButton(
             icon: Icon(Icons.refresh_rounded, color: context.titleColor),
             onPressed: () async {
@@ -353,67 +415,103 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
       alignment: isMe ? Alignment.centerRight : Alignment.centerLeft,
       child: Container(
         margin: const EdgeInsets.only(bottom: 12),
-        constraints: BoxConstraints(maxWidth: MediaQuery.of(context).size.width * 0.75),
-        child: Column(
-          crossAxisAlignment: isMe ? CrossAxisAlignment.end : CrossAxisAlignment.start,
+        constraints: BoxConstraints(maxWidth: MediaQuery.of(context).size.width * 0.85),
+        child: Row(
+          mainAxisAlignment: isMe ? MainAxisAlignment.end : Alignment.centerLeft,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
           children: [
-            // Sender name (only for others)
-            if (!isMe)
-              Padding(
-                padding: const EdgeInsets.only(left: 6, bottom: 3),
-                child: Text(
-                  senderName,
-                  style: GoogleFonts.outfit(
-                    color: const Color(0xFF10B981),
-                    fontSize: 10,
-                    fontWeight: FontWeight.bold,
+            if (!isMe) ...[
+              Container(
+                width: 28,
+                height: 28,
+                margin: const EdgeInsets.only(top: 14), // Align with bubble below name
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  border: Border.all(
+                    color: const Color(0xFF10B981).withOpacity(0.2),
+                    width: 1,
                   ),
+                ),
+                child: ClipOval(
+                  child: (msg['sender_foto_url'] != null && msg['sender_foto_url'].toString().isNotEmpty)
+                      ? Image.network(
+                          _apiService.getFullImageUrl(msg['sender_foto_url']),
+                          fit: BoxFit.cover,
+                          errorBuilder: (context, error, stackTrace) =>
+                              _buildDefaultUserIcon(context),
+                        )
+                      : _buildDefaultUserIcon(context),
                 ),
               ),
-            
-            // Glass bubble wrapper
-            GestureDetector(
-              onLongPress: () => _showLongPressOptions(msg),
-              child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-                decoration: BoxDecoration(
-                  color: bubbleBg,
-                  borderRadius: BorderRadius.only(
-                    topLeft: const Radius.circular(16),
-                    topRight: const Radius.circular(16),
-                    bottomLeft: Radius.circular(isMe ? 16 : 0),
-                    bottomRight: Radius.circular(isMe ? 0 : 16),
+              const SizedBox(width: 8),
+            ],
+            Flexible(
+              child: Column(
+                crossAxisAlignment: isMe ? CrossAxisAlignment.end : CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  // Sender name (only for others)
+                  if (!isMe)
+                    Padding(
+                      padding: const EdgeInsets.only(left: 6, bottom: 3),
+                      child: Text(
+                        senderName,
+                        style: GoogleFonts.outfit(
+                          color: const Color(0xFF10B981),
+                          fontSize: 10,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                  
+                  // Glass bubble wrapper
+                  GestureDetector(
+                    onLongPress: () => _showLongPressOptions(msg),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                      decoration: BoxDecoration(
+                        color: bubbleBg,
+                        borderRadius: BorderRadius.only(
+                          topLeft: const Radius.circular(16),
+                          topRight: const Radius.circular(16),
+                          bottomLeft: Radius.circular(isMe ? 16 : 0),
+                          bottomRight: Radius.circular(isMe ? 0 : 16),
+                        ),
+                        border: Border.all(color: bubbleBorderColor, width: 1.2),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withOpacity(context.isDarkMode ? 0.2 : 0.02),
+                            blurRadius: 8,
+                            offset: const Offset(0, 3),
+                          ),
+                        ],
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.end,
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            text,
+                            style: GoogleFonts.outfit(
+                              color: context.titleColor,
+                              fontSize: 14,
+                              height: 1.4,
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            timeStr,
+                            style: GoogleFonts.outfit(
+                              color: context.subTitleColor,
+                              fontSize: 9,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
                   ),
-                  border: Border.all(color: bubbleBorderColor, width: 1.2),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withOpacity(context.isDarkMode ? 0.2 : 0.02),
-                      blurRadius: 8,
-                      offset: const Offset(0, 3),
-                    ),
-                  ],
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.end,
-                  children: [
-                    Text(
-                      text,
-                      style: GoogleFonts.outfit(
-                        color: context.titleColor,
-                        fontSize: 14,
-                        height: 1.4,
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      timeStr,
-                      style: GoogleFonts.outfit(
-                        color: context.subTitleColor,
-                        fontSize: 9,
-                      ),
-                    ),
-                  ],
-                ),
+                ],
               ),
             ),
           ],
@@ -556,5 +654,90 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
         ),
       ),
     );
+  }
+
+  Widget _buildDefaultClassIcon(BuildContext context) {
+    return Container(
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: context.isDarkMode
+              ? [const Color(0xFF064E3B), const Color(0xFF047857)]
+              : [const Color(0xFF10B981).withOpacity(0.2), const Color(0xFF059669).withOpacity(0.35)],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+      ),
+      child: Center(
+        child: Icon(
+          Icons.groups_rounded,
+          color: context.isDarkMode ? const Color(0xFF34D399) : const Color(0xFF059669),
+          size: 18,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildDefaultUserIcon(BuildContext context) {
+    return Container(
+      color: context.isDarkMode ? Colors.white10 : Colors.black12,
+      child: Center(
+        child: Icon(
+          Icons.person_rounded,
+          color: context.subTitleColor,
+          size: 16,
+        ),
+      ),
+    );
+  }
+
+  void _launchWhatsApp(String number, String name) async {
+    if (number.isEmpty || number == '-') {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            'Nomor HP tidak tersedia.',
+            style: GoogleFonts.outfit(color: Colors.white, fontSize: 13),
+          ),
+          backgroundColor: Colors.redAccent,
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+        ),
+      );
+      return;
+    }
+
+    String formatted = number.replaceAll(RegExp(r'\D'), ''); // Only digits
+    if (formatted.startsWith('0')) {
+      formatted = '62${formatted.substring(1)}';
+    } else if (formatted.startsWith('8')) {
+      formatted = '62$formatted';
+    }
+
+    final url = Uri.parse('whatsapp://send?phone=$formatted');
+    final webUrl = Uri.parse('https://wa.me/$formatted');
+    try {
+      final launched = await launchUrl(url, mode: LaunchMode.externalApplication);
+      if (!launched) {
+        await launchUrl(webUrl, mode: LaunchMode.externalApplication);
+      }
+    } catch (_) {
+      try {
+        await launchUrl(webUrl, mode: LaunchMode.externalApplication);
+      } catch (err) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(
+                'Gagal membuka WhatsApp. Pastikan aplikasi terinstall.',
+                style: GoogleFonts.outfit(color: Colors.white, fontSize: 13),
+              ),
+              backgroundColor: Colors.redAccent,
+              behavior: SnackBarBehavior.floating,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+            ),
+          );
+        }
+      }
+    }
   }
 }

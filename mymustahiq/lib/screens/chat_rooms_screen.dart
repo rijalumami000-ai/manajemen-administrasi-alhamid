@@ -201,6 +201,9 @@ class _ChatRoomsScreenState extends State<ChatRoomsScreen> {
                                       builder: (context) => ChatDetailScreen(
                                         kelasId: kelasId,
                                         kelasNama: kelasNama,
+                                        mustahiqFotoUrl: room['mustahiq_foto_url'],
+                                        mustahiqNoHp: room['mustahiq_no_hp'],
+                                        mustahiqNama: room['mustahiq_nama'],
                                       ),
                                     ),
                                   );
