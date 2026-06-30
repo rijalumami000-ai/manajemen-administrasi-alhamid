@@ -7,6 +7,7 @@ import '../widgets/offline_widget.dart';
 import 'santri_explorer_screen.dart';
 import 'weekly_schedule_screen.dart';
 import 'informasi_ujian_screen.dart';
+import 'kelasku_rapor_input_screen.dart';
 
 class TabKelasku extends StatefulWidget {
   const TabKelasku({super.key});
@@ -353,6 +354,65 @@ class _TabKelaskuState extends State<TabKelasku> {
                             ),
                           ],
                         ),
+                      ],
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                GestureDetector(
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => KelaskuRaporInputScreen(
+                          kelasId: kelasMustahiq['id'],
+                          kelasNama: kelasMustahiq['nama'],
+                        ),
+                      ),
+                    );
+                  },
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
+                    decoration: BoxDecoration(
+                      color: context.cardBg,
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(
+                        color: const Color(0xFF10B981).withOpacity(0.3),
+                        width: 1.2,
+                      ),
+                    ),
+                    child: Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(8),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFF10B981).withOpacity(0.12),
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          child: const Icon(Icons.rate_review_rounded, color: Color(0xFF10B981), size: 20),
+                        ),
+                        const SizedBox(width: 14),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                "Kelola Rapor Kelas Binaan",
+                                style: GoogleFonts.outfit(
+                                  color: context.titleColor,
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                              const SizedBox(height: 2),
+                              Text(
+                                "Input kepribadian, catatan wali kelas, kustom peringkat, & kenaikan kelas.",
+                                style: GoogleFonts.outfit(color: context.subTitleColor, fontSize: 10),
+                              ),
+                            ],
+                          ),
+                        ),
+                        Icon(Icons.arrow_forward_ios_rounded, color: context.subTitleColor, size: 14),
                       ],
                     ),
                   ),

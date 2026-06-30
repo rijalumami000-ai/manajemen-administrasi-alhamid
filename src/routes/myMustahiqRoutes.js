@@ -2630,6 +2630,252 @@ function registerMyMustahiqRoutes(app) {
     });
   }));
 
+  /**
+   * GET /api/my-mustahiq/absensi/report
+   * Rekap absensi santri per kelas, bulan, semester, dan tahun ajaran
+   */
+  router.get('/absensi/report', asyncHandler(async (req, res) => {
+    const { kelas_id, tahun_ajaran_id, semester } = req.query;
+    if (!kelas_id) {
+      return res.status(400).json({ error: 'kelas_id wajib diisi.' });
+    }
+
+    const activeYear = tahun_ajaran_id 
+      ? (await db.query('SELECT id, kode FROM tahun_ajaran WHERE id = $1', [tahun_ajaran_id])).rows[0]
+      : await getActiveTahunAjaran();
+
+    if (!activeYear) return res.status(404).json({ error: 'Tahun ajaran tidak ditemukan.' });
+
+    const semResult = await db.query("SELECT value FROM system_settings WHERE key = 'active_semester' LIMIT 1");
+    const activeSemester = semester || (semResult.rows[0] ? semResult.rows[0].value : 'Ganjil');
+
+    // Kategori evaluasi
+    const katResult = await db.query(
+      "SELECT id FROM kategori_evaluasi WHERE LOWER(nama) LIKE $1 LIMIT 1",
+      [`%semester ${activeSemester.toLowerCase()}%`]
+    );
+    const kategoriId = katResult.rows[0] ? katResult.rows[0].id : (activeSemester.toLowerCase().includes('genap') ? 2 : 1);
+
+    // Ambil list santri
+    const isGenap = activeSemester.toLowerCase().includes('genap');
+    let santriQuery = `
+      SELECT sta.santri_id AS id, sta.nis, sta.nama
+      FROM santri_tahun_ajaran sta
+      WHERE sta.kelas_diniyah_id = $1 AND sta.tahun_ajaran_id = $2 AND sta.status = 'aktif'
+    `;
+    if (isGenap) santriQuery += ' AND sta.aktif_genap = TRUE';
+    else santriQuery += ' AND sta.aktif_ganjil = TRUE';
+    santriQuery += ' ORDER BY sta.nama';
+    const santriRes = await db.query(santriQuery, [kelas_id, activeYear.id]);
+    const santriList = santriRes.rows;
+
+    if (santriList.length === 0) {
+      return res.json({
+        success: true,
+        tahunAjaran: activeYear.kode,
+        tahunAjaranId: activeYear.id,
+        semester: activeSemester,
+        months: isGenap 
+          ? ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni']
+          : ['Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'],
+        santri: []
+      });
+    }
+
+    const santriIds = santriList.map(s => s.id);
+    const idPlaceholders = santriIds.map((_, i) => `$${i + 3}`).join(', ');
+
+    // Ambil detail bulanan
+    const detailRes = await db.query(
+      `SELECT santri_id, bulan, sakit, izin, alpa 
+       FROM absensi_bulanan_santri 
+       WHERE tahun_ajaran_id = $1 AND kategori_evaluasi_id = $2 AND santri_id IN (${idPlaceholders})`,
+      [activeYear.id, kategoriId, ...santriIds]
+    );
+
+    // Ambil total absensi dari rapor_santri
+    const totalRes = await db.query(
+      `SELECT santri_id, sakit, izin, alpa 
+       FROM rapor_santri 
+       WHERE tahun_ajaran_id = $1 AND kategori_evaluasi_id = $2 AND santri_id IN (${idPlaceholders})`,
+      [activeYear.id, kategoriId, ...santriIds]
+    );
+
+    const detailMap = {};
+    detailRes.rows.forEach(d => {
+      if (!detailMap[d.santri_id]) detailMap[d.santri_id] = {};
+      detailMap[d.santri_id][d.bulan] = {
+        sakit: d.sakit || 0,
+        izin: d.izin || 0,
+        alpa: d.alpa || 0
+      };
+    });
+
+    const totalMap = {};
+    totalRes.rows.forEach(t => {
+      totalMap[t.santri_id] = {
+        sakit: t.sakit || 0,
+        izin: t.izin || 0,
+        alpa: t.alpa || 0
+      };
+    });
+
+    const months = isGenap 
+      ? ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni']
+      : ['Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
+
+    const result = santriList.map(s => {
+      const details = detailMap[s.id] || {};
+      const totals = totalMap[s.id] || { sakit: 0, izin: 0, alpa: 0 };
+      
+      const monthlyData = {};
+      months.forEach(m => {
+        monthlyData[m] = details[m] || { sakit: 0, izin: 0, alpa: 0 };
+      });
+
+      return {
+        id: s.id,
+        nis: s.nis,
+        nama: s.nama,
+        absensi: monthlyData,
+        total: totals
+      };
+    });
+
+    res.json({
+      success: true,
+      tahunAjaran: activeYear.kode,
+      tahunAjaranId: activeYear.id,
+      semester: activeSemester,
+      kategoriId: kategoriId,
+      months: months,
+      santri: result
+    });
+  }));
+
+  /**
+   * POST /api/my-mustahiq/absensi/update
+   * Simpan/update absensi bulanan santri per kelas
+   */
+  router.post('/absensi/update', asyncHandler(async (req, res) => {
+    const { tahun_ajaran_id, kategori_evaluasi_id, bulan, data } = req.body;
+    if (!tahun_ajaran_id || !kategori_evaluasi_id || !bulan || !data || !Array.isArray(data)) {
+      return res.status(400).json({ error: 'Parameter tidak lengkap.' });
+    }
+
+    const client = await db.pool.connect();
+    try {
+      await client.query('BEGIN');
+
+      for (const item of data) {
+        if (!item.santri_id) continue;
+        const s = parseInt(item.sakit || 0, 10);
+        const i = parseInt(item.izin || 0, 10);
+        const a = parseInt(item.alpa || 0, 10);
+
+        // 1. Insert/Update bulanan
+        await client.query(
+          `INSERT INTO absensi_bulanan_santri (santri_id, tahun_ajaran_id, kategori_evaluasi_id, bulan, sakit, izin, alpa)
+           VALUES ($1, $2, $3, $4, $5, $6, $7)
+           ON CONFLICT (santri_id, tahun_ajaran_id, kategori_evaluasi_id, bulan)
+           DO UPDATE SET 
+            sakit = EXCLUDED.sakit,
+            izin = EXCLUDED.izin,
+            alpa = EXCLUDED.alpa,
+            updated_at = NOW()`,
+          [item.santri_id, tahun_ajaran_id, kategori_evaluasi_id, bulan, s, i, a]
+        );
+
+        // 2. Sum up all monthly absensi to get totals
+        const sumRes = await client.query(
+          `SELECT SUM(COALESCE(sakit, 0)) as total_sakit, 
+                  SUM(COALESCE(izin, 0)) as total_izin, 
+                  SUM(COALESCE(alpa, 0)) as total_alpa
+           FROM absensi_bulanan_santri
+           WHERE santri_id = $1 AND tahun_ajaran_id = $2 AND kategori_evaluasi_id = $3`,
+          [item.santri_id, tahun_ajaran_id, kategori_evaluasi_id]
+        );
+
+        const totalSakit = parseInt(sumRes.rows[0].total_sakit || 0, 10);
+        const totalIzin = parseInt(sumRes.rows[0].total_izin || 0, 10);
+        const totalAlpa = parseInt(sumRes.rows[0].total_alpa || 0, 10);
+
+        // 3. Update/Insert in rapor_santri
+        await client.query(
+          `INSERT INTO rapor_santri (santri_id, tahun_ajaran_id, kategori_evaluasi_id, sakit, izin, alpa)
+           VALUES ($1, $2, $3, $4, $5, $6)
+           ON CONFLICT (santri_id, tahun_ajaran_id, kategori_evaluasi_id)
+           DO UPDATE SET 
+            sakit = EXCLUDED.sakit,
+            izin = EXCLUDED.izin,
+            alpa = EXCLUDED.alpa`,
+          [item.santri_id, tahun_ajaran_id, kategori_evaluasi_id, totalSakit, totalIzin, totalAlpa]
+        );
+      }
+
+      await client.query('COMMIT');
+      res.json({ success: true, message: 'Absensi berhasil diperbarui.' });
+    } catch (err) {
+      await client.query('ROLLBACK');
+      res.status(500).json({ error: err.message });
+    } finally {
+      client.release();
+    }
+  }));
+
+  /**
+   * POST /api/my-mustahiq/kelas-rapor/update
+   * Simpan/update nilai kepribadian, catatan, peringkat manual, keputusan kenaikan kelas binaan
+   */
+  router.post('/kelas-rapor/update', asyncHandler(async (req, res) => {
+    const { tahun_ajaran_id, kategori_evaluasi_id, data } = req.body;
+    if (!tahun_ajaran_id || !kategori_evaluasi_id || !data || !Array.isArray(data)) {
+      return res.status(400).json({ error: 'Parameter tidak lengkap.' });
+    }
+
+    const client = await db.pool.connect();
+    try {
+      await client.query('BEGIN');
+
+      for (const item of data) {
+        if (!item.santri_id) continue;
+        
+        await client.query(
+          `INSERT INTO rapor_santri 
+             (santri_id, tahun_ajaran_id, kategori_evaluasi_id, keaktifan, akhlaq, kerapihan, catatan, keputusan_kenaikan, peringkat_manual)
+           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+           ON CONFLICT (santri_id, tahun_ajaran_id, kategori_evaluasi_id)
+           DO UPDATE SET 
+             keaktifan = COALESCE(EXCLUDED.keaktifan, rapor_santri.keaktifan),
+             akhlaq = COALESCE(EXCLUDED.akhlaq, rapor_santri.akhlaq),
+             kerapihan = COALESCE(EXCLUDED.kerapihan, rapor_santri.kerapihan),
+             catatan = COALESCE(EXCLUDED.catatan, rapor_santri.catatan),
+             keputusan_kenaikan = COALESCE(EXCLUDED.keputusan_kenaikan, rapor_santri.keputusan_kenaikan),
+             peringkat_manual = COALESCE(EXCLUDED.peringkat_manual, rapor_santri.peringkat_manual)`,
+          [
+            item.santri_id,
+            tahun_ajaran_id,
+            kategori_evaluasi_id,
+            item.keaktifan !== undefined ? item.keaktifan : null,
+            item.akhlaq !== undefined ? item.akhlaq : null,
+            item.kerapihan !== undefined ? item.kerapihan : null,
+            item.catatan !== undefined ? item.catatan : null,
+            item.keputusan_kenaikan !== undefined ? item.keputusan_kenaikan : null,
+            item.peringkat_manual !== undefined ? item.peringkat_manual : null
+          ]
+        );
+      }
+
+      await client.query('COMMIT');
+      res.json({ success: true, message: 'Rapor kelas berhasil diperbarui.' });
+    } catch (err) {
+      await client.query('ROLLBACK');
+      res.status(500).json({ error: err.message });
+    } finally {
+      client.release();
+    }
+  }));
+
   app.use('/api/my-mustahiq', router);
 
 }

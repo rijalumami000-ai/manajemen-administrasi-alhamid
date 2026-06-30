@@ -809,6 +809,89 @@ class ApiService {
       rethrow;
     }
   }
+
+  // --- ABSENSI REPORT ---
+  Future<Map<String, dynamic>> getAbsensiReport({
+    required int kelasId,
+    int? tahunAjaranId,
+    String? semester,
+  }) async {
+    try {
+      final Map<String, dynamic> queryParams = {'kelas_id': kelasId};
+      if (tahunAjaranId != null) queryParams['tahun_ajaran_id'] = tahunAjaranId;
+      if (semester != null) queryParams['semester'] = semester;
+
+      final response = await _dio.get(
+        '/my-mustahiq/absensi/report',
+        queryParameters: queryParams,
+      );
+      if (response.statusCode == 200) {
+        return response.data;
+      }
+      throw Exception('Gagal mengambil laporan absensi.');
+    } catch (e) {
+      if (e is DioException && e.response != null) {
+        throw Exception(e.response?.data['error'] ?? 'Gagal mengambil laporan absensi.');
+      }
+      rethrow;
+    }
+  }
+
+  // --- ABSENSI BULANAN UPDATE ---
+  Future<Map<String, dynamic>> updateAbsensiBulanan({
+    required int tahunAjaranId,
+    required int kategoriEvaluasiId,
+    required String bulan,
+    required List<Map<String, dynamic>> data,
+  }) async {
+    try {
+      final response = await _dio.post(
+        '/my-mustahiq/absensi/update',
+        data: {
+          'tahun_ajaran_id': tahunAjaranId,
+          'kategori_evaluasi_id': kategoriEvaluasiId,
+          'bulan': bulan,
+          'data': data,
+        },
+      );
+      if (response.statusCode == 200) {
+        return response.data;
+      }
+      throw Exception('Gagal memperbarui absensi.');
+    } catch (e) {
+      if (e is DioException && e.response != null) {
+        throw Exception(e.response?.data['error'] ?? 'Gagal memperbarui absensi.');
+      }
+      rethrow;
+    }
+  }
+
+  // --- KELAS RAPOR UPDATE ---
+  Future<Map<String, dynamic>> updateKelasRapor({
+    required int tahunAjaranId,
+    required int kategoriEvaluasiId,
+    required List<Map<String, dynamic>> data,
+  }) async {
+    try {
+      final response = await _dio.post(
+        '/my-mustahiq/kelas-rapor/update',
+        data: {
+          'tahun_ajaran_id': tahunAjaranId,
+          'kategori_evaluasi_id': kategoriEvaluasiId,
+          'data': data,
+        },
+      );
+      if (response.statusCode == 200) {
+        return response.data;
+      }
+      throw Exception('Gagal memperbarui rapor kelas.');
+    } catch (e) {
+      if (e is DioException && e.response != null) {
+        throw Exception(e.response?.data['error'] ?? 'Gagal memperbarui rapor kelas.');
+      }
+      rethrow;
+    }
+  }
 }
 
 

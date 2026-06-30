@@ -8,6 +8,8 @@ import 'teacher_list_screen.dart';
 import 'tim_soal_screen.dart';
 import 'input_nilai_screen.dart';
 import 'laporan_akademik_screen.dart';
+import 'input_absensi_screen.dart';
+import 'laporan_absensi_screen.dart';
 import 'password_gate_dialog.dart';
 import '../widgets/muhafadzoh_info_bottom_sheet.dart';
 import '../widgets/qiroah_maqro_bottom_sheet.dart';
@@ -21,22 +23,22 @@ class TabAkademik extends StatelessWidget {
   Widget build(BuildContext context) {
     final isDark = context.isDarkMode;
 
-    // Featured Item (Scan Kartu Ujian) - Full Width
+    // Featured Item (Laporan Akademik Siswa) - Full Width
     final featuredItem = {
-      'title': 'Scan Kartu Ujian',
-      'desc': 'Pindai QR Code atau verifikasi nomor peserta pada kartu ujian santri.',
-      'icon': Icons.qr_code_scanner_rounded,
+      'title': 'Laporan Akademik Siswa',
+      'desc': 'Tampilkan nilai & rapor seluruh santri dalam satu kelas sekaligus: Muhafadzoh, Qiroah, Taftisy, Ujian Tulis, Absensi, Kepribadian, dan Rapor.',
+      'icon': Icons.table_chart_rounded,
       'colors': isDark
-          ? [const Color(0xFF1E3A8A), const Color(0xFF0F172A)]
-          : [const Color(0xFFEFF6FF), const Color(0xFFDBEAFE)],
+          ? [const Color(0xFF312E81), const Color(0xFF0F172A)]
+          : [const Color(0xFFEEF2FF), const Color(0xFFE0E7FF)],
       'borderColor': isDark
-          ? const Color(0xFF3B82F6).withOpacity(0.3)
-          : const Color(0xFF3B82F6).withOpacity(0.4),
-      'textColor': isDark ? const Color(0xFF60A5FA) : const Color(0xFF1E40AF),
-      'headingColor': isDark ? Colors.white : const Color(0xFF1E3A8A),
-      'bodyColor': isDark ? Colors.white.withOpacity(0.6) : const Color(0xFF1E3A8A).withOpacity(0.8),
-      'iconColor': isDark ? Colors.white : const Color(0xFF3B82F6),
-      'screen': const ScanKartuUjianScreen(),
+          ? const Color(0xFF818CF8).withOpacity(0.3)
+          : const Color(0xFF6366F1).withOpacity(0.4),
+      'textColor': isDark ? const Color(0xFFA5B4FC) : const Color(0xFF4338CA),
+      'headingColor': isDark ? Colors.white : const Color(0xFF312E81),
+      'bodyColor': isDark ? Colors.white.withOpacity(0.6) : const Color(0xFF312E81).withOpacity(0.8),
+      'iconColor': isDark ? Colors.white : const Color(0xFF6366F1),
+      'screen': const LaporanAkademikScreen(),
     };
 
     // Jadwal Pelajaran Item - Full Width
@@ -57,8 +59,26 @@ class TabAkademik extends StatelessWidget {
       'screen': const JadwalPelajaranScreen(),
     };
 
-    // Sub Items (Tim Soal & Input Nilai)
-    final subItems = [
+    // Laporan Absensi Item - Full Width
+    final laporanAbsensiItem = {
+      'title': 'Laporan Absensi Santri',
+      'desc': 'Rekapitulasi absensi santri per kelas, bulan, dan semester.',
+      'icon': Icons.assignment_rounded,
+      'colors': isDark
+          ? [const Color(0xFF1F2937), const Color(0xFF0F172A)]
+          : [const Color(0xFFF8FAFC), const Color(0xFFE2E8F0)],
+      'borderColor': isDark
+          ? const Color(0xFF64748B).withOpacity(0.25)
+          : const Color(0xFF64748B).withOpacity(0.4),
+      'textColor': isDark ? const Color(0xFF94A3B8) : const Color(0xFF475569),
+      'headingColor': isDark ? Colors.white : const Color(0xFF334155),
+      'bodyColor': isDark ? Colors.white.withOpacity(0.6) : const Color(0xFF475569).withOpacity(0.8),
+      'iconColor': isDark ? Colors.white : const Color(0xFF64748B),
+      'screen': const LaporanAbsensiScreen(),
+    };
+
+    // Sub Items Row 1 (Tim Soal & Input Nilai)
+    final subItemsRow1 = [
       {
         'title': 'Tim Soal',
         'desc': 'Kelola bank soal ujian per kelas & mapel.',
@@ -95,6 +115,43 @@ class TabAkademik extends StatelessWidget {
       },
     ];
 
+    // Sub Items Row 2 (Scan Kartu Ujian & Input Absensi)
+    final subItemsRow2 = [
+      {
+        'title': 'Scan Kartu Ujian',
+        'desc': 'Pindai QR Code atau verifikasi nomor kartu ujian.',
+        'icon': Icons.qr_code_scanner_rounded,
+        'colors': isDark
+            ? [const Color(0xFF1E3A8A), const Color(0xFF0F172A)]
+            : [const Color(0xFFEFF6FF), const Color(0xFFDBEAFE)],
+        'borderColor': isDark
+            ? const Color(0xFF3B82F6).withOpacity(0.25)
+            : const Color(0xFF3B82F6).withOpacity(0.4),
+        'textColor': isDark ? const Color(0xFF60A5FA) : const Color(0xFF1E40AF),
+        'headingColor': isDark ? Colors.white : const Color(0xFF1E40AF),
+        'bodyColor': isDark ? Colors.white.withOpacity(0.5) : const Color(0xFF1E3A8A).withOpacity(0.8),
+        'iconColor': isDark ? Colors.white : const Color(0xFF3B82F6),
+        'screen': const ScanKartuUjianScreen(),
+      },
+      {
+        'title': 'Input Absensi',
+        'desc': 'Input data Sakit, Izin, & Alpa bulanan.',
+        'icon': Icons.fact_check_rounded,
+        'colors': isDark
+            ? [const Color(0xFF065F46), const Color(0xFF0F172A)]
+            : [const Color(0xFFECFDF5), const Color(0xFFD1FAE5)],
+        'borderColor': isDark
+            ? const Color(0xFF10B981).withOpacity(0.25)
+            : const Color(0xFF10B981).withOpacity(0.4),
+        'textColor': isDark ? const Color(0xFF34D399) : const Color(0xFF065F46),
+        'headingColor': isDark ? Colors.white : const Color(0xFF065F46),
+        'bodyColor': isDark ? Colors.white.withOpacity(0.5) : const Color(0xFF064E3B).withOpacity(0.8),
+        'iconColor': isDark ? Colors.white : const Color(0xFF10B981),
+        'password': 'absen123',
+        'screen': const InputAbsensiScreen(),
+      },
+    ];
+
     return SingleChildScrollView(
       physics: const BouncingScrollPhysics(),
       child: Padding(
@@ -121,7 +178,7 @@ class TabAkademik extends StatelessWidget {
             ),
             const SizedBox(height: 24),
 
-            // 1. FEATURED CARD (Full Width)
+            // 1. FEATURED CARD (Laporan Akademik Siswa) - Full Width
             GestureDetector(
               onTap: () {
                 Navigator.push(
@@ -153,7 +210,6 @@ class TabAkademik extends StatelessWidget {
                 padding: const EdgeInsets.all(22),
                 child: Row(
                   children: [
-                    // Icon
                     Container(
                       padding: const EdgeInsets.all(14),
                       decoration: BoxDecoration(
@@ -168,7 +224,6 @@ class TabAkademik extends StatelessWidget {
                       ),
                     ),
                     const SizedBox(width: 18),
-                    // Texts
                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
@@ -194,7 +249,7 @@ class TabAkademik extends StatelessWidget {
                           Row(
                             children: [
                               Text(
-                                "Buka Profil",
+                                "Buka Laporan",
                                 style: GoogleFonts.outfit(
                                   color: featuredItem['textColor'] as Color,
                                   fontSize: 12,
@@ -250,7 +305,6 @@ class TabAkademik extends StatelessWidget {
                 padding: const EdgeInsets.all(22),
                 child: Row(
                   children: [
-                    // Icon
                     Container(
                       padding: const EdgeInsets.all(14),
                       decoration: BoxDecoration(
@@ -265,7 +319,6 @@ class TabAkademik extends StatelessWidget {
                       ),
                     ),
                     const SizedBox(width: 18),
-                    // Texts
                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
@@ -315,21 +368,19 @@ class TabAkademik extends StatelessWidget {
             ),
             const SizedBox(height: 16),
 
-            // 3. LAPORAN AKADEMIK SISWA CARD (Full Width)
+            // 3. LAPORAN ABSENSI CARD (Full Width)
             GestureDetector(
               onTap: () {
                 Navigator.push(
                   context,
-                  MaterialPageRoute(builder: (context) => const LaporanAkademikScreen()),
+                  MaterialPageRoute(builder: (context) => laporanAbsensiItem['screen'] as Widget),
                 );
               },
               child: Container(
                 width: double.infinity,
                 decoration: BoxDecoration(
                   gradient: LinearGradient(
-                    colors: isDark
-                        ? [const Color(0xFF312E81), const Color(0xFF0F172A)]
-                        : [const Color(0xFFEEF2FF), const Color(0xFFE0E7FF)],
+                    colors: laporanAbsensiItem['colors'] as List<Color>,
                     begin: Alignment.topLeft,
                     end: Alignment.bottomRight,
                   ),
@@ -342,9 +393,7 @@ class TabAkademik extends StatelessWidget {
                     ),
                   ],
                   border: Border.all(
-                    color: isDark
-                        ? const Color(0xFF818CF8).withOpacity(0.3)
-                        : const Color(0xFF6366F1).withOpacity(0.4),
+                    color: laporanAbsensiItem['borderColor'] as Color,
                     width: 1.5,
                   ),
                 ),
@@ -359,8 +408,8 @@ class TabAkademik extends StatelessWidget {
                         border: isDark ? null : Border.all(color: Colors.white, width: 1.5),
                       ),
                       child: Icon(
-                        Icons.table_chart_rounded,
-                        color: isDark ? Colors.white : const Color(0xFF6366F1),
+                        laporanAbsensiItem['icon'] as IconData,
+                        color: laporanAbsensiItem['iconColor'] as Color,
                         size: 32,
                       ),
                     ),
@@ -370,18 +419,18 @@ class TabAkademik extends StatelessWidget {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            'Laporan Akademik Siswa',
+                            laporanAbsensiItem['title'] as String,
                             style: GoogleFonts.outfit(
-                              color: isDark ? Colors.white : const Color(0xFF312E81),
+                              color: laporanAbsensiItem['headingColor'] as Color,
                               fontSize: 17,
                               fontWeight: FontWeight.bold,
                             ),
                           ),
                           const SizedBox(height: 6),
                           Text(
-                            'Tampilkan nilai & rapor seluruh santri dalam satu kelas sekaligus: Muhafadzoh, Qiroah, Taftisy, Ujian Tulis, Absensi, Kepribadian, dan Kenaikan Kelas.',
+                            laporanAbsensiItem['desc'] as String,
                             style: GoogleFonts.outfit(
-                              color: isDark ? Colors.white.withOpacity(0.6) : const Color(0xFF312E81).withOpacity(0.8),
+                              color: laporanAbsensiItem['bodyColor'] as Color,
                               fontSize: 11,
                               height: 1.4,
                             ),
@@ -390,9 +439,9 @@ class TabAkademik extends StatelessWidget {
                           Row(
                             children: [
                               Text(
-                                'Buka Laporan',
+                                "Buka Absensi",
                                 style: GoogleFonts.outfit(
-                                  color: isDark ? const Color(0xFFA5B4FC) : const Color(0xFF4338CA),
+                                  color: laporanAbsensiItem['textColor'] as Color,
                                   fontSize: 12,
                                   fontWeight: FontWeight.bold,
                                 ),
@@ -400,7 +449,7 @@ class TabAkademik extends StatelessWidget {
                               const SizedBox(width: 6),
                               Icon(
                                 Icons.arrow_forward_rounded,
-                                color: isDark ? const Color(0xFFA5B4FC) : const Color(0xFF4338CA),
+                                color: laporanAbsensiItem['textColor'] as Color,
                                 size: 13,
                               ),
                             ],
@@ -414,15 +463,26 @@ class TabAkademik extends StatelessWidget {
             ),
             const SizedBox(height: 16),
 
-            // 4. SUB ITEMS ROW (Tim Soal & Input Nilai)
+            // 4. SUB ITEMS ROW 1 (Tim Soal & Input Nilai)
             Row(
               children: [
-                Expanded(child: _buildSubItem(context, subItems[0], isDark, isLeft: true)),
+                Expanded(child: _buildSubItem(context, subItemsRow1[0], isDark, isLeft: true)),
                 const SizedBox(width: 14),
-                Expanded(child: _buildSubItem(context, subItems[1], isDark, isLeft: false)),
+                Expanded(child: _buildSubItem(context, subItemsRow1[1], isDark, isLeft: false)),
+              ],
+            ),
+            const SizedBox(height: 14),
+
+            // 5. SUB ITEMS ROW 2 (Scan Kartu Ujian & Input Absensi)
+            Row(
+              children: [
+                Expanded(child: _buildSubItem(context, subItemsRow2[0], isDark, isLeft: true)),
+                const SizedBox(width: 14),
+                Expanded(child: _buildSubItem(context, subItemsRow2[1], isDark, isLeft: false)),
               ],
             ),
             const SizedBox(height: 24),
+
             Text(
               "INFORMASI UJIAN",
               style: GoogleFonts.outfit(
