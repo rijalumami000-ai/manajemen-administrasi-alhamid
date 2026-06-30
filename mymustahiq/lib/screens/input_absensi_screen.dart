@@ -45,25 +45,25 @@ class _InputAbsensiScreenState extends State<InputAbsensiScreen> {
     });
 
     try {
-      // 1. Fetch dashboard to get active year and classes
-      final dash = await _apiService.getDashboard();
-      final activeYear = dash['tahunAjaran'];
-      _selectedSemester = activeYear?['semester'] ?? 'Ganjil';
-
-      // 2. Fetch classes
-      final classRes = await _apiService.getClasses();
-      _classes = classRes['classes'] ?? [];
-      _tahunAjaranList = classRes['tahunAjaranList'] ?? [];
+      // 1. Fetch tahun ajaran list
+      final taRes = await _apiService.getTahunAjaranList();
+      _tahunAjaranList = taRes['tahunAjaran'] ?? [];
+      _selectedSemester = taRes['activeSemester'] ?? 'Ganjil';
 
       // Find active tahun ajaran from list
-      if (activeYear != null && _tahunAjaranList.isNotEmpty) {
+      if (_tahunAjaranList.isNotEmpty) {
         _selectedTahunAjaran = _tahunAjaranList.firstWhere(
-          (y) => y['id'] == activeYear['id'],
+          (ta) => ta['is_active'] == true,
           orElse: () => _tahunAjaranList.first,
         );
-      } else if (_tahunAjaranList.isNotEmpty) {
-        _selectedTahunAjaran = _tahunAjaranList.first;
       }
+
+      // 2. Fetch classes for the active tahun ajaran & semester
+      final classRes = await _apiService.getClasses(
+        tahunAjaranId: _selectedTahunAjaran?['id'],
+        semester: _selectedSemester,
+      );
+      _classes = classRes['classes'] ?? [];
 
       setState(() {
         _isLoading = false;

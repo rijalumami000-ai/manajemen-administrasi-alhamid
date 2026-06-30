@@ -150,9 +150,9 @@ class _KelaskuRaporInputScreenState extends State<KelaskuRaporInputScreen> {
     final rapor = santri['rapor'] as Map<String, dynamic>? ?? {};
 
     // Retrieve initial values from local changes or database
-    String currentAkhlaq = _localChanges[santriId]?['akhlaq'] ?? rapor['akhlaq'] ?? 'Baik';
-    String currentKeaktifan = _localChanges[santriId]?['keaktifan'] ?? rapor['keaktifan'] ?? 'Baik';
-    String currentKerapihan = _localChanges[santriId]?['kerapihan'] ?? rapor['kerapihan'] ?? 'Baik';
+    String currentAkhlaq = _localChanges[santriId]?['akhlaq'] ?? rapor['akhlaq'] ?? 'B';
+    String currentKeaktifan = _localChanges[santriId]?['keaktifan'] ?? rapor['keaktifan'] ?? 'B';
+    String currentKerapihan = _localChanges[santriId]?['kerapihan'] ?? rapor['kerapihan'] ?? 'B';
     String currentCatatan = _localChanges[santriId]?['catatan'] ?? rapor['catatan'] ?? '';
     String currentKenaikan = _localChanges[santriId]?['keputusan_kenaikan'] ?? rapor['keputusan_kenaikan'] ?? '';
     
@@ -175,7 +175,7 @@ class _KelaskuRaporInputScreenState extends State<KelaskuRaporInputScreen> {
         final kenaikanController = TextEditingController(text: currentKenaikan);
         final peringkatController = TextEditingController(text: currentPeringkatText);
 
-        final List<String> listKriteria = ['Sangat Baik', 'Baik', 'Cukup', 'Kurang'];
+        final List<String> listKriteria = ['A', 'B', 'C', 'D'];
 
         return AlertDialog(
           backgroundColor: dialogBg,
@@ -192,7 +192,7 @@ class _KelaskuRaporInputScreenState extends State<KelaskuRaporInputScreen> {
                 // Akhlaq
                 _buildDropdownField(
                   label: "Akhlaq / Kepribadian",
-                  value: listKriteria.contains(currentAkhlaq) ? currentAkhlaq : 'Baik',
+                  value: listKriteria.contains(currentAkhlaq) ? currentAkhlaq : 'B',
                   items: listKriteria,
                   onChanged: (val) {
                     if (val != null) currentAkhlaq = val;
@@ -204,7 +204,7 @@ class _KelaskuRaporInputScreenState extends State<KelaskuRaporInputScreen> {
                 // Keaktifan
                 _buildDropdownField(
                   label: "Keaktifan",
-                  value: listKriteria.contains(currentKeaktifan) ? currentKeaktifan : 'Baik',
+                  value: listKriteria.contains(currentKeaktifan) ? currentKeaktifan : 'B',
                   items: listKriteria,
                   onChanged: (val) {
                     if (val != null) currentKeaktifan = val;
@@ -216,7 +216,7 @@ class _KelaskuRaporInputScreenState extends State<KelaskuRaporInputScreen> {
                 // Kerapihan
                 _buildDropdownField(
                   label: "Kerapihan",
-                  value: listKriteria.contains(currentKerapihan) ? currentKerapihan : 'Baik',
+                  value: listKriteria.contains(currentKerapihan) ? currentKerapihan : 'B',
                   items: listKriteria,
                   onChanged: (val) {
                     if (val != null) currentKerapihan = val;
@@ -448,7 +448,7 @@ class _KelaskuRaporInputScreenState extends State<KelaskuRaporInputScreen> {
                           final rapor = s['rapor'] as Map<String, dynamic>? ?? {};
 
                           // Local live values
-                          final liveAkhlaq = _localChanges[santriId]?['akhlaq'] ?? rapor['akhlaq'] ?? 'Baik';
+                          final liveAkhlaq = _localChanges[santriId]?['akhlaq'] ?? rapor['akhlaq'] ?? 'B';
                           final liveCatatan = _localChanges[santriId]?['catatan'] ?? rapor['catatan'] ?? '';
                           final livePeringkat = _localChanges[santriId]?['peringkat_manual'] ?? rapor['peringkat_manual'] ?? rapor['peringkat'];
                           
