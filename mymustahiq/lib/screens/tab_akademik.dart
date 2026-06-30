@@ -3,8 +3,6 @@ import 'package:google_fonts/google_fonts.dart';
 import '../services/theme_manager.dart';
 import 'scan_kartu_ujian_screen.dart';
 import 'jadwal_pelajaran_screen.dart';
-import 'struktur_organisasi_screen.dart';
-import 'teacher_list_screen.dart';
 import 'tim_soal_screen.dart';
 import 'input_nilai_screen.dart';
 import 'laporan_akademik_screen.dart';
