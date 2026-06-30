@@ -125,6 +125,32 @@ class _LaporanAbsensiScreenState extends State<LaporanAbsensiScreen> {
     });
   }
 
+  Future<void> _fetchClassesForFilters() async {
+    setState(() {
+      _isLoadingClasses = true;
+      _errorMessage = null;
+      _reportData = null;
+      _selectedClass = null;
+      _searchController.clear();
+    });
+
+    try {
+      final classRes = await _apiService.getClasses(
+        tahunAjaranId: _selectedTahunAjaran?['id'],
+        semester: _selectedSemester,
+      );
+      setState(() {
+        _classList = classRes['classes'] ?? [];
+        _isLoadingClasses = false;
+      });
+    } catch (e) {
+      setState(() {
+        _errorMessage = e.toString().replaceFirst('Exception: ', '');
+        _isLoadingClasses = false;
+      });
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final isDark = context.isDarkMode;
@@ -212,7 +238,7 @@ class _LaporanAbsensiScreenState extends State<LaporanAbsensiScreen> {
                 setState(() {
                   _selectedTahunAjaran = val;
                 });
-                if (_selectedClass != null) _fetchAbsensiReport();
+                _fetchClassesForFilters();
               },
             ),
           ),
@@ -240,7 +266,7 @@ class _LaporanAbsensiScreenState extends State<LaporanAbsensiScreen> {
                   setState(() {
                     _selectedSemester = val;
                   });
-                  if (_selectedClass != null) _fetchAbsensiReport();
+                  _fetchClassesForFilters();
                 }
               },
             ),

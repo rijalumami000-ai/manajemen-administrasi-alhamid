@@ -2572,6 +2572,7 @@ function registerMyMustahiqRoutes(app) {
       tahunAjaran: activeYear.kode,
       tahunAjaranId: activeYear.id,
       semester: activeSemester,
+      kategoriId: kategoriId,
       muhafadzoh_kitab: muhafadzohKitab,
       qiroatul_kitab: qiroatulKitab,
       muhafadzoh_tipe_input: muhafadzohTipeInput,
@@ -2845,13 +2846,13 @@ function registerMyMustahiqRoutes(app) {
              (santri_id, tahun_ajaran_id, kategori_evaluasi_id, keaktifan, akhlaq, kerapihan, catatan, keputusan_kenaikan, peringkat_manual)
            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
            ON CONFLICT (santri_id, tahun_ajaran_id, kategori_evaluasi_id)
-           DO UPDATE SET 
-             keaktifan = COALESCE(EXCLUDED.keaktifan, rapor_santri.keaktifan),
-             akhlaq = COALESCE(EXCLUDED.akhlaq, rapor_santri.akhlaq),
-             kerapihan = COALESCE(EXCLUDED.kerapihan, rapor_santri.kerapihan),
-             catatan = COALESCE(EXCLUDED.catatan, rapor_santri.catatan),
-             keputusan_kenaikan = COALESCE(EXCLUDED.keputusan_kenaikan, rapor_santri.keputusan_kenaikan),
-             peringkat_manual = COALESCE(EXCLUDED.peringkat_manual, rapor_santri.peringkat_manual)`,
+            DO UPDATE SET 
+              keaktifan = EXCLUDED.keaktifan,
+              akhlaq = EXCLUDED.akhlaq,
+              kerapihan = EXCLUDED.kerapihan,
+              catatan = EXCLUDED.catatan,
+              keputusan_kenaikan = EXCLUDED.keputusan_kenaikan,
+              peringkat_manual = EXCLUDED.peringkat_manual`,
           [
             item.santri_id,
             tahun_ajaran_id,
