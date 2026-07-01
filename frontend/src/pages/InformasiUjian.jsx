@@ -1,18 +1,23 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { 
-  Card, Table, Select, Input, Tag, Space, Typography, 
-  message, Button, Tabs, Alert, Segmented, Row, Col, Empty 
-} from 'antd';
-import { 
-  EditOutlined, SaveOutlined, CloseOutlined, 
-  InfoCircleOutlined, BookOutlined, DeleteOutlined, PlusOutlined,
-  CalendarOutlined
-} from '@ant-design/icons';
+  BookOpen, 
+  Info, 
+  Calendar, 
+  Save, 
+  Edit3, 
+  X, 
+  Plus, 
+  Trash2, 
+  AlertTriangle,
+  HelpCircle
+} from 'lucide-react';
 import { nilaiService } from '../services/nilaiService';
 import { settingsService } from '../services/settingsService';
-import { PageHeader, LoadingState, ErrorState } from '../components/common';
-
-const { Title, Text } = Typography;
+import { PageHeader, LoadingState, ErrorState, useToast } from '../components/common';
+import { CustomSelect } from '../components/ui/CustomSelect';
+import { SmartAlert } from '../components/ui/SmartAlert';
+import { CustomModal } from '../components/ui/CustomModal';
+import './InformasiUjian.scss';
 
 const defaultMuhafadzohTemplate = [
   {
@@ -43,7 +48,7 @@ const defaultMuhafadzohTemplate = [
     kelas: "Dua",
     kitab: "Matan Jurumiyah",
     mumtaz: "باب المخفوضات من الاسماء",
-    jayyid: "باب المفعول من اجله – باب المفعول معه",
+    jayyid: "باب المفعول dari اجله – باب المفعول معه",
     mutawasith: "باب لا – باب المنادي",
     rodi: "باب الكلام – باب الاستثناء"
   },
@@ -112,7 +117,7 @@ const defaultMaqroTemplate = [
     maqro: [
       "فصل ينبش الميت",
       "الإستعانات",
-      "الأموال التي تلزم فيها الزكاة"
+      "الأمwal التي تلزم فيها الزكاة"
     ]
   },
   {
@@ -167,22 +172,27 @@ const emptyMaqroTemplate = [
 ];
 
 const staticTingkatanList = [
-  { value: 0, label: 'Sifir' },
-  { value: 1, label: 'Kelas 1' },
-  { value: 99, label: 'SP' },
-  { value: 2, label: 'Kelas 2' },
-  { value: 3, label: 'Kelas 3' },
-  { value: 4, label: 'Kelas 4' },
-  { value: 5, label: 'Kelas 5' },
-  { value: 6, label: 'Kelas 6' }
+  { value: '0', label: 'Sifir' },
+  { value: '1', label: 'Kelas 1' },
+  { value: '99', label: 'SP' },
+  { value: '2', label: 'Kelas 2' },
+  { value: '3', label: 'Kelas 3' },
+  { value: '4', label: 'Kelas 4' },
+  { value: '5', label: 'Kelas 5' },
+  { value: '6', label: 'Kelas 6' }
 ];
 
 export function InformasiUjian() {
+  const toast = useToast();
+
   const [tahunAjaran, setTahunAjaran] = useState(null);
   const [tahunAjaranList, setTahunAjaranList] = useState([]);
   const [kategori, setKategori] = useState([]);
   const [selectedKategori, setSelectedKategori] = useState(null);
   
+  // Tab control state
+  const [activeTabKey, setActiveTabKey] = useState('ketentuan-muhafadzoh');
+
   // Muhafadzoh states
   const [muhafadzohInfo, setMuhafadzohInfo] = useState([]);
   const [editData, setEditData] = useState([]);
@@ -201,7 +211,7 @@ export function InformasiUjian() {
   const [isEditingTaftisy, setIsEditingTaftisy] = useState(false);
 
   // Ujian Tulis states
-  const [selectedTingkatUjianTulis, setSelectedTingkatUjianTulis] = useState(0);
+  const [selectedTingkatUjianTulis, setSelectedTingkatUjianTulis] = useState('0');
   const [ujianTulisMateri, setUjianTulisMateri] = useState([]);
   const [editUjianTulisMateri, setEditUjianTulisMateri] = useState([]);
   const [isEditingUjianTulis, setIsEditingUjianTulis] = useState(false);
@@ -235,18 +245,15 @@ export function InformasiUjian() {
       setTahunAjaranList(Array.isArray(taData) ? taData : []);
       setKategori(Array.isArray(katData) ? katData : []);
 
-      // Filter Diniyah classes
       const diniyahClasses = Array.isArray(classesData) ? classesData.filter(c => c.jenis === 'Diniyah') : [];
       setClassList(diniyahClasses);
       if (diniyahClasses.length > 0) {
         setSelectedKelas(diniyahClasses[0].id);
       }
 
-      // Find active academic year
       const activeTA = Array.isArray(taData) ? taData.find(ta => ta.is_active) : null;
       setTahunAjaran(activeTA || (taData.length > 0 ? taData[0] : null));
 
-      // Find active semester
       if (Array.isArray(katData)) {
         const activeSemester = systemSettings.active_semester || 'Ganjil';
         const defaultKat = katData.find(k => k.nama?.toLowerCase().includes(activeSemester.toLowerCase()));
@@ -281,7 +288,7 @@ export function InformasiUjian() {
 
   // Fetch ujian tulis data whenever filters or tingkat change
   useEffect(() => {
-    if (tahunAjaran?.id && selectedKategori && (selectedTingkatUjianTulis !== null && selectedTingkatUjianTulis !== undefined)) {
+    if (tahunAjaran?.id && selectedKategori && selectedTingkatUjianTulis !== null) {
       fetchUjianTulisData();
     }
   }, [tahunAjaran, selectedKategori, selectedTingkatUjianTulis]);
@@ -306,7 +313,7 @@ export function InformasiUjian() {
       setEditQiroahMaqro(JSON.parse(JSON.stringify(qSorted)));
     } catch (err) {
       console.error('Failed to fetch info:', err);
-      message.error('Gagal mengambil data ketentuan nilai dan maqro.');
+      toast.error('Gagal mengambil data ketentuan nilai dan maqro.');
     } finally {
       setLoading(false);
     }
@@ -321,20 +328,20 @@ export function InformasiUjian() {
       setEditTaftisyMateri(JSON.parse(JSON.stringify(sorted)));
     } catch (err) {
       console.error('Failed to fetch taftisy info:', err);
-      message.error('Gagal mengambil data batasan materi Taftisyul Kutub.');
+      toast.error('Gagal mengambil data batasan materi Taftisyul Kutub.');
     }
   };
 
   const fetchUjianTulisData = async () => {
     try {
       setIsEditingUjianTulis(false);
-      const data = await nilaiService.fetchMateriUjianTulis(tahunAjaran.id, selectedKategori, selectedTingkatUjianTulis);
+      const data = await nilaiService.fetchMateriUjianTulis(tahunAjaran.id, selectedKategori, Number(selectedTingkatUjianTulis));
       const sorted = Array.isArray(data) ? data : [];
       setUjianTulisMateri(sorted);
       setEditUjianTulisMateri(JSON.parse(JSON.stringify(sorted)));
     } catch (err) {
       console.error('Failed to fetch written exam info:', err);
-      message.error('Gagal mengambil data batasan materi Ujian Tulis.');
+      toast.error('Gagal mengambil data batasan materi Ujian Tulis.');
     }
   };
 
@@ -343,7 +350,6 @@ export function InformasiUjian() {
     try {
       setKalenderLoading(true);
       setIsEditingKalender(false);
-      // Determine semester name from kategori
       const kat = kategori.find(k => k.id === selectedKategori);
       const semesterName = kat?.nama?.toLowerCase().includes('genap') ? 'Genap' : 'Ganjil';
       const data = await nilaiService.fetchKalenderAkademik(tahunAjaran.id, semesterName);
@@ -368,11 +374,11 @@ export function InformasiUjian() {
         semester: semesterName,
         data: editKalender
       });
-      message.success('Kalender akademik berhasil disimpan!');
+      toast.success('Kalender akademik berhasil disimpan!');
       setKalenderAkademik(JSON.parse(JSON.stringify(editKalender)));
       setIsEditingKalender(false);
     } catch (err) {
-      message.error(err.message || 'Gagal menyimpan kalender akademik.');
+      toast.error(err.message || 'Gagal menyimpan kalender akademik.');
     } finally {
       setSaveLoading(false);
     }
@@ -392,12 +398,6 @@ export function InformasiUjian() {
     setEditKalender(editKalender.filter((_, i) => i !== index));
   };
 
-  const handleTahunAjaranChange = (val) => {
-    const selected = tahunAjaranList.find(ta => ta.id === val);
-    setTahunAjaran(selected);
-  };
-
-  // Muhafadzoh change handlers
   const handleInputChange = (index, field, value) => {
     const updated = [...editData];
     updated[index][field] = value;
@@ -413,12 +413,12 @@ export function InformasiUjian() {
         kategori_evaluasi_id: selectedKategori,
         data: editData
       });
-      message.success('Ketentuan nilai muhafadzoh berhasil diperbarui!');
+      toast.success('Ketentuan nilai muhafadzoh berhasil diperbarui!');
       setMuhafadzohInfo(JSON.parse(JSON.stringify(editData)));
       setIsEditing(false);
     } catch (err) {
       console.error('Failed to save muhafadzoh info:', err);
-      message.error(err.message || 'Gagal menyimpan ketentuan nilai.');
+      toast.error(err.message || 'Gagal menyimpan ketentuan nilai.');
     } finally {
       setSaveLoading(false);
     }
@@ -457,12 +457,12 @@ export function InformasiUjian() {
         kategori_evaluasi_id: selectedKategori,
         data: editQiroahMaqro
       });
-      message.success('Maqro qiroatul kitab berhasil diperbarui!');
+      toast.success('Maqro qiroatul kitab berhasil diperbarui!');
       setQiroahMaqro(JSON.parse(JSON.stringify(editQiroahMaqro)));
       setIsEditingQiroah(false);
     } catch (err) {
       console.error('Failed to save qiroah maqro:', err);
-      message.error(err.message || 'Gagal menyimpan maqro.');
+      toast.error(err.message || 'Gagal menyimpan maqro.');
     } finally {
       setSaveLoading(false);
     }
@@ -490,12 +490,12 @@ export function InformasiUjian() {
         kelas_id: selectedKelas,
         data: editTaftisyMateri
       });
-      message.success('Batasan materi Taftisyul Kutub berhasil diperbarui!');
+      toast.success('Batasan materi Taftisyul Kutub berhasil diperbarui!');
       setTaftisyMateri(JSON.parse(JSON.stringify(editTaftisyMateri)));
       setIsEditingTaftisy(false);
     } catch (err) {
       console.error('Failed to save taftisy materi:', err);
-      message.error(err.message || 'Gagal menyimpan batasan materi.');
+      toast.error(err.message || 'Gagal menyimpan batasan materi.');
     } finally {
       setSaveLoading(false);
     }
@@ -514,21 +514,21 @@ export function InformasiUjian() {
   };
 
   const handleUjianTulisSave = async () => {
-    if (!tahunAjaran?.id || !selectedKategori || selectedTingkatUjianTulis === null || selectedTingkatUjianTulis === undefined) return;
+    if (!tahunAjaran?.id || !selectedKategori || selectedTingkatUjianTulis === null) return;
     try {
       setSaveLoading(true);
       await nilaiService.saveMateriUjianTulis({
         tahun_ajaran_id: tahunAjaran.id,
         kategori_evaluasi_id: selectedKategori,
-        tingkat: selectedTingkatUjianTulis,
+        tingkat: Number(selectedTingkatUjianTulis),
         data: editUjianTulisMateri
       });
-      message.success('Batasan materi Ujian Tulis berhasil diperbarui!');
+      toast.success('Batasan materi Ujian Tulis berhasil diperbarui!');
       setUjianTulisMateri(JSON.parse(JSON.stringify(editUjianTulisMateri)));
       setIsEditingUjianTulis(false);
     } catch (err) {
       console.error('Failed to save written exam materi:', err);
-      message.error(err.message || 'Gagal menyimpan batasan materi.');
+      toast.error(err.message || 'Gagal menyimpan batasan materi.');
     } finally {
       setSaveLoading(false);
     }
@@ -551,429 +551,6 @@ export function InformasiUjian() {
     setIsEditingQiroah(true);
   };
 
-  const ujianTulisColumns = [
-    {
-      title: 'No',
-      key: 'index',
-      width: 60,
-      align: 'center',
-      render: (text, record, index) => index + 1
-    },
-    {
-      title: 'Pelajaran',
-      dataIndex: 'pelajaran',
-      key: 'pelajaran',
-      width: 250,
-      render: (text) => {
-        const isArabic = /[\u0600-\u06FF]/.test(text);
-        return (
-          <Text 
-            strong 
-            className={isArabic ? "arabic-text" : ""}
-            style={isArabic ? { fontSize: '18px', color: '#1a365d' } : { color: '#1a365d' }}
-          >
-            {text}
-          </Text>
-        );
-      }
-    },
-    {
-      title: 'Batas Awal',
-      dataIndex: 'batas_awal',
-      key: 'batas_awal',
-      align: 'center',
-      render: (text, record, index) => {
-        if (isEditingUjianTulis) {
-          const isArabic = /[\u0600-\u06FF]/.test(editUjianTulisMateri[index]?.batas_awal || '');
-          return (
-            <Input 
-              value={editUjianTulisMateri[index]?.batas_awal} 
-              className={isArabic ? "arabic-text" : ""}
-              style={isArabic ? { direction: 'rtl', textAlign: 'right' } : {}}
-              onChange={(e) => handleUjianTulisInputChange(index, 'batas_awal', e.target.value)} 
-            />
-          );
-        }
-        const isArabic = /[\u0600-\u06FF]/.test(text);
-        return (
-          <Text 
-            className={isArabic ? "arabic-text" : ""} 
-            style={isArabic ? { fontSize: '18px', color: '#0f172a' } : { color: '#334155' }} 
-            strong
-          >
-            {text || '-'}
-          </Text>
-        );
-      }
-    },
-    {
-      title: 'Batas Akhir',
-      dataIndex: 'batas_akhir',
-      key: 'batas_akhir',
-      align: 'center',
-      render: (text, record, index) => {
-        if (isEditingUjianTulis) {
-          const isArabic = /[\u0600-\u06FF]/.test(editUjianTulisMateri[index]?.batas_akhir || '');
-          return (
-            <Input 
-              value={editUjianTulisMateri[index]?.batas_akhir} 
-              className={isArabic ? "arabic-text" : ""}
-              style={isArabic ? { direction: 'rtl', textAlign: 'right' } : {}}
-              onChange={(e) => handleUjianTulisInputChange(index, 'batas_akhir', e.target.value)} 
-            />
-          );
-        }
-        const isArabic = /[\u0600-\u06FF]/.test(text);
-        return (
-          <Text 
-            className={isArabic ? "arabic-text" : ""} 
-            style={isArabic ? { fontSize: '18px', color: '#0f172a' } : { color: '#334155' }} 
-            strong
-          >
-            {text || '-'}
-          </Text>
-        );
-      }
-    }
-  ];
-
-  const taftisyColumns = [
-    {
-      title: 'No',
-      key: 'index',
-      width: 60,
-      align: 'center',
-      render: (text, record, index) => index + 1
-    },
-    {
-      title: 'Pelajaran',
-      dataIndex: 'pelajaran',
-      key: 'pelajaran',
-      width: 250,
-      render: (text) => {
-        const isArabic = /[\u0600-\u06FF]/.test(text);
-        return (
-          <Text 
-            strong 
-            className={isArabic ? "arabic-text" : ""}
-            style={isArabic ? { fontSize: '18px', color: '#1a365d' } : { color: '#1a365d' }}
-          >
-            {text}
-          </Text>
-        );
-      }
-    },
-    {
-      title: 'Batas Awal',
-      dataIndex: 'batas_awal',
-      key: 'batas_awal',
-      align: 'center',
-      render: (text, record, index) => {
-        if (isEditingTaftisy) {
-          const isArabic = /[\u0600-\u06FF]/.test(editTaftisyMateri[index]?.batas_awal || '');
-          return (
-            <Input 
-              value={editTaftisyMateri[index]?.batas_awal} 
-              className={isArabic ? "arabic-text" : ""}
-              style={isArabic ? { direction: 'rtl', textAlign: 'right' } : {}}
-              onChange={(e) => handleTaftisyInputChange(index, 'batas_awal', e.target.value)} 
-            />
-          );
-        }
-        const isArabic = /[\u0600-\u06FF]/.test(text);
-        return (
-          <Text 
-            className={isArabic ? "arabic-text" : ""} 
-            style={isArabic ? { fontSize: '18px', color: '#0f172a' } : { color: '#334155' }} 
-            strong
-          >
-            {text || '-'}
-          </Text>
-        );
-      }
-    },
-    {
-      title: 'Batas Akhir',
-      dataIndex: 'batas_akhir',
-      key: 'batas_akhir',
-      align: 'center',
-      render: (text, record, index) => {
-        if (isEditingTaftisy) {
-          const isArabic = /[\u0600-\u06FF]/.test(editTaftisyMateri[index]?.batas_akhir || '');
-          return (
-            <Input 
-              value={editTaftisyMateri[index]?.batas_akhir} 
-              className={isArabic ? "arabic-text" : ""}
-              style={isArabic ? { direction: 'rtl', textAlign: 'right' } : {}}
-              onChange={(e) => handleTaftisyInputChange(index, 'batas_akhir', e.target.value)} 
-            />
-          );
-        }
-        const isArabic = /[\u0600-\u06FF]/.test(text);
-        return (
-          <Text 
-            className={isArabic ? "arabic-text" : ""} 
-            style={isArabic ? { fontSize: '18px', color: '#0f172a' } : { color: '#334155' }} 
-            strong
-          >
-            {text || '-'}
-          </Text>
-        );
-      }
-    },
-    {
-      title: 'Halaman',
-      dataIndex: 'halaman',
-      key: 'halaman',
-      width: 120,
-      align: 'center',
-      render: (text, record, index) => {
-        if (isEditingTaftisy) {
-          const isArabic = /[\u0600-\u06FF]/.test(editTaftisyMateri[index]?.halaman || '');
-          return (
-            <Input 
-              value={editTaftisyMateri[index]?.halaman} 
-              className={isArabic ? "arabic-text" : ""}
-              style={isArabic ? { direction: 'rtl', textAlign: 'right' } : {}}
-              onChange={(e) => handleTaftisyInputChange(index, 'halaman', e.target.value)} 
-            />
-          );
-        }
-        const isArabic = /[\u0600-\u06FF]/.test(text);
-        return (
-          <Text 
-            className={isArabic ? "arabic-text" : ""} 
-            style={isArabic ? { fontSize: '18px', color: '#0f172a' } : { color: '#334155' }} 
-            strong
-          >
-            {text || '-'}
-          </Text>
-        );
-      }
-    }
-  ];
-
-  const muhafadzohColumns = [
-    {
-      title: 'Kelas',
-      dataIndex: 'kelas',
-      key: 'kelas',
-      width: 120,
-      align: 'center',
-      fixed: 'left',
-      render: (text) => <Text strong>{text}</Text>
-    },
-    {
-      title: 'Kitab',
-      dataIndex: 'kitab',
-      key: 'kitab',
-      width: 220,
-      render: (text, record, index) => {
-        if (isEditing) {
-          return (
-            <Input 
-              value={editData[index]?.kitab} 
-              onChange={(e) => handleInputChange(index, 'kitab', e.target.value)} 
-            />
-          );
-        }
-        return <Text strong style={{ color: '#1a365d' }}>{text}</Text>;
-      }
-    },
-    {
-      title: 'Mumtaz (Istimewa)',
-      dataIndex: 'mumtaz',
-      key: 'mumtaz',
-      align: 'center',
-      render: (text, record, index) => {
-        if (isEditing) {
-          const isArabic = /[\u0600-\u06FF]/.test(editData[index]?.mumtaz || '');
-          return (
-            <Input 
-              value={editData[index]?.mumtaz} 
-              className={isArabic ? "arabic-text" : ""}
-              style={isArabic ? { direction: 'rtl', textAlign: 'right' } : {}}
-              onChange={(e) => handleInputChange(index, 'mumtaz', e.target.value)} 
-            />
-          );
-        }
-        const isArabic = /[\u0600-\u06FF]/.test(text);
-        return (
-          <Text 
-            className={isArabic ? "arabic-text" : ""} 
-            style={isArabic ? { fontSize: '18px', color: '#b25900' } : { color: '#52c41a' }} 
-            strong
-          >
-            {text}
-          </Text>
-        );
-      }
-    },
-    {
-      title: 'Jayyid (Baik)',
-      dataIndex: 'jayyid',
-      key: 'jayyid',
-      align: 'center',
-      render: (text, record, index) => {
-        if (isEditing) {
-          const isArabic = /[\u0600-\u06FF]/.test(editData[index]?.jayyid || '');
-          return (
-            <Input 
-              value={editData[index]?.jayyid} 
-              className={isArabic ? "arabic-text" : ""}
-              style={isArabic ? { direction: 'rtl', textAlign: 'right' } : {}}
-              onChange={(e) => handleInputChange(index, 'jayyid', e.target.value)} 
-            />
-          );
-        }
-        const isArabic = /[\u0600-\u06FF]/.test(text);
-        return (
-          <Text 
-            className={isArabic ? "arabic-text" : ""} 
-            style={isArabic ? { fontSize: '18px', color: '#b25900' } : {}}
-          >
-            {text}
-          </Text>
-        );
-      }
-    },
-    {
-      title: 'Mutawassith (Cukup)',
-      dataIndex: 'mutawasith',
-      key: 'mutawasith',
-      align: 'center',
-      render: (text, record, index) => {
-        if (isEditing) {
-          const isArabic = /[\u0600-\u06FF]/.test(editData[index]?.mutawasith || '');
-          return (
-            <Input 
-              value={editData[index]?.mutawasith} 
-              className={isArabic ? "arabic-text" : ""}
-              style={isArabic ? { direction: 'rtl', textAlign: 'right' } : {}}
-              onChange={(e) => handleInputChange(index, 'mutawasith', e.target.value)} 
-            />
-          );
-        }
-        const isArabic = /[\u0600-\u06FF]/.test(text);
-        return (
-          <Text 
-            className={isArabic ? "arabic-text" : ""} 
-            style={isArabic ? { fontSize: '18px', color: '#b25900' } : {}}
-          >
-            {text}
-          </Text>
-        );
-      }
-    },
-    {
-      title: 'Rodi\' (Kurang)',
-      dataIndex: 'rodi',
-      key: 'rodi',
-      align: 'center',
-      render: (text, record, index) => {
-        if (isEditing) {
-          const isArabic = /[\u0600-\u06FF]/.test(editData[index]?.rodi || '');
-          return (
-            <Input 
-              value={editData[index]?.rodi} 
-              className={isArabic ? "arabic-text" : ""}
-              style={isArabic ? { direction: 'rtl', textAlign: 'right' } : {}}
-              onChange={(e) => handleInputChange(index, 'rodi', e.target.value)} 
-            />
-          );
-        }
-        const isArabic = /[\u0600-\u06FF]/.test(text);
-        return (
-          <Text 
-            className={isArabic ? "arabic-text" : ""} 
-            style={isArabic ? { fontSize: '18px', color: '#b25900' } : { color: '#ff4d4f' }} 
-            strong
-          >
-            {text}
-          </Text>
-        );
-      }
-    }
-  ];
-
-  const qiroahColumns = [
-    {
-      title: 'Kelas',
-      dataIndex: 'kelas',
-      key: 'kelas',
-      width: 150,
-      align: 'center',
-      fixed: 'left',
-      render: (text) => <Text strong>{text}</Text>
-    },
-    {
-      title: 'Daftar Maqro\'',
-      dataIndex: 'maqro',
-      key: 'maqro',
-      render: (maqroList, record, index) => {
-        if (isEditingQiroah) {
-          const currentList = editQiroahMaqro[index]?.maqro || [];
-          return (
-            <Space direction="vertical" style={{ width: '100%' }}>
-              {currentList.map((text, idx) => (
-                <div key={idx} style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-                  <Input 
-                    value={text} 
-                    className="arabic-text"
-                    style={{ direction: 'rtl', textAlign: 'right', fontSize: '16px' }}
-                    onChange={(e) => handleQiroahInputChange(index, idx, e.target.value)} 
-                  />
-                  <Button 
-                    type="text" 
-                    danger 
-                    icon={<DeleteOutlined />} 
-                    onClick={() => handleRemoveQiroahRow(index, idx)}
-                  />
-                </div>
-              ))}
-              <Button 
-                type="dashed" 
-                icon={<PlusOutlined />}
-                onClick={() => handleAddQiroahRow(index)}
-                style={{ width: '180px', marginTop: '4px' }}
-              >
-                Tambah Baris Maqro
-              </Button>
-            </Space>
-          );
-        }
-        return (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-            {(maqroList || []).map((text, idx) => {
-              const isArabic = /[\u0600-\u06FF]/.test(text);
-              return (
-                <div 
-                  key={idx} 
-                  style={{ 
-                    padding: '8px 16px', 
-                    borderRadius: '6px',
-                    backgroundColor: '#f8fafc',
-                    border: '1px solid #e2e8f0',
-                    textAlign: isArabic ? 'right' : 'left',
-                    direction: isArabic ? 'rtl' : 'ltr'
-                  }}
-                >
-                  <Text 
-                    className={isArabic ? "arabic-text" : ""} 
-                    style={isArabic ? { fontSize: '18px', color: '#0f172a' } : { color: '#334155' }} 
-                    strong
-                  >
-                    {text}
-                  </Text>
-                </div>
-              );
-            })}
-          </div>
-        );
-      }
-    }
-  ];
-
   if (loading && muhafadzohInfo.length === 0) {
     return <LoadingState message="Memuat informasi ujian..." />;
   }
@@ -982,568 +559,815 @@ export function InformasiUjian() {
     return <ErrorState message={error} onRetry={loadInitialData} />;
   }
 
+  const taOptions = tahunAjaranList.map(ta => ({
+    value: String(ta.id),
+    label: ta.kode
+  }));
+
+  const katOptions = kategori
+    .filter(k => !k.nama.toLowerCase().includes('harian') && !k.nama.toLowerCase().includes('tugas'))
+    .map(k => ({
+      value: String(k.id),
+      label: k.nama
+    }));
+
+  const classOptions = classList.map(c => ({
+    value: String(c.id),
+    label: c.nama
+  }));
+
   return (
-    <div className="informasi-ujian-page" style={{ padding: '24px' }}>
+    <div className="informasi-ujian-page">
       <PageHeader 
-        title="Informasi Ujian" 
-        subtitle="Kelola parameter, ketentuan, dan panduan administrasi ujian kepesantrenan"
+        title="📝 Ketentuan & Informasi Ujian" 
+        subtitle="Kelola parameter, ketentuan nilai, dan panduan batasan materi ujian diniyah"
         extra={[
-          <Segmented 
-            key="semester"
-            className="semester-segmented-highlight"
-            options={kategori
-              .filter(k => !k.nama.toLowerCase().includes('harian') && !k.nama.toLowerCase().includes('tugas'))
-              .map(k => ({ label: k.nama, value: k.id }))}
-            value={selectedKategori}
-            onChange={setSelectedKategori}
-            size="default"
-            style={{ marginRight: 16 }}
-            disabled={isEditing || isEditingQiroah}
-          />,
-          <Select
-            key="ta"
-            style={{ width: 150, alignSelf: 'center' }}
-            value={tahunAjaran?.id}
-            onChange={handleTahunAjaranChange}
-            options={tahunAjaranList.map(ta => ({ value: ta.id, label: ta.kode }))}
-            size="large"
-            disabled={isEditing || isEditingQiroah}
-          />
+          <div key="selectors" className="header-selectors-row">
+            <div className="selector-box">
+              <CustomSelect
+                value={selectedKategori ? String(selectedKategori) : ''}
+                onChange={(val) => setSelectedKategori(val ? Number(val) : null)}
+                options={katOptions}
+                placeholder="Pilih Semester"
+                disabled={isEditing || isEditingQiroah || isEditingTaftisy || isEditingUjianTulis || isEditingKalender}
+              />
+            </div>
+            <div className="selector-box">
+              <CustomSelect
+                value={tahunAjaran?.id ? String(tahunAjaran.id) : ''}
+                onChange={(val) => {
+                  const selected = tahunAjaranList.find(ta => ta.id === Number(val));
+                  setTahunAjaran(selected || null);
+                }}
+                options={taOptions}
+                placeholder="Tahun Ajaran"
+                disabled={isEditing || isEditingQiroah || isEditingTaftisy || isEditingUjianTulis || isEditingKalender}
+              />
+            </div>
+          </div>
         ]}
       />
 
-      <div className="page-content" style={{ marginTop: '16px' }}>
-        <Tabs 
-          defaultActiveKey="ketentuan-muhafadzoh" 
-          type="line"
-          items={[
-            {
-              key: 'ketentuan-muhafadzoh',
-              label: (
-                <span>
-                  <BookOutlined />
-                  Ketentuan Muhafadzoh
-                </span>
-              ),
-              children: (
-                <div style={{ marginTop: '16px' }}>
-                  <Alert 
-                    message="Informasi Penting & Administratif" 
-                    description={
-                      <div>
-                        Tabel ini merupakan acuan ketentuan / rentang kriteria nilai Ujian Muhafadzoh yang berlaku di Ponpes Al-Hamid. 
-                        <strong> Data ini hanya bersifat informatif / administratif sebagai panduan pengisian nilai dan BUKAN merupakan aturan atau rumusan otomatis perhitungan nilai baru.</strong>
-                      </div>
-                    } 
-                    type="warning" 
-                    showIcon 
-                    style={{ marginBottom: 20, borderRadius: '8px' }}
-                  />
+      {/* Tabs Navigation */}
+      <div className="custom-tabs-nav">
+        <button
+          type="button"
+          className={`custom-tabs-tab ${activeTabKey === 'ketentuan-muhafadzoh' ? 'active' : ''}`}
+          onClick={() => !isEditing && !isEditingQiroah && !isEditingTaftisy && !isEditingUjianTulis && !isEditingKalender && setActiveTabKey('ketentuan-muhafadzoh')}
+        >
+          <BookOpen size={16} />
+          <span>Ketentuan Muhafadzoh</span>
+        </button>
+        <button
+          type="button"
+          className={`custom-tabs-tab ${activeTabKey === 'maqro-qiroah' ? 'active' : ''}`}
+          onClick={() => !isEditing && !isEditingQiroah && !isEditingTaftisy && !isEditingUjianTulis && !isEditingKalender && setActiveTabKey('maqro-qiroah')}
+        >
+          <Info size={16} />
+          <span>Maqro Qiroah</span>
+        </button>
+        <button
+          type="button"
+          className={`custom-tabs-tab ${activeTabKey === 'taftisyul-kutub' ? 'active' : ''}`}
+          onClick={() => !isEditing && !isEditingQiroah && !isEditingTaftisy && !isEditingUjianTulis && !isEditingKalender && setActiveTabKey('taftisyul-kutub')}
+        >
+          <BookOpen size={16} />
+          <span>Batasan Taftisyul Kutub</span>
+        </button>
+        <button
+          type="button"
+          className={`custom-tabs-tab ${activeTabKey === 'materi-ujian-tulis' ? 'active' : ''}`}
+          onClick={() => !isEditing && !isEditingQiroah && !isEditingTaftisy && !isEditingUjianTulis && !isEditingKalender && setActiveTabKey('materi-ujian-tulis')}
+        >
+          <BookOpen size={16} />
+          <span>Materi Ujian Tulis</span>
+        </button>
+        <button
+          type="button"
+          className={`custom-tabs-tab ${activeTabKey === 'kalender-akademik' ? 'active' : ''}`}
+          onClick={() => !isEditing && !isEditingQiroah && !isEditingTaftisy && !isEditingUjianTulis && !isEditingKalender && setActiveTabKey('kalender-akademik')}
+        >
+          <Calendar size={16} />
+          <span>Kalender Akademik</span>
+        </button>
+      </div>
 
-                  <Card 
-                    title="Daftar Ketentuan Nilai Muhafadzoh"
-                    extra={
-                      isEditing ? (
-                        <Space>
-                          <Button 
-                            icon={<CloseOutlined />} 
-                            onClick={handleCancel}
-                            disabled={saveLoading}
-                          >
-                            Batal
-                          </Button>
-                          <Button 
-                            type="primary" 
-                            icon={<SaveOutlined />} 
-                            onClick={handleSave}
-                            loading={saveLoading}
-                            style={{ backgroundColor: '#10b981', borderColor: '#10b981' }}
-                          >
-                            Simpan Perubahan
-                          </Button>
-                        </Space>
-                      ) : (
-                        <Button 
-                          type="primary" 
-                          icon={<EditOutlined />} 
-                          onClick={() => setIsEditing(true)}
-                          disabled={isEditingQiroah}
-                        >
-                          Ubah Ketentuan
-                        </Button>
-                      )
-                    }
-                    style={{ borderRadius: '8px', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05), 0 2px 4px -1px rgba(0,0,0,0.06)' }}
-                  >
-                    {muhafadzohInfo.length > 0 || isEditing ? (
-                      <Table 
-                        dataSource={isEditing ? editData : muhafadzohInfo} 
-                        columns={muhafadzohColumns} 
-                        pagination={false} 
-                        size="middle"
-                        bordered
-                        scroll={{ x: 'max-content' }}
-                        rowKey={(record, idx) => idx}
-                      />
-                    ) : (
-                      <Empty 
-                        description="Tidak ada data ketentuan muhafadzoh untuk tahun ajaran dan semester terpilih."
-                        image={Empty.PRESENTED_IMAGE_SIMPLE}
+      {/* Tabs Content */}
+      <div className="tabs-content-container">
+        
+        {/* TAB 1: KETENTUAN MUHAFADZOH */}
+        {activeTabKey === 'ketentuan-muhafadzoh' && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+            <SmartAlert
+              message="Tabel ini merupakan acuan ketentuan / rentang kriteria nilai Ujian Muhafadzoh yang berlaku di Ponpes Al-Hamid. Data ini hanya bersifat informatif / administratif sebagai panduan pengisian nilai dan BUKAN merupakan aturan otomatis perhitungan nilai baru."
+              type="info"
+            />
+
+            <div className="info-card-container">
+              <div className="card-header">
+                <h3 className="card-title">Daftar Ketentuan Nilai Muhafadzoh</h3>
+                <div className="card-actions">
+                  {isEditing ? (
+                    <div style={{ display: 'flex', gap: '10px' }}>
+                      <button
+                        type="button"
+                        className="btn-custom btn-secondary"
+                        onClick={handleCancel}
+                        disabled={saveLoading}
                       >
-                        <Space size="middle" style={{ marginTop: 8 }}>
-                          <Button 
-                            type="primary" 
-                            onClick={() => handleInitializeMuhafadzoh('default')}
-                          >
-                            Gunakan Template Default
-                          </Button>
-                          <Button 
-                            onClick={() => handleInitializeMuhafadzoh('empty')}
-                          >
-                            Mulai dari Kosong
-                          </Button>
-                        </Space>
-                      </Empty>
-                    )}
-                  </Card>
-                </div>
-              )
-            },
-            {
-              key: 'maqro-qiroah',
-              label: (
-                <span>
-                  <InfoCircleOutlined />
-                  Maqro Qiroatul Kitab
-                </span>
-              ),
-              children: (
-                <div style={{ marginTop: '16px' }}>
-                  <Alert 
-                    message="Informasi Penting & Administratif" 
-                    description={
-                      <div>
-                        Tabel ini merupakan acuan daftar bahan bacaan (**Maqro**) Ujian Qiroatul Kitab yang berlaku di Ponpes Al-Hamid. 
-                        <strong> Data ini hanya bersifat informatif / administratif sebagai panduan pengujian dan BUKAN merupakan aturan atau rumusan otomatis perhitungan nilai baru.</strong>
-                      </div>
-                    } 
-                    type="warning" 
-                    showIcon 
-                    style={{ marginBottom: 20, borderRadius: '8px' }}
-                  />
-
-                  <Card 
-                    title="Daftar Maqro Ujian Qiroatul Kitab"
-                    extra={
-                      isEditingQiroah ? (
-                        <Space>
-                          <Button 
-                            icon={<CloseOutlined />} 
-                            onClick={handleQiroahCancel}
-                            disabled={saveLoading}
-                          >
-                            Batal
-                          </Button>
-                          <Button 
-                            type="primary" 
-                            icon={<SaveOutlined />} 
-                            onClick={handleQiroahSave}
-                            loading={saveLoading}
-                            style={{ backgroundColor: '#10b981', borderColor: '#10b981' }}
-                          >
-                            Simpan Perubahan
-                          </Button>
-                        </Space>
-                      ) : (
-                        <Button 
-                          type="primary" 
-                          icon={<EditOutlined />} 
-                          onClick={() => setIsEditingQiroah(true)}
-                          disabled={isEditing}
-                        >
-                          Ubah Maqro
-                        </Button>
-                      )
-                    }
-                    style={{ borderRadius: '8px', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05), 0 2px 4px -1px rgba(0,0,0,0.06)' }}
-                  >
-                    {qiroahMaqro.length > 0 || isEditingQiroah ? (
-                      <Table 
-                        dataSource={isEditingQiroah ? editQiroahMaqro : qiroahMaqro} 
-                        columns={qiroahColumns} 
-                        pagination={false} 
-                        size="middle"
-                        bordered
-                        scroll={{ x: 'max-content' }}
-                        rowKey={(record, idx) => idx}
-                      />
-                    ) : (
-                      <Empty 
-                        description="Tidak ada data maqro qiroatul kitab untuk tahun ajaran dan semester terpilih."
-                        image={Empty.PRESENTED_IMAGE_SIMPLE}
+                        <X size={16} />
+                        <span>Batal</span>
+                      </button>
+                      <button
+                        type="button"
+                        className="btn-custom btn-primary"
+                        onClick={handleSave}
+                        disabled={saveLoading}
                       >
-                        <Space size="middle" style={{ marginTop: 8 }}>
-                          <Button 
-                            type="primary" 
-                            onClick={() => handleInitializeQiroah('default')}
-                          >
-                            Gunakan Template Default
-                          </Button>
-                          <Button 
-                            onClick={() => handleInitializeQiroah('empty')}
-                          >
-                            Mulai dari Kosong
-                          </Button>
-                        </Space>
-                      </Empty>
-                    )}
-                  </Card>
+                        {saveLoading ? <span className="loading-spinner"></span> : <><Save size={16} /><span>Simpan Ketentuan</span></>}
+                      </button>
+                    </div>
+                  ) : (
+                    <button
+                      type="button"
+                      className="btn-custom btn-primary"
+                      onClick={() => setIsEditing(true)}
+                    >
+                      <Edit3 size={16} />
+                      <span>Ubah Ketentuan</span>
+                    </button>
+                  )}
                 </div>
-              )
-            },
-            {
-              key: 'taftisyul-kutub',
-              label: (
-                <span>
-                  <BookOutlined />
-                  Batasan Taftisyul Kutub
-                </span>
-              ),
-              children: (
-                <div style={{ marginTop: '16px' }}>
-                  <Alert 
-                    message="Informasi Penting & Administratif" 
-                    description={
-                      <div>
-                        Tabel ini merupakan acuan batasan materi (**Batas Awal, Batas Akhir, dan Halaman**) Ujian Taftisyul Kutub yang berlaku di Ponpes Al-Hamid. 
-                        <strong> Data pelajaran diambil otomatis dari Jadwal Pelajaran (Reguler) tingkat kelas terkait untuk tahun ajaran dan semester terpilih.</strong>
-                      </div>
-                    } 
-                    type="warning" 
-                    showIcon 
-                    style={{ marginBottom: 20, borderRadius: '8px' }}
-                  />
+              </div>
+              <div className="card-body">
+                {muhafadzohInfo.length > 0 || isEditing ? (
+                  <div className="table-wrapper">
+                    <table className="custom-data-table">
+                      <thead>
+                        <tr>
+                          <th style={{ width: '120px', textAlign: 'center' }}>Kelas</th>
+                          <th style={{ minWidth: '220px' }}>Kitab</th>
+                          <th style={{ textAlign: 'center' }}>Mumtaz (Istimewa)</th>
+                          <th style={{ textAlign: 'center' }}>Jayyid (Baik)</th>
+                          <th style={{ textAlign: 'center' }}>Mutawassith (Cukup)</th>
+                          <th style={{ textAlign: 'center' }}>Rodi' (Kurang)</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {(isEditing ? editData : muhafadzohInfo).map((row, index) => {
+                          const isArabicMumtaz = /[\u0600-\u06FF]/.test(row.mumtaz || '');
+                          const isArabicJayyid = /[\u0600-\u06FF]/.test(row.jayyid || '');
+                          const isArabicMutawasith = /[\u0600-\u06FF]/.test(row.mutawasith || '');
+                          const isArabicRodi = /[\u0600-\u06FF]/.test(row.rodi || '');
 
-                  <div style={{ marginBottom: 20, display: 'flex', gap: '12px', alignItems: 'center' }}>
-                    <Text strong>Pilih Kelas Diniyah:</Text>
-                    <Select
-                      style={{ width: 200 }}
-                      placeholder="Pilih Kelas"
-                      value={selectedKelas}
-                      onChange={setSelectedKelas}
-                      options={classList.map(c => ({ value: c.id, label: c.nama }))}
-                      disabled={isEditingTaftisy}
+                          return (
+                            <tr key={index}>
+                              <td style={{ fontWeight: 'bold', textAlign: 'center' }}>{row.kelas}</td>
+                              <td>
+                                {isEditing ? (
+                                  <input 
+                                    type="text" 
+                                    className="cell-input"
+                                    value={editData[index]?.kitab || ''}
+                                    onChange={(e) => handleInputChange(index, 'kitab', e.target.value)}
+                                  />
+                                ) : (
+                                  <span style={{ fontWeight: 700, color: 'var(--lt-text-primary, #1a365d)' }}>{row.kitab || '-'}</span>
+                                )}
+                              </td>
+                              <td style={{ textAlign: 'center' }}>
+                                {isEditing ? (
+                                  <input 
+                                    type="text" 
+                                    className={`cell-input ${isArabicMumtaz ? 'arabic-font' : ''}`}
+                                    value={editData[index]?.mumtaz || ''}
+                                    onChange={(e) => handleInputChange(index, 'mumtaz', e.target.value)}
+                                  />
+                                ) : (
+                                  <span className={isArabicMumtaz ? 'arabic-text' : ''} style={isArabicMumtaz ? { fontSize: '18px', color: '#00c49f', fontWeight: 'bold' } : { color: '#10b981', fontWeight: 'bold' }}>{row.mumtaz || '-'}</span>
+                                )}
+                              </td>
+                              <td style={{ textAlign: 'center' }}>
+                                {isEditing ? (
+                                  <input 
+                                    type="text" 
+                                    className={`cell-input ${isArabicJayyid ? 'arabic-font' : ''}`}
+                                    value={editData[index]?.jayyid || ''}
+                                    onChange={(e) => handleInputChange(index, 'jayyid', e.target.value)}
+                                  />
+                                ) : (
+                                  <span className={isArabicJayyid ? 'arabic-text' : ''} style={isArabicJayyid ? { fontSize: '18px', color: '#b25900', fontWeight: '500' } : { color: '#334155', fontWeight: '500' }}>{row.jayyid || '-'}</span>
+                                )}
+                              </td>
+                              <td style={{ textAlign: 'center' }}>
+                                {isEditing ? (
+                                  <input 
+                                    type="text" 
+                                    className={`cell-input ${isArabicMutawasith ? 'arabic-font' : ''}`}
+                                    value={editData[index]?.mutawasith || ''}
+                                    onChange={(e) => handleInputChange(index, 'mutawasith', e.target.value)}
+                                  />
+                                ) : (
+                                  <span className={isArabicMutawasith ? 'arabic-text' : ''} style={isArabicMutawasith ? { fontSize: '18px', color: '#b25900', fontWeight: '500' } : { color: '#334155', fontWeight: '500' }}>{row.mutawasith || '-'}</span>
+                                )}
+                              </td>
+                              <td style={{ textAlign: 'center' }}>
+                                {isEditing ? (
+                                  <input 
+                                    type="text" 
+                                    className={`cell-input ${isArabicRodi ? 'arabic-font' : ''}`}
+                                    value={editData[index]?.rodi || ''}
+                                    onChange={(e) => handleInputChange(index, 'rodi', e.target.value)}
+                                  />
+                                ) : (
+                                  <span className={isArabicRodi ? 'arabic-text' : ''} style={isArabicRodi ? { fontSize: '18px', color: '#ef4444', fontWeight: 'bold' } : { color: '#ef4444', fontWeight: 'bold' }}>{row.rodi || '-'}</span>
+                                )}
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                ) : (
+                  <div className="empty-state-card">
+                    <BookOpen size={48} className="icon-box" />
+                    <p className="empty-desc">Tidak ada data ketentuan muhafadzoh untuk tahun ajaran dan semester terpilih.</p>
+                    <div className="init-buttons-row">
+                      <button
+                        type="button"
+                        className="btn-custom btn-primary"
+                        onClick={() => handleInitializeMuhafadzoh('default')}
+                      >
+                        Gunakan Template Default
+                      </button>
+                      <button
+                        type="button"
+                        className="btn-custom btn-secondary"
+                        onClick={() => handleInitializeMuhafadzoh('empty')}
+                      >
+                        Mulai dari Kosong
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* TAB 2: MAQRO QIROAH */}
+        {activeTabKey === 'maqro-qiroah' && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+            <SmartAlert
+              message="Tabel ini merupakan acuan daftar bahan bacaan (Maqro') Ujian Qiroatul Kitab yang berlaku di Ponpes Al-Hamid. Data ini bersifat informatif / administratif sebagai panduan pengujian."
+              type="info"
+            />
+
+            <div className="info-card-container">
+              <div className="card-header">
+                <h3 className="card-title">Daftar Maqro Ujian Qiroatul Kitab</h3>
+                <div className="card-actions">
+                  {isEditingQiroah ? (
+                    <div style={{ display: 'flex', gap: '10px' }}>
+                      <button
+                        type="button"
+                        className="btn-custom btn-secondary"
+                        onClick={handleQiroahCancel}
+                        disabled={saveLoading}
+                      >
+                        <X size={16} />
+                        <span>Batal</span>
+                      </button>
+                      <button
+                        type="button"
+                        className="btn-custom btn-primary"
+                        onClick={handleQiroahSave}
+                        disabled={saveLoading}
+                      >
+                        {saveLoading ? <span className="loading-spinner"></span> : <><Save size={16} /><span>Simpan Maqro</span></>}
+                      </button>
+                    </div>
+                  ) : (
+                    <button
+                      type="button"
+                      className="btn-custom btn-primary"
+                      onClick={() => setIsEditingQiroah(true)}
+                    >
+                      <Edit3 size={16} />
+                      <span>Ubah Maqro</span>
+                    </button>
+                  )}
+                </div>
+              </div>
+              <div className="card-body">
+                {qiroahMaqro.length > 0 || isEditingQiroah ? (
+                  <div className="table-wrapper">
+                    <table className="custom-data-table">
+                      <thead>
+                        <tr>
+                          <th style={{ width: '150px', textAlign: 'center' }}>Kelas</th>
+                          <th>Daftar Maqro' Ujian</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {(isEditingQiroah ? editQiroahMaqro : qiroahMaqro).map((row, index) => (
+                          <tr key={index}>
+                            <td style={{ fontWeight: 'bold', textAlign: 'center' }}>{row.kelas}</td>
+                            <td>
+                              {isEditingQiroah ? (
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                                  {(editQiroahMaqro[index]?.maqro || []).map((text, idx) => (
+                                    <div key={idx} style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                                      <input 
+                                        type="text"
+                                        className="cell-input arabic-font"
+                                        value={text || ''}
+                                        placeholder="Tulis baris maqro dalam bahasa Arab/Indonesia"
+                                        onChange={(e) => handleQiroahInputChange(index, idx, e.target.value)}
+                                      />
+                                      <button
+                                        type="button"
+                                        className="action-icon-btn delete-btn"
+                                        onClick={() => handleRemoveQiroahRow(index, idx)}
+                                      >
+                                        <Trash2 size={13} />
+                                      </button>
+                                    </div>
+                                  ))}
+                                  <button
+                                    type="button"
+                                    className="dashed-btn"
+                                    onClick={() => handleAddQiroahRow(index)}
+                                    style={{ maxWidth: '200px', marginTop: '4px' }}
+                                  >
+                                    <Plus size={14} />
+                                    <span>Tambah Baris Maqro</span>
+                                  </button>
+                                </div>
+                              ) : (
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                                  {(row.maqro || []).map((text, idx) => {
+                                    const isArabic = /[\u0600-\u06FF]/.test(text);
+                                    return (
+                                      <div 
+                                        key={idx} 
+                                        className={`maqro-item-box ${isArabic ? 'arabic-aligned' : 'latin-aligned'}`}
+                                      >
+                                        <span>{text || '-'}</span>
+                                      </div>
+                                    );
+                                  })}
+                                </div>
+                              )}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                ) : (
+                  <div className="empty-state-card">
+                    <Info size={48} className="icon-box" />
+                    <p className="empty-desc">Tidak ada data maqro qiroatul kitab untuk tahun ajaran dan semester terpilih.</p>
+                    <div className="init-buttons-row">
+                      <button
+                        type="button"
+                        className="btn-custom btn-primary"
+                        onClick={() => handleInitializeQiroah('default')}
+                      >
+                        Gunakan Template Default
+                      </button>
+                      <button
+                        type="button"
+                        className="btn-custom btn-secondary"
+                        onClick={() => handleInitializeQiroah('empty')}
+                      >
+                        Mulai dari Kosong
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* TAB 3: BATASAN TAFTISYUL KUTUB */}
+        {activeTabKey === 'taftisyul-kutub' && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+            <SmartAlert
+              message="Tabel ini merupakan acuan batasan materi Ujian Taftisyul Kutub (Pemeriksaan Kelengkapan Kitab) yang berlaku di Ponpes Al-Hamid. Data pelajaran dimuat otomatis dari konfigurasi Jadwal Pelajaran semester terkait."
+              type="info"
+            />
+
+            <div className="inline-filter-bar">
+              <span className="bar-label">Pilih Kelas Diniyah:</span>
+              <div className="bar-select">
+                <CustomSelect
+                  value={selectedKelas ? String(selectedKelas) : ''}
+                  onChange={(val) => setSelectedKelas(val ? Number(val) : null)}
+                  options={classOptions}
+                  placeholder="Pilih Kelas"
+                  disabled={isEditingTaftisy}
+                />
+              </div>
+            </div>
+
+            <div className="info-card-container">
+              <div className="card-header">
+                <h3 className="card-title">
+                  Batasan Materi Taftisyul Kutub - Kelas {classList.find(c => c.id === selectedKelas)?.nama || ''}
+                </h3>
+                <div className="card-actions">
+                  {isEditingTaftisy ? (
+                    <div style={{ display: 'flex', gap: '10px' }}>
+                      <button
+                        type="button"
+                        className="btn-custom btn-secondary"
+                        onClick={handleTaftisyCancel}
+                        disabled={saveLoading}
+                      >
+                        <X size={16} />
+                        <span>Batal</span>
+                      </button>
+                      <button
+                        type="button"
+                        className="btn-custom btn-primary"
+                        onClick={handleTaftisySave}
+                        disabled={saveLoading}
+                      >
+                        {saveLoading ? <span className="loading-spinner"></span> : <><Save size={16} /><span>Simpan Batasan</span></>}
+                      </button>
+                    </div>
+                  ) : (
+                    <button
+                      type="button"
+                      className="btn-custom btn-primary"
+                      onClick={() => setIsEditingTaftisy(true)}
+                      disabled={!selectedKelas || taftisyMateri.length === 0}
+                    >
+                      <Edit3 size={16} />
+                      <span>Ubah Batasan</span>
+                    </button>
+                  )}
+                </div>
+              </div>
+              <div className="card-body">
+                {!selectedKelas ? (
+                  <div className="empty-state-card">
+                    <HelpCircle size={40} className="icon-box" />
+                    <p className="empty-desc">Silakan pilih kelas diniyah terlebih dahulu di atas.</p>
+                  </div>
+                ) : taftisyMateri.length > 0 || isEditingTaftisy ? (
+                  <div className="table-wrapper">
+                    <table className="custom-data-table">
+                      <thead>
+                        <tr>
+                          <th style={{ width: '60px', textAlign: 'center' }}>No</th>
+                          <th style={{ minWidth: '220px' }}>Pelajaran</th>
+                          <th>Batas Awal</th>
+                          <th>Batas Akhir</th>
+                          <th style={{ width: '160px', textAlign: 'center' }}>Halaman</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {(isEditingTaftisy ? editTaftisyMateri : taftisyMateri).map((row, index) => {
+                          const isArabicPelajaran = /[\u0600-\u06FF]/.test(row.pelajaran || '');
+                          const isArabicBawal = /[\u0600-\u06FF]/.test(row.batas_awal || '');
+                          const isArabicBakhir = /[\u0600-\u06FF]/.test(row.batas_akhir || '');
+                          const isArabicHalaman = /[\u0600-\u06FF]/.test(row.halaman || '');
+
+                          return (
+                            <tr key={index}>
+                              <td style={{ textAlign: 'center', fontWeight: 'bold' }}>{index + 1}</td>
+                              <td style={{ fontWeight: 'bold', color: 'var(--lt-text-primary, #1a365d)' }}>
+                                <span className={isArabicPelajaran ? 'arabic-text' : ''} style={isArabicPelajaran ? { fontSize: '18px' } : {}}>{row.pelajaran}</span>
+                              </td>
+                              <td>
+                                {isEditingTaftisy ? (
+                                  <input 
+                                    type="text" 
+                                    className={`cell-input ${isArabicBawal ? 'arabic-font' : ''}`}
+                                    value={editTaftisyMateri[index]?.batas_awal || ''}
+                                    onChange={(e) => handleTaftisyInputChange(index, 'batas_awal', e.target.value)}
+                                  />
+                                ) : (
+                                  <span className={isArabicBawal ? 'arabic-text' : ''} style={isArabicBawal ? { fontSize: '18px', color: '#111827', fontWeight: 600 } : { color: '#374151', fontWeight: 600 }}>{row.batas_awal || '-'}</span>
+                                )}
+                              </td>
+                              <td>
+                                {isEditingTaftisy ? (
+                                  <input 
+                                    type="text" 
+                                    className={`cell-input ${isArabicBakhir ? 'arabic-font' : ''}`}
+                                    value={editTaftisyMateri[index]?.batas_akhir || ''}
+                                    onChange={(e) => handleTaftisyInputChange(index, 'batas_akhir', e.target.value)}
+                                  />
+                                ) : (
+                                  <span className={isArabicBakhir ? 'arabic-text' : ''} style={isArabicBakhir ? { fontSize: '18px', color: '#111827', fontWeight: 600 } : { color: '#374151', fontWeight: 600 }}>{row.batas_akhir || '-'}</span>
+                                )}
+                              </td>
+                              <td style={{ textAlign: 'center' }}>
+                                {isEditingTaftisy ? (
+                                  <input 
+                                    type="text" 
+                                    className={`cell-input ${isArabicHalaman ? 'arabic-font' : ''}`}
+                                    value={editTaftisyMateri[index]?.halaman || ''}
+                                    onChange={(e) => handleTaftisyInputChange(index, 'halaman', e.target.value)}
+                                  />
+                                ) : (
+                                  <span className={isArabicHalaman ? 'arabic-text' : ''} style={isArabicHalaman ? { fontSize: '18px', color: '#111827', fontWeight: 600 } : { color: '#374151', fontWeight: 600 }}>{row.halaman || '-'}</span>
+                                )}
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                ) : (
+                  <div style={{ padding: '8px 0' }}>
+                    <SmartAlert
+                      message="Jadwal Pelajaran Belum Dikonfigurasi. Tidak ditemukan mata pelajaran Reguler untuk tingkat kelas ini pada tahun ajaran dan semester terpilih. Silakan konfigurasikan Jadwal Pelajaran terlebih dahulu untuk memuat daftar pelajaran secara otomatis."
+                      type="info"
                     />
                   </div>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
 
-                  <Card 
-                    title={`Batasan Materi Taftisyul Kutub - Kelas ${classList.find(c => c.id === selectedKelas)?.nama || ''}`}
-                    extra={
-                      isEditingTaftisy ? (
-                        <Space>
-                          <Button 
-                            icon={<CloseOutlined />} 
-                            onClick={handleTaftisyCancel}
-                            disabled={saveLoading}
-                          >
-                            Batal
-                          </Button>
-                          <Button 
-                            type="primary" 
-                            icon={<SaveOutlined />} 
-                            onClick={handleTaftisySave}
-                            loading={saveLoading}
-                            style={{ backgroundColor: '#10b981', borderColor: '#10b981' }}
-                          >
-                            Simpan Perubahan
-                          </Button>
-                        </Space>
-                      ) : (
-                        <Button 
-                          type="primary" 
-                          icon={<EditOutlined />} 
-                          onClick={() => setIsEditingTaftisy(true)}
-                          disabled={isEditing || isEditingQiroah || !selectedKelas || taftisyMateri.length === 0}
-                        >
-                          Ubah Batasan
-                        </Button>
-                      )
-                    }
-                    style={{ borderRadius: '8px', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05), 0 2px 4px -1px rgba(0,0,0,0.06)' }}
-                  >
-                    {!selectedKelas ? (
-                      <Empty description="Silakan pilih kelas diniyah terlebih dahulu." />
-                    ) : taftisyMateri.length > 0 || isEditingTaftisy ? (
-                      <Table 
-                        dataSource={isEditingTaftisy ? editTaftisyMateri : taftisyMateri} 
-                        columns={taftisyColumns} 
-                        pagination={false} 
-                        size="middle"
-                        bordered
-                        rowKey={(record, idx) => idx}
-                      />
-                    ) : (
-                      <Alert
-                        message="Jadwal Pelajaran Belum Dikonfigurasi"
-                        description={
-                          <div>
-                            Tidak ditemukan mata pelajaran Reguler untuk tingkat kelas ini pada tahun ajaran dan semester terpilih. 
-                            Silakan konfigurasikan <strong>Jadwal Pelajaran</strong> terlebih dahulu untuk memuat daftar pelajaran secara otomatis.
-                          </div>
-                        }
-                        type="info"
-                        showIcon
-                      />
-                    )}
-                  </Card>
+        {/* TAB 4: MATERI UJIAN TULIS */}
+        {activeTabKey === 'materi-ujian-tulis' && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+            <SmartAlert
+              message="Tabel ini merupakan acuan batasan materi (Batas Awal, Batas Akhir) Ujian Tulis yang berlaku di Ponpes Al-Hamid. Data pelajaran dimuat otomatis dari konfigurasi Jadwal Pelajaran semester terkait."
+              type="info"
+            />
+
+            <div className="inline-filter-bar">
+              <span className="bar-label">Pilih Tingkatan Kelas:</span>
+              <div className="bar-select">
+                <CustomSelect
+                  value={selectedTingkatUjianTulis !== null ? String(selectedTingkatUjianTulis) : ''}
+                  onChange={(val) => setSelectedTingkatUjianTulis(val)}
+                  options={staticTingkatanList}
+                  placeholder="Pilih Tingkat"
+                  disabled={isEditingUjianTulis}
+                />
+              </div>
+            </div>
+
+            <div className="info-card-container">
+              <div className="card-header">
+                <h3 className="card-title">
+                  Batasan Materi Ujian Tulis - {staticTingkatanList.find(t => t.value === selectedTingkatUjianTulis)?.label || ''}
+                </h3>
+                <div className="card-actions">
+                  {isEditingUjianTulis ? (
+                    <div style={{ display: 'flex', gap: '10px' }}>
+                      <button
+                        type="button"
+                        className="btn-custom btn-secondary"
+                        onClick={handleUjianTulisCancel}
+                        disabled={saveLoading}
+                      >
+                        <X size={16} />
+                        <span>Batal</span>
+                      </button>
+                      <button
+                        type="button"
+                        className="btn-custom btn-primary"
+                        onClick={handleUjianTulisSave}
+                        disabled={saveLoading}
+                      >
+                        {saveLoading ? <span className="loading-spinner"></span> : <><Save size={16} /><span>Simpan Batasan</span></>}
+                      </button>
+                    </div>
+                  ) : (
+                    <button
+                      type="button"
+                      className="btn-custom btn-primary"
+                      onClick={() => setIsEditingUjianTulis(true)}
+                      disabled={selectedTingkatUjianTulis === null || ujianTulisMateri.length === 0}
+                    >
+                      <Edit3 size={16} />
+                      <span>Ubah Batasan</span>
+                    </button>
+                  )}
                 </div>
-              )
-            },
-            {
-              key: 'materi-ujian-tulis',
-              label: (
-                <span>
-                  <BookOutlined />
-                  Batas Materi Ujian Tulis
-                </span>
-              ),
-              children: (
-                <div style={{ marginTop: '16px' }}>
-                  <Alert 
-                    message="Informasi Penting & Administratif" 
-                    description={
-                      <div>
-                        Tabel ini merupakan acuan batasan materi (**Batas Awal, Batas Akhir**) Ujian Tulis yang berlaku di Ponpes Al-Hamid. 
-                        <strong> Data pelajaran diambil otomatis dari Jadwal Pelajaran (Reguler) tingkat kelas terkait untuk tahun ajaran dan semester terpilih.</strong>
-                      </div>
-                    } 
-                    type="warning" 
-                    showIcon 
-                    style={{ marginBottom: 20, borderRadius: '8px' }}
-                  />
+              </div>
+              <div className="card-body">
+                {selectedTingkatUjianTulis === null ? (
+                  <div className="empty-state-card">
+                    <HelpCircle size={40} className="icon-box" />
+                    <p className="empty-desc">Silakan pilih tingkatan kelas terlebih dahulu di atas.</p>
+                  </div>
+                ) : ujianTulisMateri.length > 0 || isEditingUjianTulis ? (
+                  <div className="table-wrapper">
+                    <table className="custom-data-table">
+                      <thead>
+                        <tr>
+                          <th style={{ width: '60px', textAlign: 'center' }}>No</th>
+                          <th style={{ minWidth: '220px' }}>Pelajaran</th>
+                          <th>Batas Awal</th>
+                          <th>Batas Akhir</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {(isEditingUjianTulis ? editUjianTulisMateri : ujianTulisMateri).map((row, index) => {
+                          const isArabicPelajaran = /[\u0600-\u06FF]/.test(row.pelajaran || '');
+                          const isArabicBawal = /[\u0600-\u06FF]/.test(row.batas_awal || '');
+                          const isArabicBakhir = /[\u0600-\u06FF]/.test(row.batas_akhir || '');
 
-                  <div style={{ marginBottom: 20, display: 'flex', gap: '12px', alignItems: 'center' }}>
-                    <Text strong>Pilih Tingkatan:</Text>
-                    <Select
-                      style={{ width: 200 }}
-                      placeholder="Pilih Tingkat"
-                      value={selectedTingkatUjianTulis}
-                      onChange={setSelectedTingkatUjianTulis}
-                      options={staticTingkatanList}
-                      disabled={isEditingUjianTulis}
+                          return (
+                            <tr key={index}>
+                              <td style={{ textAlign: 'center', fontWeight: 'bold' }}>{index + 1}</td>
+                              <td style={{ fontWeight: 'bold', color: 'var(--lt-text-primary, #1a365d)' }}>
+                                <span className={isArabicPelajaran ? 'arabic-text' : ''} style={isArabicPelajaran ? { fontSize: '18px' } : {}}>{row.pelajaran}</span>
+                              </td>
+                              <td>
+                                {isEditingUjianTulis ? (
+                                  <input 
+                                    type="text" 
+                                    className={`cell-input ${isArabicBawal ? 'arabic-font' : ''}`}
+                                    value={editUjianTulisMateri[index]?.batas_awal || ''}
+                                    onChange={(e) => handleUjianTulisInputChange(index, 'batas_awal', e.target.value)}
+                                  />
+                                ) : (
+                                  <span className={isArabicBawal ? 'arabic-text' : ''} style={isArabicBawal ? { fontSize: '18px', color: '#111827', fontWeight: 600 } : { color: '#374151', fontWeight: 600 }}>{row.batas_awal || '-'}</span>
+                                )}
+                              </td>
+                              <td>
+                                {isEditingUjianTulis ? (
+                                  <input 
+                                    type="text" 
+                                    className={`cell-input ${isArabicBakhir ? 'arabic-font' : ''}`}
+                                    value={editUjianTulisMateri[index]?.batas_akhir || ''}
+                                    onChange={(e) => handleUjianTulisInputChange(index, 'batas_akhir', e.target.value)}
+                                  />
+                                ) : (
+                                  <span className={isArabicBakhir ? 'arabic-text' : ''} style={isArabicBakhir ? { fontSize: '18px', color: '#111827', fontWeight: 600 } : { color: '#374151', fontWeight: 600 }}>{row.batas_akhir || '-'}</span>
+                                )}
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                ) : (
+                  <div style={{ padding: '8px 0' }}>
+                    <SmartAlert
+                      message="Jadwal Pelajaran Belum Dikonfigurasi. Tidak ditemukan mata pelajaran Reguler untuk tingkat kelas ini pada tahun ajaran dan semester terpilih. Silakan konfigurasikan Jadwal Pelajaran terlebih dahulu untuk memuat daftar pelajaran secara otomatis."
+                      type="info"
                     />
                   </div>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
 
-                  <Card 
-                    title={`Batasan Materi Ujian Tulis - ${staticTingkatanList.find(t => t.value === selectedTingkatUjianTulis)?.label || ''}`}
-                    extra={
-                      isEditingUjianTulis ? (
-                        <Space>
-                          <Button 
-                            icon={<CloseOutlined />} 
-                            onClick={handleUjianTulisCancel}
-                            disabled={saveLoading}
-                          >
-                            Batal
-                          </Button>
-                          <Button 
-                            type="primary" 
-                            icon={<SaveOutlined />} 
-                            onClick={handleUjianTulisSave}
-                            loading={saveLoading}
-                            style={{ backgroundColor: '#10b981', borderColor: '#10b981' }}
-                          >
-                            Simpan Perubahan
-                          </Button>
-                        </Space>
-                      ) : (
-                        <Button 
-                          type="primary" 
-                          icon={<EditOutlined />} 
-                          onClick={() => setIsEditingUjianTulis(true)}
-                          disabled={isEditing || isEditingQiroah || isEditingTaftisy || (selectedTingkatUjianTulis === null || selectedTingkatUjianTulis === undefined) || ujianTulisMateri.length === 0}
-                        >
-                          Ubah Batasan
-                        </Button>
-                      )
-                    }
-                    style={{ borderRadius: '8px', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05), 0 2px 4px -1px rgba(0,0,0,0.06)' }}
-                  >
-                    {(selectedTingkatUjianTulis === null || selectedTingkatUjianTulis === undefined) ? (
-                      <Empty description="Silakan pilih tingkatan terlebih dahulu." />
-                    ) : ujianTulisMateri.length > 0 || isEditingUjianTulis ? (
-                      <Table 
-                        dataSource={isEditingUjianTulis ? editUjianTulisMateri : ujianTulisMateri} 
-                        columns={ujianTulisColumns} 
-                        pagination={false} 
-                        size="middle"
-                        bordered
-                        rowKey={(record, idx) => idx}
-                      />
-                    ) : (
-                      <Alert
-                        message="Jadwal Pelajaran Belum Dikonfigurasi"
-                        description={
-                          <div>
-                            Tidak ditemukan mata pelajaran Reguler untuk tingkat kelas ini pada tahun ajaran dan semester terpilih. 
-                            Silakan konfigurasikan <strong>Jadwal Pelajaran</strong> terlebih dahulu untuk memuat daftar pelajaran secara otomatis.
-                          </div>
-                        }
-                        type="info"
-                        showIcon
-                      />
-                    )}
-                  </Card>
+        {/* TAB 5: KALENDER AKADEMIK */}
+        {activeTabKey === 'kalender-akademik' && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+            <SmartAlert
+              message="Agenda kegiatan dan jadwal akademik penting semester ini. Data bersifat informatif dan dapat diperbarui setiap saat."
+              type="info"
+            />
+
+            <div className="info-card-container">
+              <div className="card-header">
+                <h3 className="card-title">Jadwal Kegiatan Akademik Semester</h3>
+                <div className="card-actions">
+                  {isEditingKalender ? (
+                    <div style={{ display: 'flex', gap: '10px' }}>
+                      <button
+                        type="button"
+                        className="btn-custom btn-secondary"
+                        onClick={() => {
+                          setEditKalender(JSON.parse(JSON.stringify(kalenderAkademik)));
+                          setIsEditingKalender(false);
+                        }}
+                        disabled={saveLoading}
+                      >
+                        <X size={16} />
+                        <span>Batal</span>
+                      </button>
+                      <button
+                        type="button"
+                        className="btn-custom btn-primary"
+                        onClick={handleSaveKalender}
+                        disabled={saveLoading}
+                      >
+                        {saveLoading ? <span className="loading-spinner"></span> : <><Save size={16} /><span>Simpan Kalender</span></>}
+                      </button>
+                    </div>
+                  ) : (
+                    <button
+                      type="button"
+                      className="btn-custom btn-primary"
+                      onClick={() => setIsEditingKalender(true)}
+                    >
+                      <Edit3 size={16} />
+                      <span>Ubah Kalender</span>
+                    </button>
+                  )}
                 </div>
-              )
-            }
-            ,
-            {
-              key: 'kalender-akademik',
-              label: (
-                <span>
-                  <CalendarOutlined />
-                  Kalender Akademik
-                </span>
-              ),
-              children: (
-                <div style={{ marginTop: '16px' }}>
-                  <Alert
-                    message="Kalender Kerja Akademik"
-                    description="Kelola jadwal dan agenda kegiatan akademik semester ini. Data bersifat informatif dan dapat diperbarui setiap saat."
-                    type="info"
-                    showIcon
-                    style={{ marginBottom: 20, borderRadius: '8px' }}
-                  />
-                  <Card
-                    title={
-                      <span>
-                        <CalendarOutlined style={{ marginRight: 8, color: '#10b981' }} />
-                        Jadwal Kegiatan Akademik
-                      </span>
-                    }
-                    extra={
-                      isEditingKalender ? (
-                        <Space>
-                          <Button
-                            icon={<CloseOutlined />}
-                            onClick={() => {
-                              setEditKalender(JSON.parse(JSON.stringify(kalenderAkademik)));
-                              setIsEditingKalender(false);
-                            }}
-                            disabled={saveLoading}
+              </div>
+              <div className="card-body">
+                {kalenderLoading ? (
+                  <div className="loading-box">
+                    <div className="spinner-bar"></div>
+                    <span style={{ marginTop: '12px', fontSize: '13.5px', fontWeight: 500, color: '#64748b' }}>Memuat data kalender...</span>
+                  </div>
+                ) : isEditingKalender ? (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+                    <div className="kalender-edit-list">
+                      {editKalender.map((row, index) => (
+                        <div key={index} className="kalender-edit-row">
+                          <div className="date-col">
+                            <input 
+                              type="text" 
+                              className="cell-input"
+                              placeholder="Contoh: 12 - 18 Juli 2026"
+                              value={row.tanggal || ''}
+                              onChange={(e) => handleKalenderRowChange(index, 'tanggal', e.target.value)}
+                            />
+                          </div>
+                          <div className="desc-col">
+                            <input 
+                              type="text" 
+                              className="cell-input"
+                              placeholder="Keterangan Kegiatan Akademik"
+                              value={row.kegiatan || ''}
+                              onChange={(e) => handleKalenderRowChange(index, 'kegiatan', e.target.value)}
+                            />
+                          </div>
+                          <button
+                            type="button"
+                            className="action-icon-btn delete-btn"
+                            onClick={() => handleRemoveKalenderRow(index)}
                           >
-                            Batal
-                          </Button>
-                          <Button
-                            type="primary"
-                            icon={<SaveOutlined />}
-                            onClick={handleSaveKalender}
-                            loading={saveLoading}
-                            style={{ backgroundColor: '#10b981', borderColor: '#10b981' }}
-                          >
-                            Simpan Kalender
-                          </Button>
-                        </Space>
-                      ) : (
-                        <Button
-                          type="primary"
-                          icon={<EditOutlined />}
-                          onClick={() => setIsEditingKalender(true)}
-                        >
-                          Ubah Kalender
-                        </Button>
-                      )
-                    }
-                    loading={kalenderLoading}
-                    style={{ borderRadius: '8px', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)' }}
-                  >
-                    {isEditingKalender ? (
-                      <div>
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 12 }}>
-                          {editKalender.map((row, index) => (
-                            <div key={index} style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-                              <div style={{ flex: '0 0 200px' }}>
-                                <Input
-                                  placeholder="Tanggal / Periode"
-                                  value={row.tanggal}
-                                  onChange={e => handleKalenderRowChange(index, 'tanggal', e.target.value)}
-                                />
-                              </div>
-                              <div style={{ flex: 1 }}>
-                                <Input
-                                  placeholder="Keterangan Kegiatan"
-                                  value={row.kegiatan}
-                                  onChange={e => handleKalenderRowChange(index, 'kegiatan', e.target.value)}
-                                />
-                              </div>
-                              <Button
-                                type="text"
-                                danger
-                                icon={<DeleteOutlined />}
-                                onClick={() => handleRemoveKalenderRow(index)}
-                              />
-                            </div>
-                          ))}
+                            <Trash2 size={13} />
+                          </button>
                         </div>
-                        <Button
-                          type="dashed"
-                          icon={<PlusOutlined />}
-                          onClick={handleAddKalenderRow}
-                          block
-                        >
-                          Tambah Baris Kegiatan
-                        </Button>
-                      </div>
-                    ) : kalenderAkademik.length > 0 ? (
-                      <Table
-                        dataSource={kalenderAkademik.map((row, i) => ({ ...row, key: i }))}
-                        columns={[
-                          {
-                            title: 'No',
-                            key: 'no',
-                            width: 50,
-                            align: 'center',
-                            render: (_, __, idx) => <Text strong>{idx + 1}</Text>
-                          },
-                          {
-                            title: 'Tanggal / Periode',
-                            dataIndex: 'tanggal',
-                            key: 'tanggal',
-                            width: 240,
-                            render: (text) => <Text strong style={{ color: '#1a365d' }}>{text || '-'}</Text>
-                          },
-                          {
-                            title: 'Kegiatan',
-                            dataIndex: 'kegiatan',
-                            key: 'kegiatan',
-                            render: (text) => <Text style={{ color: '#334155' }}>{text || '-'}</Text>
-                          }
-                        ]}
-                        pagination={false}
-                        size="middle"
-                        bordered
-                        rowKey="key"
-                      />
-                    ) : (
-                      <Empty
-                        description="Belum ada data kalender akademik. Klik 'Ubah Kalender' untuk mulai menambahkan."
-                        image={Empty.PRESENTED_IMAGE_SIMPLE}
-                      >
-                        <Button type="primary" icon={<PlusOutlined />} onClick={() => setIsEditingKalender(true)}>
-                          Buat Kalender
-                        </Button>
-                      </Empty>
-                    )}
-                  </Card>
-                </div>
-              )
-            }
-          ]}
-        />
+                      ))}
+                    </div>
+
+                    <button
+                      type="button"
+                      className="dashed-btn block-btn"
+                      onClick={handleAddKalenderRow}
+                    >
+                      <Plus size={16} />
+                      <span>Tambah Baris Kegiatan Baru</span>
+                    </button>
+                  </div>
+                ) : kalenderAkademik.length > 0 ? (
+                  <div className="table-wrapper">
+                    <table className="custom-data-table">
+                      <thead>
+                        <tr>
+                          <th style={{ width: '60px', textAlign: 'center' }}>No</th>
+                          <th style={{ width: '240px' }}>Tanggal / Periode</th>
+                          <th>Kegiatan</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {kalenderAkademik.map((row, index) => (
+                          <tr key={index}>
+                            <td style={{ textAlign: 'center', fontWeight: 'bold' }}>{index + 1}</td>
+                            <td style={{ fontWeight: 'bold', color: 'var(--lt-text-primary, #1a365d)' }}>{row.tanggal || '-'}</td>
+                            <td style={{ color: '#334155', fontWeight: 500 }}>{row.kegiatan || '-'}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                ) : (
+                  <div className="empty-state-card">
+                    <Calendar size={48} className="icon-box" />
+                    <p className="empty-desc">Belum ada data kalender akademik. Klik 'Ubah Kalender' untuk mulai menambahkan.</p>
+                    <button
+                      type="button"
+                      className="btn-custom btn-primary"
+                      onClick={() => setIsEditingKalender(true)}
+                    >
+                      <Plus size={16} />
+                      <span>Buat Kalender Baru</span>
+                    </button>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
 }
-
 export default InformasiUjian;

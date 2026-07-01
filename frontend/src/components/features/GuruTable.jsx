@@ -1,6 +1,5 @@
-import { Table, Tag, Tooltip, Pagination } from 'antd';
 import { Edit, Trash2, Award, Camera } from 'lucide-react';
-import { EmptyState } from '../common';
+import { EmptyState, Pagination } from '../common';
 import './GuruTable.scss';
 
 const statusColorMap = {
@@ -40,161 +39,149 @@ const getInitials = (name) => {
   return (parts[0][0] + parts[1][0]).toUpperCase();
 };
 
-export function GuruTable({ data, total, currentPage, pageSize, onPageChange, onEdit, onDelete, onUploadTtd, onUploadFoto }) {
-  const columns = [
-    {
-      title: 'NIP',
-      dataIndex: 'nip',
-      key: 'nip',
-      width: 140,
-      render: (text) => <span className="guru-nip-text">{text || '-'}</span>
-    },
-    {
-      title: 'Nama Guru',
-      dataIndex: 'nama',
-      key: 'nama',
-      width: 250,
-      render: (text, record) => {
-        const initials = getInitials(text);
-        const avatarStyle = getAvatarStyle(text || '');
-        return (
-          <div className="guru-profile-cell">
-            {record.foto_url ? (
-              <img 
-                src={record.foto_url} 
-                alt={text} 
-                className="avatar-circle-sm" 
-                style={{ objectFit: 'cover', border: '1px solid #cbd5e1' }}
-              />
-            ) : (
-              <div className="avatar-circle-sm" style={avatarStyle}>
-                {initials}
-              </div>
-            )}
-            <span className="guru-name">{text || '-'}</span>
-          </div>
-        );
-      }
-    },
-    {
-      title: 'Mata Pelajaran',
-      dataIndex: 'mata_pelajaran',
-      key: 'mata_pelajaran',
-      width: 180,
-      render: (text) => text ? <Tag className="guru-tag">{text}</Tag> : '-'
-    },
-    {
-      title: 'Jabatan',
-      dataIndex: 'jabatan',
-      key: 'jabatan',
-      width: 160,
-      render: (text) => text ? <Tag className="guru-tag ant-tag-purple">{text}</Tag> : '-'
-    },
-    {
-      title: 'No. HP',
-      dataIndex: 'no_hp',
-      key: 'no_hp',
-      width: 140,
-      render: (text) => <span className="guru-phone-text">{text || '-'}</span>
-    },
-    {
-      title: 'Alamat',
-      dataIndex: 'alamat',
-      key: 'alamat',
-      width: 220,
-      ellipsis: true,
-      render: (text) => <span className="guru-address-text" title={text || ''}>{text || '-'}</span>
-    },
-    {
-      title: 'Status',
-      dataIndex: 'status',
-      key: 'status',
-      width: 110,
-      render: (status) => (
-        <span className={`status-pill ${statusColorMap[status] || 'default'}`}>
-          {status || '-'}
-        </span>
-      )
-    },
-    {
-      title: 'Aksi',
-      key: 'action',
-      fixed: 'right',
-      width: 190,
-      align: 'center',
-      render: (_, record) => (
-        <div className="guru-action-cell">
-          <Tooltip title="Ubah data guru">
-            <button
-              type="button"
-              className="action-icon-btn edit-btn"
-              onClick={() => onEdit(record)}
-            >
-              <Edit size={14} />
-            </button>
-          </Tooltip>
-          <Tooltip title="Upload Foto Profil">
-            <button
-              type="button"
-              className="action-icon-btn photo-btn"
-              onClick={() => onUploadFoto(record)}
-              style={{ color: '#8b5cf6' }}
-            >
-              <Camera size={14} />
-            </button>
-          </Tooltip>
-          <Tooltip title="Upload Tandatangan Digital">
-            <button
-              type="button"
-              className="action-icon-btn ttd-btn"
-              onClick={() => onUploadTtd(record)}
-            >
-              <Award size={14} />
-            </button>
-          </Tooltip>
-          <Tooltip title="Hapus data guru">
-            <button
-              type="button"
-              className="action-icon-btn delete-btn"
-              onClick={() => onDelete(record.id)}
-            >
-              <Trash2 size={14} />
-            </button>
-          </Tooltip>
-        </div>
-      )
-    }
-  ];
+export function GuruTable({ 
+  data, 
+  total, 
+  currentPage, 
+  pageSize, 
+  onPageChange, 
+  onEdit, 
+  onDelete, 
+  onUploadTtd, 
+  onUploadFoto 
+}) {
+  const totalPages = Math.ceil(total / pageSize);
 
   return (
     <div className="guru-table-container">
-      <Table
-        columns={columns}
-        dataSource={data}
-        rowKey="id"
-        pagination={false}
-        scroll={{ x: 1200 }}
-        className="modern-data-grid"
-        locale={{
-          emptyText: (
-            <EmptyState
-              description="Tidak ada data guru yang sesuai"
-            />
-          )
-        }}
-      />
+      <div className="table-responsive-container">
+        <table className="custom-data-table">
+          <thead>
+            <tr>
+              <th style={{ width: '130px' }}>NIP</th>
+              <th style={{ width: '230px' }}>Nama Guru</th>
+              <th style={{ width: '160px' }}>Mata Pelajaran</th>
+              <th style={{ width: '150px' }}>Jabatan</th>
+              <th style={{ width: '130px' }}>No. HP</th>
+              <th style={{ minWidth: '200px' }}>Alamat</th>
+              <th style={{ width: '100px' }}>Status</th>
+              <th style={{ width: '180px', textAlign: 'center' }}>Aksi</th>
+            </tr>
+          </thead>
+          <tbody>
+            {data && data.length > 0 ? (
+              data.map(record => {
+                const initials = getInitials(record.nama);
+                const avatarStyle = getAvatarStyle(record.nama || '');
+                return (
+                  <tr key={record.id}>
+                    <td>
+                      <span className="guru-nip-text">{record.nip || '-'}</span>
+                    </td>
+                    <td>
+                      <div className="guru-profile-cell">
+                        {record.foto_url ? (
+                          <img 
+                            src={record.foto_url} 
+                            alt={record.nama} 
+                            className="avatar-circle-sm" 
+                            style={{ objectFit: 'cover', border: '1px solid #cbd5e1' }}
+                          />
+                        ) : (
+                          <div className="avatar-circle-sm" style={avatarStyle}>
+                            {initials}
+                          </div>
+                        )}
+                        <span className="guru-name">{record.nama || '-'}</span>
+                      </div>
+                    </td>
+                    <td>
+                      {record.mata_pelajaran ? (
+                        <span className="guru-tag">{record.mata_pelajaran}</span>
+                      ) : (
+                        '-'
+                      )}
+                    </td>
+                    <td>
+                      {record.jabatan ? (
+                        <span className="guru-tag tag-purple">{record.jabatan}</span>
+                      ) : (
+                        '-'
+                      )}
+                    </td>
+                    <td>
+                      <span className="guru-phone-text">{record.no_hp || '-'}</span>
+                    </td>
+                    <td>
+                      <span className="guru-address-text" title={record.alamat || ''}>
+                        {record.alamat || '-'}
+                      </span>
+                    </td>
+                    <td>
+                      <span className={`status-pill ${statusColorMap[record.status] || 'default'}`}>
+                        {record.status || '-'}
+                      </span>
+                    </td>
+                    <td>
+                      <div className="guru-action-cell">
+                        <button
+                          type="button"
+                          className="action-icon-btn edit-btn"
+                          onClick={() => onEdit(record)}
+                          title="Ubah data guru"
+                        >
+                          <Edit size={14} />
+                        </button>
+                        <button
+                          type="button"
+                          className="action-icon-btn photo-btn"
+                          onClick={() => onUploadFoto(record)}
+                          style={{ color: '#8b5cf6' }}
+                          title="Upload Foto Profil"
+                        >
+                          <Camera size={14} />
+                        </button>
+                        <button
+                          type="button"
+                          className="action-icon-btn ttd-btn"
+                          onClick={() => onUploadTtd(record)}
+                          title="Upload Tandatangan Digital"
+                        >
+                          <Award size={14} />
+                        </button>
+                        <button
+                          type="button"
+                          className="action-icon-btn delete-btn"
+                          onClick={() => onDelete(record.id, record.nama)}
+                          title="Hapus data guru"
+                        >
+                          <Trash2 size={14} />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })
+            ) : (
+              <tr>
+                <td colSpan={8} style={{ padding: '40px 0' }}>
+                  <EmptyState description="Tidak ada data guru yang sesuai" />
+                </td>
+              </tr>
+            )}
+          </tbody>
+        </table>
+      </div>
+
       {total > 0 && (
         <div className="table-pagination-row">
           <span className="pagination-summary">
             Menampilkan data guru ke-<b>{Math.min((currentPage - 1) * pageSize + 1, total)}</b> hingga <b>{Math.min(currentPage * pageSize, total)}</b> dari total <b>{total}</b> guru
           </span>
           <Pagination
-            current={currentPage}
-            total={total}
-            pageSize={pageSize}
-            onChange={onPageChange}
-            showSizeChanger={false}
-            className="modern-pagination"
+            currentPage={currentPage}
+            totalPages={totalPages}
+            onPageChange={onPageChange}
           />
         </div>
       )}

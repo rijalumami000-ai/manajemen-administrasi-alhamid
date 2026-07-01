@@ -1,9 +1,9 @@
-import { useEffect } from 'react';
-import { Modal, Form, Input, Select, Alert } from 'antd';
-import { BookOutlined } from '@ant-design/icons';
-import './KelasModal.scss';
-
-const { Option } = Select;
+import { useState, useEffect } from 'react';
+import { CustomModal } from '../ui/CustomModal';
+import { FloatingInput } from '../ui/FloatingInput';
+import { CustomSelect } from '../ui/CustomSelect';
+import { SmartAlert } from '../ui/SmartAlert';
+import { BookOpen, Save } from 'lucide-react';
 
 export function KelasModal({
   isOpen,
@@ -15,163 +15,194 @@ export function KelasModal({
   guruList = [],
   mapelList = []
 }) {
-  const [form] = Form.useForm();
+  const [formData, setFormData] = useState({
+    jenis: '',
+    nama: '',
+    mustahiq_id: '',
+    muhafadzoh_mapel_id: '',
+    qiroatul_mapel_id: ''
+  });
+  const [formErrors, setFormErrors] = useState({});
 
   useEffect(() => {
-    if (isOpen && editData) {
-      form.setFieldsValue({
-        jenis: editData.jenis || undefined,
-        nama: editData.nama || '',
-        mustahiq_id: editData.mustahiq_id || undefined,
-        muhafadzoh_mapel_id: editData.muhafadzoh_mapel_id || undefined,
-        qiroatul_mapel_id: editData.qiroatul_mapel_id || undefined
-      });
-    } else if (isOpen) {
-      form.resetFields();
+    if (isOpen) {
+      if (editData) {
+        setFormData({
+          jenis: editData.jenis || '',
+          nama: editData.nama || '',
+          mustahiq_id: editData.mustahiq_id !== null && editData.mustahiq_id !== undefined ? String(editData.mustahiq_id) : '',
+          muhafadzoh_mapel_id: editData.muhafadzoh_mapel_id !== null && editData.muhafadzoh_mapel_id !== undefined ? String(editData.muhafadzoh_mapel_id) : '',
+          qiroatul_mapel_id: editData.qiroatul_mapel_id !== null && editData.qiroatul_mapel_id !== undefined ? String(editData.qiroatul_mapel_id) : ''
+        });
+      } else {
+        setFormData({
+          jenis: '',
+          nama: '',
+          mustahiq_id: '',
+          muhafadzoh_mapel_id: '',
+          qiroatul_mapel_id: ''
+        });
+      }
+      setFormErrors({});
     }
-  }, [isOpen, editData, form]);
+  }, [isOpen, editData]);
 
-  const handleSubmit = async () => {
-    try {
-      const values = await form.validateFields();
-      // Ensure numeric IDs are sent as numbers
-      const submissionData = {
-        ...values,
-        mustahiq_id: values.mustahiq_id ? Number(values.mustahiq_id) : null,
-        muhafadzoh_mapel_id: values.muhafadzoh_mapel_id ? Number(values.muhafadzoh_mapel_id) : null,
-        qiroatul_mapel_id: values.qiroatul_mapel_id ? Number(values.qiroatul_mapel_id) : null
-      };
-      onSubmit(submissionData);
-    } catch (err) {
-      console.error('Validasi gagal:', err);
+  const handleChange = (name, value) => {
+    setFormData(prev => ({ ...prev, [name]: value }));
+    if (formErrors[name]) {
+      setFormErrors(prev => ({ ...prev, [name]: '' }));
     }
+  };
+
+  const handleSubmit = (e) => {
+    if (e) e.preventDefault();
+    
+    const errors = {};
+    if (!formData.jenis) {
+      errors.jenis = 'Jenis kelas wajib dipilih';
+    }
+    if (!formData.nama || !formData.nama.trim()) {
+      errors.nama = 'Nama kelas wajib diisi';
+    }
+
+    if (Object.keys(errors).length > 0) {
+      setFormErrors(errors);
+      return;
+    }
+
+    const submissionData = {
+      jenis: formData.jenis,
+      nama: formData.nama.trim(),
+      mustahiq_id: formData.mustahiq_id ? Number(formData.mustahiq_id) : null,
+      muhafadzoh_mapel_id: formData.muhafadzoh_mapel_id ? Number(formData.muhafadzoh_mapel_id) : null,
+      qiroatul_mapel_id: formData.qiroatul_mapel_id ? Number(formData.qiroatul_mapel_id) : null
+    };
+
+    onSubmit(submissionData);
   };
 
   const handleCancel = () => {
-    form.resetFields();
     onClose();
   };
 
-  // Prepare options for Selects
+  // Prepare options for CustomSelects
   const guruOptions = guruList.map(guru => ({
-    value: guru.id,
+    value: String(guru.id),
     label: guru.nama
   }));
 
   const mapelOptions = mapelList
     .filter(m => m.jenis === 'Reguler')
     .map(mapel => ({
-      value: mapel.id,
+      value: String(mapel.id),
       label: mapel.nama
     }));
 
   return (
-    <Modal
+    <CustomModal
       open={isOpen}
+      onClose={handleCancel}
       title={editData ? 'Edit Kelas' : 'Tambah Kelas'}
-      onCancel={handleCancel}
-      onOk={handleSubmit}
-      confirmLoading={isSubmitting}
+      subtitle={editData ? 'Perbarui informasi kelas Diniyah/Sekolah' : 'Tambahkan kelas baru ke sistem akademik'}
+      icon={<BookOpen />}
       width={500}
-      okText={editData ? 'Perbarui' : 'Simpan'}
-      cancelText="Batal"
-      className="kelas-modal"
       destroyOnClose
+      footer={
+        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px', width: '100%' }}>
+          <button
+            type="button"
+            className="btn-custom btn-secondary"
+            onClick={handleCancel}
+            disabled={isSubmitting}
+          >
+            Batal
+          </button>
+          <button
+            type="submit"
+            className="btn-custom btn-primary"
+            onClick={handleSubmit}
+            disabled={isSubmitting}
+          >
+            {isSubmitting ? (
+              <span className="loading-spinner"></span>
+            ) : (
+              <span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <Save size={16} /> {editData ? 'Perbarui' : 'Simpan'}
+              </span>
+            )}
+          </button>
+        </div>
+      }
     >
-      {error && (
-        <Alert
-          message="Error"
-          description={error}
-          type="error"
-          showIcon
-          closable
-          style={{ marginBottom: 16 }}
-        />
-      )}
+      <div className="kelas-form-container">
+        {error && (
+          <div style={{ marginBottom: '16px' }}>
+            <SmartAlert message={error} type="error" />
+          </div>
+        )}
 
-      <Alert
-        message="Informasi"
-        description="Setiap entri hanya menyimpan satu kelas. Pilih jenis lalu isi nama kelasnya."
-        type="info"
-        showIcon
-        style={{ marginBottom: 16 }}
-      />
-
-      <Form
-        form={form}
-        layout="vertical"
-        disabled={isSubmitting}
-        initialValues={{
-          jenis: editData?.jenis,
-          nama: editData?.nama,
-          mustahiq_id: editData?.mustahiq_id,
-          muhafadzoh_mapel_id: editData?.muhafadzoh_mapel_id,
-          qiroatul_mapel_id: editData?.qiroatul_mapel_id
-        }}
-      >
-        <Form.Item
-          name="jenis"
-          label="Jenis Kelas"
-          rules={[{ required: true, message: 'Jenis kelas wajib dipilih' }]}
-        >
-          <Select placeholder="Pilih jenis kelas" allowClear>
-            <Option value="Diniyah">Diniyah</Option>
-            <Option value="Sekolah">Sekolah</Option>
-          </Select>
-        </Form.Item>
-
-        <Form.Item
-          name="nama"
-          label="Nama Kelas"
-          rules={[{ required: true, message: 'Nama kelas wajib diisi' }]}
-        >
-          <Input
-            prefix={<BookOutlined />}
-            placeholder="Contoh: Ula 1 atau 7A"
+        <div style={{ marginBottom: '20px' }}>
+          <SmartAlert 
+            message="Informasi: Setiap entri hanya menyimpan satu kelas. Pilih jenis lalu isi nama kelasnya." 
+            type="info" 
           />
-        </Form.Item>
+        </div>
 
-        <Form.Item
-          name="mustahiq_id"
-          label="Mustahiq / Wali Kelas"
-        >
-          <Select
-            showSearch
-            allowClear
-            placeholder="Pilih Mustahiq / Wali Kelas"
-            optionFilterProp="label"
-            options={guruOptions}
-          />
-        </Form.Item>
+        <form onSubmit={handleSubmit} className="kelas-form">
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+            <CustomSelect
+              label="Jenis Kelas"
+              value={formData.jenis}
+              onChange={(v) => handleChange('jenis', v)}
+              options={[
+                { label: 'Diniyah', value: 'Diniyah' },
+                { label: 'Sekolah', value: 'Sekolah' }
+              ]}
+              error={formErrors.jenis}
+              required
+              disabled={isSubmitting}
+            />
 
-        <Form.Item
-          name="muhafadzoh_mapel_id"
-          label="Kitab Muhafadzoh Kelas (Untuk Rapor)"
-          tooltip="Kitab ini akan ditampilkan di baris 'Muhafadzoh' pada Rapor Santri"
-        >
-          <Select
-            showSearch
-            allowClear
-            placeholder="Pilih Kitab Muhafadzoh (Misal: Imrithi)"
-            optionFilterProp="label"
-            options={mapelOptions}
-          />
-        </Form.Item>
+            <FloatingInput
+              label="Nama Kelas"
+              name="nama"
+              icon={BookOpen}
+              value={formData.nama}
+              onChange={(e) => handleChange('nama', e.target.value)}
+              error={formErrors.nama}
+              required
+              disabled={isSubmitting}
+            />
 
-        <Form.Item
-          name="qiroatul_mapel_id"
-          label="Kitab Qiroatul Kitab Kelas (Untuk Rapor)"
-          tooltip="Kitab ini akan ditampilkan di baris 'Qiroatul Kitab' pada Rapor Santri"
-        >
-          <Select
-            showSearch
-            allowClear
-            placeholder="Pilih Kitab Qiroah (Misal: Matan Taqrib)"
-            optionFilterProp="label"
-            options={mapelOptions}
-          />
-        </Form.Item>
-      </Form>
-    </Modal>
+            <CustomSelect
+              label="Mustahiq / Wali Kelas"
+              value={formData.mustahiq_id}
+              onChange={(v) => handleChange('mustahiq_id', v)}
+              options={guruOptions}
+              allowClear
+              disabled={isSubmitting}
+            />
+
+            <CustomSelect
+              label="Kitab Muhafadzoh Kelas (Untuk Rapor)"
+              value={formData.muhafadzoh_mapel_id}
+              onChange={(v) => handleChange('muhafadzoh_mapel_id', v)}
+              options={mapelOptions}
+              allowClear
+              disabled={isSubmitting}
+            />
+
+            <CustomSelect
+              label="Kitab Qiroatul Kitab Kelas (Untuk Rapor)"
+              value={formData.qiroatul_mapel_id}
+              onChange={(v) => handleChange('qiroatul_mapel_id', v)}
+              options={mapelOptions}
+              allowClear
+              disabled={isSubmitting}
+            />
+          </div>
+        </form>
+      </div>
+    </CustomModal>
   );
 }

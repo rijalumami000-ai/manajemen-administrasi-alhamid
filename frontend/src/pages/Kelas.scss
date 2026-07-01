@@ -3,31 +3,70 @@
 
 .kelas-page {
   @include fade-in;
+  padding: $spacing-lg;
+
+  @include respond-to(md) {
+    padding: $spacing-md;
+  }
 
   .kelas-header-actions {
-    @include flex-start;
+    display: flex;
+    align-items: flex-end;
     gap: $spacing-md;
+    flex-wrap: wrap;
 
     @include respond-to(sm) {
       flex-direction: column;
+      align-items: stretch;
       width: 100%;
-
-      .ant-select {
+      
+      .select-wrapper {
         width: 100% !important;
       }
-
-      .ant-btn {
+      
+      .btn-custom {
         width: 100%;
+      }
+    }
+
+    .select-wrapper {
+      margin-bottom: 0; // overrides margin-bottom of ui-custom-select
+      
+      &.select-ta {
+        width: 200px;
+      }
+      
+      &.select-sort {
+        width: 180px;
+      }
+      
+      // Override default custom select margin for inline header use
+      .ui-custom-select {
+        margin-bottom: 0;
+        
+        .ui-custom-select__wrapper {
+          min-height: 44px; // match button height
+          border-radius: 12px;
+        }
+
+        .ui-custom-select__value-container {
+          padding: 18px 12px 4px;
+        }
+
+        .ui-custom-select__label {
+          font-size: 13px;
+        }
+
+        &.active .ui-custom-select__label {
+          top: 8px;
+          font-size: 10px;
+        }
       }
     }
   }
 
   .kelas-content {
-    padding: $spacing-lg;
-
-    @include respond-to(md) {
-      padding: $spacing-md;
-    }
+    margin-top: $spacing-xl;
   }
 
   .kelas-group {
@@ -44,27 +83,139 @@
         @include flex-start;
         gap: $spacing-sm;
 
-        .anticon {
-          font-size: 24px;
-        }
-
         h3 {
           @include heading-3;
           margin: 0;
+          font-weight: 700;
+          letter-spacing: -0.3px;
         }
 
         .kelas-count {
           @include body-small;
           color: $text-secondary;
-          background: $neutral-100;
-          padding: 2px 12px;
+          background: rgba(99, 102, 241, 0.08);
+          color: #6366f1;
+          padding: 3px 12px;
           border-radius: $radius-full;
+          font-weight: 600;
+          font-size: 12px;
+          
+          [data-theme="light"] & {
+            background: #eff6ff;
+            color: #1d4ed8;
+          }
         }
       }
     }
   }
 
-  .ant-divider {
+  // CSS Grid for Class Cards
+  .kelas-grid {
+    display: grid;
+    grid-template-columns: repeat(1, 1fr);
+    gap: $spacing-lg;
+    
+    @media (min-width: 576px) {
+      grid-template-columns: repeat(2, 1fr);
+    }
+    @media (min-width: 768px) {
+      grid-template-columns: repeat(3, 1fr);
+    }
+    @media (min-width: 992px) {
+      grid-template-columns: repeat(4, 1fr);
+    }
+    @media (min-width: 1400px) {
+      grid-template-columns: repeat(6, 1fr);
+    }
+  }
+
+  .kelas-divider {
+    height: 1px;
+    background: rgba(255, 255, 255, 0.06);
     margin: $spacing-2xl 0;
+    
+    [data-theme="light"] & {
+      background: #e2e8f0;
+    }
+  }
+}
+
+// Global button styling for premium custom design
+.btn-custom {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  height: 44px;
+  padding: 0 $spacing-lg;
+  border-radius: 12px;
+  font-weight: 600;
+  font-size: 13.5px;
+  cursor: pointer;
+  border: 1px solid transparent;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  user-select: none;
+
+  &:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+
+  &.btn-primary {
+    background: linear-gradient(135deg, #6366f1 0%, #a855f7 100%);
+    color: #ffffff;
+    border: none;
+    box-shadow: 0 4px 14px rgba(99, 102, 241, 0.35);
+
+    &:hover:not(:disabled) {
+      transform: translateY(-1.5px);
+      box-shadow: 0 6px 20px rgba(99, 102, 241, 0.45);
+      background: linear-gradient(135deg, #4f46e5 0%, #9333ea 100%);
+    }
+
+    &:active:not(:disabled) {
+      transform: translateY(0);
+    }
+  }
+
+  &.btn-secondary {
+    background: rgba(255, 255, 255, 0.04);
+    color: rgba(255, 255, 255, 0.85);
+    border-color: rgba(255, 255, 255, 0.08);
+
+    &:hover:not(:disabled) {
+      background: rgba(255, 255, 255, 0.08);
+      border-color: rgba(255, 255, 255, 0.15);
+      color: #ffffff;
+    }
+    
+    [data-theme="light"] & {
+      background: #f8fafc;
+      color: #475569;
+      border-color: #cbd5e1;
+
+      &:hover:not(:disabled) {
+        background: #f1f5f9;
+        color: #0f172a;
+        border-color: #94a3b8;
+      }
+    }
+  }
+
+  &.btn-danger {
+    background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+    color: #ffffff;
+    border: none;
+    box-shadow: 0 4px 12px rgba(239, 68, 68, 0.25);
+
+    &:hover:not(:disabled) {
+      transform: translateY(-1.5px);
+      box-shadow: 0 6px 18px rgba(239, 68, 68, 0.35);
+      background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%);
+    }
+
+    &:active:not(:disabled) {
+      transform: translateY(0);
+    }
   }
 }

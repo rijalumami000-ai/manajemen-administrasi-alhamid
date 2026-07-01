@@ -1,19 +1,5 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { 
-  Tabs, 
-  Card, 
-  Button, 
-  Modal, 
-  Select, 
-  Input, 
-  Spin, 
-  message, 
-  Avatar, 
-  Tooltip,
-  Popconfirm
-} from 'antd';
-import { 
-  Edit3, 
   User, 
   Phone, 
   Trash2, 
@@ -21,17 +7,21 @@ import {
   Info,
   ShieldCheck,
   Briefcase,
-  Plus
+  Plus,
+  AlertTriangle
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { strukturService } from '../services/strukturService';
 import { guruService } from '../services/guruService';
+import { CustomModal } from '../components/ui/CustomModal';
+import { CustomSelect } from '../components/ui/CustomSelect';
+import { FloatingInput } from '../components/ui/FloatingInput';
+import { PageHeader, LoadingState, ErrorState, useToast } from '../components/common';
 import './StrukturOrganisasi.scss';
-
-const { TabPane } = Tabs;
 
 export function StrukturOrganisasi() {
   const { isAdmin } = useAuth();
+  const toast = useToast();
   
   // States
   const [activeTab, setActiveTab] = useState('madrasah_diniyah');
@@ -46,6 +36,15 @@ export function StrukturOrganisasi() {
   const [customName, setCustomName] = useState('');
   const [keterangan, setKeterangan] = useState('');
   const [saveLoading, setSaveLoading] = useState(false);
+  const [formErrors, setFormErrors] = useState({});
+
+  // Custom Delete Confirm Modal State
+  const [deleteConfirm, setDeleteConfirm] = useState({
+    isOpen: false,
+    nodeId: null,
+    jabatan: '',
+    nama: ''
+  });
 
   // Load structure data based on active tab
   const loadStruktur = async (tipe) => {
@@ -55,7 +54,7 @@ export function StrukturOrganisasi() {
       setStrukturData(data);
     } catch (error) {
       console.error(error);
-      message.error('Gagal memuat data struktur organisasi: ' + error.message);
+      toast.error('Gagal memuat data struktur organisasi: ' + error.message);
     } finally {
       setLoading(false);
     }
@@ -81,21 +80,32 @@ export function StrukturOrganisasi() {
 
   const handleEditClick = (node) => {
     setSelectedNode(node);
-    setSelectedGuruId(node.guru_id || null);
+    setSelectedGuruId(node.guru_id ? String(node.guru_id) : null);
     setCustomName(node.nama_custom || '');
     setKeterangan(node.keterangan || '');
+    setFormErrors({});
     setEditModalOpen(true);
   };
 
-  const handleSave = async () => {
+  const handleSave = async (e) => {
+    if (e) e.preventDefault();
     if (!selectedNode) return;
     
+    // Validation: must select a teacher OR input a custom name
+    if (!selectedGuruId && (!customName || !customName.trim())) {
+      setFormErrors({
+        selectedGuruId: 'Pilih guru atau masukkan nama kustom',
+        customName: 'Pilih guru atau masukkan nama kustom'
+      });
+      return;
+    }
+
     setSaveLoading(true);
     try {
       const payload = {
-        guru_id: selectedGuruId,
-        nama_custom: selectedGuruId ? null : customName, // clear custom name if a teacher is selected
-        keterangan: keterangan
+        guru_id: selectedGuruId ? Number(selectedGuruId) : null,
+        nama_custom: selectedGuruId ? null : customName.trim(), // clear custom name if a teacher is selected
+        keterangan: keterangan.trim()
       };
 
       if (selectedNode.id === null) {
@@ -106,21 +116,21 @@ export function StrukturOrganisasi() {
           jabatan: selectedNode.jabatan,
           no_urut: selectedNode.no_urut
         });
-        message.success(`Berhasil menambahkan personel ${selectedNode.jabatan}`);
+        toast.success(`Berhasil menambahkan personel ${selectedNode.jabatan}`);
       } else {
         // Update existing record
         await strukturService.updateStruktur({
           ...payload,
           id: selectedNode.id
         });
-        message.success(`Berhasil memperbarui posisi ${selectedNode.jabatan}`);
+        toast.success(`Berhasil memperbarui posisi ${selectedNode.jabatan}`);
       }
       
       setEditModalOpen(false);
       loadStruktur(activeTab);
     } catch (error) {
       console.error(error);
-      message.error('Gagal menyimpan posisi: ' + error.message);
+      toast.error('Gagal menyimpan posisi: ' + error.message);
     } finally {
       setSaveLoading(false);
     }
@@ -136,18 +146,32 @@ export function StrukturOrganisasi() {
     setSelectedGuruId(null);
     setCustomName('');
     setKeterangan('');
+    setFormErrors({});
     setEditModalOpen(true);
   };
 
-  const handleDeleteMember = async (id) => {
+  const handleDeleteMemberClick = (id, jabatan, nama) => {
+    setDeleteConfirm({
+      isOpen: true,
+      nodeId: id,
+      jabatan: jabatan,
+      nama: nama
+    });
+  };
+
+  const handleConfirmDelete = async () => {
+    const { nodeId } = deleteConfirm;
+    if (!nodeId) return;
+
     setLoading(true);
     try {
-      await strukturService.deleteStruktur(id);
-      message.success('Personel berhasil dihapus.');
+      await strukturService.deleteStruktur(nodeId);
+      toast.success('Personel berhasil dihapus dari struktur.');
+      setDeleteConfirm({ isOpen: false, nodeId: null, jabatan: '', nama: '' });
       loadStruktur(activeTab);
     } catch (error) {
       console.error(error);
-      message.error('Gagal menghapus personel: ' + error.message);
+      toast.error('Gagal menghapus personel: ' + error.message);
       setLoading(false);
     }
   };
@@ -195,7 +219,7 @@ export function StrukturOrganisasi() {
     const tuList = filterNodes('TU', 7);
 
     return (
-      <div className="org-tree-wrapper">
+      <div className="org-tree-wrapper animate-fade-in">
         {/* Level 1: Pelindung */}
         <div className="org-row level-1">
           {renderCard(pelindung, 'accent-amber')}
@@ -233,15 +257,14 @@ export function StrukturOrganisasi() {
           <div className="multiple-header">
             <span className="multiple-title">Tata Usaha (TU)</span>
             {isAdmin() && (
-              <Button 
-                type="dashed" 
-                size="small" 
-                icon={<Plus size={12} />} 
+              <button 
+                type="button"
                 onClick={() => handleAddMember('TU', 7)}
                 className="add-member-btn"
               >
-                Tambah Anggota TU
-              </Button>
+                <Plus size={14} />
+                <span>Tambah Anggota TU</span>
+              </button>
             )}
           </div>
           <div className="multiple-cards-container">
@@ -272,7 +295,7 @@ export function StrukturOrganisasi() {
     const asistenList = filterNodes('Asisten Ujian', 6);
 
     return (
-      <div className="org-tree-wrapper">
+      <div className="org-tree-wrapper animate-fade-in">
         {/* Level 1: PJ */}
         <div className="org-row level-1">
           {renderCard(pj, 'accent-amber')}
@@ -300,15 +323,14 @@ export function StrukturOrganisasi() {
           <div className="multiple-header">
             <span className="multiple-title">Seksi Konsumsi</span>
             {isAdmin() && (
-              <Button 
-                type="dashed" 
-                size="small" 
-                icon={<Plus size={12} />} 
+              <button 
+                type="button" 
                 onClick={() => handleAddMember('Seksi Konsumsi', 5)}
                 className="add-member-btn"
               >
-                Tambah Anggota Konsumsi
-              </Button>
+                <Plus size={14} />
+                <span>Tambah Anggota Konsumsi</span>
+              </button>
             )}
           </div>
           <div className="multiple-cards-container">
@@ -323,15 +345,14 @@ export function StrukturOrganisasi() {
           <div className="multiple-header">
             <span className="multiple-title">Asisten Ujian</span>
             {isAdmin() && (
-              <Button 
-                type="dashed" 
-                size="small" 
-                icon={<Plus size={12} />} 
+              <button 
+                type="button"
                 onClick={() => handleAddMember('Asisten Ujian', 6)}
                 className="add-member-btn"
               >
-                Tambah Asisten Ujian
-              </Button>
+                <Plus size={14} />
+                <span>Tambah Asisten Ujian</span>
+              </button>
             )}
           </div>
           <div className="multiple-cards-container">
@@ -361,6 +382,7 @@ export function StrukturOrganisasi() {
         setSelectedGuruId(null);
         setCustomName('');
         setKeterangan('');
+        setFormErrors({});
         setEditModalOpen(true);
       } else {
         handleEditClick(node);
@@ -379,13 +401,12 @@ export function StrukturOrganisasi() {
               className="node-avatar-image" 
             />
           ) : (
-            <Avatar 
-              size={46} 
+            <div 
+              className="node-avatar" 
               style={{ backgroundColor: getAvatarColor(displayName) }}
-              className="node-avatar"
             >
               {initial}
-            </Avatar>
+            </div>
           )}
           
           <div className="node-info">
@@ -406,34 +427,23 @@ export function StrukturOrganisasi() {
 
           {isAdmin() && (
             <div className="card-actions-row">
-              <Tooltip title="Edit Posisi">
-                <Button 
-                  type="text" 
-                  shape="circle" 
-                  icon={<Edit3 size={15} />} 
-                  onClick={handleCardEditClick}
-                  className="node-edit-btn"
-                />
-              </Tooltip>
+              <button 
+                type="button" 
+                onClick={handleCardEditClick}
+                className="action-icon-btn edit-btn node-edit-btn"
+                title="Tugaskan Jabatan"
+              >
+                <Plus size={14} />
+              </button>
               {isDeletable && !isPlaceholderCard && (
-                <Popconfirm
+                <button 
+                  type="button"
+                  onClick={() => handleDeleteMemberClick(node.id, node.jabatan, displayName)}
+                  className="action-icon-btn delete-btn node-delete-btn"
                   title="Hapus Personel"
-                  description="Apakah Anda yakin ingin menghapus personel ini dari struktur?"
-                  onConfirm={() => handleDeleteMember(node.id)}
-                  okText="Hapus"
-                  cancelText="Batal"
-                  okButtonProps={{ danger: true }}
                 >
-                  <Tooltip title="Hapus Personel">
-                    <Button 
-                      type="text" 
-                      shape="circle" 
-                      danger
-                      icon={<Trash2 size={15} />} 
-                      className="node-delete-btn"
-                    />
-                  </Tooltip>
-                </Popconfirm>
+                  <Trash2 size={14} />
+                </button>
               )}
             </div>
           )}
@@ -441,6 +451,11 @@ export function StrukturOrganisasi() {
       </div>
     );
   };
+
+  const guruOptions = guruList.map(g => ({
+    value: String(g.id),
+    label: g.nama
+  }));
 
   return (
     <div className="struktur-organisasi-page">
@@ -456,117 +471,197 @@ export function StrukturOrganisasi() {
       </div>
 
       <div className="content-layout">
-        <Tabs 
-          activeKey={activeTab} 
-          onChange={setActiveTab} 
-          className="org-tabs"
-          tabBarExtraContent={
-            <Button 
-              type="text" 
-              icon={<RefreshCw size={14} className={loading ? 'spin-anim' : ''} />} 
+        {/* Custom Tabs Navigation */}
+        <div className="custom-tabs-container">
+          <div className="custom-tabs-nav-row" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid rgba(226, 232, 240, 0.6)', paddingBottom: '0', marginBottom: '24px' }}>
+            <div className="custom-tabs-nav" style={{ display: 'flex', gap: '16px', borderBottom: 'none', marginBottom: 0, paddingBottom: 0 }}>
+              <button 
+                type="button"
+                className={`custom-tabs-tab ${activeTab === 'madrasah_diniyah' ? 'active' : ''}`}
+                onClick={() => setActiveTab('madrasah_diniyah')}
+              >
+                Struktur Madrasah Diniyah
+              </button>
+              <button 
+                type="button"
+                className={`custom-tabs-tab ${activeTab === 'panitia_ujian' ? 'active' : ''}`}
+                onClick={() => setActiveTab('panitia_ujian')}
+              >
+                Panitia Ujian Madrasah
+              </button>
+            </div>
+            
+            <button 
+              type="button" 
+              className="btn-custom btn-secondary"
               onClick={() => loadStruktur(activeTab)}
+              disabled={loading}
+              style={{ height: '36px', padding: '0 16px', borderRadius: '10px' }}
             >
-              Reload
-            </Button>
-          }
-        >
-          <TabPane 
-            tab="Struktur Madrasah Diniyah" 
-            key="madrasah_diniyah"
-          >
-            {loading ? (
-              <div className="loading-container">
-                <Spin size="large" tip="Memuat bagan struktur..." />
-              </div>
-            ) : (
-              getDiniyahTree()
-            )}
-          </TabPane>
+              <RefreshCw size={14} className={loading ? 'spin-anim' : ''} style={{ marginRight: '6px' }} />
+              <span>Reload</span>
+            </button>
+          </div>
 
-          <TabPane 
-            tab="Panitia Ujian Madrasah" 
-            key="panitia_ujian"
-          >
+          <div className="custom-tabs-content">
             {loading ? (
               <div className="loading-container">
-                <Spin size="large" tip="Memuat bagan panitia..." />
+                <div className="loading-spinner" style={{ width: '40px', height: '40px', borderWidth: '3px' }}></div>
+                <span style={{ marginTop: '12px', fontSize: '14px', fontWeight: 500, color: 'var(--lt-text-secondary, #64748b)' }}>Memuat bagan struktur...</span>
               </div>
             ) : (
-              getPanitiaTree()
+              activeTab === 'madrasah_diniyah' ? getDiniyahTree() : getPanitiaTree()
             )}
-          </TabPane>
-        </Tabs>
+          </div>
+        </div>
       </div>
 
       {/* Edit/Add Position Modal */}
-      <Modal
-        title={
-          <div className="modal-title-wrapper">
-            <ShieldCheck size={20} className="modal-icon" />
-            <span>Tugaskan Jabatan: {selectedNode?.jabatan}</span>
+      <CustomModal
+        open={editModalOpen}
+        onClose={() => setEditModalOpen(false)}
+        title="Tugaskan Jabatan"
+        subtitle={`Tugaskan personel untuk posisi ${selectedNode?.jabatan || ''}`}
+        icon={<ShieldCheck />}
+        width={450}
+        destroyOnClose
+        footer={
+          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px', width: '100%' }}>
+            <button
+              type="button"
+              className="btn-custom btn-secondary"
+              onClick={() => setEditModalOpen(false)}
+              disabled={saveLoading}
+            >
+              Batal
+            </button>
+            <button
+              type="submit"
+              className="btn-custom btn-primary"
+              onClick={handleSave}
+              disabled={saveLoading}
+            >
+              {saveLoading ? (
+                <span className="loading-spinner"></span>
+              ) : (
+                <span>Simpan Perubahan</span>
+              )}
+            </button>
           </div>
         }
-        open={editModalOpen}
-        onOk={handleSave}
-        onCancel={() => setEditModalOpen(false)}
-        confirmLoading={saveLoading}
-        okText="Simpan Perubahan"
-        cancelText="Batal"
-        width={450}
-        centered
-        className="org-edit-modal"
       >
-        <div className="modal-body-container">
-          <div className="form-group">
-            <label className="form-label">Pilih Guru / Ustadz</label>
-            <Select
-              placeholder="Pilih dari daftar guru"
+        <form onSubmit={handleSave} className="modal-body-container" style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+            <CustomSelect
+              label="Pilih Guru / Ustadz"
               value={selectedGuruId}
               onChange={(val) => {
                 setSelectedGuruId(val);
-                if (val) setCustomName(''); // clear custom name if guru selected
+                if (val) {
+                  setCustomName(''); // clear custom name if guru selected
+                  setFormErrors({});
+                }
               }}
+              placeholder="Pilih dari daftar guru"
+              options={guruOptions}
               allowClear
-              showSearch
-              filterOption={(input, option) => 
-                (option?.label ?? '').toLowerCase().includes(input.toLowerCase())
-              }
-              options={guruList.map(g => ({
-                value: g.id,
-                label: g.nama
-              }))}
-              className="w-full-select"
+              disabled={saveLoading}
             />
-            <span className="input-helper">Pilih guru yang terdaftar dalam database.</span>
+            <span className="input-helper" style={{ fontSize: '11px', color: 'var(--lt-text-tertiary, #94a3b8)', paddingLeft: '4px' }}>
+              Pilih guru yang terdaftar dalam database.
+            </span>
           </div>
 
-          <div className="form-divider">Atau input nama eksternal / kustom</div>
+          <div className="form-divider" style={{ textAlign: 'center', position: 'relative', fontSize: '12px', fontWeight: 700, color: 'var(--lt-text-tertiary, #94a3b8)', margin: '8px 0', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px' }}>
+            <div style={{ flex: 1, height: '1px', background: 'rgba(226, 232, 240, 0.8)' }}></div>
+            <span>Atau input nama eksternal / kustom</span>
+            <div style={{ flex: 1, height: '1px', background: 'rgba(226, 232, 240, 0.8)' }}></div>
+          </div>
 
-          <div className="form-group">
-            <label className="form-label">Nama Kustom (Luar Database)</label>
-            <Input
-              placeholder="Masukkan nama lengkap"
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+            <FloatingInput
+              label="Nama Kustom (Luar Database)"
+              name="customName"
               value={customName}
               onChange={(e) => {
                 setCustomName(e.target.value);
-                if (e.target.value) setSelectedGuruId(null); // clear guru if typing custom
+                if (e.target.value) {
+                  setSelectedGuruId(null); // clear guru if typing custom
+                  setFormErrors({});
+                }
               }}
-              disabled={!!selectedGuruId}
+              disabled={!!selectedGuruId || saveLoading}
             />
-            <span className="input-helper">Digunakan jika personel bukan dari daftar guru (misal: pembina/pelindung eksternal).</span>
+            <span className="input-helper" style={{ fontSize: '11px', color: 'var(--lt-text-tertiary, #94a3b8)', paddingLeft: '4px' }}>
+              Digunakan jika personel bukan dari daftar guru (misal: pembina eksternal).
+            </span>
           </div>
 
-          <div className="form-group">
-            <label className="form-label">Catatan / Keterangan</label>
-            <Input.TextArea
-              placeholder="Contoh: SK Pengangkatan, masa bakti, atau info tambahan"
-              value={keterangan}
-              onChange={(e) => setKeterangan(e.target.value)}
-              rows={3}
-            />
+          <div className="form-group-textarea">
+            <div className={`ui-floating-input ${keterangan ? 'active' : ''} ${saveLoading ? 'disabled' : ''}`}>
+              <div className="ui-floating-input__wrapper textarea-wrapper" style={{ minHeight: '80px' }}>
+                <textarea
+                  name="keterangan"
+                  className="ui-floating-input__field textarea-field"
+                  value={keterangan}
+                  onChange={(e) => setKeterangan(e.target.value)}
+                  rows={2}
+                  disabled={saveLoading}
+                  style={{ resize: 'vertical', paddingTop: '20px', minHeight: '60px' }}
+                  placeholder="Contoh: SK Pengangkatan, masa bakti, atau info tambahan"
+                />
+                <label className="ui-floating-input__label">
+                  Catatan / Keterangan
+                </label>
+              </div>
+            </div>
           </div>
+
+          {formErrors.selectedGuruId && (
+            <div style={{ marginTop: '8px' }}>
+              <SmartAlert message="Silakan pilih guru atau masukkan nama kustom terlebih dahulu" type="error" />
+            </div>
+          )}
+        </form>
+      </CustomModal>
+
+      {/* Custom Delete Confirmation Modal */}
+      <CustomModal
+        open={deleteConfirm.isOpen}
+        onClose={() => setDeleteConfirm({ isOpen: false, nodeId: null, jabatan: '', nama: '' })}
+        title="Hapus Personel"
+        subtitle="Konfirmasi Penghapusan Struktur Organisasi"
+        icon={<AlertTriangle color="#ef4444" />}
+        width={440}
+        destroyOnClose
+        footer={
+          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px', width: '100%' }}>
+            <button
+              type="button"
+              className="btn-custom btn-secondary"
+              onClick={() => setDeleteConfirm({ isOpen: false, nodeId: null, jabatan: '', nama: '' })}
+            >
+              Batal
+            </button>
+            <button
+              type="button"
+              className="btn-custom btn-danger"
+              onClick={handleConfirmDelete}
+            >
+              Hapus Personel
+            </button>
+          </div>
+        }
+      >
+        <div style={{ padding: '4px 0' }}>
+          <p style={{ margin: 0, color: 'var(--lt-text-primary, #0f172a)', fontSize: '14px', fontWeight: 500 }}>
+            Apakah Anda yakin ingin menghapus <strong>{deleteConfirm.nama}</strong> dari jabatan <strong>{deleteConfirm.jabatan}</strong>?
+          </p>
+          <p style={{ marginTop: '10px', marginBottom: 0, color: 'var(--lt-text-secondary, #64748b)', fontSize: '13px', lineHeight: 1.5 }}>
+            Tindakan ini hanya akan mengosongkan posisi jabatan ini dalam bagan organisasi dan tidak akan menghapus data guru dari database.
+          </p>
         </div>
-      </Modal>
+      </CustomModal>
     </div>
   );
 }

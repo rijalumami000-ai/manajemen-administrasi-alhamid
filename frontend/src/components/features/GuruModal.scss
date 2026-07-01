@@ -1,8 +1,57 @@
-@import '../../styles/variables';
-@import '../../styles/mixins';
+@import '../../styles/variables.scss';
+@import '../../styles/mixins.scss';
 
-.guru-modal {
-  .ant-form-item {
-    margin-bottom: $spacing-md;
+.guru-form-container {
+  .guru-form {
+    margin-top: 12px;
   }
+
+  .guru-form-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 8px 16px;
+
+    @media (max-width: 640px) {
+      grid-template-columns: 1fr;
+    }
+  }
+
+  .guru-form-full {
+    grid-column: 1 / -1;
+  }
+
+  // Textarea special container adjustments to align with FloatingInput styling
+  .textarea-wrapper {
+    min-height: 100px;
+    align-items: flex-start;
+  }
+
+  .textarea-field {
+    width: 100%;
+    border: none;
+    background: transparent;
+    padding: 24px 12px 8px;
+    font-family: inherit;
+    font-size: 14px;
+    color: var(--lt-text-primary, #0f172a);
+    outline: none;
+
+    [data-theme="dark"] & {
+      color: #f1f5f9;
+    }
+  }
+}
+
+// Global loading spinner for buttons
+.loading-spinner {
+  width: 16px;
+  height: 16px;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  border-radius: 50%;
+  border-top-color: white;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
 }

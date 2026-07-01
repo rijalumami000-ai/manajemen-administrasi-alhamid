@@ -110,37 +110,73 @@
       padding: $spacing-md;
     }
 
-    .org-tabs {
-      .ant-tabs-nav {
-        margin-bottom: $spacing-2xl !important;
-        border-bottom: 2px solid rgba(226, 232, 240, 0.6) !important;
-
+    // Custom Tabs Styling
+    .custom-tabs-nav {
+      display: flex;
+      gap: 16px;
+      overflow-x: auto;
+      
+      &::-webkit-scrollbar {
+        height: 4px;
+      }
+      &::-webkit-scrollbar-thumb {
+        background: rgba(0, 0, 0, 0.1);
+        border-radius: $radius-full;
         html[data-theme="dark"] & {
-          border-bottom-color: rgba(255, 255, 255, 0.05) !important;
+          background: rgba(255, 255, 255, 0.1);
+        }
+      }
+    }
+
+    .custom-tabs-tab {
+      background: none;
+      border: none;
+      color: #64748b;
+      font-weight: 700;
+      font-size: 15px;
+      padding: 14px 20px;
+      cursor: pointer;
+      position: relative;
+      transition: all 0.3s ease;
+      white-space: nowrap;
+
+      &:hover {
+        color: #4f46e5;
+      }
+
+      &::after {
+        content: '';
+        position: absolute;
+        bottom: -1px;
+        left: 0;
+        right: 0;
+        height: 3px;
+        background: transparent;
+        border-radius: $radius-full;
+        transition: background-color 0.2s ease;
+      }
+
+      &.active {
+        color: #4f46e5;
+
+        &::after {
+          background: linear-gradient(90deg, #6366f1 0%, #a855f7 100%);
         }
       }
 
-      .ant-tabs-tab {
-        font-size: 15px;
-        font-weight: 700;
-        color: #64748b;
-        padding: 14px 20px;
-        transition: all 0.3s ease;
-        border-radius: $radius-lg $radius-lg 0 0;
+      html[data-theme="dark"] & {
+        color: rgba(255, 255, 255, 0.45);
         
         &:hover {
-          color: #4f46e5;
+          color: #3b82f6;
         }
         
-        &.ant-tabs-tab-active .ant-tabs-tab-btn {
-          color: #4f46e5;
+        &.active {
+          color: #3b82f6;
+          &::after {
+            background: #3b82f6;
+          }
         }
-      }
-
-      .ant-tabs-ink-bar {
-        background: linear-gradient(90deg, #6366f1 0%, #a855f7 100%);
-        height: 3px !important;
-        border-radius: $radius-full;
       }
     }
   }
@@ -337,6 +373,8 @@
         align-items: center;
         gap: 6px;
         transition: all 0.3s ease;
+        cursor: pointer;
+        padding: 8px 14px;
 
         &:hover {
           transform: translateY(-2px);
@@ -456,6 +494,18 @@
       }
     }
 
+    .node-avatar {
+      width: 46px;
+      height: 46px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #ffffff;
+      font-weight: 600;
+      font-size: 15px;
+    }
+
     .node-avatar-image {
       width: 46px;
       height: 46px;
@@ -519,11 +569,19 @@
       transform: scale(0.9);
       transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
       display: flex;
-      gap: 4px;
+      gap: 6px;
       margin-left: auto;
       flex-shrink: 0;
 
-      .node-edit-btn, .node-delete-btn {
+      .action-icon-btn {
+        width: 32px;
+        height: 32px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        padding: 0;
         box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
         border: 1px solid rgba(226, 232, 240, 0.8);
         transition: all 0.2s ease;
@@ -605,77 +663,5 @@
   @keyframes rotate {
     from { transform: rotate(0deg); }
     to { transform: rotate(360deg); }
-  }
-}
-
-// Modal Styling
-.org-edit-modal {
-  .ant-modal-content {
-    border-radius: $radius-2xl !important;
-    padding: $spacing-xl !important;
-    box-shadow: 0 25px 60px -15px rgba(0, 0, 0, 0.12) !important;
-  }
-
-  .modal-title-wrapper {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    font-size: 17px;
-    font-weight: 800;
-    color: #0f172a;
-
-    .modal-icon {
-      color: #6366f1;
-    }
-  }
-
-  .modal-body-container {
-    display: flex;
-    flex-direction: column;
-    gap: $spacing-lg;
-    padding: $spacing-md 0 0;
-  }
-
-  .form-group {
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-
-    .form-label {
-      font-size: 13px;
-      font-weight: 700;
-      color: #334155;
-    }
-
-    .w-full-select {
-      width: 100%;
-    }
-
-    .input-helper {
-      font-size: 11px;
-      color: #94a3b8;
-      font-weight: 500;
-    }
-  }
-
-  .form-divider {
-    text-align: center;
-    position: relative;
-    font-size: 12px;
-    font-weight: 700;
-    color: #94a3b8;
-    margin: $spacing-sm 0;
-
-    &::before, &::after {
-      content: '';
-      position: absolute;
-      top: 50%;
-      width: 25%;
-      height: 1px;
-      background: #e2e8f0;
-    }
-
-    &::before { left: 0; }
-    &::after { right: 0; }
   }
 }

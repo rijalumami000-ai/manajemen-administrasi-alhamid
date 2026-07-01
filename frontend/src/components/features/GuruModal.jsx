@@ -1,10 +1,9 @@
-import { useEffect } from 'react';
-import { Modal, Form, Input, Select, Alert, Row, Col } from 'antd';
-import { UserOutlined, IdcardOutlined, PhoneOutlined, HomeOutlined } from '@ant-design/icons';
-import './GuruModal.scss';
-
-const { Option } = Select;
-const { TextArea } = Input;
+import { useState, useEffect } from 'react';
+import { CustomModal } from '../ui/CustomModal';
+import { FloatingInput } from '../ui/FloatingInput';
+import { CustomSelect } from '../ui/CustomSelect';
+import { SmartAlert } from '../ui/SmartAlert';
+import { User, Save } from 'lucide-react';
 
 export function GuruModal({
   isOpen,
@@ -16,173 +15,249 @@ export function GuruModal({
   isSubmitting = false,
   error = null
 }) {
-  const [form] = Form.useForm();
+  const [formData, setFormData] = useState({
+    nip: '',
+    nama: '',
+    mata_pelajaran_id: '',
+    jabatan_id: '',
+    no_hp: '',
+    status: '',
+    alamat: ''
+  });
+  const [formErrors, setFormErrors] = useState({});
+  const [alamatFocused, setAlamatFocused] = useState(false);
 
   useEffect(() => {
     if (isOpen) {
       if (editData) {
-        form.setFieldsValue({
-          ...editData,
-          mata_pelajaran_id: editData.mata_pelajaran_id || undefined,
-          jabatan_id: editData.jabatan_id || undefined
+        setFormData({
+          nip: editData.nip || '',
+          nama: editData.nama || '',
+          mata_pelajaran_id: editData.mata_pelajaran_id !== null && editData.mata_pelajaran_id !== undefined ? String(editData.mata_pelajaran_id) : '',
+          jabatan_id: editData.jabatan_id !== null && editData.jabatan_id !== undefined ? String(editData.jabatan_id) : '',
+          no_hp: editData.no_hp || '',
+          status: editData.status || '',
+          alamat: editData.alamat || ''
         });
       } else {
-        form.resetFields();
+        setFormData({
+          nip: '',
+          nama: '',
+          mata_pelajaran_id: '',
+          jabatan_id: '',
+          no_hp: '',
+          status: '',
+          alamat: ''
+        });
       }
+      setFormErrors({});
     }
-  }, [isOpen, editData, form]);
+  }, [isOpen, editData]);
 
-  const handleSubmit = async () => {
-    try {
-      const values = await form.validateFields();
-
-      const submitData = {
-        ...values,
-        mata_pelajaran_id: values.mata_pelajaran_id || null,
-        jabatan_id: values.jabatan_id || null
-      };
-
-      onSubmit(submitData);
-    } catch (err) {
-      console.error('Validasi gagal:', err);
+  const handleChange = (name, value) => {
+    setFormData(prev => ({ ...prev, [name]: value }));
+    if (formErrors[name]) {
+      setFormErrors(prev => ({ ...prev, [name]: '' }));
     }
+  };
+
+  const handleSubmit = (e) => {
+    if (e) e.preventDefault();
+
+    const errors = {};
+    if (!formData.nama || !formData.nama.trim()) {
+      errors.nama = 'Nama wajib diisi';
+    }
+    if (!formData.mata_pelajaran_id) {
+      errors.mata_pelajaran_id = 'Mata pelajaran wajib dipilih';
+    }
+    if (!formData.jabatan_id) {
+      errors.jabatan_id = 'Jabatan wajib dipilih';
+    }
+    if (!formData.no_hp || !formData.no_hp.trim()) {
+      errors.no_hp = 'No. HP wajib diisi';
+    }
+    if (!formData.status) {
+      errors.status = 'Status wajib dipilih';
+    }
+    if (!formData.alamat || !formData.alamat.trim()) {
+      errors.alamat = 'Alamat wajib diisi';
+    }
+
+    if (Object.keys(errors).length > 0) {
+      setFormErrors(errors);
+      return;
+    }
+
+    const submitData = {
+      nip: formData.nip.trim() || null,
+      nama: formData.nama.trim(),
+      mata_pelajaran_id: formData.mata_pelajaran_id ? Number(formData.mata_pelajaran_id) : null,
+      jabatan_id: formData.jabatan_id ? Number(formData.jabatan_id) : null,
+      no_hp: formData.no_hp.trim(),
+      status: formData.status,
+      alamat: formData.alamat.trim()
+    };
+
+    onSubmit(submitData);
   };
 
   const handleCancel = () => {
-    form.resetFields();
     onClose();
   };
 
+  // Options
+  const mapelOptions = mataPelajaranList.map(mapel => ({
+    value: String(mapel.id),
+    label: mapel.nama
+  }));
+
+  const jabatanOptions = jabatanList.map(jab => ({
+    value: String(jab.id),
+    label: jab.nama
+  }));
+
+  const statusOptions = [
+    { label: 'Aktif', value: 'Aktif' },
+    { label: 'Cuti', value: 'Cuti' },
+    { label: 'Pensiun', value: 'Pensiun' }
+  ];
+
   return (
-    <Modal
+    <CustomModal
       open={isOpen}
+      onClose={handleCancel}
       title={editData ? 'Edit Guru' : 'Tambah Guru'}
-      onCancel={handleCancel}
-      onOk={handleSubmit}
-      confirmLoading={isSubmitting}
-      width={700}
-      okText={editData ? 'Perbarui' : 'Simpan'}
-      cancelText="Batal"
-      className="guru-modal"
+      subtitle={editData ? 'Perbarui informasi profil dan penugasan guru' : 'Daftarkan ustadz/ustadzah baru ke sistem'}
+      icon={<User />}
+      width={680}
       destroyOnClose
+      footer={
+        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px', width: '100%' }}>
+          <button
+            type="button"
+            className="btn-custom btn-secondary"
+            onClick={handleCancel}
+            disabled={isSubmitting}
+          >
+            Batal
+          </button>
+          <button
+            type="submit"
+            className="btn-custom btn-primary"
+            onClick={handleSubmit}
+            disabled={isSubmitting}
+          >
+            {isSubmitting ? (
+              <span className="loading-spinner"></span>
+            ) : (
+              <span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <Save size={16} /> {editData ? 'Perbarui' : 'Simpan'}
+              </span>
+            )}
+          </button>
+        </div>
+      }
     >
-      {error && (
-        <Alert
-          message="Error"
-          description={error}
-          type="error"
-          showIcon
-          closable
-          style={{ marginBottom: 16 }}
-        />
-      )}
+      <div className="guru-form-container">
+        {error && (
+          <div style={{ marginBottom: '16px' }}>
+            <SmartAlert message={error} type="error" />
+          </div>
+        )}
 
-      <Alert
-        message="Catatan"
-        description="Jika mata pelajaran atau jabatan belum tersedia, tambahkan dulu lewat tab di atas."
-        type="info"
-        showIcon
-        style={{ marginBottom: 16 }}
-      />
-
-      <Form
-        form={form}
-        layout="vertical"
-        disabled={isSubmitting}
-      >
-        <Row gutter={16}>
-          <Col xs={24} sm={12}>
-            <Form.Item
-              name="nip"
-              label="NIP (Opsional)"
-            >
-              <Input prefix={<IdcardOutlined />} placeholder="Masukkan NIP" />
-            </Form.Item>
-          </Col>
-
-          <Col xs={24} sm={12}>
-            <Form.Item
-              name="nama"
-              label="Nama"
-              rules={[{ required: true, message: 'Nama wajib diisi' }]}
-            >
-              <Input prefix={<UserOutlined />} placeholder="Masukkan nama lengkap" />
-            </Form.Item>
-          </Col>
-        </Row>
-
-        <Row gutter={16}>
-          <Col xs={24} sm={12}>
-            <Form.Item
-              name="mata_pelajaran_id"
-              label="Mata Pelajaran"
-              rules={[{ required: true, message: 'Mata pelajaran wajib dipilih' }]}
-            >
-              <Select placeholder="Pilih mata pelajaran">
-                {mataPelajaranList.map(mapel => (
-                  <Option key={mapel.id} value={mapel.id}>
-                    {mapel.nama}
-                  </Option>
-                ))}
-              </Select>
-            </Form.Item>
-          </Col>
-
-          <Col xs={24} sm={12}>
-            <Form.Item
-              name="jabatan_id"
-              label="Jabatan"
-              rules={[{ required: true, message: 'Jabatan wajib dipilih' }]}
-            >
-              <Select placeholder="Pilih jabatan">
-                {jabatanList.map(jabatan => (
-                  <Option key={jabatan.id} value={jabatan.id}>
-                    {jabatan.nama}
-                  </Option>
-                ))}
-              </Select>
-            </Form.Item>
-          </Col>
-        </Row>
-
-        <Row gutter={16}>
-          <Col xs={24} sm={12}>
-            <Form.Item
-              name="no_hp"
-              label="No. HP"
-              rules={[{ required: true, message: 'No. HP wajib diisi' }]}
-            >
-              <Input prefix={<PhoneOutlined />} placeholder="Masukkan no. HP" />
-            </Form.Item>
-          </Col>
-
-          <Col xs={24} sm={12}>
-            <Form.Item
-              name="status"
-              label="Status"
-              rules={[{ required: true, message: 'Status wajib dipilih' }]}
-            >
-              <Select placeholder="Pilih status">
-                <Option value="Aktif">Aktif</Option>
-                <Option value="Cuti">Cuti</Option>
-                <Option value="Pensiun">Pensiun</Option>
-              </Select>
-            </Form.Item>
-          </Col>
-        </Row>
-
-        <Form.Item
-          name="alamat"
-          label="Alamat"
-          rules={[{ required: true, message: 'Alamat wajib diisi' }]}
-        >
-          <TextArea
-            rows={3}
-            prefix={<HomeOutlined />}
-            placeholder="Masukkan alamat lengkap"
+        <div style={{ marginBottom: '20px' }}>
+          <SmartAlert 
+            message="Catatan: Jika mata pelajaran atau jabatan belum tersedia, tambahkan terlebih dahulu lewat tab di halaman utama." 
+            type="info" 
           />
-        </Form.Item>
-      </Form>
-    </Modal>
+        </div>
+
+        <form onSubmit={handleSubmit} className="guru-form">
+          <div className="guru-form-grid">
+            <FloatingInput
+              label="NIP (Opsional)"
+              name="nip"
+              value={formData.nip}
+              onChange={(e) => handleChange('nip', e.target.value)}
+              error={formErrors.nip}
+              disabled={isSubmitting}
+            />
+
+            <FloatingInput
+              label="Nama Lengkap"
+              name="nama"
+              value={formData.nama}
+              onChange={(e) => handleChange('nama', e.target.value)}
+              error={formErrors.nama}
+              required
+              disabled={isSubmitting}
+            />
+
+            <CustomSelect
+              label="Mata Pelajaran"
+              value={formData.mata_pelajaran_id}
+              onChange={(v) => handleChange('mata_pelajaran_id', v)}
+              options={mapelOptions}
+              error={formErrors.mata_pelajaran_id}
+              required
+              disabled={isSubmitting}
+            />
+
+            <CustomSelect
+              label="Jabatan Utama"
+              value={formData.jabatan_id}
+              onChange={(v) => handleChange('jabatan_id', v)}
+              options={jabatanOptions}
+              error={formErrors.jabatan_id}
+              required
+              disabled={isSubmitting}
+            />
+
+            <FloatingInput
+              label="Nomor HP / WhatsApp"
+              name="no_hp"
+              value={formData.no_hp}
+              onChange={(e) => handleChange('no_hp', e.target.value)}
+              error={formErrors.no_hp}
+              required
+              disabled={isSubmitting}
+            />
+
+            <CustomSelect
+              label="Status Keaktifan"
+              value={formData.status}
+              onChange={(v) => handleChange('status', v)}
+              options={statusOptions}
+              error={formErrors.status}
+              required
+              disabled={isSubmitting}
+            />
+
+            <div className="guru-form-full">
+              <div className={`ui-floating-input ${(alamatFocused || formData.alamat) ? 'active' : ''} ${formErrors.alamat ? 'has-error' : ''} ${isSubmitting ? 'disabled' : ''}`}>
+                <div className="ui-floating-input__wrapper textarea-wrapper">
+                  <textarea
+                    name="alamat"
+                    className="ui-floating-input__field textarea-field"
+                    value={formData.alamat || ''}
+                    onChange={(e) => handleChange('alamat', e.target.value)}
+                    onFocus={() => setAlamatFocused(true)}
+                    onBlur={() => setAlamatFocused(false)}
+                    rows={3}
+                    disabled={isSubmitting}
+                    style={{ resize: 'vertical', paddingTop: '20px', minHeight: '80px' }}
+                  />
+                  <label className="ui-floating-input__label">
+                    Alamat Lengkap <span className="required-asterisk">*</span>
+                  </label>
+                </div>
+                {formErrors.alamat && <div className="ui-floating-input__error">{formErrors.alamat}</div>}
+              </div>
+            </div>
+          </div>
+        </form>
+      </div>
+    </CustomModal>
   );
 }

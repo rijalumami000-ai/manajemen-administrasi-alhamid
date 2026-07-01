@@ -1,17 +1,17 @@
 import { useState, useEffect, useMemo } from 'react';
-import { Button, Select, Row, Col, message as antMessage, Divider } from 'antd';
-import { PlusOutlined, BookOutlined, SortAscendingOutlined } from '@ant-design/icons';
+import { Plus, BookOpen, ArrowUpDown, AlertTriangle } from 'lucide-react';
 import { kelasService } from '../services/kelasService';
 import { guruService } from '../services/guruService';
 import { santriService } from '../services/santriService';
 import { KelasCard } from '../components/features/KelasCard';
 import { KelasModal } from '../components/features/KelasModal';
-import { PageHeader, LoadingState, ErrorState, EmptyState } from '../components/common';
+import { CustomSelect } from '../components/ui/CustomSelect';
+import { CustomModal } from '../components/ui/CustomModal';
+import { PageHeader, LoadingState, ErrorState, EmptyState, useToast } from '../components/common';
 import './Kelas.scss';
 
-const { Option } = Select;
-
 export function Kelas() {
+  const toast = useToast();
   const [kelasList, setKelasList] = useState([]);
   const [guruList, setGuruList] = useState([]);
   const [mapelList, setMapelList] = useState([]);
@@ -24,6 +24,13 @@ export function Kelas() {
   const [modalError, setModalError] = useState('');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+
+  // Custom Delete Confirm Modal State
+  const [deleteConfirm, setDeleteConfirm] = useState({
+    isOpen: false,
+    kelasId: null,
+    kelasNama: ''
+  });
 
   useEffect(() => {
     loadInitialData();
@@ -85,15 +92,25 @@ export function Kelas() {
     setIsModalOpen(true);
   };
 
-  const handleDeleteClick = async (id, nama) => {
-    if (!confirm(`Apakah Anda yakin ingin menghapus kelas ${nama}?`)) return;
+  const handleDeleteClick = (id, nama) => {
+    setDeleteConfirm({
+      isOpen: true,
+      kelasId: id,
+      kelasNama: nama
+    });
+  };
+
+  const handleConfirmDelete = async () => {
+    const { kelasId } = deleteConfirm;
+    if (!kelasId) return;
 
     try {
-      await kelasService.deleteKelas(id);
-      antMessage.success('Data kelas berhasil dihapus');
+      await kelasService.deleteKelas(kelasId);
+      toast.success('Data kelas berhasil dihapus');
+      setDeleteConfirm({ isOpen: false, kelasId: null, kelasNama: '' });
       await loadKelas(selectedTahunAjaranId);
     } catch (err) {
-      antMessage.error(err.message || 'Gagal menghapus kelas');
+      toast.error(err.message || 'Gagal menghapus kelas');
     }
   };
 
@@ -109,10 +126,10 @@ export function Kelas() {
 
       if (editingData) {
         await kelasService.updateKelas(editingData.id, payload);
-        antMessage.success('Data kelas berhasil diperbarui');
+        toast.success('Data kelas berhasil diperbarui');
       } else {
         await kelasService.createKelas(payload);
-        antMessage.success('Data kelas berhasil disimpan');
+        toast.success('Data kelas berhasil disimpan');
       }
 
       setIsModalOpen(false);
@@ -156,28 +173,27 @@ export function Kelas() {
   const kelasDiniyah = sortedKelas.filter(k => k.jenis === 'Diniyah');
   const kelasSekolah = sortedKelas.filter(k => k.jenis === 'Sekolah');
 
-  const renderKelasGroup = (items, title, jenis, icon) => (
+  const renderKelasGroup = (items, title, jenis, iconColor) => (
     <div className="kelas-group">
       <div className="kelas-group-header">
         <div className="kelas-group-title">
-          {icon}
+          <BookOpen size={22} color={iconColor} />
           <h3>{title}</h3>
           <span className="kelas-count">{items.length} kelas</span>
         </div>
       </div>
 
       {items.length > 0 ? (
-        <Row gutter={[16, 16]}>
+        <div className="kelas-grid">
           {items.map(kelas => (
-            <Col key={kelas.id} xs={24} sm={12} md={8} lg={6} xl={4}>
-              <KelasCard
-                kelas={kelas}
-                onEdit={handleEditClick}
-                onDelete={handleDeleteClick}
-              />
-            </Col>
+            <KelasCard
+              key={kelas.id}
+              kelas={kelas}
+              onEdit={handleEditClick}
+              onDelete={handleDeleteClick}
+            />
           ))}
-        </Row>
+        </div>
       ) : (
         <EmptyState description={`Belum ada ${title.toLowerCase()}`} />
       )}
@@ -197,6 +213,18 @@ export function Kelas() {
     );
   }
 
+  const tahunAjaranOptions = tahunAjaranList.map(option => ({
+    value: String(option.id),
+    label: `${option.kode}${option.is_active ? ' (Berjalan)' : ''}`
+  }));
+
+  const sortByOptions = [
+    { label: 'Nama A-Z', value: 'nama-asc' },
+    { label: 'Nama Z-A', value: 'nama-desc' },
+    { label: 'Terbaru', value: 'terbaru' },
+    { label: 'Terlama', value: 'terlama' }
+  ];
+
   return (
     <div className="kelas-page">
       <PageHeader
@@ -204,37 +232,32 @@ export function Kelas() {
         subtitle="Kelola daftar kelas Diniyah dan Sekolah"
         extra={
           <div className="kelas-header-actions">
-            <Select
-              value={selectedTahunAjaranId}
-              onChange={handleTahunAjaranChange}
-              style={{ width: 180 }}
-              placeholder="Pilih Tahun Ajaran"
-              className="year-select"
-            >
-              {tahunAjaranList.map(option => (
-                <Option key={option.id} value={String(option.id)}>
-                  {option.kode}{option.is_active ? ' (Berjalan)' : ''}
-                </Option>
-              ))}
-            </Select>
-            <Select
-              value={sortBy}
-              onChange={setSortBy}
-              style={{ width: 160 }}
-              suffixIcon={<SortAscendingOutlined />}
-            >
-              <Option value="nama-asc">Nama A-Z</Option>
-              <Option value="nama-desc">Nama Z-A</Option>
-              <Option value="terbaru">Terbaru</Option>
-              <Option value="terlama">Terlama</Option>
-            </Select>
-            <Button
-              type="primary"
-              icon={<PlusOutlined />}
+            <div className="select-wrapper select-ta">
+              <CustomSelect
+                label="Tahun Ajaran"
+                value={selectedTahunAjaranId}
+                onChange={handleTahunAjaranChange}
+                options={tahunAjaranOptions}
+                placeholder="Pilih Tahun Ajaran"
+              />
+            </div>
+            <div className="select-wrapper select-sort">
+              <CustomSelect
+                label="Urutkan"
+                value={sortBy}
+                onChange={setSortBy}
+                options={sortByOptions}
+                icon={ArrowUpDown}
+              />
+            </div>
+            <button
+              type="button"
+              className="btn-custom btn-primary"
               onClick={handleAddClick}
             >
-              Tambah Kelas
-            </Button>
+              <Plus size={18} />
+              <span>Tambah Kelas</span>
+            </button>
           </div>
         }
       />
@@ -244,16 +267,21 @@ export function Kelas() {
           <EmptyState
             description="Belum ada data kelas"
             action={
-              <Button type="primary" icon={<PlusOutlined />} onClick={handleAddClick}>
-                Tambah Kelas Pertama
-              </Button>
+              <button
+                type="button"
+                className="btn-custom btn-primary"
+                onClick={handleAddClick}
+              >
+                <Plus size={18} />
+                <span>Tambah Kelas Pertama</span>
+              </button>
             }
           />
         ) : (
           <>
-            {renderKelasGroup(kelasDiniyah, 'Kelas Diniyah', 'Diniyah', <BookOutlined style={{ color: '#2196f3' }} />)}
-            <Divider />
-            {renderKelasGroup(kelasSekolah, 'Kelas Sekolah', 'Sekolah', <BookOutlined style={{ color: '#9c27b0' }} />)}
+            {renderKelasGroup(kelasDiniyah, 'Kelas Diniyah', 'Diniyah', '#3b82f6')}
+            <div className="kelas-divider" />
+            {renderKelasGroup(kelasSekolah, 'Kelas Sekolah', 'Sekolah', '#a855f7')}
           </>
         )}
       </div>
@@ -268,6 +296,44 @@ export function Kelas() {
         guruList={guruList}
         mapelList={mapelList}
       />
+
+      {/* Custom Delete Confirmation Modal */}
+      <CustomModal
+        open={deleteConfirm.isOpen}
+        onClose={() => setDeleteConfirm({ isOpen: false, kelasId: null, kelasNama: '' })}
+        title="Hapus Kelas"
+        subtitle="Konfirmasi Penghapusan Data Kelas"
+        icon={<AlertTriangle color="#ef4444" />}
+        width={440}
+        destroyOnClose
+        footer={
+          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px', width: '100%' }}>
+            <button
+              type="button"
+              className="btn-custom btn-secondary"
+              onClick={() => setDeleteConfirm({ isOpen: false, kelasId: null, kelasNama: '' })}
+            >
+              Batal
+            </button>
+            <button
+              type="button"
+              className="btn-custom btn-danger"
+              onClick={handleConfirmDelete}
+            >
+              Hapus Kelas
+            </button>
+          </div>
+        }
+      >
+        <div style={{ padding: '4px 0' }}>
+          <p style={{ margin: 0, color: 'var(--lt-text-primary, #0f172a)', fontSize: '14px', fontWeight: 500 }}>
+            Apakah Anda yakin ingin menghapus kelas <strong>{deleteConfirm.kelasNama}</strong>?
+          </p>
+          <p style={{ marginTop: '10px', marginBottom: 0, color: 'var(--lt-text-secondary, #64748b)', fontSize: '13px', lineHeight: 1.5 }}>
+            Tindakan ini permanen dan tidak dapat dibatalkan. Hubungan data santri serta nilai yang tertaut dengan kelas ini mungkin akan terpengaruh.
+          </p>
+        </div>
+      </CustomModal>
     </div>
   );
 }

@@ -44,7 +44,7 @@ export function MasterList({ items, emptyLabel, onEdit, onDelete, type }) {
             <button
               type="button"
               className="action-btn delete-btn"
-              onClick={() => onDelete(item.id)}
+              onClick={() => onDelete(item.id, item.nama)}
               aria-label={`Hapus ${item.nama || ''}`}
             >
               <Trash2 size={12} />

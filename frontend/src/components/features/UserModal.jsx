@@ -1,165 +1,253 @@
-import { useEffect } from 'react';
-import { Modal, Form, Input, Select, Alert } from 'antd';
-import { UserOutlined, MailOutlined, PhoneOutlined, LockOutlined } from '@ant-design/icons';
+import { useState, useEffect, useRef } from 'react';
+import { X, User, Mail, Phone, Lock, Eye, EyeOff, AlertCircle } from 'lucide-react';
 
-const { Option } = Select;
+const ROLES = [
+  { value: 'admin', label: 'Admin' },
+  { value: 'madrasah_diniyah', label: 'Madrasah Diniyah' },
+  { value: 'bendahara', label: 'Bendahara' },
+];
 
 export function UserModal({ isOpen, onClose, onSubmit, editData, isSubmitting, error }) {
-  const [form] = Form.useForm();
+  const [formData, setFormData] = useState({
+    username: '',
+    full_name: '',
+    email: '',
+    phone: '',
+    role: '',
+    password: '',
+  });
+  const [showPassword, setShowPassword] = useState(false);
+  const [validationErrors, setValidationErrors] = useState({});
+  const firstInputRef = useRef(null);
 
   useEffect(() => {
     if (isOpen) {
       if (editData) {
-        form.setFieldsValue({
+        setFormData({
           username: editData.username || '',
           full_name: editData.full_name || '',
           email: editData.email || '',
           phone: editData.phone || '',
           role: editData.role || '',
-          password: ''
+          password: '',
         });
       } else {
-        form.resetFields();
+        setFormData({ username: '', full_name: '', email: '', phone: '', role: '', password: '' });
       }
+      setValidationErrors({});
+      setShowPassword(false);
+      setTimeout(() => firstInputRef.current?.focus(), 100);
     }
-  }, [isOpen, editData, form]);
+  }, [isOpen, editData]);
 
-  const handleSubmit = async () => {
-    try {
-      const values = await form.validateFields();
-      
-      const submitData = { ...values };
-      if (editData && !submitData.password) {
-        delete submitData.password;
-      }
-      
-      onSubmit(submitData);
-    } catch (err) {
-      console.error('Validation failed:', err);
+  const validate = () => {
+    const errors = {};
+    if (!formData.username.trim()) errors.username = 'Username wajib diisi!';
+    else if (formData.username.trim().length < 3) errors.username = 'Username minimal 3 karakter!';
+    if (!formData.full_name.trim()) errors.full_name = 'Nama lengkap wajib diisi!';
+    if (formData.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
+      errors.email = 'Format email tidak valid!';
+    }
+    if (formData.phone && !/^[0-9+\-\s()]*$/.test(formData.phone)) {
+      errors.phone = 'Format nomor HP tidak valid!';
+    }
+    if (!formData.role) errors.role = 'Role wajib dipilih!';
+    if (!editData && !formData.password) errors.password = 'Password wajib diisi untuk user baru!';
+    if (formData.password && formData.password.length < 8) errors.password = 'Password minimal 8 karakter!';
+    return errors;
+  };
+
+  const handleChange = (field, value) => {
+    setFormData((prev) => ({ ...prev, [field]: value }));
+    if (validationErrors[field]) {
+      setValidationErrors((prev) => ({ ...prev, [field]: undefined }));
     }
   };
 
-  const handleCancel = () => {
-    form.resetFields();
-    onClose();
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    const errors = validate();
+    if (Object.keys(errors).length > 0) {
+      setValidationErrors(errors);
+      return;
+    }
+    const submitData = { ...formData };
+    if (editData && !submitData.password) delete submitData.password;
+    onSubmit(submitData);
   };
+
+  const handleOverlayClick = (e) => {
+    if (e.target === e.currentTarget) onClose();
+  };
+
+  if (!isOpen) return null;
 
   return (
-    <Modal
-      title={editData ? 'Edit User' : 'Tambah User Baru'}
-      open={isOpen}
-      onOk={handleSubmit}
-      onCancel={handleCancel}
-      confirmLoading={isSubmitting}
-      okText={isSubmitting ? 'Menyimpan...' : 'Simpan'}
-      cancelText="Batal"
-      width={600}
-      destroyOnClose
-    >
-      {error && (
-        <Alert
-          message="Error"
-          description={error}
-          type="error"
-          showIcon
-          closable
-          style={{ marginBottom: 16 }}
-        />
-      )}
-
-      <Form
-        form={form}
-        layout="vertical"
-        autoComplete="off"
-      >
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
-          <Form.Item
-            label="Username"
-            name="username"
-            rules={[
-              { required: true, message: 'Username wajib diisi!' },
-              { min: 3, message: 'Username minimal 3 karakter!' }
-            ]}
-          >
-            <Input
-              prefix={<UserOutlined />}
-              placeholder="Masukkan username"
-              disabled={!!editData || isSubmitting}
-            />
-          </Form.Item>
-
-          <Form.Item
-            label="Nama Lengkap"
-            name="full_name"
-            rules={[
-              { required: true, message: 'Nama lengkap wajib diisi!' }
-            ]}
-          >
-            <Input
-              placeholder="Masukkan nama lengkap"
-              disabled={isSubmitting}
-            />
-          </Form.Item>
-
-          <Form.Item
-            label="Email"
-            name="email"
-            rules={[
-              { type: 'email', message: 'Format email tidak valid!' }
-            ]}
-          >
-            <Input
-              prefix={<MailOutlined />}
-              placeholder="Masukkan email"
-              disabled={isSubmitting}
-            />
-          </Form.Item>
-
-          <Form.Item
-            label="No. HP"
-            name="phone"
-            rules={[
-              { pattern: /^[0-9+\-\s()]*$/, message: 'Format nomor HP tidak valid!' }
-            ]}
-          >
-            <Input
-              prefix={<PhoneOutlined />}
-              placeholder="Masukkan nomor HP"
-              disabled={isSubmitting}
-            />
-          </Form.Item>
-
-          <Form.Item
-            label="Role"
-            name="role"
-            rules={[
-              { required: true, message: 'Role wajib dipilih!' }
-            ]}
-          >
-            <Select placeholder="-- Pilih Role --" disabled={isSubmitting}>
-              <Option value="admin">Admin</Option>
-              <Option value="madrasah_diniyah">Madrasah Diniyah</Option>
-              <Option value="bendahara">Bendahara</Option>
-            </Select>
-          </Form.Item>
-
-          <Form.Item
-            label="Password"
-            name="password"
-            rules={[
-              { required: !editData, message: 'Password wajib diisi untuk user baru!' },
-              { min: 8, message: 'Password minimal 8 karakter!' }
-            ]}
-            extra={editData ? 'Kosongkan jika tidak ingin mengubah password' : ''}
-          >
-            <Input.Password
-              prefix={<LockOutlined />}
-              placeholder="Masukkan password"
-              disabled={isSubmitting}
-            />
-          </Form.Item>
+    <div className="user-modal-overlay" onClick={handleOverlayClick}>
+      <div className="user-modal">
+        {/* Header */}
+        <div className="user-modal__header">
+          <h2 className="user-modal__title">
+            {editData ? 'Edit User' : 'Tambah User Baru'}
+          </h2>
+          <button className="user-modal__close" onClick={onClose} disabled={isSubmitting}>
+            <X size={20} />
+          </button>
         </div>
-      </Form>
-    </Modal>
+
+        {/* Error banner */}
+        {error && (
+          <div className="user-modal__error-banner">
+            <AlertCircle size={16} />
+            <span>{error}</span>
+          </div>
+        )}
+
+        {/* Form */}
+        <form className="user-modal__form" onSubmit={handleSubmit}>
+          <div className="user-modal__grid">
+            {/* Username */}
+            <div className={`form-field ${validationErrors.username ? 'has-error' : ''}`}>
+              <label>Username</label>
+              <div className="input-icon-wrapper">
+                <User size={15} className="input-icon" />
+                <input
+                  ref={firstInputRef}
+                  type="text"
+                  value={formData.username}
+                  onChange={(e) => handleChange('username', e.target.value)}
+                  placeholder="Masukkan username"
+                  disabled={!!editData || isSubmitting}
+                  autoComplete="off"
+                />
+              </div>
+              {validationErrors.username && (
+                <span className="field-error">{validationErrors.username}</span>
+              )}
+            </div>
+
+            {/* Full Name */}
+            <div className={`form-field ${validationErrors.full_name ? 'has-error' : ''}`}>
+              <label>Nama Lengkap</label>
+              <input
+                type="text"
+                value={formData.full_name}
+                onChange={(e) => handleChange('full_name', e.target.value)}
+                placeholder="Masukkan nama lengkap"
+                disabled={isSubmitting}
+              />
+              {validationErrors.full_name && (
+                <span className="field-error">{validationErrors.full_name}</span>
+              )}
+            </div>
+
+            {/* Email */}
+            <div className={`form-field ${validationErrors.email ? 'has-error' : ''}`}>
+              <label>Email <span className="optional">(opsional)</span></label>
+              <div className="input-icon-wrapper">
+                <Mail size={15} className="input-icon" />
+                <input
+                  type="email"
+                  value={formData.email}
+                  onChange={(e) => handleChange('email', e.target.value)}
+                  placeholder="Masukkan email"
+                  disabled={isSubmitting}
+                />
+              </div>
+              {validationErrors.email && (
+                <span className="field-error">{validationErrors.email}</span>
+              )}
+            </div>
+
+            {/* Phone */}
+            <div className={`form-field ${validationErrors.phone ? 'has-error' : ''}`}>
+              <label>No. HP <span className="optional">(opsional)</span></label>
+              <div className="input-icon-wrapper">
+                <Phone size={15} className="input-icon" />
+                <input
+                  type="tel"
+                  value={formData.phone}
+                  onChange={(e) => handleChange('phone', e.target.value)}
+                  placeholder="Masukkan nomor HP"
+                  disabled={isSubmitting}
+                />
+              </div>
+              {validationErrors.phone && (
+                <span className="field-error">{validationErrors.phone}</span>
+              )}
+            </div>
+
+            {/* Role */}
+            <div className={`form-field ${validationErrors.role ? 'has-error' : ''}`}>
+              <label>Role</label>
+              <select
+                value={formData.role}
+                onChange={(e) => handleChange('role', e.target.value)}
+                disabled={isSubmitting}
+              >
+                <option value="">-- Pilih Role --</option>
+                {ROLES.map((r) => (
+                  <option key={r.value} value={r.value}>{r.label}</option>
+                ))}
+              </select>
+              {validationErrors.role && (
+                <span className="field-error">{validationErrors.role}</span>
+              )}
+            </div>
+
+            {/* Password */}
+            <div className={`form-field ${validationErrors.password ? 'has-error' : ''}`}>
+              <label>Password {editData && <span className="optional">(opsional)</span>}</label>
+              <div className="input-icon-wrapper">
+                <Lock size={15} className="input-icon" />
+                <input
+                  type={showPassword ? 'text' : 'password'}
+                  value={formData.password}
+                  onChange={(e) => handleChange('password', e.target.value)}
+                  placeholder={editData ? 'Kosongkan jika tidak ingin mengubah' : 'Masukkan password'}
+                  disabled={isSubmitting}
+                  autoComplete="new-password"
+                />
+                <button
+                  type="button"
+                  className="password-toggle"
+                  onClick={() => setShowPassword((v) => !v)}
+                  tabIndex={-1}
+                >
+                  {showPassword ? <EyeOff size={15} /> : <Eye size={15} />}
+                </button>
+              </div>
+              {validationErrors.password && (
+                <span className="field-error">{validationErrors.password}</span>
+              )}
+            </div>
+          </div>
+
+          {/* Footer */}
+          <div className="user-modal__footer">
+            <button
+              type="button"
+              className="btn-cancel"
+              onClick={onClose}
+              disabled={isSubmitting}
+            >
+              Batal
+            </button>
+            <button
+              type="submit"
+              className="btn-submit"
+              disabled={isSubmitting}
+            >
+              {isSubmitting ? (
+                <>
+                  <span className="spinner-sm" />
+                  Menyimpan...
+                </>
+              ) : 'Simpan'}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
   );
 }

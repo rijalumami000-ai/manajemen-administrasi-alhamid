@@ -1,8 +1,6 @@
-import { Select } from 'antd';
+import { CustomSelect } from '../ui/CustomSelect';
 import { Search } from 'lucide-react';
 import './GuruFilters.scss';
-
-const { Option } = Select;
 
 export function GuruFilters({
   searchValue,
@@ -17,6 +15,10 @@ export function GuruFilters({
   mapelOptions = [],
   statusOptions = []
 }) {
+  const formattedJabatanOptions = jabatanOptions.map(opt => ({ value: opt, label: opt }));
+  const formattedMapelOptions = mapelOptions.map(opt => ({ value: opt, label: opt }));
+  const formattedStatusOptions = statusOptions.map(opt => ({ value: opt, label: opt }));
+
   return (
     <div className="guru-filters-panel">
       <div className="filters-main-row">
@@ -43,58 +45,37 @@ export function GuruFilters({
 
         {/* Dropdowns */}
         <div className="filters-quick-actions">
-          <div className="select-container">
-            <Select
-              value={jabatanValue || undefined}
+          <div className="select-container" style={{ width: '160px', marginBottom: 0 }}>
+            <CustomSelect
+              label="Jabatan"
+              value={jabatanValue}
               onChange={onJabatanChange}
-              placeholder="Semua Jabatan"
+              placeholder="Semua"
+              options={formattedJabatanOptions}
               allowClear
-              className="modern-select"
-              popupClassName="modern-select-dropdown"
-              style={{ width: 160 }}
-            >
-              {jabatanOptions.map((option, index) => (
-                <Option key={index} value={option}>
-                  {option}
-                </Option>
-              ))}
-            </Select>
+            />
           </div>
 
-          <div className="select-container">
-            <Select
-              value={mapelValue || undefined}
+          <div className="select-container" style={{ width: '160px', marginBottom: 0 }}>
+            <CustomSelect
+              label="Mapel"
+              value={mapelValue}
               onChange={onMapelChange}
-              placeholder="Semua Mapel"
+              placeholder="Semua"
+              options={formattedMapelOptions}
               allowClear
-              className="modern-select"
-              popupClassName="modern-select-dropdown"
-              style={{ width: 160 }}
-            >
-              {mapelOptions.map((option, index) => (
-                <Option key={index} value={option}>
-                  {option}
-                </Option>
-              ))}
-            </Select>
+            />
           </div>
 
-          <div className="select-container">
-            <Select
-              value={statusValue || undefined}
+          <div className="select-container" style={{ width: '140px', marginBottom: 0 }}>
+            <CustomSelect
+              label="Status"
+              value={statusValue}
               onChange={onStatusChange}
-              placeholder="Semua Status"
+              placeholder="Semua"
+              options={formattedStatusOptions}
               allowClear
-              className="modern-select"
-              popupClassName="modern-select-dropdown"
-              style={{ width: 140 }}
-            >
-              {statusOptions.map((option, index) => (
-                <Option key={index} value={option}>
-                  {option}
-                </Option>
-              ))}
-            </Select>
+            />
           </div>
         </div>
       </div>

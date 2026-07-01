@@ -1,16 +1,33 @@
 import { useState, useEffect } from 'react';
-import { Card, Row, Col, Upload, message, Typography, Form, Input, Button, InputNumber } from 'antd';
-import { UploadOutlined, PictureOutlined, UserOutlined, DeleteOutlined, SaveOutlined, EditOutlined } from '@ant-design/icons';
+import { 
+  Image, 
+  User, 
+  Trash2, 
+  Save, 
+  Edit3, 
+  Upload 
+} from 'lucide-react';
 import { settingsService } from '../../services/settingsService';
-
-const { Title, Text, Paragraph } = Typography;
+import { useToast } from '../common';
+import './RaporSettingsTab.scss';
 
 export function RaporSettingsTab() {
-  const [logoList, setLogoList] = useState([]);
-  const [ttdList, setTtdList] = useState([]);
+  const toast = useToast();
+  
+  const [logoUrl, setLogoUrl] = useState(null);
+  const [ttdUrl, setTtdUrl] = useState(null);
   const [isUploading, setIsUploading] = useState(false);
-  const [form] = Form.useForm();
   const [isSavingText, setIsSavingText] = useState(false);
+
+  // Text inputs form states
+  const [baris1, setBaris1] = useState('مؤسسة معهد الحامد الإسلامي');
+  const [size1, setSize1] = useState(24);
+  const [baris2, setBaris2] = useState('YAYASAN PONDOK PESANTREN AL-HAMID');
+  const [size2, setSize2] = useState(18);
+  const [baris3, setBaris3] = useState('MADRASAH DINIYAH TAKMILIYAH AL-HAMID');
+  const [size3, setSize3] = useState(20);
+  const [baris4, setBaris4] = useState('Jl. Raya Cilangkap Baru RT.07/01 Cilangkap Cipayung Jakarta Timur 13870');
+  const [size4, setSize4] = useState(14);
 
   useEffect(() => {
     loadSettings();
@@ -19,232 +36,304 @@ export function RaporSettingsTab() {
   const loadSettings = async () => {
     try {
       const data = await settingsService.fetchSettings();
-      if (data.rapor_kop_logo_url) {
-        setLogoList([{
-          uid: '-1',
-          name: 'logo_kop.png',
-          status: 'done',
-          url: data.rapor_kop_logo_url
-        }]);
-      } else {
-        setLogoList([]);
-      }
+      setLogoUrl(data.rapor_kop_logo_url || null);
+      setTtdUrl(data.rapor_kepala_madrasah_ttd_url || null);
 
-      if (data.rapor_kepala_madrasah_ttd_url) {
-        setTtdList([{
-          uid: '-2',
-          name: 'ttd_kepala_madrasah.png',
-          status: 'done',
-          url: data.rapor_kepala_madrasah_ttd_url
-        }]);
-      } else {
-        setTtdList([]);
-      }
-
-      form.setFieldsValue({
-        rapor_kop_baris_1: data.rapor_kop_baris_1 || 'مؤسسة معهد الحامد الإسلامي',
-        rapor_kop_size_1: data.rapor_kop_size_1 || 24,
-        rapor_kop_baris_2: data.rapor_kop_baris_2 || 'YAYASAN PONDOK PESANTREN AL-HAMID',
-        rapor_kop_size_2: data.rapor_kop_size_2 || 18,
-        rapor_kop_baris_3: data.rapor_kop_baris_3 || 'MADRASAH DINIYAH TAKMILIYAH AL-HAMID',
-        rapor_kop_size_3: data.rapor_kop_size_3 || 20,
-        rapor_kop_baris_4: data.rapor_kop_baris_4 || 'Jl. Raya Cilangkap Baru RT.07/01 Cilangkap Cipayung Jakarta Timur 13870',
-        rapor_kop_size_4: data.rapor_kop_size_4 || 14,
-      });
-
+      setBaris1(data.rapor_kop_baris_1 || 'مؤسسة معهد الحامد الإسلامي');
+      setSize1(data.rapor_kop_size_1 || 24);
+      setBaris2(data.rapor_kop_baris_2 || 'YAYASAN PONDOK PESANTREN AL-HAMID');
+      setSize2(data.rapor_kop_size_2 || 18);
+      setBaris3(data.rapor_kop_baris_3 || 'MADRASAH DINIYAH TAKMILIYAH AL-HAMID');
+      setSize3(data.rapor_kop_size_3 || 20);
+      setBaris4(data.rapor_kop_baris_4 || 'Jl. Raya Cilangkap Baru RT.07/01 Cilangkap Cipayung Jakarta Timur 13870');
+      setSize4(data.rapor_kop_size_4 || 14);
     } catch (err) {
       console.error('Failed to load settings', err);
     }
   };
 
-  const customRequest = async ({ file, onSuccess, onError }, key, setList) => {
+  const handleFileUpload = async (e, key, setUrl) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
     try {
       setIsUploading(true);
       const formData = new FormData();
       formData.append('file', file);
       
       const response = await settingsService.uploadAset(key, formData);
-      message.success('Gambar berhasil diupload');
-      setList([{
-        uid: Date.now().toString(),
-        name: file.name,
-        status: 'done',
-        url: response.url
-      }]);
-      onSuccess(response);
+      toast.success('Berkas gambar berhasil diunggah!');
+      setUrl(response.url);
     } catch (err) {
-      message.error(err.message || 'Gagal mengupload gambar');
-      onError(err);
+      toast.error(err.message || 'Gagal mengunggah berkas gambar');
     } finally {
       setIsUploading(false);
     }
   };
 
-  const handleDelete = async (key, setList) => {
+  const handleDelete = async (key, setUrl) => {
     try {
       setIsUploading(true);
       await settingsService.updateSetting(key, null);
-      message.success('Gambar berhasil dihapus');
-      setList([]);
+      toast.success('Gambar berhasil dihapus');
+      setUrl(null);
     } catch (err) {
-      message.error(err.message || 'Gagal menghapus gambar');
+      toast.error(err.message || 'Gagal menghapus gambar');
     } finally {
       setIsUploading(false);
     }
   };
 
-  const handleSaveText = async () => {
+  const handleSaveText = async (e) => {
+    e.preventDefault();
     try {
       setIsSavingText(true);
-      const values = await form.validateFields();
-      for (const [key, value] of Object.entries(values)) {
+      const payload = {
+        rapor_kop_baris_1: baris1,
+        rapor_kop_size_1: Number(size1),
+        rapor_kop_baris_2: baris2,
+        rapor_kop_size_2: Number(size2),
+        rapor_kop_baris_3: baris3,
+        rapor_kop_size_3: Number(size3),
+        rapor_kop_baris_4: baris4,
+        rapor_kop_size_4: Number(size4)
+      };
+
+      for (const [key, value] of Object.entries(payload)) {
         await settingsService.updateSetting(key, value);
       }
-      message.success('Teks kop surat berhasil disimpan');
+      toast.success('Teks kop surat berhasil disimpan');
     } catch (err) {
-      message.error(err.message || 'Gagal menyimpan pengaturan teks');
+      toast.error(err.message || 'Gagal menyimpan pengaturan teks');
     } finally {
       setIsSavingText(false);
     }
   };
 
   return (
-    <div style={{ padding: '20px 0' }}>
-      <Row gutter={[24, 24]}>
-        <Col xs={24} md={12}>
-          <Card title={<><PictureOutlined /> Logo Kop Rapor</>} bordered>
-            <Paragraph>
-              Upload logo pesantren/yayasan untuk ditampilkan di pojok kiri atas kop surat rapor.
-              Disarankan menggunakan gambar berbentuk persegi transparan (PNG).
-            </Paragraph>
-            <div style={{ textAlign: 'center', margin: '20px 0' }}>
-              <Upload
-                listType="picture-card"
-                fileList={logoList}
-                onChange={({ fileList }) => setLogoList(fileList)}
-                customRequest={(options) => customRequest(options, 'rapor_kop_logo_url', setLogoList)}
-                maxCount={1}
-                accept="image/*"
-              >
-                {logoList.length < 1 && (
-                  <div>
-                    <UploadOutlined />
-                    <div style={{ marginTop: 8 }}>Upload Logo</div>
+    <div className="rapor-settings-container">
+      {/* Upload Row (2 columns) */}
+      <div className="settings-grid-two">
+        
+        {/* Card 1: Logo Kop */}
+        <div className="settings-card frosted-card-set">
+          <div className="card-header">
+            <Image size={16} className="header-icon" />
+            <h3 className="card-title">Logo Kop Rapor</h3>
+          </div>
+          <div className="card-body">
+            <p className="card-desc">
+              Unggah logo pesantren/yayasan untuk ditampilkan di pojok kiri atas kop surat rapor.
+              Disarankan menggunakan gambar PNG dengan latar belakang transparan.
+            </p>
+            
+            <div className="upload-section">
+              {logoUrl ? (
+                <div className="uploaded-preview-container">
+                  <div className="image-preview-wrapper">
+                    <img src={logoUrl} alt="Logo Kop" />
                   </div>
-                )}
-              </Upload>
-              {logoList.length > 0 && (
-                <Button 
-                  danger 
-                  icon={<DeleteOutlined />} 
-                  onClick={() => handleDelete('rapor_kop_logo_url', setLogoList)}
-                  loading={isUploading}
-                  style={{ marginTop: 10 }}
-                >
-                  Hapus Logo
-                </Button>
+                  <button 
+                    type="button" 
+                    className="btn-custom btn-secondary delete-file-btn" 
+                    onClick={() => handleDelete('rapor_kop_logo_url', setLogoUrl)}
+                    disabled={isUploading}
+                  >
+                    <Trash2 size={14} />
+                    <span>Hapus Logo</span>
+                  </button>
+                </div>
+              ) : (
+                <label className="custom-file-uploader-box">
+                  <Upload size={24} className="upload-icon" />
+                  <span className="upload-text">Pilih Logo Baru</span>
+                  <input 
+                    type="file" 
+                    accept="image/*" 
+                    style={{ display: 'none' }} 
+                    onChange={(e) => handleFileUpload(e, 'rapor_kop_logo_url', setLogoUrl)}
+                    disabled={isUploading}
+                  />
+                </label>
               )}
             </div>
-          </Card>
-        </Col>
+          </div>
+        </div>
 
-        <Col xs={24} md={12}>
-          <Card title={<><UserOutlined /> Tanda Tangan Kepala Madrasah</>} bordered>
-            <Paragraph>
-              Upload tanda tangan Kepala Madrasah untuk ditampilkan di bagian kanan bawah rapor.
-              Disarankan menggunakan gambar transparan (PNG).
-            </Paragraph>
-            <div style={{ textAlign: 'center', margin: '20px 0' }}>
-              <Upload
-                listType="picture-card"
-                fileList={ttdList}
-                onChange={({ fileList }) => setTtdList(fileList)}
-                customRequest={(options) => customRequest(options, 'rapor_kepala_madrasah_ttd_url', setTtdList)}
-                maxCount={1}
-                accept="image/*"
-              >
-                {ttdList.length < 1 && (
-                  <div>
-                    <UploadOutlined />
-                    <div style={{ marginTop: 8 }}>Upload TTD</div>
+        {/* Card 2: TTD Kepala Madrasah */}
+        <div className="settings-card frosted-card-set">
+          <div className="card-header">
+            <User size={16} className="header-icon" />
+            <h3 className="card-title">Tanda Tangan Kepala Madrasah</h3>
+          </div>
+          <div className="card-body">
+            <p className="card-desc">
+              Unggah tanda tangan Kepala Madrasah untuk ditampilkan di bagian kanan bawah rapor.
+              Disarankan menggunakan gambar PNG dengan latar belakang transparan.
+            </p>
+            
+            <div className="upload-section">
+              {ttdUrl ? (
+                <div className="uploaded-preview-container">
+                  <div className="image-preview-wrapper">
+                    <img src={ttdUrl} alt="TTD Kepala Madrasah" />
                   </div>
-                )}
-              </Upload>
-              {ttdList.length > 0 && (
-                <Button 
-                  danger 
-                  icon={<DeleteOutlined />} 
-                  onClick={() => handleDelete('rapor_kepala_madrasah_ttd_url', setTtdList)}
-                  loading={isUploading}
-                  style={{ marginTop: 10 }}
-                >
-                  Hapus Tanda Tangan
-                </Button>
+                  <button 
+                    type="button" 
+                    className="btn-custom btn-secondary delete-file-btn" 
+                    onClick={() => handleDelete('rapor_kepala_madrasah_ttd_url', setTtdUrl)}
+                    disabled={isUploading}
+                  >
+                    <Trash2 size={14} />
+                    <span>Hapus Tanda Tangan</span>
+                  </button>
+                </div>
+              ) : (
+                <label className="custom-file-uploader-box">
+                  <Upload size={24} className="upload-icon" />
+                  <span className="upload-text">Pilih TTD Baru</span>
+                  <input 
+                    type="file" 
+                    accept="image/*" 
+                    style={{ display: 'none' }} 
+                    onChange={(e) => handleFileUpload(e, 'rapor_kepala_madrasah_ttd_url', setTtdUrl)}
+                    disabled={isUploading}
+                  />
+                </label>
               )}
             </div>
-          </Card>
-        </Col>
-        <Col xs={24}>
-          <Card title={<><EditOutlined /> Teks Kop Surat</>} bordered>
-            <Paragraph>
-              Atur teks dan ukuran font yang akan ditampilkan pada kop surat di bagian atas Rapor.
-            </Paragraph>
-            <Form form={form} layout="vertical" onFinish={handleSaveText}>
-              <Row gutter={16}>
-                <Col xs={24} md={18}>
-                  <Form.Item label="Baris 1 (Arab)" name="rapor_kop_baris_1">
-                    <Input placeholder="Teks baris pertama (biasanya Arab)" dir="rtl" />
-                  </Form.Item>
-                </Col>
-                <Col xs={24} md={6}>
-                  <Form.Item label="Ukuran Font (px)" name="rapor_kop_size_1">
-                    <InputNumber min={10} max={40} style={{ width: '100%' }} />
-                  </Form.Item>
-                </Col>
-              </Row>
-              <Row gutter={16}>
-                <Col xs={24} md={18}>
-                  <Form.Item label="Baris 2 (Yayasan)" name="rapor_kop_baris_2">
-                    <Input placeholder="YAYASAN PONDOK PESANTREN..." />
-                  </Form.Item>
-                </Col>
-                <Col xs={24} md={6}>
-                  <Form.Item label="Ukuran Font (px)" name="rapor_kop_size_2">
-                    <InputNumber min={10} max={40} style={{ width: '100%' }} />
-                  </Form.Item>
-                </Col>
-              </Row>
-              <Row gutter={16}>
-                <Col xs={24} md={18}>
-                  <Form.Item label="Baris 3 (Madrasah)" name="rapor_kop_baris_3">
-                    <Input placeholder="MADRASAH DINIYAH..." />
-                  </Form.Item>
-                </Col>
-                <Col xs={24} md={6}>
-                  <Form.Item label="Ukuran Font (px)" name="rapor_kop_size_3">
-                    <InputNumber min={10} max={40} style={{ width: '100%' }} />
-                  </Form.Item>
-                </Col>
-              </Row>
-              <Row gutter={16}>
-                <Col xs={24} md={18}>
-                  <Form.Item label="Baris 4 (Alamat)" name="rapor_kop_baris_4">
-                    <Input placeholder="Jl. Raya..." />
-                  </Form.Item>
-                </Col>
-                <Col xs={24} md={6}>
-                  <Form.Item label="Ukuran Font (px)" name="rapor_kop_size_4">
-                    <InputNumber min={10} max={40} style={{ width: '100%' }} />
-                  </Form.Item>
-                </Col>
-              </Row>
-              <Button type="primary" htmlType="submit" icon={<SaveOutlined />} loading={isSavingText}>
-                Simpan Teks Kop Surat
-              </Button>
-            </Form>
-          </Card>
-        </Col>
-      </Row>
+          </div>
+        </div>
+
+      </div>
+
+      {/* Row 2: Teks Kop Surat */}
+      <div className="settings-card full-width frosted-card-set" style={{ marginTop: '24px' }}>
+        <div className="card-header">
+          <Edit3 size={16} className="header-icon" />
+          <h3 className="card-title">Teks Kop Surat</h3>
+        </div>
+        <div className="card-body">
+          <p className="card-desc" style={{ marginBottom: '20px' }}>
+            Atur teks dan ukuran font yang akan ditampilkan pada kop surat di bagian atas Rapor.
+          </p>
+
+          <form onSubmit={handleSaveText} className="kop-settings-form">
+            
+            {/* Baris 1 */}
+            <div className="form-row-settings">
+              <div className="form-group text-col">
+                <label>Baris 1 (Tulisan Arab)</label>
+                <input 
+                  type="text" 
+                  className="settings-text-input arabic-align" 
+                  value={baris1}
+                  placeholder="مؤسسة معهد الحامد الإسلامي"
+                  onChange={(e) => setBaris1(e.target.value)}
+                />
+              </div>
+              <div className="form-group size-col">
+                <label>Ukuran (px)</label>
+                <input 
+                  type="number" 
+                  className="settings-num-input" 
+                  min={10} 
+                  max={40}
+                  value={size1}
+                  onChange={(e) => setSize1(e.target.value)}
+                />
+              </div>
+            </div>
+
+            {/* Baris 2 */}
+            <div className="form-row-settings">
+              <div className="form-group text-col">
+                <label>Baris 2 (Yayasan)</label>
+                <input 
+                  type="text" 
+                  className="settings-text-input" 
+                  value={baris2}
+                  placeholder="YAYASAN PONDOK PESANTREN AL-HAMID"
+                  onChange={(e) => setBaris2(e.target.value)}
+                />
+              </div>
+              <div className="form-group size-col">
+                <label>Ukuran (px)</label>
+                <input 
+                  type="number" 
+                  className="settings-num-input" 
+                  min={10} 
+                  max={40}
+                  value={size2}
+                  onChange={(e) => setSize2(e.target.value)}
+                />
+              </div>
+            </div>
+
+            {/* Baris 3 */}
+            <div className="form-row-settings">
+              <div className="form-group text-col">
+                <label>Baris 3 (Madrasah)</label>
+                <input 
+                  type="text" 
+                  className="settings-text-input" 
+                  value={baris3}
+                  placeholder="MADRASAH DINIYAH TAKMILIYAH AL-HAMID"
+                  onChange={(e) => setBaris3(e.target.value)}
+                />
+              </div>
+              <div className="form-group size-col">
+                <label>Ukuran (px)</label>
+                <input 
+                  type="number" 
+                  className="settings-num-input" 
+                  min={10} 
+                  max={40}
+                  value={size3}
+                  onChange={(e) => setSize3(e.target.value)}
+                />
+              </div>
+            </div>
+
+            {/* Baris 4 */}
+            <div className="form-row-settings">
+              <div className="form-group text-col">
+                <label>Baris 4 (Alamat / Kontak)</label>
+                <input 
+                  type="text" 
+                  className="settings-text-input" 
+                  value={baris4}
+                  placeholder="Jl. Raya Cilangkap Baru RT.07/01 Cilangkap Cipayung Jakarta Timur"
+                  onChange={(e) => setBaris4(e.target.value)}
+                />
+              </div>
+              <div className="form-group size-col">
+                <label>Ukuran (px)</label>
+                <input 
+                  type="number" 
+                  className="settings-num-input" 
+                  min={10} 
+                  max={40}
+                  value={size4}
+                  onChange={(e) => setSize4(e.target.value)}
+                />
+              </div>
+            </div>
+
+            <div className="form-actions" style={{ marginTop: '20px' }}>
+              <button 
+                type="submit" 
+                className="btn-custom btn-primary"
+                disabled={isSavingText}
+              >
+                {isSavingText ? <span className="loading-spinner"></span> : <><Save size={16} /><span>Simpan Teks Kop Surat</span></>}
+              </button>
+            </div>
+
+          </form>
+        </div>
+      </div>
     </div>
   );
 }
+export default RaporSettingsTab;

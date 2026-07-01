@@ -270,11 +270,27 @@
     background: transparent;
   }
   &::-webkit-scrollbar-thumb {
-    background: $border-medium;
+    background: rgba(255, 255, 255, 0.15);
     border-radius: $radius-full;
 
     &:hover {
-      background: $border-dark;
+      background: rgba(255, 255, 255, 0.35);
+    }
+
+    [data-theme="light"] & {
+      background: rgba(0, 0, 0, 0.18) !important;
+      
+      &:hover {
+        background: rgba(0, 0, 0, 0.35) !important;
+      }
+    }
+
+    html[data-theme="light"] & {
+      background: rgba(0, 0, 0, 0.18) !important;
+      
+      &:hover {
+        background: rgba(0, 0, 0, 0.35) !important;
+      }
     }
   }
 }

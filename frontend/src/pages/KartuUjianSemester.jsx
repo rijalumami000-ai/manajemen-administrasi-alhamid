@@ -1,19 +1,26 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import {
-  Tabs, Select, Button, Table, Tag, Space, message, Card,
-  Typography, Row, Col, Form, Input, Divider, Tooltip,
-  Modal, Badge, Avatar, Empty
-} from 'antd';
-import {
-  IdcardOutlined, SettingOutlined, PrinterOutlined, ThunderboltOutlined,
-  DeleteOutlined, UserOutlined, ReloadOutlined, UploadOutlined,
-  CheckCircleOutlined, WarningOutlined, FileImageOutlined, FileTextOutlined
-} from '@ant-design/icons';
-import './KartuUjianSemester.scss';
+import { 
+  Settings as SettingsIcon, 
+  Printer, 
+  Zap, 
+  Trash2, 
+  User, 
+  RefreshCw, 
+  Upload, 
+  CheckCircle, 
+  AlertTriangle, 
+  Image as ImageIcon, 
+  FileText,
+  Clock,
+  Layers,
+  ChevronDown,
+  Info
+} from 'lucide-react';
+import { CustomSelect } from '../components/ui/CustomSelect';
+import { PageHeader, useToast } from '../components/common';
 import { QRCodeSVG } from 'qrcode.react';
+import './KartuUjianSemester.scss';
 
-const { Title, Text } = Typography;
-const { Option } = Select;
 const API_BASE = import.meta.env.VITE_API_URL || '';
 
 async function apiFetch(url, options = {}) {
@@ -31,25 +38,24 @@ async function apiFetch(url, options = {}) {
 
 // ─── Tab 1: Generate Nomor Peserta ───────────────────────────────────────────
 function TabGenerateNomor({ tahunAjaranList, activeTahunAjaranId, activeSemester }) {
+  const toast = useToast();
   const [tahunAjaranId, setTahunAjaranId] = useState(null);
   const [semester, setSemester] = useState(null);
+  const [pesertaList, setPesertaList] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [generating, setGenerating] = useState(false);
 
-  // Auto-select active tahun ajaran when list is available
   useEffect(() => {
     if (activeTahunAjaranId && !tahunAjaranId) {
       setTahunAjaranId(activeTahunAjaranId);
     }
   }, [activeTahunAjaranId]);
 
-  // Auto-select active semester when available
   useEffect(() => {
     if (activeSemester && !semester) {
       setSemester(activeSemester);
     }
   }, [activeSemester]);
-  const [pesertaList, setPesertaList] = useState([]);
-  const [loading, setLoading] = useState(false);
-  const [generating, setGenerating] = useState(false);
 
   const fetchPeserta = useCallback(async () => {
     if (!tahunAjaranId || !semester) return;
@@ -58,7 +64,7 @@ function TabGenerateNomor({ tahunAjaranList, activeTahunAjaranId, activeSemester
       const data = await apiFetch(`/api/peserta-ujian?tahun_ajaran_id=${tahunAjaranId}&semester=${semester}`);
       setPesertaList(data);
     } catch (err) {
-      message.error(err.message);
+      toast.error(err.message);
     } finally {
       setLoading(false);
     }
@@ -66,111 +72,218 @@ function TabGenerateNomor({ tahunAjaranList, activeTahunAjaranId, activeSemester
 
   useEffect(() => { fetchPeserta(); }, [fetchPeserta]);
 
-  const handleGenerate = () => {
-    if (!tahunAjaranId || !semester) return message.warning('Pilih tahun ajaran dan semester.');
-    Modal.confirm({
-      title: 'Generate Nomor Peserta?',
-      content: `Nomor peserta lama untuk semester ${semester} akan ditimpa.`,
-      okText: 'Ya, Generate', cancelText: 'Batal',
-      onOk: async () => {
-        setGenerating(true);
-        try {
-          const res = await apiFetch('/api/peserta-ujian/generate', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ tahun_ajaran_id: tahunAjaranId, semester }),
-          });
-          message.success(res.message);
-          fetchPeserta();
-        } catch (err) {
-          message.error(err.message);
-        } finally {
-          setGenerating(false);
-        }
-      },
-    });
+  const handleGenerate = async () => {
+    if (!tahunAjaranId || !semester) return toast.warning('Pilih tahun ajaran dan semester.');
+    
+    const confirmGen = window.confirm(`Generate Nomor Peserta?\nNomor peserta lama untuk semester ${semester} akan ditimpa.`);
+    if (!confirmGen) return;
+
+    setGenerating(true);
+    try {
+      const res = await apiFetch('/api/peserta-ujian/generate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ tahun_ajaran_id: tahunAjaranId, semester }),
+      });
+      toast.success(res.message);
+      fetchPeserta();
+    } catch (err) {
+      toast.error(err.message);
+    } finally {
+      setGenerating(false);
+    }
   };
 
-  const handleReset = () => {
+  const handleReset = async () => {
     if (!tahunAjaranId || !semester) return;
-    Modal.confirm({
-      title: 'Reset Nomor Peserta?', content: 'Semua nomor akan dihapus.',
-      okType: 'danger', okText: 'Hapus', cancelText: 'Batal',
-      onOk: async () => {
-        try {
-          await apiFetch(`/api/peserta-ujian?tahun_ajaran_id=${tahunAjaranId}&semester=${semester}`, { method: 'DELETE' });
-          message.success('Nomor peserta direset.');
-          setPesertaList([]);
-        } catch (err) { message.error(err.message); }
-      },
-    });
-  };
 
-  const columns = [
-    {
-      title: 'No. Peserta', dataIndex: 'no_peserta', key: 'no_peserta', width: 140,
-      render: (no) => <Tag color="blue" style={{ fontFamily: 'monospace', fontSize: 13, fontWeight: 700 }}>{no}</Tag>,
-    },
-    { title: 'NIS', dataIndex: 'nis', key: 'nis', width: 120, render: (v) => <Text code>{v}</Text> },
-    {
-      title: 'Nama Santri', dataIndex: 'nama', key: 'nama',
-      render: (nama, rec) => (
-        <Space>
-          <Avatar size={30} src={rec.foto_url ? `${API_BASE}${rec.foto_url}` : undefined} icon={!rec.foto_url && <UserOutlined />} />
-          <Text strong style={{ fontSize: 13 }}>{nama}</Text>
-        </Space>
-      ),
-    },
-    {
-      title: 'Kelas', dataIndex: 'nama_kelas', key: 'nama_kelas', width: 90,
-      render: (k) => k ? <Tag color="purple">{k}</Tag> : <Text type="secondary">-</Text>,
-    },
-    {
-      title: 'Urutan', key: 'urutan', width: 180,
-      render: (_, r) => (
-        <Space size={2}>
-          <Tooltip title="Kelas"><Tag>{String(r.urutan_kelas || 0).padStart(2,'0')}</Tag></Tooltip>
-          <Text type="secondary">-</Text>
-          <Tooltip title="Di Kelas"><Tag>{String(r.urutan_di_kelas || 0).padStart(2,'0')}</Tag></Tooltip>
-          <Text type="secondary">-</Text>
-          <Tooltip title="Global"><Tag>{String(r.urutan_global || 0).padStart(3,'0')}</Tag></Tooltip>
-        </Space>
-      ),
-    },
-    {
-      title: 'Foto', key: 'foto', width: 80,
-      render: (_, r) => r.foto_url ? <Badge status="success" text="Ada" /> : <Badge status="warning" text="Belum" />,
-    },
-  ];
+    const confirmReset = window.confirm('Reset Nomor Peserta?\nSemua nomor peserta akan dihapus secara permanen.');
+    if (!confirmReset) return;
+
+    try {
+      await apiFetch(`/api/peserta-ujian?tahun_ajaran_id=${tahunAjaranId}&semester=${semester}`, { method: 'DELETE' });
+      toast.success('Nomor peserta berhasil direset.');
+      setPesertaList([]);
+    } catch (err) { 
+      toast.error(err.message); 
+    }
+  };
 
   return (
-    <div className="tab-generate">
-      <Card size="small" style={{ marginBottom: 16 }}>
-        <Space wrap>
-          <Select placeholder="Tahun Ajaran" value={tahunAjaranId} onChange={setTahunAjaranId} style={{ width: 180 }}>
-            {tahunAjaranList.map(ta => (
-              <Option key={ta.id} value={ta.id}>{ta.kode} {ta.is_active && <Tag color="green" style={{ marginLeft: 4 }}>Aktif</Tag>}</Option>
-            ))}
-          </Select>
-          <Select placeholder="Semester" value={semester} onChange={setSemester} style={{ width: 130 }}>
-            <Option value="Ganjil">Ganjil</Option>
-            <Option value="Genap">Genap</Option>
-          </Select>
-          <Button type="primary" icon={<ThunderboltOutlined />} onClick={handleGenerate} loading={generating} disabled={!tahunAjaranId || !semester}>
-            Generate Nomor
-          </Button>
-          <Button danger icon={<DeleteOutlined />} onClick={handleReset} disabled={!pesertaList.length}>Reset</Button>
-          <Button icon={<ReloadOutlined />} onClick={fetchPeserta} loading={loading} />
-          <Text type="secondary">{pesertaList.length} peserta</Text>
-        </Space>
-      </Card>
+    <div className="tab-generate" style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+      <div className="frosted-card">
+        <div className="inner-filter-bar">
+          <div className="left-filters">
+            <div style={{ width: '180px' }}>
+              <CustomSelect
+                value={tahunAjaranId ? String(tahunAjaranId) : ''}
+                onChange={(val) => setTahunAjaranId(val ? Number(val) : null)}
+                options={tahunAjaranList.map(ta => ({ value: String(ta.id), label: `${ta.kode} ${ta.is_active ? '(Aktif)' : ''}` }))}
+                placeholder="Tahun Ajaran"
+              />
+            </div>
+            <div style={{ width: '130px' }}>
+              <CustomSelect
+                value={semester || ''}
+                onChange={setSemester}
+                options={[
+                  { value: 'Ganjil', label: 'Ganjil' },
+                  { value: 'Genap', label: 'Genap' }
+                ]}
+                placeholder="Semester"
+              />
+            </div>
+            
+            <button 
+              type="button" 
+              className="btn-custom btn-primary"
+              onClick={handleGenerate}
+              disabled={generating || !tahunAjaranId || !semester}
+            >
+              {generating ? <span className="loading-spinner"></span> : <Zap size={15} />}
+              <span>Generate Nomor</span>
+            </button>
+            
+            <button 
+              type="button" 
+              className="btn-custom btn-secondary"
+              onClick={handleReset}
+              disabled={!pesertaList.length}
+              style={{ color: '#ef4444', borderColor: 'rgba(239,68,68,0.2)' }}
+            >
+              <Trash2 size={15} />
+              <span>Reset</span>
+            </button>
+
+            <button 
+              type="button" 
+              className="btn-custom btn-secondary"
+              onClick={fetchPeserta}
+              disabled={loading}
+            >
+              <RefreshCw size={15} className={loading ? 'animate-spin' : ''} />
+            </button>
+
+            <span style={{ fontSize: '13px', color: '#64748b', fontWeight: 700 }}>
+              {pesertaList.length} peserta terdaftar
+            </span>
+          </div>
+        </div>
+      </div>
+
       {(!tahunAjaranId || !semester) ? (
-        <Card><Empty description="Pilih Tahun Ajaran dan Semester untuk melihat data peserta." /></Card>
+        <div className="frosted-card" style={{ padding: '40px 20px', textAlign: 'center' }}>
+          <Info size={40} style={{ opacity: 0.4, margin: '0 auto 12px' }} />
+          <p style={{ margin: 0, color: '#64748b', fontSize: '13.5px' }}>
+            Pilih Tahun Ajaran dan Semester di atas untuk melihat data peserta.
+          </p>
+        </div>
       ) : (
-        <Card size="small">
-          <Table dataSource={pesertaList} columns={columns} rowKey="id" loading={loading}
-            pagination={{ pageSize: 20, showTotal: (t) => `Total ${t} peserta` }} size="small" scroll={{ x: 800 }} />
-        </Card>
+        <div className="frosted-card" style={{ padding: '16px' }}>
+          <div className="table-responsive-kartu">
+            <table className="custom-data-table">
+              <thead>
+                <tr>
+                  <th style={{ width: '150px' }}>No. Peserta</th>
+                  <th style={{ width: '130px' }}>NIS</th>
+                  <th>Nama Santri</th>
+                  <th style={{ width: '100px' }}>Kelas</th>
+                  <th style={{ width: '200px' }}>Urutan</th>
+                  <th style={{ width: '100px', textAlign: 'center' }}>Foto</th>
+                </tr>
+              </thead>
+              <tbody>
+                {loading ? (
+                  <tr>
+                    <td colSpan={6} style={{ textAlign: 'center', padding: '40px' }}>
+                      <div className="loading-spinner" style={{ borderColor: 'rgba(0,0,0,0.1)', borderTopColor: '#4f46e5', width: '24px', height: '24px' }}></div>
+                    </td>
+                  </tr>
+                ) : pesertaList.length === 0 ? (
+                  <tr>
+                    <td colSpan={6} style={{ textAlign: 'center', padding: '30px', color: '#94a3b8' }}>
+                      Belum ada data nomor peserta. Silakan klik tombol Generate Nomor di atas.
+                    </td>
+                  </tr>
+                ) : (
+                  pesertaList.map((record) => (
+                    <tr key={record.id}>
+                      <td>
+                        <span style={{ 
+                          fontFamily: 'monospace', 
+                          fontWeight: 800, 
+                          color: '#4f46e5', 
+                          background: 'rgba(99,102,241,0.06)',
+                          padding: '4px 8px',
+                          borderRadius: '6px',
+                          border: '1px solid rgba(99,102,241,0.12)'
+                        }}>
+                          {record.no_peserta}
+                        </span>
+                      </td>
+                      <td className="monospace-text">{record.nis}</td>
+                      <td className="student-name-cell">
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                          <div style={{ 
+                            width: '28px', 
+                            height: '28px', 
+                            borderRadius: '50%', 
+                            overflow: 'hidden', 
+                            background: '#f1f5f9',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center'
+                          }}>
+                            {record.foto_url ? (
+                              <img src={`${API_BASE}${record.foto_url}`} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                            ) : (
+                              <User size={14} style={{ color: '#94a3b8' }} />
+                            )}
+                          </div>
+                          <span>{record.nama}</span>
+                        </div>
+                      </td>
+                      <td>
+                        {record.nama_kelas ? (
+                          <span style={{ 
+                            background: 'rgba(168,85,247,0.06)', 
+                            color: '#a855f7',
+                            padding: '3px 8px',
+                            borderRadius: '20px',
+                            fontSize: '11.5px',
+                            fontWeight: 700
+                          }}>{record.nama_kelas}</span>
+                        ) : '-'}
+                      </td>
+                      <td>
+                        <div style={{ display: 'flex', gap: '4px', alignItems: 'center' }}>
+                          <span style={{ background: '#f1f5f9', padding: '2px 6px', borderRadius: '4px', fontSize: '11px', fontWeight: 700 }}>
+                            Kelas: {String(record.urutan_kelas || 0).padStart(2, '0')}
+                          </span>
+                          <span style={{ color: '#94a3b8' }}>•</span>
+                          <span style={{ background: '#f1f5f9', padding: '2px 6px', borderRadius: '4px', fontSize: '11px', fontWeight: 700 }}>
+                            Di Kelas: {String(record.urutan_di_kelas || 0).padStart(2, '0')}
+                          </span>
+                          <span style={{ color: '#94a3b8' }}>•</span>
+                          <span style={{ background: '#f1f5f9', padding: '2px 6px', borderRadius: '4px', fontSize: '11px', fontWeight: 700 }}>
+                            Global: {String(record.urutan_global || 0).padStart(3, '0')}
+                          </span>
+                        </div>
+                      </td>
+                      <td style={{ textAlign: 'center' }}>
+                        {record.foto_url ? (
+                          <span className="badge-upload-status success">Ada</span>
+                        ) : (
+                          <span className="badge-upload-status warning" style={{ background: 'rgba(245,158,11,0.1)', color: '#d97706' }}>Belum</span>
+                        )}
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
       )}
     </div>
   );
@@ -178,9 +291,17 @@ function TabGenerateNomor({ tahunAjaranList, activeTahunAjaranId, activeSemester
 
 // ─── Tab 2: Setting Kartu ─────────────────────────────────────────────────────
 function TabSettingCard({ settings, onRefresh }) {
-  const [form] = Form.useForm();
+  const toast = useToast();
   const [saving, setSaving] = useState(false);
   const [uploadingKey, setUploadingKey] = useState(null);
+  
+  // Local Form state
+  const [judul1, setJudul1] = useState('');
+  const [judul2, setJudul2] = useState('');
+  const [judulKartu, setJudulKartu] = useState('');
+  const [ketuaPanitia, setKetuaPanitia] = useState('');
+  const [lokasi, setLokasi] = useState('');
+
   const fileRefs = {
     kartu_ujian_logo_url: useRef(null),
     kartu_ujian_stempel_url: useRef(null),
@@ -189,32 +310,41 @@ function TabSettingCard({ settings, onRefresh }) {
 
   useEffect(() => {
     if (settings) {
-      form.setFieldsValue({
-        kartu_ujian_judul_1: settings.kartu_ujian_judul_1 || '',
-        kartu_ujian_judul_2: settings.kartu_ujian_judul_2 || '',
-        kartu_ujian_judul_kartu: settings.kartu_ujian_judul_kartu || '',
-        kartu_ujian_ketua_panitia: settings.kartu_ujian_ketua_panitia || '',
-        kartu_ujian_lokasi: settings.kartu_ujian_lokasi || '',
-      });
+      setJudul1(settings.kartu_ujian_judul_1 || '');
+      setJudul2(settings.kartu_ujian_judul_2 || '');
+      setJudulKartu(settings.kartu_ujian_judul_kartu || '');
+      setKetuaPanitia(settings.kartu_ujian_ketua_panitia || '');
+      setLokasi(settings.kartu_ujian_lokasi || '');
     }
-  }, [settings, form]);
+  }, [settings]);
 
-  const handleSave = async () => {
-    const values = await form.validateFields();
+  const handleSave = async (e) => {
+    e.preventDefault();
     setSaving(true);
     try {
+      const payload = {
+        kartu_ujian_judul_1: judul1,
+        kartu_ujian_judul_2: judul2,
+        kartu_ujian_judul_kartu: judulKartu,
+        kartu_ujian_ketua_panitia: ketuaPanitia,
+        kartu_ujian_lokasi: lokasi
+      };
+      
       const token = localStorage.getItem('token');
-      for (const [key, value] of Object.entries(values)) {
+      for (const [key, value] of Object.entries(payload)) {
         await fetch(`${API_BASE}/api/settings`, {
           method: 'POST',
           headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
           body: JSON.stringify({ key, value }),
         });
       }
-      message.success('Pengaturan berhasil disimpan!');
+      toast.success('Pengaturan kartu berhasil disimpan!');
       onRefresh();
-    } catch { message.error('Gagal menyimpan pengaturan.'); }
-    finally { setSaving(false); }
+    } catch { 
+      toast.error('Gagal menyimpan pengaturan.'); 
+    } finally { 
+      setSaving(false); 
+    }
   };
 
   const handleUploadAset = async (key, file) => {
@@ -228,11 +358,14 @@ function TabSettingCard({ settings, onRefresh }) {
         headers: { 'Authorization': `Bearer ${token}` },
         body: formData,
       });
-      if (!res.ok) throw new Error('Gagal upload.');
-      message.success('File berhasil diunggah!');
+      if (!res.ok) throw new Error('Gagal unggah.');
+      toast.success('File gambar berhasil diunggah!');
       onRefresh();
-    } catch (err) { message.error(err.message); }
-    finally { setUploadingKey(null); }
+    } catch (err) { 
+      toast.error(err.message); 
+    } finally { 
+      setUploadingKey(null); 
+    }
   };
 
   const asetItems = [
@@ -243,51 +376,134 @@ function TabSettingCard({ settings, onRefresh }) {
 
   return (
     <div className="tab-setting">
-      <Row gutter={20}>
-        <Col xs={24} md={14}>
-          <Card title="📝 Teks Kartu Ujian" size="small" style={{ marginBottom: 16 }}>
-            <Form form={form} layout="vertical">
-              <Form.Item label="Judul Baris 1" name="kartu_ujian_judul_1"><Input placeholder="UJIAN SEMESTER GENAP" /></Form.Item>
-              <Form.Item label="Judul Baris 2" name="kartu_ujian_judul_2"><Input placeholder="MADRASAH DINIYAH AL-HAMID" /></Form.Item>
-              <Form.Item label="Judul Kartu" name="kartu_ujian_judul_kartu"><Input placeholder="KARTU PESERTA UJIAN TULIS" /></Form.Item>
-              <Form.Item label="Nama Ketua Panitia" name="kartu_ujian_ketua_panitia"><Input placeholder="Ust. Ahmad Syukron Rosyid" /></Form.Item>
-              <Form.Item label="Lokasi / Kota Cetak" name="kartu_ujian_lokasi"><Input placeholder="Cintamulya" /></Form.Item>
-              <Button type="primary" onClick={handleSave} loading={saving} block>Simpan Pengaturan</Button>
-            </Form>
-          </Card>
-        </Col>
-        <Col xs={24} md={10}>
-          <Card title="🖼️ Aset Gambar Kartu" size="small">
+      <div className="settings-grid-layout">
+        
+        {/* Left Form */}
+        <div className="frosted-card">
+          <div className="card-title-box">
+            <FileText size={16} className="card-icon" />
+            <h3 className="card-title">Teks Kartu Ujian</h3>
+          </div>
+
+          <form onSubmit={handleSave} className="settings-form-row">
+            <div className="form-group-box">
+              <label>Judul Baris 1</label>
+              <input 
+                type="text" 
+                value={judul1} 
+                onChange={e => setJudul1(e.target.value)} 
+                placeholder="UJIAN SEMESTER GENAP" 
+              />
+            </div>
+            <div className="form-group-box">
+              <label>Judul Baris 2</label>
+              <input 
+                type="text" 
+                value={judul2} 
+                onChange={e => setJudul2(e.target.value)} 
+                placeholder="MADRASAH DINIYAH AL-HAMID" 
+              />
+            </div>
+            <div className="form-group-box">
+              <label>Judul Kartu</label>
+              <input 
+                type="text" 
+                value={judulKartu} 
+                onChange={e => setJudulKartu(e.target.value)} 
+                placeholder="KARTU PESERTA UJIAN TULIS" 
+              />
+            </div>
+            <div className="form-group-box">
+              <label>Nama Ketua Panitia</label>
+              <input 
+                type="text" 
+                value={ketuaPanitia} 
+                onChange={e => setKetuaPanitia(e.target.value)} 
+                placeholder="Ust. Ahmad Syukron Rosyid" 
+              />
+            </div>
+            <div className="form-group-box">
+              <label>Lokasi / Kota Cetak</label>
+              <input 
+                type="text" 
+                value={lokasi} 
+                onChange={e => setLokasi(e.target.value)} 
+                placeholder="Jakarta Timur" 
+              />
+            </div>
+
+            <button type="submit" className="btn-custom btn-primary" style={{ width: '100%', marginTop: '10px' }} disabled={saving}>
+              {saving ? <span className="loading-spinner"></span> : <span>Simpan Pengaturan</span>}
+            </button>
+          </form>
+        </div>
+
+        {/* Right Uploads */}
+        <div className="frosted-card">
+          <div className="card-title-box">
+            <ImageIcon size={16} className="card-icon" />
+            <h3 className="card-title">Aset Gambar Kartu</h3>
+          </div>
+
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
             {asetItems.map(({ key, label, desc }) => (
               <div key={key} className="aset-item">
                 <div className="aset-preview">
-                  {settings?.[key]
-                    ? <img src={`${API_BASE}${settings[key]}`} alt={label} className="aset-img" />
-                    : <div className="aset-placeholder"><FileImageOutlined /></div>
-                  }
+                  {settings?.[key] ? (
+                    <img src={`${API_BASE}${settings[key]}`} alt={label} />
+                  ) : (
+                    <ImageIcon size={20} className="aset-placeholder" />
+                  )}
                 </div>
                 <div className="aset-info">
-                  <Text strong style={{ fontSize: 13 }}>{label}</Text><br />
-                  <Text type="secondary" style={{ fontSize: 11 }}>{desc}</Text><br />
-                  {settings?.[key] ? <Badge status="success" text="Sudah" /> : <Badge status="warning" text="Belum" />}
+                  <span className="title">{label}</span>
+                  <span className="desc">{desc}</span>
+                  {settings?.[key] ? (
+                    <span className="badge-upload-status success">Terunggah</span>
+                  ) : (
+                    <span className="badge-upload-status warning">Belum Ada</span>
+                  )}
                 </div>
-                <input type="file" accept=".jpg,.jpeg,.png,.webp" ref={fileRefs[key]} style={{ display: 'none' }}
-                  onChange={(e) => { const f = e.target.files[0]; if (f) handleUploadAset(key, f); e.target.value = ''; }} />
-                <Button size="small" icon={<UploadOutlined />} loading={uploadingKey === key}
-                  onClick={() => fileRefs[key].current?.click()} style={{ marginTop: 6 }}>Upload</Button>
+                
+                <input 
+                  type="file" 
+                  accept=".jpg,.jpeg,.png,.webp" 
+                  ref={fileRefs[key]} 
+                  style={{ display: 'none' }}
+                  onChange={(e) => { 
+                    const f = e.target.files[0]; 
+                    if (f) handleUploadAset(key, f); 
+                    e.target.value = ''; 
+                  }} 
+                />
+                
+                <button 
+                  type="button" 
+                  className="btn-custom btn-secondary btn-small"
+                  disabled={uploadingKey === key}
+                  onClick={() => fileRefs[key].current?.click()}
+                >
+                  {uploadingKey === key ? <span className="loading-spinner"></span> : <Upload size={13} />}
+                  <span>Pilih File</span>
+                </button>
               </div>
             ))}
-          </Card>
-        </Col>
-      </Row>
+          </div>
+        </div>
+
+      </div>
     </div>
   );
 }
 
 // ─── Tab Baru: Edit & Cetak Tata Tertib (Kartu Belakang) ──────────────────────
 function TabKartuBelakang({ settings, onRefresh, pesertaList }) {
-  const [form] = Form.useForm();
+  const toast = useToast();
   const [saving, setSaving] = useState(false);
+
+  const [kewajiban, setKewajiban] = useState('');
+  const [larangan, setLarangan] = useState('');
+  const [sanksi, setSanksi] = useState('');
 
   const defaultKewajiban = `1. Berada di tempat ujian 10 menit sebelum ujian dilaksanakan;
 2. Menunjukan kartu ujiannya kepada penguji dan pengawas saat ujian berlangsung;
@@ -311,21 +527,25 @@ function TabKartuBelakang({ settings, onRefresh, pesertaList }) {
 4. Berdiri di luar ruangan kelas;`;
 
   useEffect(() => {
-    form.setFieldsValue({
-      tata_tertib_kewajiban: settings?.tata_tertib_kewajiban || defaultKewajiban,
-      tata_tertib_larangan: settings?.tata_tertib_larangan || defaultLarangan,
-      tata_tertib_sanksi: settings?.tata_tertib_sanksi || defaultSanksi,
-    });
-  }, [settings, form]);
+    if (settings) {
+      setKewajiban(settings.tata_tertib_kewajiban || defaultKewajiban);
+      setLarangan(settings.tata_tertib_larangan || defaultLarangan);
+      setSanksi(settings.tata_tertib_sanksi || defaultSanksi);
+    }
+  }, [settings]);
 
-  const handleSave = async () => {
+  const handleSave = async (e) => {
+    e.preventDefault();
     setSaving(true);
     try {
-      const values = form.getFieldsValue();
-      const token = localStorage.getItem('token');
+      const payload = {
+        tata_tertib_kewajiban: kewajiban,
+        tata_tertib_larangan: larangan,
+        tata_tertib_sanksi: sanksi,
+      };
       
-      // Karena backend hanya menerima { key, value }, kita harus loop tiap field
-      for (const [key, value] of Object.entries(values)) {
+      const token = localStorage.getItem('token');
+      for (const [key, value] of Object.entries(payload)) {
         const res = await fetch(`${API_BASE}/api/settings`, {
           method: 'POST',
           headers: { 
@@ -337,82 +557,111 @@ function TabKartuBelakang({ settings, onRefresh, pesertaList }) {
         if (!res.ok) throw new Error('Gagal menyimpan.');
       }
       
-      message.success('Pengaturan tata tertib berhasil disimpan!');
+      toast.success('Pengaturan tata tertib berhasil disimpan!');
       onRefresh();
-    } catch { message.error('Gagal menyimpan pengaturan.'); }
-    finally { setSaving(false); }
+    } catch { 
+      toast.error('Gagal menyimpan pengaturan tata tertib.'); 
+    } finally { 
+      setSaving(false); 
+    }
   };
 
   const handlePrint = () => {
-    if (!pesertaList.length) return message.warning('Tidak ada data peserta untuk dicetak. Pilih data di tab "Cetak Kartu" terlebih dahulu.');
+    if (!pesertaList.length) return toast.warning('Tidak ada data peserta untuk dicetak. Pilih data di tab "Cetak Kartu" terlebih dahulu.');
     window.print();
   };
 
   return (
     <div className="tab-kartu-belakang">
-      <Row gutter={20}>
-        <Col xs={24} md={16}>
-          <Card title="📝 Edit Tata Tertib Ujian" size="small">
-            <Form form={form} layout="vertical">
-              <Form.Item label="Kewajiban" name="tata_tertib_kewajiban">
-                <Input.TextArea rows={5} />
-              </Form.Item>
-              <Form.Item label="Larangan" name="tata_tertib_larangan">
-                <Input.TextArea rows={6} />
-              </Form.Item>
-              <Form.Item label="Sanksi" name="tata_tertib_sanksi">
-                <Input.TextArea rows={4} />
-              </Form.Item>
-              <Space>
-                <Button type="primary" onClick={handleSave} loading={saving}>Simpan Tata Tertib</Button>
-                <Button type="primary" icon={<PrinterOutlined />} onClick={handlePrint} disabled={!pesertaList.length} style={{ background: '#0052FF' }}>
-                  Cetak Sisi Belakang ({pesertaList.length} kartu)
-                </Button>
-              </Space>
-            </Form>
-          </Card>
-        </Col>
-        <Col xs={24} md={8}>
-          <Card title="ℹ️ Petunjuk" size="small">
-            <Text type="secondary">
-              Tuliskan poin-poin tata tertib per baris. Teks ini akan dicetak di bagian belakang kartu ujian.
-              <br /><br />
-              <strong>Cara Cetak:</strong><br />
-              1. Pilih filter data di tab <strong>Cetak Kartu</strong> terlebih dahulu.<br />
-              2. Pindah ke tab ini, lalu klik tombol <strong>Cetak Sisi Belakang</strong>.<br />
-              3. Jumlah kartu yang digenerate akan sama persis dengan yang ada di tab Cetak Kartu.
-            </Text>
-          </Card>
-        </Col>
-      </Row>
+      <div className="settings-grid-layout">
+        
+        {/* Left Form */}
+        <div className="frosted-card">
+          <div className="card-title-box">
+            <FileText size={16} className="card-icon" />
+            <h3 className="card-title">Edit Tata Tertib Ujian</h3>
+          </div>
+
+          <form onSubmit={handleSave} className="settings-form-row">
+            <div className="form-group-box">
+              <label>Kewajiban</label>
+              <textarea rows={5} value={kewajiban} onChange={e => setKewajiban(e.target.value)} />
+            </div>
+            <div className="form-group-box">
+              <label>Larangan</label>
+              <textarea rows={6} value={larangan} onChange={e => setLarangan(e.target.value)} />
+            </div>
+            <div className="form-group-box">
+              <label>Sanksi</label>
+              <textarea rows={4} value={sanksi} onChange={e => setSanksi(e.target.value)} />
+            </div>
+
+            <div style={{ display: 'flex', gap: '10px', marginTop: '10px' }}>
+              <button type="submit" className="btn-custom btn-primary" disabled={saving}>
+                {saving ? <span className="loading-spinner"></span> : <span>Simpan Tata Tertib</span>}
+              </button>
+              <button 
+                type="button" 
+                className="btn-custom btn-secondary" 
+                onClick={handlePrint}
+                disabled={!pesertaList.length}
+                style={{ background: '#0052FF', color: '#ffffff', borderColor: '#0052FF' }}
+              >
+                <Printer size={15} />
+                <span>Cetak Sisi Belakang ({pesertaList.length} kartu)</span>
+              </button>
+            </div>
+          </form>
+        </div>
+
+        {/* Right Info */}
+        <div className="frosted-card">
+          <div className="card-title-box">
+            <Clock size={16} className="card-icon" />
+            <h3 className="card-title">Petunjuk Penggunaan</h3>
+          </div>
+          <div style={{ fontSize: '13px', color: '#64748b', lineHeight: 1.6, display: 'flex', flexDirection: 'column', gap: '12px' }}>
+            <span>Tuliskan poin-poin tata tertib per baris. Teks ini akan dicetak di bagian belakang kartu ujian.</span>
+            
+            <div style={{ background: '#f8fafc', padding: '12px', borderRadius: '8px', border: '1px solid rgba(226,232,240,0.8)' }}>
+              <strong>Cara Cetak:</strong>
+              <ol style={{ paddingLeft: '20px', margin: '6px 0 0 0' }}>
+                <li>Pilih filter data di tab <strong>Cetak Kartu</strong> terlebih dahulu.</li>
+                <li>Pindah ke tab ini, lalu klik tombol <strong>Cetak Sisi Belakang</strong>.</li>
+                <li>Jumlah kartu yang digenerate akan sama persis dengan yang ada di tab Cetak Kartu.</li>
+              </ol>
+            </div>
+          </div>
+        </div>
+
+      </div>
     </div>
   );
 }
 
 // ─── Tab 3: Filter & kontrol cetak (tanpa area kartu) ────────────────────────
 function TabCetakKartu({ tahunAjaranList, settings, onPesertaChange, pesertaList, activeTahunAjaranId, activeSemester }) {
+  const toast = useToast();
   const [tahunAjaranId, setTahunAjaranId] = useState(null);
   const [semester, setSemester] = useState(null);
-
-  // Auto-select active tahun ajaran when list is available
-  useEffect(() => {
-    if (activeTahunAjaranId && !tahunAjaranId) {
-      setTahunAjaranId(activeTahunAjaranId);
-    }
-  }, [activeTahunAjaranId]);
-
-  // Auto-select active semester when available
-  useEffect(() => {
-    if (activeSemester && !semester) {
-      setSemester(activeSemester);
-    }
-  }, [activeSemester]);
   const [kelasList, setKelasList] = useState([]);
   const [kelasDiniyahId, setKelasDiniyahId] = useState(null);
   const [loading, setLoading] = useState(false);
   const [tanggalCetak, setTanggalCetak] = useState(
     new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })
   );
+
+  useEffect(() => {
+    if (activeTahunAjaranId && !tahunAjaranId) {
+      setTahunAjaranId(activeTahunAjaranId);
+    }
+  }, [activeTahunAjaranId]);
+
+  useEffect(() => {
+    if (activeSemester && !semester) {
+      setSemester(activeSemester);
+    }
+  }, [activeSemester]);
 
   useEffect(() => {
     apiFetch('/api/kelas').then(data => setKelasList(data.filter(k => k.jenis === 'Diniyah'))).catch(() => {});
@@ -428,119 +677,136 @@ function TabCetakKartu({ tahunAjaranList, settings, onPesertaChange, pesertaList
       const tahunAjaran = tahunAjaranList.find(ta => ta.id === tahunAjaranId);
       onPesertaChange(data, tahunAjaran, tanggalCetak);
     } catch (err) {
-      message.error(err.message);
-    } finally { setLoading(false); }
+      toast.error(err.message);
+    } finally { 
+      setLoading(false); 
+    }
   }, [tahunAjaranId, semester, kelasDiniyahId, tanggalCetak]);
 
   useEffect(() => { fetchPeserta(); }, [fetchPeserta]);
 
   const handlePrint = () => {
-    if (!pesertaList.length) return message.warning('Tidak ada data peserta untuk dicetak.');
+    if (!pesertaList.length) return toast.warning('Tidak ada data peserta untuk dicetak.');
     window.print();
   };
 
   return (
-    <div className="tab-cetak">
-      <Card size="small" style={{ marginBottom: 16 }}>
-        <Space wrap>
-          {/* Filter Tahun Ajaran */}
-          <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
-            <span style={{ fontSize: '12px', color: '#8c8c8c' }}>Tahun:</span>
-            {tahunAjaranList.map(ta => (
-              <div
-                key={ta.id}
-                onClick={() => setTahunAjaranId(ta.id)}
-                style={{
-                  padding: '5px 12px',
-                  border: `1px solid ${tahunAjaranId === ta.id ? '#0052FF' : '#d9d9d9'}`,
-                  borderRadius: '6px',
-                  cursor: 'pointer',
-                  background: tahunAjaranId === ta.id ? '#e6f7ff' : '#fff',
-                  color: tahunAjaranId === ta.id ? '#0052FF' : '#595959',
-                  fontSize: '13px',
-                  fontWeight: tahunAjaranId === ta.id ? 'bold' : 'normal',
-                  transition: 'all 0.2s'
-                }}
-              >
-                {ta.kode}
+    <div className="tab-cetak" style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+      <div className="frosted-card">
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+          
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '20px', alignItems: 'center' }}>
+            
+            {/* Filter Tahun Ajaran */}
+            <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+              <span className="filter-pill-label">Tahun:</span>
+              <div className="pills-container-group">
+                {tahunAjaranList.map(ta => (
+                  <button
+                    key={ta.id}
+                    type="button"
+                    className={`pill-item-btn ${tahunAjaranId === ta.id ? 'active' : ''}`}
+                    onClick={() => setTahunAjaranId(ta.id)}
+                  >
+                    {ta.kode}
+                  </button>
+                ))}
               </div>
-            ))}
-          </div>
-
-          {/* Filter Semester */}
-          <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
-            <span style={{ fontSize: '12px', color: '#8c8c8c' }}>Smt:</span>
-            {['Ganjil', 'Genap'].map(s => (
-              <div
-                key={s}
-                onClick={() => setSemester(s)}
-                style={{
-                  padding: '5px 12px',
-                  border: `1px solid ${semester === s ? '#0052FF' : '#d9d9d9'}`,
-                  borderRadius: '6px',
-                  cursor: 'pointer',
-                  background: semester === s ? '#e6f7ff' : '#fff',
-                  color: semester === s ? '#0052FF' : '#595959',
-                  fontSize: '13px',
-                  fontWeight: semester === s ? 'bold' : 'normal',
-                  transition: 'all 0.2s'
-                }}
-              >
-                {s}
-              </div>
-            ))}
-          </div>
-
-          {/* Filter Kelas */}
-          <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
-            <span style={{ fontSize: '12px', color: '#8c8c8c' }}>Kelas:</span>
-            <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap', maxWidth: '300px' }}>
-              {kelasList.map(k => (
-                <div
-                  key={k.id}
-                  onClick={() => setKelasDiniyahId(k.id === kelasDiniyahId ? null : k.id)}
-                  style={{
-                    padding: '4px 10px',
-                    border: `1px solid ${kelasDiniyahId === k.id ? '#0052FF' : '#d9d9d9'}`,
-                    borderRadius: '4px',
-                    cursor: 'pointer',
-                    background: kelasDiniyahId === k.id ? '#e6f7ff' : '#fff',
-                    color: kelasDiniyahId === k.id ? '#0052FF' : '#595959',
-                    fontSize: '12px',
-                    fontWeight: kelasDiniyahId === k.id ? 'bold' : 'normal',
-                    transition: 'all 0.2s'
-                  }}
-                >
-                  {k.nama}
-                </div>
-              ))}
             </div>
+
+            {/* Filter Semester */}
+            <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+              <span className="filter-pill-label">Smt:</span>
+              <div className="pills-container-group">
+                {['Ganjil', 'Genap'].map(s => (
+                  <button
+                    key={s}
+                    type="button"
+                    className={`pill-item-btn ${semester === s ? 'active' : ''}`}
+                    onClick={() => setSemester(s)}
+                  >
+                    {s}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Filter Kelas */}
+            <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+              <span className="filter-pill-label">Kelas:</span>
+              <div className="pills-container-group">
+                {kelasList.map(k => (
+                  <button
+                    key={k.id}
+                    type="button"
+                    className={`pill-item-btn ${kelasDiniyahId === k.id ? 'active' : ''}`}
+                    onClick={() => setKelasDiniyahId(k.id === kelasDiniyahId ? null : k.id)}
+                  >
+                    {k.nama}
+                  </button>
+                ))}
+              </div>
+            </div>
+
           </div>
-          <Input value={tanggalCetak} onChange={e => setTanggalCetak(e.target.value)}
-            placeholder="Tanggal Cetak" style={{ width: 200 }} prefix="📅" />
-          <Button icon={<ReloadOutlined />} onClick={fetchPeserta} loading={loading} />
-          <Button type="primary" icon={<PrinterOutlined />} onClick={handlePrint}
-            disabled={!pesertaList.length} style={{ background: '#0052FF' }}>
-            Cetak {pesertaList.length ? `(${pesertaList.length} kartu)` : ''}
-          </Button>
-        </Space>
-      </Card>
+
+          <div style={{ height: '1px', background: 'rgba(226,232,240,0.8)' }} />
+
+          <div style={{ display: 'flex', gap: '12px', alignItems: 'center', flexWrap: 'wrap' }}>
+            <div style={{ width: '220px' }}>
+              <input 
+                type="text" 
+                className="settings-text-input" 
+                value={tanggalCetak} 
+                onChange={e => setTanggalCetak(e.target.value)} 
+                placeholder="Tanggal Cetak"
+              />
+            </div>
+            
+            <button type="button" className="btn-custom btn-secondary" onClick={fetchPeserta} disabled={loading}>
+              <RefreshCw size={15} className={loading ? 'animate-spin' : ''} />
+            </button>
+
+            <button 
+              type="button" 
+              className="btn-custom btn-primary" 
+              onClick={handlePrint}
+              disabled={!pesertaList.length}
+              style={{ background: '#0052FF', borderColor: '#0052FF' }}
+            >
+              <Printer size={15} />
+              <span>Cetak {pesertaList.length ? `(${pesertaList.length} kartu)` : ''}</span>
+            </button>
+          </div>
+
+        </div>
+      </div>
 
       {!pesertaList.length ? (
-        <Card>
-          <Empty description={tahunAjaranId && semester
-            ? 'Belum ada data. Generate nomor peserta di tab "Generate Nomor" terlebih dahulu.'
-            : 'Pilih tahun ajaran dan semester untuk melihat kartu peserta.'} />
-        </Card>
+        <div className="frosted-card" style={{ padding: '40px 20px', textAlign: 'center' }}>
+          <Info size={40} style={{ opacity: 0.4, margin: '0 auto 12px' }} />
+          <p style={{ margin: 0, color: '#64748b', fontSize: '13.5px' }}>
+            {tahunAjaranId && semester
+              ? 'Belum ada data peserta. Generate nomor peserta di tab "Generate Nomor" terlebih dahulu.'
+              : 'Pilih tahun ajaran dan semester untuk melihat kartu peserta.'}
+          </p>
+        </div>
       ) : (
         <div className="preview-info">
-          <Space>
-            <CheckCircleOutlined style={{ color: '#52c41a' }} />
-            <Text>{pesertaList.length} kartu siap dicetak · 6 kartu per halaman A4</Text>
-            {pesertaList.some(p => !p.foto_url) && (
-              <Tag color="warning"><WarningOutlined /> {pesertaList.filter(p => !p.foto_url).length} santri belum punya foto</Tag>
-            )}
-          </Space>
+          <CheckCircle size={16} />
+          <span>{pesertaList.length} kartu siap dicetak · 6 kartu per halaman F4</span>
+          {pesertaList.some(p => !p.foto_url) && (
+            <span style={{ 
+              background: 'rgba(245, 158, 11, 0.1)', 
+              color: '#d97706', 
+              padding: '2px 8px', 
+              borderRadius: '4px',
+              marginLeft: 'auto',
+              fontSize: '11.5px'
+            }}>
+              {pesertaList.filter(p => !p.foto_url).length} santri belum melengkapi foto
+            </span>
+          )}
         </div>
       )}
     </div>
@@ -558,7 +824,7 @@ function KartuUjian({ p, settings, tahunAjaran, tanggalCetak }) {
 
   return (
     <div className="kartu-ujian">
-      {/* ── Header: Logo + Judul Madrasah ── */}
+      {/* Header: Logo + Judul Madrasah */}
       <div className="kartu-header">
         <div className="kartu-logo">
           {settings?.kartu_ujian_logo_url
@@ -575,12 +841,12 @@ function KartuUjian({ p, settings, tahunAjaran, tanggalCetak }) {
         </div>
       </div>
 
-      {/* ── Bar Judul Kartu ── */}
+      {/* Bar Judul Kartu */}
       <div className="kartu-judul-kartu">
         {settings?.kartu_ujian_judul_kartu || 'KARTU PESERTA UJIAN TULIS'}
       </div>
 
-      {/* ── Tabel Data Identitas (full width, tanpa foto di samping) ── */}
+      {/* Tabel Data Identitas */}
       <div className="kartu-body">
         <div className="data-rows">
           <div className="data-row">
@@ -623,17 +889,15 @@ function KartuUjian({ p, settings, tahunAjaran, tanggalCetak }) {
         </div>
       </div>
 
-      {/* ── Bagian Bawah: Foto (kiri) + QR (tengah) + Footer TTD (kanan) ── */}
+      {/* Bagian Bawah: Foto (kiri) + QR (tengah) + Footer TTD (kanan) */}
       <div className="kartu-bottom">
-        {/* Foto di bawah kiri */}
         <div className="kartu-foto">
           {p.foto_url
             ? <img src={`${API_BASE}${p.foto_url}`} alt={p.nama} />
-            : <div className="foto-placeholder"><UserOutlined /></div>
+            : <div className="foto-placeholder"><User size={20} style={{ color: '#bbb' }} /></div>
           }
         </div>
 
-        {/* QR Code Verifikasi (Level 3) */}
         <div className="kartu-qr">
           <QRCodeSVG 
             value={`${window.location.origin}/verify/${p.no_peserta}`}
@@ -643,10 +907,9 @@ function KartuUjian({ p, settings, tahunAjaran, tanggalCetak }) {
           />
         </div>
 
-        {/* Footer TTD di bawah kanan */}
         <div className="kartu-footer">
           <div className="kartu-tempat-tanggal">
-            {settings?.kartu_ujian_lokasi || 'Cintamulya'}, {tanggalCetak}
+            {settings?.kartu_ujian_lokasi || 'Jakarta'}, {tanggalCetak}
           </div>
           <div className="kartu-jabatan">Ketua Panitia</div>
           <div className="kartu-ttd-area">
@@ -743,7 +1006,6 @@ export function KartuUjianSemester() {
   const [settings, setSettings] = useState({});
   const [activeTab, setActiveTab] = useState('generate');
 
-  // State cetak — dikelola di sini, BUKAN di dalam Tabs
   const [printData, setPrintData] = useState({ pesertaList: [], tahunAjaran: null, tanggalCetak: '' });
 
   const fetchMeta = useCallback(async () => {
@@ -754,10 +1016,11 @@ export function KartuUjianSemester() {
       ]);
       setTahunAjaranList(taData);
       setSettings(settingsData);
-      // Auto-select active year (always prefer server's active year after migration)
       const activeTA = Array.isArray(taData) ? taData.find(ta => ta.is_active) : null;
       if (activeTA) setActiveTahunAjaranId(activeTA.id);
-    } catch (err) { console.error('Failed to load meta:', err); }
+    } catch (err) { 
+      console.error('Failed to load meta:', err); 
+    }
   }, []);
 
   useEffect(() => { fetchMeta(); }, [fetchMeta]);
@@ -766,58 +1029,84 @@ export function KartuUjianSemester() {
     setPrintData({ pesertaList, tahunAjaran, tanggalCetak });
   }, []);
 
-  const tabItems = [
-    {
-      key: 'generate',
-      label: <span><ThunderboltOutlined /> Generate Nomor</span>,
-      children: <TabGenerateNomor tahunAjaranList={tahunAjaranList} activeTahunAjaranId={activeTahunAjaranId} activeSemester={settings?.active_semester} />,
-    },
-    {
-      key: 'cetak',
-      label: <span><PrinterOutlined /> Cetak Kartu</span>,
-      children: (
-        <TabCetakKartu
-          tahunAjaranList={tahunAjaranList}
-          settings={settings}
-          onPesertaChange={handlePesertaChange}
-          pesertaList={printData.pesertaList}
-          activeTahunAjaranId={activeTahunAjaranId}
-          activeSemester={settings?.active_semester}
-        />
-      ),
-    },
-    {
-      key: 'kartu_belakang',
-      label: <span><FileTextOutlined /> Kartu Belakang</span>,
-      children: (
-        <TabKartuBelakang
-          settings={settings}
-          onRefresh={fetchMeta}
-          pesertaList={printData.pesertaList}
-        />
-      ),
-    },
-    {
-      key: 'setting',
-      label: <span><SettingOutlined /> Setting Kartu</span>,
-      children: <TabSettingCard settings={settings} onRefresh={fetchMeta} />,
-    },
-  ];
-
   return (
     <div className="kartu-ujian-page">
-      {/* Header — disembunyikan saat print */}
-      <div className="page-header no-print">
-        <div className="page-icon"><IdcardOutlined /></div>
-        <div>
-          <Title level={3} style={{ margin: 0 }}>Kartu Ujian Semester</Title>
-          <Text type="secondary">Generate nomor peserta, atur setting, dan cetak kartu ujian</Text>
-        </div>
+      <PageHeader 
+        title="🪪 Kartu Ujian Semester"
+        subtitle="Generate nomor peserta, atur setting tata tertib, dan cetak kartu ujian santri"
+        className="no-print"
+      />
+
+      {/* Custom Tabs Navigation */}
+      <div className="custom-tabs-nav no-print">
+        <button
+          type="button"
+          className={`custom-tabs-tab ${activeTab === 'generate' ? 'active' : ''}`}
+          onClick={() => setActiveTab('generate')}
+        >
+          <Zap size={14} />
+          <span>Generate Nomor</span>
+        </button>
+        <button
+          type="button"
+          className={`custom-tabs-tab ${activeTab === 'cetak' ? 'active' : ''}`}
+          onClick={() => setActiveTab('cetak')}
+        >
+          <Printer size={14} />
+          <span>Cetak Kartu</span>
+        </button>
+        <button
+          type="button"
+          className={`custom-tabs-tab ${activeTab === 'kartu_belakang' ? 'active' : ''}`}
+          onClick={() => setActiveTab('kartu_belakang')}
+        >
+          <FileText size={14} />
+          <span>Kartu Belakang</span>
+        </button>
+        <button
+          type="button"
+          className={`custom-tabs-tab ${activeTab === 'setting' ? 'active' : ''}`}
+          onClick={() => setActiveTab('setting')}
+        >
+          <SettingsIcon size={14} />
+          <span>Setting Kartu</span>
+        </button>
       </div>
 
-      {/* Tabs — disembunyikan saat print */}
       <div className="no-print">
-        <Tabs activeKey={activeTab} onChange={setActiveTab} items={tabItems} type="card" />
+        {activeTab === 'generate' && (
+          <TabGenerateNomor 
+            tahunAjaranList={tahunAjaranList} 
+            activeTahunAjaranId={activeTahunAjaranId} 
+            activeSemester={settings?.active_semester} 
+          />
+        )}
+
+        {activeTab === 'cetak' && (
+          <TabCetakKartu
+            tahunAjaranList={tahunAjaranList}
+            settings={settings}
+            onPesertaChange={handlePesertaChange}
+            pesertaList={printData.pesertaList}
+            activeTahunAjaranId={activeTahunAjaranId}
+            activeSemester={settings?.active_semester}
+          />
+        )}
+
+        {activeTab === 'kartu_belakang' && (
+          <TabKartuBelakang
+            settings={settings}
+            onRefresh={fetchMeta}
+            pesertaList={printData.pesertaList}
+          />
+        )}
+
+        {activeTab === 'setting' && (
+          <TabSettingCard 
+            settings={settings} 
+            onRefresh={fetchMeta} 
+          />
+        )}
       </div>
 
       {/* AREA CETAK — SELALU DIRENDER, HANYA TERLIHAT SAAT PRINT */}
@@ -846,3 +1135,5 @@ export function KartuUjianSemester() {
     </div>
   );
 }
+
+export default KartuUjianSemester;

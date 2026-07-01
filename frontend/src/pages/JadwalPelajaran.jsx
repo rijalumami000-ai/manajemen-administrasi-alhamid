@@ -1,18 +1,4 @@
-import React, { useState, useEffect } from 'react';
-import { 
-  Select, 
-  Card, 
-  Button, 
-  Modal, 
-  Spin, 
-  message, 
-  Alert, 
-  Tabs, 
-  Table,
-  Badge,
-  Tooltip,
-  Popconfirm
-} from 'antd';
+import { useState, useEffect } from 'react';
 import { 
   Clock, 
   BookOpen, 
@@ -31,9 +17,11 @@ import { useAuth } from '../context/AuthContext';
 import { jadwalService } from '../services/jadwalService';
 import { guruService } from '../services/guruService';
 import { nilaiService } from '../services/nilaiService';
+import { CustomModal } from '../components/ui/CustomModal';
+import { CustomSelect } from '../components/ui/CustomSelect';
+import { SmartAlert } from '../components/ui/SmartAlert';
+import { PageHeader, useToast } from '../components/common';
 import './JadwalPelajaran.scss';
-
-const { TabPane } = Tabs;
 
 const LIST_MALAM = [
   'Malam Ahad',
@@ -46,6 +34,7 @@ const LIST_MALAM = [
 
 export function JadwalPelajaran() {
   const { isAdmin } = useAuth();
+  const toast = useToast();
 
   // Settings / Master States
   const [tahunAjaranList, setTahunAjaranList] = useState([]);
@@ -67,6 +56,15 @@ export function JadwalPelajaran() {
   const [selectedGuruId, setSelectedGuruId] = useState(null);
   const [saveLoading, setSaveLoading] = useState(false);
   const [clashWarning, setClashWarning] = useState(null);
+
+  // Custom Confirm modal for clearing slot
+  const [clearConfirm, setClearConfirm] = useState({
+    isOpen: false,
+    kelasId: null,
+    malam: '',
+    jamKe: null,
+    kelasNama: ''
+  });
 
   // Initialize master data
   useEffect(() => {
@@ -122,7 +120,7 @@ export function JadwalPelajaran() {
         setMapelList(mapels);
       } catch (err) {
         console.error(err);
-        message.error('Gagal memuat data referensi.');
+        toast.error('Gagal memuat data referensi.');
       } finally {
         setLoading(false);
       }
@@ -139,7 +137,7 @@ export function JadwalPelajaran() {
       setJadwalList(data);
     } catch (err) {
       console.error(err);
-      message.error('Gagal memuat data jadwal pelajaran.');
+      toast.error('Gagal memuat data jadwal pelajaran.');
     } finally {
       setLoading(false);
     }
@@ -156,8 +154,8 @@ export function JadwalPelajaran() {
     );
 
     setEditingSlot({ kelas_id: kelasId, malam, jam_ke: jamKe });
-    setSelectedMapelId(existing?.mata_pelajaran_id || null);
-    setSelectedGuruId(existing?.guru_id || null);
+    setSelectedMapelId(existing?.mata_pelajaran_id ? String(existing.mata_pelajaran_id) : null);
+    setSelectedGuruId(existing?.guru_id ? String(existing.guru_id) : null);
     setClashWarning(null);
     setEditModalOpen(true);
   };
@@ -169,9 +167,11 @@ export function JadwalPelajaran() {
       return;
     }
 
+    const numericGuruId = Number(selectedGuruId);
+
     // Find if this teacher is already teaching at the same night & period in ANOTHER class
     const clash = jadwalList.find(
-      j => j.guru_id === selectedGuruId &&
+      j => j.guru_id === numericGuruId &&
            j.malam === editingSlot.malam &&
            j.jam_ke === editingSlot.jam_ke &&
            j.kelas_id !== editingSlot.kelas_id
@@ -179,7 +179,7 @@ export function JadwalPelajaran() {
 
     if (clash) {
       const className = kelasList.find(k => k.id === clash.kelas_id)?.nama || 'Kelas Lain';
-      const teacherName = guruList.find(g => g.id === selectedGuruId)?.nama || 'Guru';
+      const teacherName = guruList.find(g => g.id === numericGuruId)?.nama || 'Guru';
       setClashWarning({
         message: `Bentrokan Jadwal!`,
         description: `${teacherName} sudah dijadwalkan mengajar di ${className} pada ${editingSlot.malam} Jam ke-${editingSlot.jam_ke}.`
@@ -199,9 +199,16 @@ export function JadwalPelajaran() {
     );
     
     if (existing && !selectedMapelId && !selectedGuruId) {
-      if (!confirm('Apakah Anda yakin ingin menghapus/mengosongkan jadwal pelajaran pada slot ini?')) {
-        return;
-      }
+      const classObj = kelasList.find(k => k.id === editingSlot.kelas_id);
+      setEditModalOpen(false);
+      setClearConfirm({
+        isOpen: true,
+        kelasId: editingSlot.kelas_id,
+        malam: editingSlot.malam,
+        jamKe: editingSlot.jam_ke,
+        kelasNama: classObj ? classObj.nama : 'Kelas'
+      });
+      return;
     }
 
     setSaveLoading(true);
@@ -211,24 +218,40 @@ export function JadwalPelajaran() {
         kelas_id: editingSlot.kelas_id,
         malam: editingSlot.malam,
         jam_ke: editingSlot.jam_ke,
-        mata_pelajaran_id: selectedMapelId,
-        guru_id: selectedGuruId
+        mata_pelajaran_id: selectedMapelId ? Number(selectedMapelId) : null,
+        guru_id: selectedGuruId ? Number(selectedGuruId) : null
       };
 
       await jadwalService.saveJadwal(payload);
-      message.success('Jadwal pelajaran berhasil diperbarui.');
+      toast.success('Jadwal pelajaran berhasil diperbarui.');
       setEditModalOpen(false);
       loadJadwal();
     } catch (err) {
       console.error(err);
-      message.error('Gagal menyimpan jadwal: ' + err.message);
+      toast.error('Gagal menyimpan jadwal: ' + err.message);
     } finally {
       setSaveLoading(false);
     }
   };
 
-  // Clear slot directly
-  const handleClearSlot = async (kelasId, malam, jamKe) => {
+  // Trigger confirm modal for clearing slot
+  const handleClearSlotClick = (kelasId, malam, jamKe) => {
+    const classObj = kelasList.find(k => k.id === kelasId);
+    setClearConfirm({
+      isOpen: true,
+      kelasId,
+      malam,
+      jamKe,
+      kelasNama: classObj ? classObj.nama : 'Kelas'
+    });
+  };
+
+  // Perform clear slot
+  const handleConfirmClearSlot = async () => {
+    const { kelasId, malam, jamKe } = clearConfirm;
+    if (!kelasId) return;
+
+    setLoading(true);
     try {
       const payload = {
         tahun_ajaran_id: selectedTahunId,
@@ -240,11 +263,13 @@ export function JadwalPelajaran() {
       };
 
       await jadwalService.saveJadwal(payload);
-      message.success('Slot jadwal dikosongkan.');
+      toast.success('Slot jadwal berhasil dikosongkan.');
+      setClearConfirm({ isOpen: false, kelasId: null, malam: '', jamKe: null, kelasNama: '' });
       loadJadwal();
     } catch (err) {
       console.error(err);
-      message.error('Gagal mengosongkan slot: ' + err.message);
+      toast.error('Gagal mengosongkan slot: ' + err.message);
+      setLoading(false);
     }
   };
 
@@ -267,7 +292,7 @@ export function JadwalPelajaran() {
       if (activeTab === 'per_kelas') {
         const targetKelas = kelasList.find(k => k.id === selectedKelasId);
         if (!targetKelas) {
-          message.error('Silakan pilih kelas terlebih dahulu.');
+          toast.error('Silakan pilih kelas terlebih dahulu.');
           return;
         }
 
@@ -368,7 +393,7 @@ export function JadwalPelajaran() {
         doc.save(`Jadwal_Diniyah_${targetKelas.nama.replace(/\s+/g, '_')}_${taKode.replace(/\//g, '-')}.pdf`);
       } else {
         if (kelasList.length === 0) {
-          message.error('Data kelas belum dimuat.');
+          toast.error('Data kelas belum dimuat.');
           return;
         }
 
@@ -492,10 +517,10 @@ export function JadwalPelajaran() {
 
         doc.save(`Matriks_Master_Jadwal_Diniyah_${taKode.replace(/\//g, '-')}.pdf`);
       }
-      message.success('Ekspor PDF berhasil diunduh.');
+      toast.success('Ekspor PDF berhasil diunduh.');
     } catch (error) {
       console.error('Gagal ekspor PDF:', error);
-      message.error('Gagal membuat file PDF: ' + error.message);
+      toast.error('Gagal membuat file PDF: ' + error.message);
     }
   };
 
@@ -517,13 +542,14 @@ export function JadwalPelajaran() {
         <div className="empty-slot-text">
           <span>Draf Kosong</span>
           {isAdmin() && (
-            <Button 
-              type="text" 
-              size="small" 
-              icon={<Edit3 size={12} />} 
+            <button 
+              type="button" 
               onClick={() => handleOpenEdit(kelasId, malam, jamKe)}
-              className="slot-hover-btn"
-            />
+              className="slot-hover-btn action-icon-btn edit-btn"
+              title="Isi Jadwal"
+            >
+              <Edit3 size={12} />
+            </button>
           )}
         </div>
       );
@@ -545,31 +571,22 @@ export function JadwalPelajaran() {
         </div>
         {isAdmin() && (
           <div className="slot-action-overlay">
-            <Tooltip title="Edit">
-              <Button 
-                type="text" 
-                size="small" 
-                icon={<Edit3 size={13} />} 
-                onClick={() => handleOpenEdit(kelasId, malam, jamKe)}
-              />
-            </Tooltip>
-            <Popconfirm
-              title="Kosongkan Slot Jadwal"
-              description="Apakah Anda yakin ingin mengosongkan slot jadwal pelajaran ini?"
-              onConfirm={() => handleClearSlot(kelasId, malam, jamKe)}
-              okText="Ya, Kosongkan"
-              cancelText="Batal"
-              okButtonProps={{ danger: true }}
+            <button 
+              type="button"
+              onClick={() => handleOpenEdit(kelasId, malam, jamKe)}
+              className="action-icon-btn edit-btn"
+              title="Edit Slot"
             >
-              <Tooltip title="Kosongkan">
-                <Button 
-                  type="text" 
-                  size="small" 
-                  danger
-                  icon={<Trash2 size={13} />} 
-                />
-              </Tooltip>
-            </Popconfirm>
+              <Edit3 size={13} />
+            </button>
+            <button 
+              type="button"
+              onClick={() => handleClearSlotClick(kelasId, malam, jamKe)}
+              className="action-icon-btn delete-btn"
+              title="Kosongkan Slot"
+            >
+              <Trash2 size={13} />
+            </button>
           </div>
         )}
       </div>
@@ -628,47 +645,6 @@ export function JadwalPelajaran() {
   const renderMatrixView = () => {
     if (kelasList.length === 0) return <div className="no-data-msg">Memuat kelas...</div>;
 
-    // Define table columns
-    const columns = [
-      {
-        title: 'Hari/Malam',
-        dataIndex: 'malam',
-        key: 'malam',
-        width: 130,
-        fixed: 'left',
-        render: (value, row, index) => {
-          const obj = {
-            children: <span className="matrix-malam-label">{value}</span>,
-            props: {}
-          };
-          // Group rows by malam (each malam has jam 1 and jam 2)
-          if (index % 2 === 0) {
-            obj.props.rowSpan = 2;
-          } else {
-            obj.props.rowSpan = 0;
-          }
-          return obj;
-        }
-      },
-      {
-        title: 'Jam',
-        dataIndex: 'jam_ke',
-        key: 'jam_ke',
-        width: 80,
-        fixed: 'left',
-        align: 'center',
-        render: (value) => <Badge count={`Ke-${value}`} style={{ backgroundColor: value === 1 ? '#3b82f6' : '#8b5cf6' }} />
-      },
-      // Dynamically add a column for each class
-      ...kelasList.map(kelas => ({
-        title: kelas.nama,
-        dataIndex: `kelas_${kelas.id}`,
-        key: `kelas_${kelas.id}`,
-        width: 190,
-        render: (_, row) => renderCellContent(kelas.id, row.malam, row.jam_ke)
-      }))
-    ];
-
     // Form data source
     // Rows represent (Malam 1, Jam 1), (Malam 1, Jam 2), etc.
     const dataSource = [];
@@ -684,18 +660,78 @@ export function JadwalPelajaran() {
     });
 
     return (
-      <div className="matrix-table-container">
-        <Table
-          columns={columns}
-          dataSource={dataSource}
-          pagination={false}
-          bordered
-          scroll={{ x: 'max-content', y: 600 }}
-          className="matrix-table"
-        />
+      <div className="matrix-table-wrapper" style={{ overflowX: 'auto', width: '100%' }}>
+        <table className="custom-data-table matrix-table" style={{ borderCollapse: 'collapse', width: '100%', minWidth: '1100px' }}>
+          <thead>
+            <tr>
+              <th rowSpan={2} className="matrix-sticky-header first-sticky" style={{ width: '130px', textAlign: 'center' }}>Hari / Malam</th>
+              <th rowSpan={2} className="matrix-sticky-header second-sticky" style={{ width: '80px', textAlign: 'center' }}>Jam</th>
+              <th colSpan={kelasList.length} style={{ textAlign: 'center' }}>Kelas-Kelas Diniyah</th>
+            </tr>
+            <tr>
+              {kelasList.map(kelas => (
+                <th key={kelas.id} style={{ textAlign: 'center', minWidth: '190px' }}>{kelas.nama}</th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {dataSource.map((row, index) => {
+              const isEven = index % 2 === 0;
+              return (
+                <tr key={row.key}>
+                  {/* Malam label - Rowspan 2 */}
+                  {isEven ? (
+                    <td 
+                      rowSpan={2} 
+                      className="matrix-malam-label-cell matrix-sticky-cell first-sticky"
+                      style={{ verticalAlign: 'middle', textAlign: 'center' }}
+                    >
+                      <span className="matrix-malam-label">{row.malam}</span>
+                    </td>
+                  ) : null}
+                  {/* Jam Ke label */}
+                  <td 
+                    className="matrix-jam-cell matrix-sticky-cell second-sticky"
+                    style={{ textAlign: 'center', verticalAlign: 'middle' }}
+                  >
+                    <span className={`status-pill ${row.jam_ke === 1 ? 'success' : 'warning'}`} style={{ minWidth: '54px', display: 'inline-block', textAlign: 'center' }}>
+                      Ke-{row.jam_ke}
+                    </span>
+                  </td>
+                  {/* Class columns */}
+                  {kelasList.map(kelas => (
+                    <td key={kelas.id} className="matrix-slot-cell" style={{ verticalAlign: 'middle', padding: '6px' }}>
+                      {renderCellContent(kelas.id, row.malam, row.jam_ke)}
+                    </td>
+                  ))}
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
       </div>
     );
   };
+
+  const taOptions = tahunAjaranList.map(ta => ({
+    value: String(ta.id),
+    label: `${ta.kode} ${ta.is_active ? '(Aktif)' : ''}`
+  }));
+
+  const classOptions = kelasList.map(k => ({
+    value: String(k.id),
+    label: k.nama
+  }));
+
+  const mapelOptions = mapelList.map(m => ({
+    value: String(m.id),
+    label: m.nama
+  }));
+
+  const guruOptions = guruList.map(g => ({
+    value: String(g.id),
+    label: g.nama
+  }));
 
   return (
     <div className="jadwal-pelajaran-page">
@@ -713,160 +749,222 @@ export function JadwalPelajaran() {
         <div className="header-actions">
           <div className="select-control">
             <span className="control-label">Tahun Ajaran</span>
-            <Select
-              value={selectedTahunId}
-              onChange={setSelectedTahunId}
-              className="ta-select"
-              options={tahunAjaranList.map(ta => ({
-                value: ta.id,
-                label: `${ta.kode} ${ta.is_active ? '(Aktif)' : ''}`
-              }))}
+            <CustomSelect
+              value={selectedTahunId ? String(selectedTahunId) : ''}
+              onChange={(val) => setSelectedTahunId(val ? Number(val) : null)}
+              options={taOptions}
+              disabled={loading}
+              placeholder="Pilih Tahun Ajaran"
             />
           </div>
 
-          <Button 
-            type="primary"
-            icon={<FileDown size={16} />} 
+          <button 
+            type="button"
             onClick={exportJadwalPDF}
-            className="export-pdf-btn"
-            style={{ background: '#10b981', borderColor: '#10b981' }}
+            className="btn-custom btn-primary"
+            style={{ height: '42px', padding: '0 16px' }}
           >
-            Ekspor PDF
-          </Button>
+            <FileDown size={16} />
+            <span>Ekspor PDF</span>
+          </button>
 
-          <Button 
-            icon={<Printer size={16} />} 
+          <button 
+            type="button" 
             onClick={handlePrint}
-            className="print-btn"
+            className="btn-custom btn-secondary"
+            style={{ height: '42px', padding: '0 16px' }}
           >
-            Cetak Jadwal
-          </Button>
+            <Printer size={16} />
+            <span>Cetak Jadwal</span>
+          </button>
 
-          <Button 
-            type="text" 
-            icon={<RefreshCw size={14} className={loading ? 'spin-anim' : ''} />} 
+          <button 
+            type="button" 
+            className="btn-custom btn-secondary"
             onClick={loadJadwal}
-          />
+            disabled={loading}
+            style={{ width: '42px', height: '42px', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 0 }}
+          >
+            <RefreshCw size={14} className={loading ? 'spin-anim' : ''} />
+          </button>
         </div>
       </div>
 
       {/* Main Content Area */}
       <div className="content-layout">
-        <Tabs activeKey={activeTab} onChange={setActiveTab} className="schedule-tabs">
-          <TabPane 
-            tab="Jadwal Per Kelas" 
-            key="per_kelas"
-          >
-            <div className="class-selector-bar">
-              <span className="select-label">Pilih Kelas Diniyah:</span>
-              <Select
-                value={selectedKelasId}
-                onChange={setSelectedKelasId}
-                className="class-select"
-                options={kelasList.map(k => ({
-                  value: k.id,
-                  label: k.nama
-                }))}
-              />
-            </div>
+        {/* Custom Tabs Container */}
+        <div className="custom-tabs-container">
+          <div className="custom-tabs-nav" style={{ display: 'flex', gap: '16px', borderBottom: '1px solid rgba(226, 232, 240, 0.6)', marginBottom: '24px' }}>
+            <button 
+              type="button"
+              className={`custom-tabs-tab ${activeTab === 'per_kelas' ? 'active' : ''}`}
+              onClick={() => setActiveTab('per_kelas')}
+            >
+              Jadwal Per Kelas
+            </button>
+            <button 
+              type="button"
+              className={`custom-tabs-tab ${activeTab === 'master_matrix' ? 'active' : ''}`}
+              onClick={() => setActiveTab('master_matrix')}
+            >
+              Matriks Master (Semua Kelas)
+            </button>
+          </div>
 
-            {loading ? (
-              <div className="loading-container">
-                <Spin size="large" tip="Memuat jadwal pelajaran..." />
-              </div>
-            ) : (
-              renderTimetableView()
-            )}
-          </TabPane>
+          <div className="custom-tabs-content">
+            {activeTab === 'per_kelas' && (
+              <div className="timetable-tab-pane">
+                <div className="class-selector-bar" style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '20px' }}>
+                  <span className="select-label" style={{ fontWeight: 700, fontSize: '14px', color: 'var(--lt-text-secondary, #475569)' }}>Pilih Kelas Diniyah:</span>
+                  <div style={{ width: '200px' }}>
+                    <CustomSelect
+                      value={selectedKelasId ? String(selectedKelasId) : ''}
+                      onChange={(val) => setSelectedKelasId(val ? Number(val) : null)}
+                      options={classOptions}
+                      placeholder="Pilih Kelas"
+                    />
+                  </div>
+                </div>
 
-          <TabPane 
-            tab="Matriks Master (Semua Kelas)" 
-            key="master_matrix"
-          >
-            {loading ? (
-              <div className="loading-container">
-                <Spin size="large" tip="Memuat matriks jadwal..." />
+                {loading ? (
+                  <div className="loading-container">
+                    <div className="loading-spinner" style={{ width: '40px', height: '40px', borderWidth: '3px' }}></div>
+                    <span style={{ marginTop: '12px', fontSize: '14px', fontWeight: 500, color: 'var(--lt-text-secondary, #64748b)' }}>Memuat jadwal pelajaran...</span>
+                  </div>
+                ) : (
+                  renderTimetableView()
+                )}
               </div>
-            ) : (
-              renderMatrixView()
             )}
-          </TabPane>
-        </Tabs>
+
+            {activeTab === 'master_matrix' && (
+              <div className="timetable-tab-pane">
+                {loading ? (
+                  <div className="loading-container">
+                    <div className="loading-spinner" style={{ width: '40px', height: '40px', borderWidth: '3px' }}></div>
+                    <span style={{ marginTop: '12px', fontSize: '14px', fontWeight: 500, color: 'var(--lt-text-secondary, #64748b)' }}>Memuat matriks jadwal...</span>
+                  </div>
+                ) : (
+                  renderMatrixView()
+                )}
+              </div>
+            )}
+          </div>
+        </div>
       </div>
 
       {/* Edit Schedule Modal */}
-      <Modal
-        title={
-          <div className="modal-title-wrapper">
-            <Clock size={20} className="modal-icon" />
-            <span>Edit Slot: {editingSlot?.malam} - Jam Ke-{editingSlot?.jam_ke}</span>
+      <CustomModal
+        open={editModalOpen}
+        onClose={() => setEditModalOpen(false)}
+        title="Edit Slot Jadwal"
+        subtitle={`Atur mata pelajaran dan ustadz/ustadzah untuk ${editingSlot?.malam} - Jam Ke-${editingSlot?.jam_ke}`}
+        icon={<Clock />}
+        width={450}
+        destroyOnClose
+        footer={
+          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px', width: '100%' }}>
+            <button
+              type="button"
+              className="btn-custom btn-secondary"
+              onClick={() => setEditModalOpen(false)}
+              disabled={saveLoading}
+            >
+              Batal
+            </button>
+            <button
+              type="submit"
+              className="btn-custom btn-primary"
+              onClick={handleSaveJadwal}
+              disabled={saveLoading}
+            >
+              {saveLoading ? (
+                <span className="loading-spinner"></span>
+              ) : (
+                <span>Simpan Jadwal</span>
+              )}
+            </button>
           </div>
         }
-        open={editModalOpen}
-        onOk={handleSaveJadwal}
-        onCancel={() => setEditModalOpen(false)}
-        confirmLoading={saveLoading}
-        okText="Simpan Jadwal"
-        cancelText="Batal"
-        width={450}
-        centered
-        className="schedule-edit-modal"
       >
-        <div className="modal-body-container">
+        <div className="modal-body-container" style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
           {clashWarning && (
-            <Alert
-              message={clashWarning.message}
-              description={clashWarning.description}
-              type="warning"
-              showIcon
-              icon={<AlertTriangle size={18} />}
-              className="clash-alert"
-            />
+            <div style={{ marginBottom: '4px' }}>
+              <SmartAlert
+                message={clashWarning.message}
+                description={clashWarning.description}
+                type="warning"
+              />
+            </div>
           )}
 
-          <div className="form-group">
-            <label className="form-label">Mata Pelajaran</label>
-            <Select
-              placeholder="Pilih mata pelajaran"
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+            <CustomSelect
+              label="Mata Pelajaran"
               value={selectedMapelId}
               onChange={setSelectedMapelId}
+              options={mapelOptions}
+              placeholder="Pilih mata pelajaran"
               allowClear
-              showSearch
-              filterOption={(input, option) => 
-                (option?.label ?? '').toLowerCase().includes(input.toLowerCase())
-              }
-              options={mapelList.map(m => ({
-                value: m.id,
-                label: m.nama
-              }))}
-              className="w-full-select"
+              disabled={saveLoading}
             />
           </div>
 
-          <div className="form-group">
-            <label className="form-label">Ustadz / Ustadzah</label>
-            <Select
-              placeholder="Pilih pengajar"
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+            <CustomSelect
+              label="Ustadz / Ustadzah (Pengajar)"
               value={selectedGuruId}
               onChange={setSelectedGuruId}
+              options={guruOptions}
+              placeholder="Pilih pengajar"
               allowClear
-              showSearch
-              filterOption={(input, option) => 
-                (option?.label ?? '').toLowerCase().includes(input.toLowerCase())
-              }
-              options={guruList.map(g => ({
-                value: g.id,
-                label: g.nama
-              }))}
-              className="w-full-select"
+              disabled={saveLoading}
             />
           </div>
           
-          <span className="modal-helper-text">
-            Kosongkan kedua pilihan di atas jika ingin menghapus pelajaran pada slot waktu ini.
+          <span className="modal-helper-text" style={{ fontSize: '11px', color: 'var(--lt-text-tertiary, #94a3b8)', lineHeight: '1.4', fontWeight: 500 }}>
+            Catatan: Kosongkan kedua pilihan di atas jika ingin menghapus/mengosongkan pelajaran pada slot waktu ini.
           </span>
         </div>
-      </Modal>
+      </CustomModal>
+
+      {/* Clear Slot Confirmation Modal */}
+      <CustomModal
+        open={clearConfirm.isOpen}
+        onClose={() => setClearConfirm({ isOpen: false, kelasId: null, malam: '', jamKe: null, kelasNama: '' })}
+        title="Kosongkan Slot Jadwal"
+        subtitle="Konfirmasi Pengosongan Slot Pelajaran"
+        icon={<AlertTriangle color="#ef4444" />}
+        width={440}
+        destroyOnClose
+        footer={
+          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px', width: '100%' }}>
+            <button
+              type="button"
+              className="btn-custom btn-secondary"
+              onClick={() => setClearConfirm({ isOpen: false, kelasId: null, malam: '', jamKe: null, kelasNama: '' })}
+            >
+              Batal
+            </button>
+            <button
+              type="button"
+              className="btn-custom btn-danger"
+              onClick={handleConfirmClearSlot}
+            >
+              Ya, Kosongkan
+            </button>
+          </div>
+        }
+      >
+        <div style={{ padding: '4px 0' }}>
+          <p style={{ margin: 0, color: 'var(--lt-text-primary, #0f172a)', fontSize: '14px', fontWeight: 500 }}>
+            Apakah Anda yakin ingin menghapus jadwal pelajaran pada kelas <strong>{clearConfirm.kelasNama}</strong> untuk <strong>{clearConfirm.malam}</strong> Jam <strong>ke-{clearConfirm.jamKe}</strong>?
+          </p>
+          <p style={{ marginTop: '10px', marginBottom: 0, color: 'var(--lt-text-secondary, #64748b)', fontSize: '13px', lineHeight: 1.5 }}>
+            Tindakan ini akan mengosongkan slot jadwal pelajaran ini secara permanen.
+          </p>
+        </div>
+      </CustomModal>
     </div>
   );
 }

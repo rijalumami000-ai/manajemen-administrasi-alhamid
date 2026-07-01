@@ -1,19 +1,27 @@
-import React, { useState, useEffect } from 'react';
-import { Card, Table, Row, Col, Space, Alert, Empty, InputNumber, Select, Input, Button, message as antMessage } from 'antd';
-import { UnorderedListOutlined, SaveOutlined } from '@ant-design/icons';
+import { useState, useEffect } from 'react';
+import { 
+  FileText, 
+  Save, 
+  Sparkles, 
+  Eye, 
+  EyeOff, 
+  Check, 
+  AlertCircle 
+} from 'lucide-react';
 import { nilaiService } from '../../services/nilaiService';
-
-const { Option } = Select;
-const { TextArea } = Input;
+import { useToast } from '../common';
+import { CustomSelect } from '../ui/CustomSelect';
+import './RaporSantriForms.scss';
 
 export function RaporSantriForms({
-  type, // 'absensi', 'kepribadian', 'catatan'
+  type, // 'absensi', 'kepribadian', 'catatan', 'kenaikan_kelas'
   tahunAjaran,
   selectedKelasDetail,
   selectedKategori,
   kelasName,
   kategoriNama
 }) {
+  const toast = useToast();
   const [data, setData] = useState([]);
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -30,7 +38,6 @@ export function RaporSantriForms({
     } else {
       setData([]);
     }
-    // Set default semua bulan ditampilkan
     setVisibleMonths(daftarBulan);
   }, [tahunAjaran, selectedKelasDetail, selectedKategori, kategoriNama]);
 
@@ -42,9 +49,8 @@ export function RaporSantriForms({
         kelas_id: selectedKelasDetail,
         kategori_evaluasi_id: selectedKategori
       });
-      // Set default values if null
+      
       const initialized = raporData.map(item => {
-        // Pastikan detail_absensi terinisialisasi untuk semua daftarBulan
         const detail = item.detail_absensi || {};
         const initializedDetail = {};
         daftarBulan.forEach(bulan => {
@@ -66,7 +72,8 @@ export function RaporSantriForms({
       });
       setData(initialized);
     } catch (err) {
-      antMessage.error('Gagal memuat data rapor');
+      console.error(err);
+      toast.error('Gagal memuat data rapor');
     } finally {
       setLoading(false);
     }
@@ -81,10 +88,11 @@ export function RaporSantriForms({
         kategori_evaluasi_id: selectedKategori,
         data: data
       });
-      antMessage.success(`Data ${type} berhasil disimpan`);
-      loadData(); // Reload to get fresh DB states
+      toast.success(`Data ${titles[type]} berhasil disimpan`);
+      loadData();
     } catch (err) {
-      antMessage.error(`Gagal menyimpan data ${type}`);
+      console.error(err);
+      toast.error(`Gagal menyimpan data ${titles[type]}`);
     } finally {
       setSaving(false);
     }
@@ -103,11 +111,10 @@ export function RaporSantriForms({
           ...item.detail_absensi,
           [bulan]: {
             ...(item.detail_absensi[bulan] || { sakit: 0, izin: 0, alpa: 0 }),
-            [field]: value
+            [field]: value === '' ? 0 : Number(value)
           }
         };
 
-        // Hitung ulang akumulasi secara real-time
         let totalSakit = 0;
         let totalIzin = 0;
         let totalAlpa = 0;
@@ -143,278 +150,305 @@ export function RaporSantriForms({
     else if (current.includes('4')) nextClass = 'Lima';
     else if (current.includes('5')) nextClass = 'Enam';
     else if (current.includes('6')) {
-      antMessage.info('Kelas 6 tidak ada kelas selanjutnya.');
+      toast.info('Kelas 6 tidak memiliki tingkatan kelas selanjutnya.');
       return;
     }
 
     if (nextClass) {
-      setData(prev => prev.map(item => ({ ...item, keputusan_kenaikan: nextClass })));
-      antMessage.success(`Berhasil mengisi otomatis: ${nextClass}`);
+      setData(prev => prev.map(item => ({ ...item, keputusan_kenaikan: `Naik ke Kelas ${nextClass}` })));
+      toast.success(`Berhasil mengisi otomatis kenaikan ke Kelas ${nextClass}`);
     }
   };
 
   const handleAutoFillCatatan = () => {
-    setData(prev => prev.map(item => ({ ...item, catatan: 'Tingkatkan lagi belajarnya!!' })));
-    antMessage.success(`Berhasil mengisi otomatis catatan`);
+    setData(prev => prev.map(item => ({ ...item, catatan: 'Tingkatkan lagi belajarnya!' })));
+    toast.success(`Berhasil mengisi otomatis catatan motivasi wali kelas`);
   };
 
   const handleAutoFillKepribadian = () => {
     setData(prev => prev.map(item => ({ ...item, keaktifan: 'B', akhlaq: 'B', kerapihan: 'B' })));
-    antMessage.success(`Berhasil mengisi otomatis kepribadian dengan nilai B`);
+    toast.success(`Berhasil mengisi otomatis kepribadian dengan predikat B`);
   };
-
-  let columns = [];
-
-  if (type === 'absensi') {
-    columns = [
-      { 
-        title: 'Nama Santri', 
-        dataIndex: 'nama', 
-        width: 180, 
-        fixed: 'left',
-        render: (text) => <div style={{ fontWeight: '500', minWidth: '150px' }}>{text}</div>
-      },
-      ...daftarBulan.filter(bulan => visibleMonths.includes(bulan)).map(bulan => ({
-        title: bulan,
-        align: 'center',
-        children: [
-          {
-            title: 'S',
-            width: 45,
-            align: 'center',
-            render: (_, record) => (
-              <InputNumber
-                min={0}
-                size="small"
-                value={record.detail_absensi?.[bulan]?.sakit ?? 0}
-                style={{ width: '42px', padding: '0px', textAlign: 'center' }}
-                onChange={(v) => handleDetailValueChange(record.santri_id, bulan, 'sakit', v)}
-              />
-            )
-          },
-          {
-            title: 'I',
-            width: 45,
-            align: 'center',
-            render: (_, record) => (
-              <InputNumber
-                min={0}
-                size="small"
-                value={record.detail_absensi?.[bulan]?.izin ?? 0}
-                style={{ width: '42px', padding: '0px', textAlign: 'center' }}
-                onChange={(v) => handleDetailValueChange(record.santri_id, bulan, 'izin', v)}
-              />
-            )
-          },
-          {
-            title: 'A',
-            width: 45,
-            align: 'center',
-            render: (_, record) => (
-              <InputNumber
-                min={0}
-                size="small"
-                value={record.detail_absensi?.[bulan]?.alpa ?? 0}
-                style={{ width: '42px', padding: '0px', textAlign: 'center' }}
-                onChange={(v) => handleDetailValueChange(record.santri_id, bulan, 'alpa', v)}
-              />
-            )
-          }
-        ]
-      })),
-      {
-        title: 'Total',
-        align: 'center',
-        children: [
-          {
-            title: 'S',
-            dataIndex: 'sakit',
-            width: 45,
-            align: 'center',
-            render: (val) => (
-              <InputNumber disabled size="small" value={val} style={{ width: '42px', color: '#000', fontWeight: 'bold', backgroundColor: '#f5f5f5' }} />
-            )
-          },
-          {
-            title: 'I',
-            dataIndex: 'izin',
-            width: 45,
-            align: 'center',
-            render: (val) => (
-              <InputNumber disabled size="small" value={val} style={{ width: '42px', color: '#000', fontWeight: 'bold', backgroundColor: '#f5f5f5' }} />
-            )
-          },
-          {
-            title: 'A',
-            dataIndex: 'alpa',
-            width: 45,
-            align: 'center',
-            render: (val) => (
-              <InputNumber disabled size="small" value={val} style={{ width: '42px', color: '#000', fontWeight: 'bold', backgroundColor: '#f5f5f5' }} />
-            )
-          }
-        ]
-      }
-    ];
-  } else {
-    columns = [
-      { title: 'NIS', dataIndex: 'nis', width: '15%' },
-      { title: 'Nama Santri', dataIndex: 'nama', width: '35%' },
-    ];
-
-    if (type === 'kepribadian') {
-      const renderSelect = (field) => (val, record) => (
-        <Select value={val} style={{ width: '100%' }} onChange={(v) => handleValueChange(record.santri_id, field, v)} allowClear placeholder="Pilih Nilai">
-          <Option value="A">A (Sangat Baik)</Option>
-          <Option value="B">B (Baik)</Option>
-          <Option value="C">C (Cukup)</Option>
-          <Option value="D">D (Kurang)</Option>
-        </Select>
-      );
-
-      columns = [
-        ...columns,
-        { title: 'Keaktifan', dataIndex: 'keaktifan', width: '15%', render: renderSelect('keaktifan') },
-        { title: 'Akhlaq', dataIndex: 'akhlaq', width: '15%', render: renderSelect('akhlaq') },
-        { title: 'Kerapihan', dataIndex: 'kerapihan', width: '15%', render: renderSelect('kerapihan') }
-      ];
-    } else if (type === 'catatan') {
-      columns = [
-        ...columns,
-        {
-          title: 'Catatan Wali Kelas',
-          dataIndex: 'catatan',
-          render: (val, record) => (
-            <TextArea 
-              rows={2} 
-              value={val} 
-              onChange={(e) => handleValueChange(record.santri_id, 'catatan', e.target.value)} 
-              placeholder="Tuliskan pesan atau catatan..."
-            />
-          )
-        }
-      ];
-    } else if (type === 'kenaikan_kelas') {
-      columns = [
-        ...columns,
-        {
-          title: 'Keputusan Kenaikan Kelas',
-          dataIndex: 'keputusan_kenaikan',
-          render: (val, record) => (
-            <Input 
-              value={val} 
-              onChange={(e) => handleValueChange(record.santri_id, 'keputusan_kenaikan', e.target.value)} 
-              placeholder="Contoh: Naik ke Kelas 2"
-            />
-          )
-        }
-      ];
-    }
-  }
 
   const titles = {
     absensi: 'Input Absensi',
     kepribadian: 'Input Nilai Kepribadian',
     catatan: 'Input Catatan Wali Kelas',
-    kenaikan_kelas: 'Input Keputusan Kenaikan Kelas'
+    kenaikan_kelas: 'Input Kenaikan Kelas'
   };
 
+  if (loading) {
+    return (
+      <div className="rapor-loading-spinner">
+        <div className="spinner"></div>
+        <span>Memuat data form santri...</span>
+      </div>
+    );
+  }
+
+  const kepribadianOptions = [
+    { value: 'A', label: 'A (Sangat Baik)' },
+    { value: 'B', label: 'B (Baik)' },
+    { value: 'C', label: 'C (Cukup)' },
+    { value: 'D', label: 'D (Kurang)' }
+  ];
+
   return (
-    <Card 
-      title={
-        <Space>
-          <UnorderedListOutlined />
-          <span>{titles[type]} - {kelasName}</span>
-        </Space>
-      }
-      extra={
-        <Space>
+    <div className="rapor-form-card frosted-card-rapor">
+      <div className="rapor-form-header">
+        <div className="header-title-box">
+          <FileText size={18} className="header-icon" />
+          <h3 className="header-title">{titles[type]} - {kelasName || ''}</h3>
+        </div>
+        <div className="header-actions">
           {type === 'kenaikan_kelas' && (
-            <Button type="dashed" onClick={handleAutoFillKenaikan} disabled={!data.length}>
-              Isi Otomatis
-            </Button>
+            <button 
+              type="button" 
+              className="btn-custom btn-secondary btn-auto" 
+              onClick={handleAutoFillKenaikan} 
+              disabled={!data.length}
+            >
+              <Sparkles size={14} />
+              <span>Isi Otomatis</span>
+            </button>
           )}
           {type === 'catatan' && (
-            <Button type="dashed" onClick={handleAutoFillCatatan} disabled={!data.length}>
-              Isi Otomatis
-            </Button>
+            <button 
+              type="button" 
+              className="btn-custom btn-secondary btn-auto" 
+              onClick={handleAutoFillCatatan} 
+              disabled={!data.length}
+            >
+              <Sparkles size={14} />
+              <span>Isi Otomatis</span>
+            </button>
           )}
           {type === 'kepribadian' && (
-            <Button type="dashed" onClick={handleAutoFillKepribadian} disabled={!data.length}>
-              Isi Otomatis (Semua B)
-            </Button>
+            <button 
+              type="button" 
+              className="btn-custom btn-secondary btn-auto" 
+              onClick={handleAutoFillKepribadian} 
+              disabled={!data.length}
+            >
+              <Sparkles size={14} />
+              <span>Isi B Semua</span>
+            </button>
           )}
-          <Button type="primary" icon={<SaveOutlined />} onClick={handleSave} loading={saving} disabled={!data.length}>
-            Simpan Data
-          </Button>
-        </Space>
-      }
-    >
-      {type === 'absensi' && data.length > 0 && (
-        <div style={{ 
-          marginBottom: 16, 
-          padding: '12px', 
-          background: '#f5f5f5', 
-          borderRadius: '6px', 
-          display: 'flex', 
-          alignItems: 'center', 
-          gap: '12px', 
-          flexWrap: 'wrap',
-          border: '1px solid #e8e8e8'
-        }}>
-          <span style={{ fontWeight: 'bold', fontSize: '13px', color: '#555' }}>Pilih Bulan Kerja:</span>
-          <Button 
-            size="small" 
-            type={visibleMonths.length === daftarBulan.length ? 'primary' : 'default'}
-            onClick={() => setVisibleMonths(daftarBulan)}
+          <button 
+            type="button" 
+            className="btn-custom btn-primary" 
+            onClick={handleSave} 
+            loading={saving ? 'true' : undefined} 
+            disabled={saving || !data.length}
           >
-            Semua
-          </Button>
-          <Button 
-            size="small" 
-            type={visibleMonths.length === 0 ? 'primary' : 'default'}
-            danger={visibleMonths.length === 0}
-            onClick={() => setVisibleMonths([])}
-          >
-            Sembunyikan Semua
-          </Button>
-          <div style={{ width: '1px', height: '16px', background: '#ccc', margin: '0 4px' }} />
-          <Space size={6} wrap>
-            {daftarBulan.map(bulan => {
-              const isVisible = visibleMonths.includes(bulan);
-              return (
-                <Button
-                  key={bulan}
-                  size="small"
-                  type={isVisible ? 'primary' : 'default'}
-                  ghost={isVisible}
-                  style={{ 
-                    fontWeight: isVisible ? 'bold' : 'normal'
-                  }}
-                  onClick={() => {
-                    if (isVisible) {
-                      setVisibleMonths(prev => prev.filter(m => m !== bulan));
-                    } else {
-                      setVisibleMonths(prev => [...prev, bulan]);
-                    }
-                  }}
-                >
-                  {bulan} {isVisible ? '✓' : ''}
-                </Button>
-              );
-            })}
-          </Space>
+            <Save size={15} />
+            <span>{saving ? 'Menyimpan...' : 'Simpan Data'}</span>
+          </button>
         </div>
-      )}
-      <Table 
-        dataSource={data} 
-        columns={columns} 
-        rowKey="santri_id" 
-        pagination={false} 
-        loading={loading}
-        size="middle" 
-        scroll={type === 'absensi' ? { x: 'max-content' } : undefined}
-      />
-    </Card>
+      </div>
+
+      <div className="rapor-form-body">
+        {type === 'absensi' && data.length > 0 && (
+          <div className="month-toggles-container">
+            <span className="toggle-label">Filter Bulan Kerja:</span>
+            <div className="toggle-group-buttons">
+              <button 
+                type="button" 
+                className={`toggle-btn-small ${visibleMonths.length === daftarBulan.length ? 'active' : ''}`}
+                onClick={() => setVisibleMonths(daftarBulan)}
+              >
+                Tampilkan Semua
+              </button>
+              <button 
+                type="button" 
+                className={`toggle-btn-small danger ${visibleMonths.length === 0 ? 'active' : ''}`}
+                onClick={() => setVisibleMonths([])}
+              >
+                Sembunyikan Semua
+              </button>
+              <div className="divider-vertical"></div>
+              {daftarBulan.map(bulan => {
+                const isVisible = visibleMonths.includes(bulan);
+                return (
+                  <button
+                    key={bulan}
+                    type="button"
+                    className={`toggle-pill-item ${isVisible ? 'selected' : ''}`}
+                    onClick={() => {
+                      if (isVisible) {
+                        setVisibleMonths(prev => prev.filter(m => m !== bulan));
+                      } else {
+                        setVisibleMonths(prev => [...prev, bulan]);
+                      }
+                    }}
+                  >
+                    {bulan} {isVisible && <Check size={11} />}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
+        {data.length === 0 ? (
+          <div className="rapor-empty-state">
+            <AlertCircle size={40} className="empty-icon" />
+            <span>Tidak ada data santri ditemukan. Silakan lengkapi filter di atas.</span>
+          </div>
+        ) : (
+          <div className="table-responsive-rapor">
+            <table className="rapor-custom-table">
+              {type === 'absensi' ? (
+                <>
+                  <thead>
+                    <tr>
+                      <th rowSpan={2} style={{ minWidth: '180px' }}>Nama Santri</th>
+                      {daftarBulan.filter(b => visibleMonths.includes(b)).map(bulan => (
+                        <th colSpan={3} key={bulan} className="bulan-header">{bulan}</th>
+                      ))}
+                      <th colSpan={3} className="total-header">Total Akumulasi</th>
+                    </tr>
+                    <tr>
+                      {daftarBulan.filter(b => visibleMonths.includes(b)).flatMap(bulan => [
+                        <th key={`${bulan}-s`} className="sub-th s-col">S</th>,
+                        <th key={`${bulan}-i`} className="sub-th i-col">I</th>,
+                        <th key={`${bulan}-a`} className="sub-th a-col">A</th>
+                      ])}
+                      <th className="sub-th s-col font-bold">S</th>
+                      <th className="sub-th i-col font-bold">I</th>
+                      <th className="sub-th a-col font-bold">A</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {data.map((record) => (
+                      <tr key={record.santri_id}>
+                        <td className="student-name-cell">{record.nama}</td>
+                        {daftarBulan.filter(b => visibleMonths.includes(b)).flatMap(bulan => {
+                          const valS = record.detail_absensi?.[bulan]?.sakit ?? 0;
+                          const valI = record.detail_absensi?.[bulan]?.izin ?? 0;
+                          const valA = record.detail_absensi?.[bulan]?.alpa ?? 0;
+                          return [
+                            <td key={`${record.santri_id}-${bulan}-s`} className="input-cell text-center">
+                              <input 
+                                type="number" 
+                                className="number-cell-input" 
+                                min={0} 
+                                value={valS} 
+                                onChange={(e) => handleDetailValueChange(record.santri_id, bulan, 'sakit', e.target.value)}
+                              />
+                            </td>,
+                            <td key={`${record.santri_id}-${bulan}-i`} className="input-cell text-center">
+                              <input 
+                                type="number" 
+                                className="number-cell-input" 
+                                min={0} 
+                                value={valI} 
+                                onChange={(e) => handleDetailValueChange(record.santri_id, bulan, 'izin', e.target.value)}
+                              />
+                            </td>,
+                            <td key={`${record.santri_id}-${bulan}-a`} className="input-cell text-center">
+                              <input 
+                                type="number" 
+                                className="number-cell-input" 
+                                min={0} 
+                                value={valA} 
+                                onChange={(e) => handleDetailValueChange(record.santri_id, bulan, 'alpa', e.target.value)}
+                              />
+                            </td>
+                          ];
+                        })}
+                        <td className="total-cell text-center font-bold text-s">{record.sakit}</td>
+                        <td className="total-cell text-center font-bold text-i">{record.izin}</td>
+                        <td className="total-cell text-center font-bold text-a">{record.alpa}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </>
+              ) : (
+                <>
+                  <thead>
+                    <tr>
+                      <th style={{ width: '120px' }}>NIS</th>
+                      <th style={{ minWidth: '200px' }}>Nama Santri</th>
+                      {type === 'kepribadian' && (
+                        <>
+                          <th>Keaktifan</th>
+                          <th>Akhlaq</th>
+                          <th>Kerapihan</th>
+                        </>
+                      )}
+                      {type === 'catatan' && <th>Catatan Pembimbing Wali Kelas</th>}
+                      {type === 'kenaikan_kelas' && <th>Keputusan Kenaikan Kelas</th>}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {data.map((record) => (
+                      <tr key={record.santri_id}>
+                        <td className="student-nis-cell">{record.nis || '-'}</td>
+                        <td className="student-name-cell">{record.nama}</td>
+                        {type === 'kepribadian' && (
+                          <>
+                            <td className="select-cell-rapor">
+                              <CustomSelect
+                                value={record.keaktifan ? String(record.keaktifan) : ''}
+                                onChange={(val) => handleValueChange(record.santri_id, 'keaktifan', val || null)}
+                                options={kepribadianOptions}
+                                placeholder="Pilih Nilai"
+                                allowClear
+                              />
+                            </td>
+                            <td className="select-cell-rapor">
+                              <CustomSelect
+                                value={record.akhlaq ? String(record.akhlaq) : ''}
+                                onChange={(val) => handleValueChange(record.santri_id, 'akhlaq', val || null)}
+                                options={kepribadianOptions}
+                                placeholder="Pilih Nilai"
+                                allowClear
+                              />
+                            </td>
+                            <td className="select-cell-rapor">
+                              <CustomSelect
+                                value={record.kerapihan ? String(record.kerapihan) : ''}
+                                onChange={(val) => handleValueChange(record.santri_id, 'kerapihan', val || null)}
+                                options={kepribadianOptions}
+                                placeholder="Pilih Nilai"
+                                allowClear
+                              />
+                            </td>
+                          </>
+                        )}
+                        {type === 'catatan' && (
+                          <td className="textarea-cell-rapor">
+                            <textarea
+                              rows={2}
+                              className="textarea-input-rapor"
+                              value={record.catatan || ''}
+                              onChange={(e) => handleValueChange(record.santri_id, 'catatan', e.target.value)}
+                              placeholder="Tuliskan catatan motivasi pembimbing..."
+                            />
+                          </td>
+                        )}
+                        {type === 'kenaikan_kelas' && (
+                          <td className="text-cell-rapor">
+                            <input
+                              type="text"
+                              className="text-input-rapor"
+                              value={record.keputusan_kenaikan || ''}
+                              onChange={(e) => handleValueChange(record.santri_id, 'keputusan_kenaikan', e.target.value)}
+                              placeholder="Contoh: Naik ke Kelas 2"
+                            />
+                          </td>
+                        )}
+                      </tr>
+                    ))}
+                  </tbody>
+                </>
+              )}
+            </table>
+          </div>
+        )}
+      </div>
+    </div>
   );
 }
+export default RaporSantriForms;

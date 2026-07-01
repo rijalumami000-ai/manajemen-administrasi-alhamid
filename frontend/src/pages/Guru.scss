@@ -21,58 +21,80 @@
       padding: 16px !important;
     }
 
-    // Modern Tabs Styling
-    .ant-tabs {
-      color: rgba(255, 255, 255, 0.85);
+    // Custom Tabs Styling
+    .custom-tabs-nav {
+      display: flex;
+      gap: $spacing-md;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+      padding-bottom: 0;
+      margin-bottom: 24px;
+      overflow-x: auto;
+      
+      &::-webkit-scrollbar {
+        height: 4px;
+      }
+      &::-webkit-scrollbar-thumb {
+        background: rgba(255, 255, 255, 0.1);
+        border-radius: $radius-full;
+      }
+    }
 
-      .ant-tabs-nav {
-        margin-bottom: 24px;
-        border-bottom: 1px solid rgba(255, 255, 255, 0.06) !important;
+    .custom-tabs-tab {
+      background: none;
+      border: none;
+      color: rgba(255, 255, 255, 0.45);
+      font-weight: 600;
+      font-size: 14px;
+      padding: 12px 16px;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      cursor: pointer;
+      position: relative;
+      transition: all 0.25s ease;
+      white-space: nowrap;
 
-        &::before {
-          border-bottom: none !important;
-        }
+      &:hover {
+        color: #3b82f6;
       }
 
-      .ant-tabs-tab {
-        color: rgba(255, 255, 255, 0.45);
-        font-weight: 600;
-        font-size: 14px;
-        padding: 12px 16px;
-        transition: color 0.25s ease;
-
-        &:hover {
-          color: #3b82f6 !important;
-        }
-
-        &.ant-tabs-tab-active .ant-tabs-tab-btn {
-          color: #3b82f6 !important;
-          text-shadow: 0 0 10px rgba(59, 130, 246, 0.2);
-        }
-
-        .ant-badge {
-          .ant-badge-count {
-            background: rgba(255, 255, 255, 0.06);
-            color: rgba(255, 255, 255, 0.65);
-            border: 1px solid rgba(255, 255, 255, 0.08);
-            box-shadow: none;
-            font-size: 10px;
-            font-weight: 700;
-            margin-left: 4px;
-          }
-        }
-
-        &.ant-tabs-tab-active .ant-badge-count {
-          background: #3b82f6 !important;
-          color: #ffffff !important;
-          border-color: #3b82f6 !important;
-        }
-      }
-
-      .ant-tabs-ink-bar {
-        background: #3b82f6 !important;
-        height: 3px !important;
+      &::after {
+        content: '';
+        position: absolute;
+        bottom: -1px;
+        left: 0;
+        right: 0;
+        height: 3px;
+        background: transparent;
         border-radius: 99px;
+        transition: background-color 0.2s ease;
+      }
+
+      &.active {
+        color: #3b82f6;
+        text-shadow: 0 0 10px rgba(59, 130, 246, 0.2);
+
+        &::after {
+          background: #3b82f6;
+        }
+
+        .tab-badge {
+          background: #3b82f6;
+          color: #ffffff;
+          border-color: #3b82f6;
+        }
+      }
+
+      .tab-badge {
+        background: rgba(255, 255, 255, 0.06);
+        color: rgba(255, 255, 255, 0.65);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        font-size: 10px;
+        font-weight: 700;
+        padding: 2px 7px;
+        border-radius: $radius-full;
+        margin-left: 4px;
+        transition: all 0.25s ease;
       }
     }
 
@@ -82,7 +104,7 @@
       .tab-description {
         color: rgba(255, 255, 255, 0.45);
         margin-bottom: 20px;
-        font-size: 13px;
+        font-size: 13.5px;
         font-weight: 500;
       }
     }
@@ -97,41 +119,36 @@
       border-color: #e2e8f0 !important;
       box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05) !important;
 
-      .ant-tabs {
-        color: #1e293b;
+      .custom-tabs-nav {
+        border-color: #e2e8f0;
+      }
 
-        .ant-tabs-nav {
-          border-color: #e2e8f0 !important;
+      .custom-tabs-tab {
+        color: #64748b;
+
+        &:hover {
+          color: #1d4ed8;
         }
 
-        .ant-tabs-tab {
-          color: #64748b;
+        &.active {
+          color: #1d4ed8;
+          text-shadow: none;
 
-          &:hover {
-            color: #1d4ed8 !important;
+          &::after {
+            background: #1d4ed8;
           }
 
-          &.ant-tabs-tab-active .ant-tabs-tab-btn {
-            color: #1d4ed8 !important;
-          }
-
-          .ant-badge {
-            .ant-badge-count {
-              background: #f1f5f9;
-              color: #475569;
-              border-color: #cbd5e1;
-            }
-          }
-
-          &.ant-tabs-tab-active .ant-badge-count {
-            background: #1d4ed8 !important;
-            color: #ffffff !important;
-            border-color: #1d4ed8 !important;
+          .tab-badge {
+            background: #1d4ed8;
+            color: #ffffff;
+            border-color: #1d4ed8;
           }
         }
 
-        .ant-tabs-ink-bar {
-          background: #1d4ed8 !important;
+        .tab-badge {
+          background: #f1f5f9;
+          color: #475569;
+          border-color: #cbd5e1;
         }
       }
 

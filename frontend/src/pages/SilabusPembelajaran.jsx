@@ -1,22 +1,26 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { 
-  Card, Table, Select, Input, Typography, 
-  message, Button, Alert, Segmented, Row, Col, Space, Popconfirm, Empty
-} from 'antd';
-import { 
-  EditOutlined, SaveOutlined, CloseOutlined, 
-  BookOutlined, PlusOutlined, DeleteOutlined,
-  ArrowUpOutlined, ArrowDownOutlined
-} from '@ant-design/icons';
-import { PageHeader, LoadingState } from '../components/common';
+  ArrowUp, 
+  ArrowDown, 
+  Trash2, 
+  Save, 
+  Edit3, 
+  X, 
+  BookOpen, 
+  Plus, 
+  AlertTriangle 
+} from 'lucide-react';
+import { PageHeader, LoadingState, useToast } from '../components/common';
 import { nilaiService } from '../services/nilaiService';
 import { useAuth } from '../context/AuthContext';
-
-const { Title, Text } = Typography;
-const { TextArea } = Input;
+import { CustomModal } from '../components/ui/CustomModal';
+import { CustomSelect } from '../components/ui/CustomSelect';
+import { SmartAlert } from '../components/ui/SmartAlert';
+import './SilabusPembelajaran.scss';
 
 export function SilabusPembelajaran() {
   const { isAdmin } = useAuth();
+  const toast = useToast();
 
   // Reference lists
   const [tahunAjaranList, setTahunAjaranList] = useState([]);
@@ -35,6 +39,12 @@ export function SilabusPembelajaran() {
   const [loading, setLoading] = useState(true);
   const [dataLoading, setDataLoading] = useState(false);
   const [saveLoading, setSaveLoading] = useState(false);
+
+  // Custom Delete Row Modal State
+  const [deleteConfirm, setDeleteConfirm] = useState({
+    isOpen: false,
+    rowIndex: null
+  });
 
   // Initialize filters
   useEffect(() => {
@@ -82,7 +92,7 @@ export function SilabusPembelajaran() {
         }
       } catch (err) {
         console.error(err);
-        message.error('Gagal memuat filter referensi.');
+        toast.error('Gagal memuat filter referensi.');
       } finally {
         setLoading(false);
       }
@@ -102,7 +112,7 @@ export function SilabusPembelajaran() {
       setEditList(JSON.parse(JSON.stringify(list)));
     } catch (err) {
       console.error(err);
-      message.error('Gagal memuat silabus pembelajaran.');
+      toast.error('Gagal memuat silabus pembelajaran.');
     } finally {
       setDataLoading(false);
     }
@@ -122,11 +132,11 @@ export function SilabusPembelajaran() {
         kelas_id: selectedKelasId,
         data: editList
       });
-      message.success('Silabus pembelajaran berhasil disimpan!');
+      toast.success('Silabus pembelajaran berhasil disimpan!');
       setSilabusList(JSON.parse(JSON.stringify(editList)));
       setIsEditing(false);
     } catch (err) {
-      message.error(err.message || 'Gagal menyimpan silabus.');
+      toast.error(err.message || 'Gagal menyimpan silabus.');
     } finally {
       setSaveLoading(false);
     }
@@ -151,8 +161,19 @@ export function SilabusPembelajaran() {
     }]);
   };
 
-  const handleRemoveRow = (index) => {
-    setEditList(editList.filter((_, i) => i !== index));
+  const handleRemoveRowClick = (index) => {
+    setDeleteConfirm({
+      isOpen: true,
+      rowIndex: index
+    });
+  };
+
+  const handleConfirmRemoveRow = () => {
+    const idx = deleteConfirm.rowIndex;
+    if (idx !== null && idx !== undefined) {
+      setEditList(editList.filter((_, i) => i !== idx));
+    }
+    setDeleteConfirm({ isOpen: false, rowIndex: null });
   };
 
   const moveRow = (index, direction) => {
@@ -166,29 +187,14 @@ export function SilabusPembelajaran() {
   };
 
   const getMonthOptions = () => {
-    if (selectedSemester === 'Ganjil') {
-      return ['Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'].map(m => (
-        <Select.Option key={m} value={m}>{m}</Select.Option>
-      ));
-    } else {
-      return ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni'].map(m => (
-        <Select.Option key={m} value={m}>{m}</Select.Option>
-      ));
-    }
+    const months = selectedSemester === 'Ganjil' 
+      ? ['Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember']
+      : ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni'];
+      
+    return months.map(m => ({ value: m, label: m }));
   };
 
-  if (loading) {
-    return <LoadingState message="Memuat filter referensi..." />;
-  }
-
-  // Row span helper for Bulan column to merge cells nicely like a real doc syllabus table!
-  const getBulanRender = (value, row, index, listToUse) => {
-    const obj = {
-      children: <Text strong style={{ color: '#1e293b' }}>{value}</Text>,
-      props: {},
-    };
-    
-    // Find how many consecutive rows share this month
+  const getBulanSpan = (value, index, listToUse) => {
     let firstOccurrenceIndex = index;
     while (firstOccurrenceIndex > 0 && listToUse[firstOccurrenceIndex - 1].bulan === value) {
       firstOccurrenceIndex--;
@@ -199,379 +205,414 @@ export function SilabusPembelajaran() {
       while (index + spanCount < listToUse.length && listToUse[index + spanCount].bulan === value) {
         spanCount++;
       }
-      obj.props.rowSpan = spanCount;
-    } else {
-      obj.props.rowSpan = 0;
+      return spanCount;
     }
-    return obj;
+    return 0;
   };
 
-  // Same helper for Target Muhafadzoh column (often spans multiple months)
-  const getMuhafadzohRender = (value, row, index, listToUse) => {
-    const obj = {
-      children: <span style={{ whiteSpace: 'pre-wrap', color: '#475569' }}>{value || '-'}</span>,
-      props: {},
-    };
+  const getMuhafadzohSpan = (value, index, listToUse) => {
+    if (!value || value.trim() === '') return 1;
 
     let firstOccurrenceIndex = index;
-    while (firstOccurrenceIndex > 0 && listToUse[firstOccurrenceIndex - 1].target_muhafadzoh === value && value !== '') {
+    while (firstOccurrenceIndex > 0 && listToUse[firstOccurrenceIndex - 1].target_muhafadzoh === value) {
       firstOccurrenceIndex--;
     }
 
-    if (value && value.trim() !== '') {
-      if (index === firstOccurrenceIndex) {
-        let spanCount = 1;
-        while (index + spanCount < listToUse.length && listToUse[index + spanCount].target_muhafadzoh === value) {
-          spanCount++;
-        }
-        obj.props.rowSpan = spanCount;
-      } else {
-        obj.props.rowSpan = 0;
+    if (index === firstOccurrenceIndex) {
+      let spanCount = 1;
+      while (index + spanCount < listToUse.length && listToUse[index + spanCount].target_muhafadzoh === value) {
+        spanCount++;
       }
+      return spanCount;
     }
-    return obj;
+    return 0;
   };
 
+  if (loading) {
+    return <LoadingState message="Memuat filter referensi..." />;
+  }
+
+  const taOptions = tahunAjaranList.map(ta => ({
+    value: String(ta.id),
+    label: `${ta.kode} ${ta.is_active ? '(Aktif)' : ''}`
+  }));
+
+  const classOptions = kelasList.map(k => ({
+    value: String(k.id),
+    label: `${k.nama} (${k.mustahiq_nama || 'Wali belum diset'})`
+  }));
+
+  const pengajarOptions = [
+    { value: 'Mustahiq', label: 'Mustahiq' },
+    { value: 'Munawib', label: 'Munawib' }
+  ];
+
   return (
-    <div style={{ padding: '24px' }}>
+    <div className="silabus-page">
       <PageHeader
-        title="Silabus Pembelajaran"
+        title="📚 Silabus Pembelajaran"
         subtitle="Kelola target materi, pencapaian, ketentuan, serta muhafadzoh Madrasah Diniyyah"
       />
 
       {/* Filters Card */}
-      <Card style={{ marginBottom: 20, borderRadius: '12px', boxShadow: '0 2px 8px rgba(0,0,0,0.05)' }}>
-        <Row gutter={[16, 16]} align="middle">
-          <Col xs={24} sm={8} md={6}>
-            <div style={{ marginBottom: 4 }}><Text strong>Tahun Ajaran</Text></div>
-            <Select
-              style={{ width: '100%' }}
-              value={selectedTahunId}
-              onChange={setSelectedTahunId}
-              placeholder="Pilih Tahun Ajaran"
-            >
-              {tahunAjaranList.map(ta => (
-                <Select.Option key={ta.id} value={ta.id}>
-                  {ta.kode} {ta.is_active && '(Aktif)'}
-                </Select.Option>
-              ))}
-            </Select>
-          </Col>
+      <div className="filters-card">
+        <div className="filter-group">
+          <label className="filter-label">Tahun Ajaran</label>
+          <CustomSelect
+            value={selectedTahunId ? String(selectedTahunId) : ''}
+            onChange={(val) => setSelectedTahunId(val ? Number(val) : null)}
+            options={taOptions}
+            placeholder="Pilih Tahun Ajaran"
+          />
+        </div>
 
-          <Col xs={24} sm={8} md={6}>
-            <div style={{ marginBottom: 4 }}><Text strong>Semester</Text></div>
-            <Segmented
-              block
-              value={selectedSemester}
-              onChange={setSelectedSemester}
-              options={['Ganjil', 'Genap']}
-            />
-          </Col>
-
-          <Col xs={24} sm={8} md={8}>
-            <div style={{ marginBottom: 4 }}><Text strong>Kelas Diniyyah</Text></div>
-            <Select
-              style={{ width: '100%' }}
-              value={selectedKelasId}
-              onChange={setSelectedKelasId}
-              placeholder="Pilih Kelas"
+        <div className="filter-group">
+          <label className="filter-label">Semester</label>
+          <div className="custom-segmented-control">
+            <button
+              type="button"
+              className={`segmented-btn ${selectedSemester === 'Ganjil' ? 'active' : ''}`}
+              onClick={() => setSelectedSemester('Ganjil')}
             >
-              {kelasList.map(k => (
-                <Select.Option key={k.id} value={k.id}>
-                  {k.nama} ({k.mustahiq_nama || 'Wali belum diset'})
-                </Select.Option>
-              ))}
-            </Select>
-          </Col>
-        </Row>
-      </Card>
+              Ganjil
+            </button>
+            <button
+              type="button"
+              className={`segmented-btn ${selectedSemester === 'Genap' ? 'active' : ''}`}
+              onClick={() => setSelectedSemester('Genap')}
+            >
+              Genap
+            </button>
+          </div>
+        </div>
+
+        <div className="filter-group class-filter">
+          <label className="filter-label">Kelas Diniyah</label>
+          <CustomSelect
+            value={selectedKelasId ? String(selectedKelasId) : ''}
+            onChange={(val) => setSelectedKelasId(val ? Number(val) : null)}
+            options={classOptions}
+            placeholder="Pilih Kelas"
+          />
+        </div>
+      </div>
 
       {/* Main Table Card */}
-      <Card
-        title={
-          <Space>
-            <BookOpenOutlined style={{ color: '#10b981' }} />
-            <span>Silabus Pembelajaran Kelas Diniyah</span>
-          </Space>
-        }
-        extra={
-          isAdmin && (
-            isEditing ? (
-              <Space>
-                <Button
-                  icon={<CloseOutlined />}
-                  onClick={() => {
-                    setEditList(JSON.parse(JSON.stringify(silabusList)));
-                    setIsEditing(false);
-                  }}
-                  disabled={saveLoading}
-                >
-                  Batal
-                </Button>
-                <Button
-                  type="primary"
-                  icon={<SaveOutlined />}
-                  onClick={handleSave}
-                  loading={saveLoading}
-                  style={{ backgroundColor: '#10b981', borderColor: '#10b981' }}
-                >
-                  Simpan Silabus
-                </Button>
-              </Space>
-            ) : (
-              <Button
-                type="primary"
-                icon={<EditOutlined />}
-                onClick={() => setIsEditing(true)}
-              >
-                Ubah Silabus
-              </Button>
-            )
-          )
-        }
-        loading={dataLoading}
-        style={{ borderRadius: '12px', boxShadow: '0 4px 12px rgba(0,0,0,0.05)' }}
-      >
-        <Alert
-          message="Silabus Pembelajaran Madrasah Diniyyah Al-Hamid"
-          description="Syllabus ini mengatur pembagian materi ajar bulanan beserta target pencapaian & muhafadzoh di masing-masing kelas Diniyah."
-          type="info"
-          showIcon
-          style={{ marginBottom: 16, borderRadius: '8px' }}
-        />
-
-        {isEditing ? (
-          <div>
-            <Table
-              dataSource={editList.map((row, i) => ({ ...row, key: i }))}
-              pagination={false}
-              size="middle"
-              bordered
-              columns={[
-                {
-                  title: 'Bulan',
-                  dataIndex: 'bulan',
-                  width: 120,
-                  render: (text, record, idx) => (
-                    <Select
-                      style={{ width: '100%' }}
-                      value={text}
-                      onChange={val => handleRowChange(idx, 'bulan', val)}
-                    >
-                      {getMonthOptions()}
-                    </Select>
-                  )
-                },
-                {
-                  title: 'Pelajaran',
-                  dataIndex: 'pelajaran',
-                  width: 150,
-                  render: (text, record, idx) => (
-                    <Input 
-                      placeholder="Nama Pelajaran" 
-                      value={text} 
-                      onChange={e => handleRowChange(idx, 'pelajaran', e.target.value)} 
-                    />
-                  )
-                },
-                {
-                  title: 'Pengajar',
-                  dataIndex: 'pengajar',
-                  width: 110,
-                  render: (text, record, idx) => (
-                    <Select
-                      style={{ width: '100%' }}
-                      value={text}
-                      onChange={val => handleRowChange(idx, 'pengajar', val)}
-                    >
-                      <Select.Option value="Mustahiq">Mustahiq</Select.Option>
-                      <Select.Option value="Munawib">Munawib</Select.Option>
-                    </Select>
-                  )
-                },
-                {
-                  title: 'Ketentuan',
-                  dataIndex: 'ketentuan',
-                  render: (text, record, idx) => (
-                    <TextArea 
-                      placeholder="Ketentuan / Instruksi" 
-                      rows={2}
-                      value={text} 
-                      onChange={e => handleRowChange(idx, 'ketentuan', e.target.value)} 
-                    />
-                  )
-                },
-                {
-                  title: 'Target Materi',
-                  dataIndex: 'target_materi',
-                  render: (text, record, idx) => (
-                    <TextArea 
-                      placeholder="Bab / Halaman" 
-                      rows={2}
-                      value={text} 
-                      onChange={e => handleRowChange(idx, 'target_materi', e.target.value)} 
-                    />
-                  )
-                },
-                {
-                  title: 'Target Pencapaian',
-                  dataIndex: 'target_pencapaian',
-                  render: (text, record, idx) => (
-                    <TextArea 
-                      placeholder="Kriteria Kelulusan" 
-                      rows={2}
-                      value={text} 
-                      onChange={e => handleRowChange(idx, 'target_pencapaian', e.target.value)} 
-                    />
-                  )
-                },
-                {
-                  title: 'Target Muhafadzoh',
-                  dataIndex: 'target_muhafadzoh',
-                  render: (text, record, idx) => (
-                    <TextArea 
-                      placeholder="Target Hafalan" 
-                      rows={2}
-                      value={text} 
-                      onChange={e => handleRowChange(idx, 'target_muhafadzoh', e.target.value)} 
-                    />
-                  )
-                },
-                {
-                  title: 'Aksi',
-                  key: 'aksi',
-                  width: 100,
-                  align: 'center',
-                  render: (_, record, idx) => (
-                    <Space size="middle">
-                      <Button
-                        type="text"
-                        icon={<ArrowUpOutlined />}
-                        disabled={idx === 0}
-                        onClick={() => moveRow(idx, 'up')}
-                      />
-                      <Button
-                        type="text"
-                        icon={<ArrowDownOutlined />}
-                        disabled={idx === editList.length - 1}
-                        onClick={() => moveRow(idx, 'down')}
-                      />
-                      <Popconfirm
-                        title="Hapus baris ini?"
-                        onConfirm={() => handleRemoveRow(idx)}
-                        okText="Ya"
-                        cancelText="Batal"
-                      >
-                        <Button type="text" danger icon={<DeleteOutlined />} />
-                      </Popconfirm>
-                    </Space>
-                  )
-                }
-              ]}
-            />
-            <Button
-              type="dashed"
-              icon={<PlusOutlined />}
-              onClick={handleAddRow}
-              block
-              style={{ marginTop: 12 }}
-            >
-              Tambah Baris Silabus
-            </Button>
+      <div className="silabus-card-container">
+        <div className="silabus-card-header">
+          <div className="header-left">
+            <BookOpen className="header-icon" />
+            <h2 className="header-title">Silabus Pembelajaran Kelas Diniyah</h2>
           </div>
-        ) : silabusList.length > 0 ? (
-          <Table
-            dataSource={silabusList.map((row, i) => ({ ...row, key: i }))}
-            pagination={false}
-            size="middle"
-            bordered
-            rowKey="key"
-            columns={[
-              {
-                title: 'Bulan',
-                dataIndex: 'bulan',
-                width: 100,
-                align: 'center',
-                render: (val, row, idx) => getBulanRender(val, row, idx, silabusList)
-              },
-              {
-                title: 'Pelajaran',
-                dataIndex: 'pelajaran',
-                width: 140,
-                render: (text) => <Text strong style={{ color: '#0f172a' }}>{text || '-'}</Text>
-              },
-              {
-                title: 'Pengajar',
-                dataIndex: 'pengajar',
-                width: 100,
-                align: 'center',
-                render: (text) => (
-                  <span style={{ 
-                    padding: '3px 8px', 
-                    borderRadius: '6px', 
-                    fontSize: '11px',
-                    fontWeight: 'bold',
-                    backgroundColor: text === 'Mustahiq' ? '#eff6ff' : '#ecfdf5',
-                    color: text === 'Mustahiq' ? '#1e40af' : '#047857'
-                  }}>
-                    {text}
-                  </span>
-                )
-              },
-              {
-                title: 'Ketentuan',
-                dataIndex: 'ketentuan',
-                render: (text) => (
-                  <ul style={{ paddingLeft: '16px', margin: 0, fontSize: '12px', color: '#334155' }}>
-                    {(text || '').split('\n').filter(Boolean).map((bullet, idx) => (
-                      <li key={idx}>{bullet}</li>
-                    ))}
-                    {!text && '-'}
-                  </ul>
-                )
-              },
-              {
-                title: 'Target Materi',
-                dataIndex: 'target_materi',
-                render: (text) => <span style={{ whiteSpace: 'pre-wrap', fontSize: '13px', color: '#1e293b', fontWeight: '500' }}>{text || '-'}</span>
-              },
-              {
-                title: 'Target Pencapaian',
-                dataIndex: 'target_pencapaian',
-                render: (text) => <span style={{ whiteSpace: 'pre-wrap', fontSize: '12px', color: '#475569' }}>{text || '-'}</span>
-              },
-              {
-                title: 'Target Muhafadzoh',
-                dataIndex: 'target_muhafadzoh',
-                width: 150,
-                render: (val, row, idx) => getMuhafadzohRender(val, row, idx, silabusList)
-              }
-            ]}
-          />
-        ) : (
-          <Empty
-            description="Belum ada data silabus pembelajaran kelas ini. Silakan klik 'Ubah Silabus' untuk mulai mengisi."
-            image={Empty.PRESENTED_IMAGE_SIMPLE}
-          >
-            {isAdmin && (
-              <Button type="primary" icon={<PlusOutlined />} onClick={() => setIsEditing(true)}>
-                Buat Silabus Baru
-              </Button>
-            )}
-          </Empty>
-        )}
-      </Card>
-    </div>
-  );
-}
+          {isAdmin() && (
+            <div className="header-actions">
+              {isEditing ? (
+                <div style={{ display: 'flex', gap: '10px' }}>
+                  <button
+                    type="button"
+                    className="btn-custom btn-secondary"
+                    onClick={() => {
+                      setEditList(JSON.parse(JSON.stringify(silabusList)));
+                      setIsEditing(false);
+                    }}
+                    disabled={saveLoading}
+                  >
+                    <X size={16} />
+                    <span>Batal</span>
+                  </button>
+                  <button
+                    type="button"
+                    className="btn-custom btn-primary"
+                    onClick={handleSave}
+                    disabled={saveLoading}
+                  >
+                    {saveLoading ? (
+                      <span className="loading-spinner"></span>
+                    ) : (
+                      <span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <Save size={16} /> Simpan Silabus
+                      </span>
+                    )}
+                  </button>
+                </div>
+              ) : (
+                <button
+                  type="button"
+                  className="btn-custom btn-primary"
+                  onClick={() => setIsEditing(true)}
+                  disabled={dataLoading}
+                >
+                  <Edit3 size={16} />
+                  <span>Ubah Silabus</span>
+                </button>
+              )}
+            </div>
+          )}
+        </div>
 
-// Icon for header
-function BookOpenOutlined(props) {
-  return (
-    <span className="anticon" {...props}>
-      <svg fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24" style={{ width: '1em', height: '1em' }}>
-        <path strokeLinecap="round" strokeLinejoin="round" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
-      </svg>
-    </span>
+        <div className="silabus-card-body">
+          <div style={{ marginBottom: '16px' }}>
+            <SmartAlert
+              message="Syllabus ini mengatur pembagian materi ajar bulanan beserta target pencapaian & muhafadzoh di masing-masing kelas Diniyah."
+              type="info"
+            />
+          </div>
+
+          {dataLoading ? (
+            <div className="loading-container">
+              <div className="loading-spinner" style={{ width: '40px', height: '40px', borderWidth: '3px' }}></div>
+              <span style={{ marginTop: '12px', fontSize: '14px', fontWeight: 500, color: 'var(--lt-text-secondary, #64748b)' }}>Memuat data silabus...</span>
+            </div>
+          ) : isEditing ? (
+            <div className="edit-table-wrapper" style={{ overflowX: 'auto', width: '100%' }}>
+              <table className="custom-data-table edit-table" style={{ borderCollapse: 'collapse', width: '100%', minWidth: '1200px' }}>
+                <thead>
+                  <tr>
+                    <th style={{ width: '130px' }}>Bulan</th>
+                    <th style={{ width: '170px' }}>Pelajaran</th>
+                    <th style={{ width: '120px' }}>Pengajar</th>
+                    <th>Ketentuan</th>
+                    <th>Target Materi</th>
+                    <th>Target Pencapaian</th>
+                    <th>Target Muhafadzoh</th>
+                    <th style={{ width: '130px', textAlign: 'center' }}>Aksi</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {editList.map((row, idx) => (
+                    <tr key={idx}>
+                      <td style={{ padding: '6px' }}>
+                        <CustomSelect
+                          value={row.bulan}
+                          onChange={val => handleRowChange(idx, 'bulan', val)}
+                          options={getMonthOptions()}
+                        />
+                      </td>
+                      <td style={{ padding: '6px' }}>
+                        <input 
+                          type="text"
+                          className="table-cell-input"
+                          placeholder="Nama Pelajaran" 
+                          value={row.pelajaran || ''} 
+                          onChange={e => handleRowChange(idx, 'pelajaran', e.target.value)} 
+                        />
+                      </td>
+                      <td style={{ padding: '6px' }}>
+                        <CustomSelect
+                          value={row.pengajar}
+                          onChange={val => handleRowChange(idx, 'pengajar', val)}
+                          options={pengajarOptions}
+                        />
+                      </td>
+                      <td style={{ padding: '6px' }}>
+                        <textarea 
+                          className="table-cell-textarea"
+                          placeholder="Ketentuan / Instruksi" 
+                          rows={2}
+                          value={row.ketentuan || ''} 
+                          onChange={e => handleRowChange(idx, 'ketentuan', e.target.value)} 
+                        />
+                      </td>
+                      <td style={{ padding: '6px' }}>
+                        <textarea 
+                          className="table-cell-textarea"
+                          placeholder="Bab / Halaman" 
+                          rows={2}
+                          value={row.target_materi || ''} 
+                          onChange={e => handleRowChange(idx, 'target_materi', e.target.value)} 
+                        />
+                      </td>
+                      <td style={{ padding: '6px' }}>
+                        <textarea 
+                          className="table-cell-textarea"
+                          placeholder="Kriteria Kelulusan" 
+                          rows={2}
+                          value={row.target_pencapaian || ''} 
+                          onChange={e => handleRowChange(idx, 'target_pencapaian', e.target.value)} 
+                        />
+                      </td>
+                      <td style={{ padding: '6px' }}>
+                        <textarea 
+                          className="table-cell-textarea"
+                          placeholder="Target Hafalan" 
+                          rows={2}
+                          value={row.target_muhafadzoh || ''} 
+                          onChange={e => handleRowChange(idx, 'target_muhafadzoh', e.target.value)} 
+                        />
+                      </td>
+                      <td>
+                        <div style={{ display: 'flex', gap: '4px', justifyContent: 'center' }}>
+                          <button
+                            type="button"
+                            className="action-icon-btn edit-btn"
+                            disabled={idx === 0}
+                            onClick={() => moveRow(idx, 'up')}
+                            title="Pindahkan Keatas"
+                          >
+                            <ArrowUp size={13} />
+                          </button>
+                          <button
+                            type="button"
+                            className="action-icon-btn edit-btn"
+                            disabled={idx === editList.length - 1}
+                            onClick={() => moveRow(idx, 'down')}
+                            title="Pindahkan Kebawah"
+                          >
+                            <ArrowDown size={13} />
+                          </button>
+                          <button
+                            type="button"
+                            className="action-icon-btn delete-btn"
+                            onClick={() => handleRemoveRowClick(idx)}
+                            title="Hapus Baris"
+                          >
+                            <Trash2 size={13} />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+
+              <button
+                type="button"
+                className="add-row-dashed-btn"
+                onClick={handleAddRow}
+                style={{ marginTop: '12px', width: '100%', padding: '10px', borderRadius: '10px', border: '2px dashed rgba(226,232,240,0.8)', background: 'transparent', cursor: 'pointer', fontSize: '13px', fontWeight: 600, color: 'var(--lt-text-secondary, #64748b)', transition: 'all 0.2s', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}
+                onMouseOver={e => { e.currentTarget.style.borderColor = '#3b82f6'; e.currentTarget.style.color = '#3b82f6'; }}
+                onMouseOut={e => { e.currentTarget.style.borderColor = 'rgba(226,232,240,0.8)'; e.currentTarget.style.color = 'var(--lt-text-secondary, #64748b)'; }}
+              >
+                <Plus size={14} />
+                <span>Tambah Baris Silabus</span>
+              </button>
+            </div>
+          ) : silabusList.length > 0 ? (
+            <div className="read-table-wrapper" style={{ overflowX: 'auto', width: '100%' }}>
+              <table className="custom-data-table read-table" style={{ borderCollapse: 'collapse', width: '100%', minWidth: '1100px' }}>
+                <thead>
+                  <tr>
+                    <th style={{ width: '110px', textAlign: 'center' }}>Bulan</th>
+                    <th style={{ width: '160px' }}>Pelajaran</th>
+                    <th style={{ width: '110px', textAlign: 'center' }}>Pengajar</th>
+                    <th>Ketentuan</th>
+                    <th>Target Materi</th>
+                    <th>Target Pencapaian</th>
+                    <th style={{ width: '160px' }}>Target Muhafadzoh</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {silabusList.map((row, idx) => {
+                    const bulanSpan = getBulanSpan(row.bulan, idx, silabusList);
+                    const muhafadzohSpan = getMuhafadzohSpan(row.target_muhafadzoh, idx, silabusList);
+
+                    return (
+                      <tr key={idx}>
+                        {bulanSpan !== 0 && (
+                          <td 
+                            rowSpan={bulanSpan} 
+                            className="matrix-malam-label-cell" 
+                            style={{ verticalAlign: 'middle', textAlign: 'center', fontWeight: 'bold', background: 'var(--lt-bg-secondary, rgba(20,24,33,0.01))' }}
+                          >
+                            <span className="matrix-malam-label" style={{ fontSize: '14px', color: 'var(--lt-text-primary, #1e293b)' }}>{row.bulan}</span>
+                          </td>
+                        )}
+                        <td style={{ fontWeight: 600, color: 'var(--lt-text-primary, #0f172a)' }}>
+                          {row.pelajaran || '-'}
+                        </td>
+                        <td style={{ textAlign: 'center' }}>
+                          <span className={`status-pill ${row.pengajar === 'Mustahiq' ? 'success' : 'warning'}`} style={{ display: 'inline-block', minWidth: '76px', textAlign: 'center' }}>
+                            {row.pengajar}
+                          </span>
+                        </td>
+                        <td>
+                          <ul style={{ paddingLeft: '16px', margin: 0, fontSize: '12.5px', color: 'var(--lt-text-secondary, #334155)', lineHeight: 1.5 }}>
+                            {(row.ketentuan || '').split('\n').filter(Boolean).map((bullet, bIdx) => (
+                              <li key={bIdx}>{bullet}</li>
+                            ))}
+                            {!row.ketentuan && <span>-</span>}
+                          </ul>
+                        </td>
+                        <td style={{ fontSize: '13px', color: 'var(--lt-text-primary, #1e293b)', fontWeight: '500', whiteSpace: 'pre-wrap' }}>
+                          {row.target_materi || '-'}
+                        </td>
+                        <td style={{ fontSize: '12.5px', color: 'var(--lt-text-secondary, #475569)', whiteSpace: 'pre-wrap' }}>
+                          {row.target_pencapaian || '-'}
+                        </td>
+                        {muhafadzohSpan !== 0 && (
+                          <td 
+                            rowSpan={muhafadzohSpan} 
+                            style={{ verticalAlign: 'middle', whiteSpace: 'pre-wrap', fontSize: '12.5px', color: 'var(--lt-text-secondary, #475569)' }}
+                          >
+                            {row.target_muhafadzoh || '-'}
+                          </td>
+                        )}
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          ) : (
+            <div className="empty-state-container" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '40px 20px', textAlign: 'center' }}>
+              <div style={{ color: 'var(--lt-text-tertiary, #94a3b8)', marginBottom: '12px' }}>
+                <BookOpen size={48} style={{ opacity: 0.5 }} />
+              </div>
+              <p style={{ margin: '0 0 16px 0', fontSize: '14px', fontWeight: 500, color: 'var(--lt-text-secondary, #64748b)' }}>
+                Belum ada data silabus pembelajaran kelas ini. Silakan klik 'Ubah Silabus' untuk mulai mengisi.
+              </p>
+              {isAdmin() && (
+                <button
+                  type="button"
+                  className="btn-custom btn-primary"
+                  onClick={() => setIsEditing(true)}
+                >
+                  <Plus size={16} />
+                  <span>Buat Silabus Baru</span>
+                </button>
+              )}
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Delete Draft Row Confirmation Modal */}
+      <CustomModal
+        open={deleteConfirm.isOpen}
+        onClose={() => setDeleteConfirm({ isOpen: false, rowIndex: null })}
+        title="Hapus Baris Silabus"
+        subtitle="Konfirmasi Penghapusan Draft"
+        icon={<AlertTriangle color="#ef4444" />}
+        width={400}
+        destroyOnClose
+        footer={
+          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px', width: '100%' }}>
+            <button
+              type="button"
+              className="btn-custom btn-secondary"
+              onClick={() => setDeleteConfirm({ isOpen: false, rowIndex: null })}
+            >
+              Batal
+            </button>
+            <button
+              type="button"
+              className="btn-custom btn-danger"
+              onClick={handleConfirmRemoveRow}
+            >
+              Ya, Hapus
+            </button>
+          </div>
+        }
+      >
+        <div style={{ padding: '4px 0' }}>
+          <p style={{ margin: 0, color: 'var(--lt-text-primary, #0f172a)', fontSize: '14px', fontWeight: 500 }}>
+            Apakah Anda yakin ingin menghapus baris silabus ini dari draft?
+          </p>
+          <p style={{ marginTop: '10px', marginBottom: 0, color: 'var(--lt-text-secondary, #64748b)', fontSize: '13px', lineHeight: 1.5 }}>
+            Tindakan ini hanya akan menghapus secara lokal pada draft editor dan tidak akan disimpan secara permanen hingga Anda mengklik "Simpan Silabus".
+          </p>
+        </div>
+      </CustomModal>
+    </div>
   );
 }

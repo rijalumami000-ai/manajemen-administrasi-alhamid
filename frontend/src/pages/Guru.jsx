@@ -1,6 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
-import { Tabs, Button, Badge, message as antMessage } from 'antd';
-import { PlusOutlined, UserOutlined, BookOutlined, IdcardOutlined } from '@ant-design/icons';
+import { Plus, User, BookOpen, Briefcase, Award, AlertTriangle } from 'lucide-react';
 import { guruService } from '../services/guruService';
 import { GuruTable } from '../components/features/GuruTable';
 import { GuruFilters } from '../components/features/GuruFilters';
@@ -9,13 +8,16 @@ import { MasterList } from '../components/features/MasterList';
 import { MasterModal } from '../components/features/MasterModal';
 import { GuruTtdModal } from '../components/features/GuruTtdModal';
 import { GuruFotoModal } from '../components/features/GuruFotoModal';
-import { PageHeader, LoadingState, ErrorState } from '../components/common';
+import { PageHeader, LoadingState, ErrorState, useToast } from '../components/common';
+import { CustomModal } from '../components/ui/CustomModal';
 import { usePagination } from '../hooks/usePagination';
 import './Guru.scss';
 
 const PAGE_SIZE = 10;
 
 export function Guru() {
+  const toast = useToast();
+
   // State
   const [guruList, setGuruList] = useState([]);
   const [mataPelajaranList, setMataPelajaranList] = useState([]);
@@ -53,6 +55,14 @@ export function Guru() {
   // Loading & Error
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+
+  // Custom Delete Confirm Modal State
+  const [deleteConfirm, setDeleteConfirm] = useState({
+    isOpen: false,
+    type: '', // 'guru', 'mapel', 'jabatan'
+    id: null,
+    nama: ''
+  });
 
   // Load initial data
   useEffect(() => {
@@ -171,16 +181,13 @@ export function Guru() {
     setIsFotoModalOpen(true);
   };
 
-  const handleDeleteGuruClick = async (id) => {
-    if (!confirm('Hapus data guru ini?')) return;
-
-    try {
-      await guruService.deleteGuru(id);
-      antMessage.success('Data guru berhasil dihapus');
-      await loadGuru();
-    } catch (err) {
-      antMessage.error(err.message || 'Gagal menghapus guru');
-    }
+  const handleDeleteGuruClick = (id, nama) => {
+    setDeleteConfirm({
+      isOpen: true,
+      type: 'guru',
+      id,
+      nama
+    });
   };
 
   const handleGuruSubmit = async (data) => {
@@ -190,10 +197,10 @@ export function Guru() {
     try {
       if (editingGuru) {
         await guruService.updateGuru(editingGuru.id, data);
-        antMessage.success('Data guru berhasil diperbarui');
+        toast.success('Data guru berhasil diperbarui');
       } else {
         await guruService.createGuru(data);
-        antMessage.success('Data guru berhasil disimpan');
+        toast.success('Data guru berhasil disimpan');
       }
 
       setIsGuruModalOpen(false);
@@ -218,17 +225,13 @@ export function Guru() {
     setIsMapelModalOpen(true);
   };
 
-  const handleDeleteMapelClick = async (id) => {
-    if (!confirm('Hapus mata pelajaran ini?')) return;
-
-    try {
-      await guruService.deleteMataPelajaran(id);
-      antMessage.success('Mata pelajaran berhasil dihapus');
-      await loadMasterData();
-      await loadGuru();
-    } catch (err) {
-      antMessage.error(err.message || 'Gagal menghapus mata pelajaran');
-    }
+  const handleDeleteMapelClick = (id, nama) => {
+    setDeleteConfirm({
+      isOpen: true,
+      type: 'mapel',
+      id,
+      nama
+    });
   };
 
   const handleMapelSubmit = async (data) => {
@@ -238,10 +241,10 @@ export function Guru() {
     try {
       if (editingMapel) {
         await guruService.updateMataPelajaran(editingMapel.id, data);
-        antMessage.success('Mata pelajaran berhasil diperbarui');
+        toast.success('Mata pelajaran berhasil diperbarui');
       } else {
         await guruService.createMataPelajaran(data);
-        antMessage.success('Mata pelajaran berhasil disimpan');
+        toast.success('Mata pelajaran berhasil disimpan');
       }
 
       setIsMapelModalOpen(false);
@@ -267,17 +270,13 @@ export function Guru() {
     setIsJabatanModalOpen(true);
   };
 
-  const handleDeleteJabatanClick = async (id) => {
-    if (!confirm('Hapus jabatan ini?')) return;
-
-    try {
-      await guruService.deleteJabatan(id);
-      antMessage.success('Jabatan berhasil dihapus');
-      await loadMasterData();
-      await loadGuru();
-    } catch (err) {
-      antMessage.error(err.message || 'Gagal menghapus jabatan');
-    }
+  const handleDeleteJabatanClick = (id, nama) => {
+    setDeleteConfirm({
+      isOpen: true,
+      type: 'jabatan',
+      id,
+      nama
+    });
   };
 
   const handleJabatanSubmit = async (data) => {
@@ -287,10 +286,10 @@ export function Guru() {
     try {
       if (editingJabatan) {
         await guruService.updateJabatan(editingJabatan.id, data);
-        antMessage.success('Jabatan berhasil diperbarui');
+        toast.success('Jabatan berhasil diperbarui');
       } else {
         await guruService.createJabatan(data);
-        antMessage.success('Jabatan berhasil disimpan');
+        toast.success('Jabatan berhasil disimpan');
       }
 
       setIsJabatanModalOpen(false);
@@ -300,6 +299,33 @@ export function Guru() {
       setJabatanModalError(err.message || 'Gagal menyimpan data');
     } finally {
       setIsSubmitting(false);
+    }
+  };
+
+  // Global Delete Executer
+  const handleConfirmDelete = async () => {
+    const { type, id } = deleteConfirm;
+    if (!id) return;
+
+    try {
+      if (type === 'guru') {
+        await guruService.deleteGuru(id);
+        toast.success('Data guru berhasil dihapus');
+        await loadGuru();
+      } else if (type === 'mapel') {
+        await guruService.deleteMataPelajaran(id);
+        toast.success('Mata pelajaran berhasil dihapus');
+        await loadMasterData();
+        await loadGuru();
+      } else if (type === 'jabatan') {
+        await guruService.deleteJabatan(id);
+        toast.success('Jabatan berhasil dihapus');
+        await loadMasterData();
+        await loadGuru();
+      }
+      setDeleteConfirm({ isOpen: false, type: '', id: null, nama: '' });
+    } catch (err) {
+      toast.error(err.message || 'Gagal menghapus data');
     }
   };
 
@@ -316,142 +342,173 @@ export function Guru() {
     );
   }
 
-  const tabItems = [
-    {
-      key: 'guru',
-      label: (
-        <span>
-          <UserOutlined /> Guru <Badge count={guruList.length} showZero />
-        </span>
-      ),
-      children: (
-        <div className="guru-tab-content">
-          <GuruFilters
-            searchValue={searchKeyword}
-            onSearchChange={setSearchKeyword}
-            jabatanValue={filterJabatan}
-            onJabatanChange={setFilterJabatan}
-            mapelValue={filterMapel}
-            onMapelChange={setFilterMapel}
-            statusValue={filterStatus}
-            onStatusChange={setFilterStatus}
-            jabatanOptions={jabatanOptions}
-            mapelOptions={mapelOptions}
-            statusOptions={statusOptions}
-          />
-
-          <GuruTable
-            data={paginatedItems}
-            total={filteredGuru.length}
-            currentPage={currentPage}
-            pageSize={PAGE_SIZE}
-            onPageChange={goToPage}
-            onEdit={handleEditGuruClick}
-            onDelete={handleDeleteGuruClick}
-            onUploadTtd={handleUploadTtdClick}
-            onUploadFoto={handleUploadFotoClick}
-          />
-        </div>
-      )
-    },
-    {
-      key: 'mata-pelajaran',
-      label: (
-        <span>
-          <BookOutlined /> Mata Pelajaran <Badge count={mataPelajaranList.length} showZero />
-        </span>
-      ),
-      children: (
-        <div className="guru-tab-content">
-          <p className="tab-description">
-            Daftar mata pelajaran yang tersedia untuk ditugaskan ke guru.
-          </p>
-          <MasterList
-            items={mataPelajaranList}
-            emptyLabel="Tambahkan mata pelajaran pertama dari tombol di atas."
-            onEdit={handleEditMapelClick}
-            onDelete={handleDeleteMapelClick}
-            type="mapel"
-          />
-        </div>
-      )
-    },
-    {
-      key: 'jabatan',
-      label: (
-        <span>
-          <IdcardOutlined /> Jabatan <Badge count={jabatanList.length} showZero />
-        </span>
-      ),
-      children: (
-        <div className="guru-tab-content">
-          <p className="tab-description">
-            Daftar jabatan yang tersedia untuk ditugaskan ke guru.
-          </p>
-          <MasterList
-            items={jabatanList}
-            emptyLabel="Tambahkan jabatan pertama dari tombol di atas."
-            onEdit={handleEditJabatanClick}
-            onDelete={handleDeleteJabatanClick}
-            type="jabatan"
-          />
-        </div>
-      )
-    }
-  ];
-
   const getTabButton = () => {
     switch (activeTab) {
       case 'guru':
         return (
-          <Button
-            type="primary"
-            icon={<PlusOutlined />}
+          <button
+            type="button"
+            className="btn-custom btn-primary"
             onClick={handleAddGuruClick}
           >
-            Tambah Guru
-          </Button>
+            <Plus size={18} />
+            <span>Tambah Guru</span>
+          </button>
         );
       case 'mata-pelajaran':
         return (
-          <Button
-            type="primary"
-            icon={<PlusOutlined />}
+          <button
+            type="button"
+            className="btn-custom btn-primary"
             onClick={handleAddMapelClick}
           >
-            Tambah Mata Pelajaran
-          </Button>
+            <Plus size={18} />
+            <span>Tambah Mata Pelajaran</span>
+          </button>
         );
       case 'jabatan':
         return (
-          <Button
-            type="primary"
-            icon={<PlusOutlined />}
+          <button
+            type="button"
+            className="btn-custom btn-primary"
             onClick={handleAddJabatanClick}
           >
-            Tambah Jabatan
-          </Button>
+            <Plus size={18} />
+            <span>Tambah Jabatan</span>
+          </button>
         );
       default:
         return null;
     }
   };
 
+  const getDeleteConfirmDetails = () => {
+    switch (deleteConfirm.type) {
+      case 'guru':
+        return {
+          title: 'Hapus Guru',
+          text: `Apakah Anda yakin ingin menghapus data guru ${deleteConfirm.nama}? Semua data jadwal mengajar dan profil terkait akan ikut terhapus.`
+        };
+      case 'mapel':
+        return {
+          title: 'Hapus Mata Pelajaran',
+          text: `Apakah Anda yakin ingin menghapus mata pelajaran ${deleteConfirm.nama}? Tindakan ini dapat mempengaruhi data penugasan kelas/rapor.`
+        };
+      case 'jabatan':
+        return {
+          title: 'Hapus Jabatan',
+          text: `Apakah Anda yakin ingin menghapus jabatan ${deleteConfirm.nama}? Tindakan ini dapat mempengaruhi data organisasi sekolah.`
+        };
+      default:
+        return { title: 'Hapus Data', text: 'Apakah Anda yakin ingin menghapus data ini?' };
+    }
+  };
+
+  const deleteDetails = getDeleteConfirmDetails();
+
   return (
     <div className="guru-page">
       <PageHeader
-        title="Manajemen Data Guru"
-        subtitle="Kelola data guru, mata pelajaran, dan jabatan dari satu tempat"
+        title="📚 Manajemen Data Guru"
+        subtitle="Kelola data ustadz/ustadzah, mata pelajaran, dan jabatan struktural"
         extra={getTabButton()}
       />
 
       <div className="guru-content">
-        <Tabs
-          activeKey={activeTab}
-          onChange={setActiveTab}
-          items={tabItems}
-          size="large"
-        />
+        {/* Custom Tabs Navigation */}
+        <div className="custom-tabs-container">
+          <div className="custom-tabs-nav">
+            <button 
+              type="button"
+              className={`custom-tabs-tab ${activeTab === 'guru' ? 'active' : ''}`}
+              onClick={() => setActiveTab('guru')}
+            >
+              <User size={16} />
+              <span>Data Guru</span>
+              <span className="tab-badge">{guruList.length}</span>
+            </button>
+            <button 
+              type="button"
+              className={`custom-tabs-tab ${activeTab === 'mata-pelajaran' ? 'active' : ''}`}
+              onClick={() => setActiveTab('mata-pelajaran')}
+            >
+              <BookOpen size={16} />
+              <span>Mata Pelajaran</span>
+              <span className="tab-badge">{mataPelajaranList.length}</span>
+            </button>
+            <button 
+              type="button"
+              className={`custom-tabs-tab ${activeTab === 'jabatan' ? 'active' : ''}`}
+              onClick={() => setActiveTab('jabatan')}
+            >
+              <Briefcase size={16} />
+              <span>Jabatan</span>
+              <span className="tab-badge">{jabatanList.length}</span>
+            </button>
+          </div>
+
+          <div className="custom-tabs-content" style={{ marginTop: '20px' }}>
+            {activeTab === 'guru' && (
+              <div className="guru-tab-content">
+                <GuruFilters
+                  searchValue={searchKeyword}
+                  onSearchChange={setSearchKeyword}
+                  jabatanValue={filterJabatan}
+                  onJabatanChange={setFilterJabatan}
+                  mapelValue={filterMapel}
+                  onMapelChange={setFilterMapel}
+                  statusValue={filterStatus}
+                  onStatusChange={setFilterStatus}
+                  jabatanOptions={jabatanOptions}
+                  mapelOptions={mapelOptions}
+                  statusOptions={statusOptions}
+                />
+
+                <GuruTable
+                  data={paginatedItems}
+                  total={filteredGuru.length}
+                  currentPage={currentPage}
+                  pageSize={PAGE_SIZE}
+                  onPageChange={goToPage}
+                  onEdit={handleEditGuruClick}
+                  onDelete={handleDeleteGuruClick}
+                  onUploadTtd={handleUploadTtdClick}
+                  onUploadFoto={handleUploadFotoClick}
+                />
+              </div>
+            )}
+
+            {activeTab === 'mata-pelajaran' && (
+              <div className="guru-tab-content animate-fade-in">
+                <p className="tab-description">
+                  Daftar mata pelajaran yang tersedia untuk ditugaskan ke ustadz/ustadzah.
+                </p>
+                <MasterList
+                  items={mataPelajaranList}
+                  emptyLabel="Tambahkan mata pelajaran pertama dari tombol di atas."
+                  onEdit={handleEditMapelClick}
+                  onDelete={handleDeleteMapelClick}
+                  type="mapel"
+                />
+              </div>
+            )}
+
+            {activeTab === 'jabatan' && (
+              <div className="guru-tab-content animate-fade-in">
+                <p className="tab-description">
+                  Daftar jabatan struktural yang tersedia untuk ditugaskan ke ustadz/ustadzah.
+                </p>
+                <MasterList
+                  items={jabatanList}
+                  emptyLabel="Tambahkan jabatan pertama dari tombol di atas."
+                  onEdit={handleEditJabatanClick}
+                  onDelete={handleDeleteJabatanClick}
+                  type="jabatan"
+                />
+              </div>
+            )}
+          </div>
+        </div>
       </div>
 
       {/* Modals */}
@@ -502,6 +559,44 @@ export function Guru() {
         guru={activeFotoGuru}
         onSuccess={loadGuru}
       />
+
+      {/* Custom Delete Confirmation Modal */}
+      <CustomModal
+        open={deleteConfirm.isOpen}
+        onClose={() => setDeleteConfirm({ isOpen: false, type: '', id: null, nama: '' })}
+        title={deleteDetails.title}
+        subtitle="Konfirmasi Penghapusan Data Permanen"
+        icon={<AlertTriangle color="#ef4444" />}
+        width={440}
+        destroyOnClose
+        footer={
+          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px', width: '100%' }}>
+            <button
+              type="button"
+              className="btn-custom btn-secondary"
+              onClick={() => setDeleteConfirm({ isOpen: false, type: '', id: null, nama: '' })}
+            >
+              Batal
+            </button>
+            <button
+              type="button"
+              className="btn-custom btn-danger"
+              onClick={handleConfirmDelete}
+            >
+              Hapus Data
+            </button>
+          </div>
+        }
+      >
+        <div style={{ padding: '4px 0' }}>
+          <p style={{ margin: 0, color: 'var(--lt-text-primary, #0f172a)', fontSize: '14px', fontWeight: 500 }}>
+            {deleteDetails.text}
+          </p>
+          <p style={{ marginTop: '10px', marginBottom: 0, color: 'var(--lt-text-secondary, #64748b)', fontSize: '13px', lineHeight: 1.5 }}>
+            Tindakan ini tidak dapat dibatalkan.
+          </p>
+        </div>
+      </CustomModal>
     </div>
   );
 }

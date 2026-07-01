@@ -1,29 +1,49 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { 
-  Tabs, Card, Select, Input, InputNumber, Button, Table, 
-  Space, Tag, Typography, Divider, Empty, message, Popconfirm, Tooltip,
-  Row, Col, Badge, Segmented, Alert, Checkbox, Spin, Collapse, Radio, Modal
-} from 'antd';
-import { 
-  SaveOutlined, ReloadOutlined, SettingOutlined, EditOutlined,
-  UserOutlined, BookOutlined, CheckCircleOutlined, InfoCircleOutlined,
-  AppstoreOutlined, UnorderedListOutlined, GroupOutlined, CalendarOutlined, MessageOutlined,
-  ThunderboltOutlined, StarOutlined, RocketOutlined, DeleteOutlined,
-  AuditOutlined, ReadOutlined, FileSearchOutlined, ArrowLeftOutlined, ArrowRightOutlined, TableOutlined, PrinterOutlined, FilePdfOutlined
-} from '@ant-design/icons';
+  Save, 
+  RefreshCw, 
+  Settings, 
+  Edit3, 
+  User, 
+  BookOpen, 
+  CheckCircle, 
+  Info, 
+  Layout, 
+  List, 
+  Layers, 
+  Calendar, 
+  MessageSquare, 
+  Zap, 
+  Star, 
+  Rocket, 
+  Trash2, 
+  TrendingUp, 
+  Book, 
+  Search, 
+  ArrowLeft, 
+  ArrowRight, 
+  Table as TableIcon, 
+  Printer, 
+  FileText,
+  ChevronDown,
+  X,
+  Plus
+} from 'lucide-react';
 import { nilaiService } from '../services/nilaiService';
 import { settingsService } from '../services/settingsService';
-import { PageHeader, LoadingState, ErrorState } from '../components/common';
+import { PageHeader, LoadingState, ErrorState, useToast } from '../components/common';
 import { RaporSantriForms } from '../components/features/RaporSantriForms';
 import { RaporSettingsTab } from '../components/features/RaporSettingsTab';
 import { useResponsive } from '../hooks/useResponsive';
+import { CustomSelect } from '../components/ui/CustomSelect';
+import { CustomModal } from '../components/ui/CustomModal';
+import { SmartAlert } from '../components/ui/SmartAlert';
 import { jsPDF } from 'jspdf';
-import 'jspdf-autotable';
 import './ManajemenNilai.scss';
 
-const { Title, Text, Paragraph } = Typography;
-
-export const ManajemenNilai = ({ mode = 'input' }) => {
+export function ManajemenNilai({ mode = 'input' }) {
+  const toast = useToast();
+  
   // State Master Data
   const [kelas, setKelas] = useState([]);
   const [mataPelajaran, setMataPelajaran] = useState([]);
@@ -34,20 +54,19 @@ export const ManajemenNilai = ({ mode = 'input' }) => {
   
   // State Filter & Selection
   const [activeTab, setActiveTab] = useState(
-    mode === 'config' ? 'setting' : 
     mode === 'rekap' ? 'rekap' : 'input'
   );
   const [selectedTingkat, setSelectedTingkat] = useState(null);
   const [selectedKelasDetail, setSelectedKelasDetail] = useState(null);
   const [selectedMapel, setSelectedMapel] = useState(null);
   const [selectedKategori, setSelectedKategori] = useState(null);
-  const [jadwalMapelIds, setJadwalMapelIds] = useState([]);
   const [activeCollapseKeys, setActiveCollapseKeys] = useState(['semester']);
   
   // State Data Nilai
   const [santriList, setSantriList] = useState([]);
   const { isMobile } = useResponsive();
   const [mobileFocusMode, setMobileFocusMode] = useState(mode === 'input-ujian' ? false : isMobile);
+  
   const [loading, setLoading] = useState(false);
   const [saveLoading, setSaveLoading] = useState(false);
   const [autoSaveStatus, setAutoSaveStatus] = useState(null); // 'saving', 'saved', 'error'
@@ -59,7 +78,7 @@ export const ManajemenNilai = ({ mode = 'input' }) => {
   const [mobileViewMode, setMobileViewMode] = useState('dashboard'); // 'dashboard' or 'input'
   const [pendingConsoleOpen, setPendingConsoleOpen] = useState(false); // Tunggu data santri lalu buka konsol
 
-  // 1. Reset total saat filter kelas/mapel berubah (PENTING: santriList juga harus kosong)
+  // Reset total saat filter kelas/mapel berubah (PENTING: santriList juga harus kosong)
   useEffect(() => {
     if (isMobile && showKeypad) {
       setSantriList([]);
@@ -67,12 +86,11 @@ export const ManajemenNilai = ({ mode = 'input' }) => {
     }
   }, [selectedKelasDetail, selectedMapel]);
 
-  // 2. Pilih santri pertama otomatis saat data kelas baru sudah masuk
+  // Pilih santri pertama otomatis saat data kelas baru sudah masuk
   useEffect(() => {
     if (isMobile && santriList.length > 0 && !activeSantriId) {
       setActiveSantriId(santriList[0].santri_id);
     }
-    // Jika ada pending console open (dari quick start), buka setelah data santri tiba
     if (pendingConsoleOpen && santriList.length > 0) {
       setPendingConsoleOpen(false);
       setShowKeypad(true);
@@ -89,12 +107,6 @@ export const ManajemenNilai = ({ mode = 'input' }) => {
   // State Kriteria
   const [kriteriaConfig, setKriteriaConfig] = useState(null);
   const [kriteriaType, setKriteriaType] = useState('Angka');
-  const [configAngka, setConfigAngka] = useState({
-    'Mumtaz': { min: 95, max: 2000 },
-    'Jayyid': { min: 85, max: 94 },
-    'Mutawassith': { min: 75, max: 84 },
-    'Rodi\'': { min: 0, max: 74 }
-  });
   const [configTeks, setConfigTeks] = useState([]);
 
   const effectiveKriteriaType = useMemo(() => {
@@ -126,7 +138,6 @@ export const ManajemenNilai = ({ mode = 'input' }) => {
       ]);
       
       const diniyahKelas = Array.isArray(kelasData) ? kelasData.filter(k => k.jenis === 'Diniyah').map(k => {
-        // If class name is 'SP' but tingkat is 1, move it to tingkat 99 virtually
         if (k.nama === 'SP' && k.tingkat === 1) {
           return { ...k, tingkat: 99 };
         }
@@ -135,10 +146,8 @@ export const ManajemenNilai = ({ mode = 'input' }) => {
       setKelas(diniyahKelas);
       setMataPelajaran(Array.isArray(mapelData) ? mapelData : []);
       setKategori(Array.isArray(katData) ? katData : []);
-      
       setTahunAjaranList(Array.isArray(taData) ? taData : []);
 
-      // Selalu gunakan tahun ajaran aktif dari server — tidak perlu localStorage
       const activeTA = Array.isArray(taData) ? taData.find(ta => ta.is_active) : null;
       setTahunAjaran(activeTA);
       
@@ -151,7 +160,6 @@ export const ManajemenNilai = ({ mode = 'input' }) => {
           setSelectedKategori(katData[0].id);
         }
       }
-
     } catch (err) {
       setError('Gagal memuat data awal');
     } finally {
@@ -173,12 +181,6 @@ export const ManajemenNilai = ({ mode = 'input' }) => {
       loadMapelTingkatData();
     }
   }, [tahunAjaran, selectedKategori]);
-
-  const handleTahunAjaranChange = (val) => {
-    const selected = tahunAjaranList.find(ta => ta.id === val);
-    setTahunAjaran(selected);
-    // Tidak disimpan ke localStorage — pilihan user hanya berlaku sesi ini
-  };
 
   const mapelCategories = useMemo(() => {
     if (!mataPelajaran || !mataPelajaran.length) return [];
@@ -226,12 +228,7 @@ export const ManajemenNilai = ({ mode = 'input' }) => {
   useEffect(() => {
     setSelectedKelasDetail(null);
     setSantriList([]);
-    
-    // Auto-fill jadwal selection when switching tingkat in Jadwal tab
-    if (selectedTingkat !== null) {
-      setJadwalMapelIds(mapelTingkat.filter(mt => mt.tingkat === selectedTingkat).map(mt => mt.mata_pelajaran_id));
-    }
-  }, [selectedTingkat, mapelTingkat]);
+  }, [selectedTingkat]);
 
   // Load Kriteria when level, mapel, year, or semester changes
   useEffect(() => {
@@ -258,7 +255,6 @@ export const ManajemenNilai = ({ mode = 'input' }) => {
         return (order[a] ?? 999) - (order[b] ?? 999);
       });
       if (selectedTingkat === null && levels.length > 0) {
-        // Coba cari Kelas 1 (tingkat 1) terlebih dahulu agar sesuai screenshot
         const level1 = levels.find(l => l === 1);
         if (level1 !== undefined) {
           setSelectedTingkat(level1);
@@ -289,20 +285,6 @@ export const ManajemenNilai = ({ mode = 'input' }) => {
 
       // Pivot data
       const pivoted = {};
-      // Helper: convert predikat muhafadzoh to numeric score
-      const muhafadzohScore = (predikat) => {
-        if (predikat === 'Mumtaz') return 100;
-        if (predikat === 'Jayyid') return 80;
-        if (predikat === 'Mutawassith') return 60;
-        if (predikat === "Rodi'") return 40;
-        return 0;
-      };
-      // Helper: convert taftisy capaian to numeric score
-      const taftisyScore = (capaian) => {
-        if (capaian === 'Tam') return 100;
-        return 0; // Naqish or empty
-      };
-
       rawData.forEach(row => {
         if (!pivoted[row.santri_id]) {
           pivoted[row.santri_id] = {
@@ -341,104 +323,18 @@ export const ManajemenNilai = ({ mode = 'input' }) => {
       });
 
       const dataSource = Object.values(pivoted);
-      // Hitung Rata-rata 
       dataSource.forEach(item => {
         item.rata_rata = item.mapel_count > 0 ? (item.total_nilai / item.mapel_count).toFixed(2) : 0;
       });
-      // Sort by total_nilai
       dataSource.sort((a, b) => b.total_nilai - a.total_nilai);
-      // Assign Peringkat
       dataSource.forEach((item, idx) => {
         item.peringkat_sistem = idx + 1;
         item.peringkat = item.peringkat_manual || item.peringkat_sistem;
       });
 
       setRekapData(dataSource);
-
-      // Build Columns
-      const cols = [
-        { title: 'NIS', dataIndex: 'nis', width: 100, fixed: 'left' },
-        { title: 'Nama Santri', dataIndex: 'nama', width: 200, fixed: 'left', ellipsis: true }
-      ];
-
-      const allowedMapelIds = mapelTingkat.filter(mt => mt.tingkat === selectedTingkat).map(mt => mt.mata_pelajaran_id);
-      const semesterMapels = mataPelajaran.filter(m => m.jenis === 'Reguler' && allowedMapelIds.includes(m.id));
-      
-      const akbarMapels = mataPelajaran.filter(m => m.jenis === 'Muhafadzoh' && m.nama?.toLowerCase().includes('akbar'));
-      const qiroatulMapels = mataPelajaran.filter(m => m.jenis === 'Qiroah');
-      const taftisyulMapels = mataPelajaran.filter(m => m.jenis === 'Taftisy');
-      const miniMapels = mataPelajaran.filter(m => m.jenis === 'Muhafadzoh' && m.nama?.toLowerCase().includes('mini'));
-      
-      const allRekapMapels = [...semesterMapels, ...akbarMapels, ...qiroatulMapels, ...taftisyulMapels];
-      
-      allRekapMapels.forEach(m => {
-        cols.push({
-          title: m.nama,
-          dataIndex: `mapel_${m.id}`,
-          width: 120,
-          align: 'center',
-          render: (val, record) => {
-            if (!val || val === '-') return <Text type="secondary">-</Text>;
-            if (m.jenis === 'Muhafadzoh') {
-              let color = val === 'Mumtaz' ? 'gold' : val === 'Jayyid' ? 'green' : val === 'Mutawassith' ? 'blue' : 'default';
-              return <Tag color={color}>{val}</Tag>;
-            }
-            if (m.jenis === 'Taftisy') {
-              let color = val === 'Tam' ? 'success' : 'error';
-              return <Tag color={color}>{val}</Tag>;
-            }
-            return <Text strong>{val}</Text>;
-          }
-        });
-      });
-
-      cols.push({
-        title: 'Total',
-        dataIndex: 'total_nilai',
-        width: 100,
-        align: 'center',
-        render: val => <Text strong type="success">{val}</Text>
-      });
-
-      cols.push({
-        title: 'Rata-rata',
-        dataIndex: 'rata_rata',
-        width: 100,
-        align: 'center',
-        render: val => <Text strong>{val}</Text>
-      });
-
-      cols.push({
-        title: 'Peringkat', 
-        dataIndex: 'peringkat', 
-        width: 80, 
-        fixed: 'right', 
-        align: 'center', 
-        render: val => <Badge count={val} style={{ backgroundColor: val <= 3 ? '#52c41a' : '#d9d9d9' }} /> 
-      });
-
-      cols.push({
-        title: 'Aksi',
-        key: 'aksi',
-        width: 100,
-        fixed: 'right',
-        align: 'center',
-        render: (_, record) => (
-          <Button 
-            type="primary" 
-            size="small" 
-            icon={<BookOutlined />}
-            onClick={() => window.open(`/rapor-print/${tahunAjaran.id}/${selectedKelasDetail}/${selectedKategori}/${record.santri_id}`, '_blank')}
-          >
-            Rapor
-          </Button>
-        )
-      });
-
-      setRekapColumns(cols);
-
     } catch (err) {
-      message.error('Gagal memuat rekap nilai');
+      toast.error('Gagal memuat rekap nilai');
     } finally {
       setRekapLoading(false);
     }
@@ -447,53 +343,16 @@ export const ManajemenNilai = ({ mode = 'input' }) => {
   const loadKriteria = async () => {
     try {
       const config = await nilaiService.fetchKriteria(selectedTingkat, selectedMapel, tahunAjaran?.id, selectedKategori);
-      
       if (config) {
         setKriteriaConfig(config);
-        
-        // Prioritize config if available, else use defaults
-        if (selectedTingkat === 0) {
-          const kat = kategori.find(k => k.id === selectedKategori);
-          const isGanjil = kat && kat.nama.toLowerCase().includes('ganjil');
-          setKriteriaType(isGanjil ? 'Teks' : 'Angka');
-        } else if (config.tipe_input) {
-          setKriteriaType(config.tipe_input);
-        } else {
-          if (selectedTingkat === 2 || selectedTingkat === 99) setKriteriaType('Teks');
-          else setKriteriaType('Angka');
-        }
-        
-        if (config.tipe_input === 'Angka') {
-          setConfigAngka(config.konfigurasi);
-          setConfigTeks([]); // Reset Teks
-        } else {
+        if (config.tipe_input === 'Teks') {
           setConfigTeks(Array.isArray(config.konfigurasi) ? config.konfigurasi : []);
-          setConfigAngka({ // Reset Angka to default
-            'Mumtaz': { min: 95, max: 2000 },
-            'Jayyid': { min: 85, max: 94 },
-            'Mutawassith': { min: 75, max: 84 },
-            'Rodi\'': { min: 0, max: 74 }
-          });
+        } else {
+          setConfigTeks([]);
         }
       } else {
         setKriteriaConfig(null);
-        if (selectedTingkat === 0) {
-          const kat = kategori.find(k => k.id === selectedKategori);
-          const isGanjil = kat && kat.nama.toLowerCase().includes('ganjil');
-          setKriteriaType(isGanjil ? 'Teks' : 'Angka');
-        } else if (selectedTingkat === 2 || selectedTingkat === 99) {
-          setKriteriaType('Teks');
-        } else {
-          setKriteriaType('Angka');
-        }
-        
-        setConfigAngka({
-          'Mumtaz': { min: 95, max: 2000 },
-          'Jayyid': { min: 85, max: 94 },
-          'Mutawassith': { min: 75, max: 84 },
-          'Rodi\'': { min: 0, max: 74 }
-        });
-        setConfigTeks([]); // Reset configTeks when no config found
+        setConfigTeks([]);
       }
     } catch (err) {
       console.error('Gagal memuat kriteria:', err);
@@ -519,7 +378,7 @@ export const ManajemenNilai = ({ mode = 'input' }) => {
         capaian: item.capaian || ''
       })));
     } catch (err) {
-      message.error('Gagal memuat data santri dan nilai');
+      toast.error('Gagal memuat data santri dan nilai');
     } finally {
       setLoading(false);
     }
@@ -533,11 +392,10 @@ export const ManajemenNilai = ({ mode = 'input' }) => {
 
   const handleQuickStart = async (mapelType) => {
     if (mataPelajaran.length === 0 || kelas.length === 0) {
-      message.error('Data belum siap. Mohon tunggu sebentar.');
+      toast.error('Data belum siap. Mohon tunggu sebentar.');
       return;
     }
 
-    // 1. Temukan Mapel
     let targetMapel = null;
     if (mapelType === 'muhafadzoh') {
       targetMapel = mataPelajaran.find(m => 
@@ -559,17 +417,13 @@ export const ManajemenNilai = ({ mode = 'input' }) => {
     }
 
     if (!targetMapel) {
-      message.warning(`Mapel '${mapelType}' tidak ditemukan di pengaturan.`);
+      toast.warning(`Mata pelajaran '${mapelType}' tidak ditemukan di konfigurasi.`);
       return;
     }
 
-    // 2. Setel filter dasar
-    const hide = message.loading(`Mencari kelas untuk ${targetMapel.nama}...`, 0);
     setMobileFocusMode(true);
-    setActiveTab('input');
     setSelectedMapel(targetMapel.id);
 
-    // 3. Smart Seeker: Cari kelas yang BENAR-BENAR ada santrinya
     const allTingkat = [...new Set(kelas.map(k => k.tingkat))].sort((a, b) => {
       const order = { 0: 0, 1: 1, 99: 2, 2: 3, 3: 4, 4: 5, 5: 6, 6: 7 };
       return (order[a] ?? 999) - (order[b] ?? 999);
@@ -593,39 +447,30 @@ export const ManajemenNilai = ({ mode = 'input' }) => {
             break;
           }
         } catch (err) {
-          console.log(`Skip kelas ${kls.nama}: ${err.message}`);
+          // ignore
         }
       }
       if (foundKelasId) break;
     }
 
-    hide(); // Tutup pesan loading
-
     if (!foundKelasId) {
-      message.warning('Belum ada santri di semua kelas untuk mapel ini.');
-      setMobileViewMode('input'); // Tetap buka tabel agar user bisa manual
+      toast.warning('Belum ada santri di semua rincian kelas untuk pelajaran ini.');
+      setMobileViewMode('input');
       return;
     }
 
-    // 4. Setel kelas yang ditemukan
     const namaKelas = kelas.find(k => k.id === foundKelasId)?.nama || '';
     setSelectedTingkat(foundTingkat);
     setSelectedKelasDetail(foundKelasId);
     setMobileViewMode('input');
 
-    // 5. Buka Console atau Tabel
     if (mapelType === 'muhafadzoh' || mapelType === 'qiroah') {
-      message.success(`${targetMapel.nama} — ${namaKelas}`);
+      toast.success(`${targetMapel.nama} — ${namaKelas}`);
       setPendingConsoleOpen(true);
     } else {
-      message.success(`${targetMapel.nama} — ${namaKelas}`);
+      toast.success(`${targetMapel.nama} — ${namaKelas}`);
       setShowKeypad(false);
     }
-  };
-
-  const isKhususMapel = (mapelId) => {
-    const mapel = mataPelajaran.find(m => m.id === mapelId);
-    return mapel && mapel.jenis !== 'Reguler';
   };
 
   const getPredikat = (nilai) => {
@@ -645,22 +490,17 @@ export const ManajemenNilai = ({ mode = 'input' }) => {
       let min = range.min !== null && range.min !== undefined && range.min !== '' ? Number(range.min) : null;
       let max = range.max !== null && range.max !== undefined && range.max !== '' ? Number(range.max) : null;
       
-      // Auto-correction and custom logic for Mumtaz
       if (pred === 'Mumtaz') {
         const jayyidMax = scale['Jayyid']?.max !== null && scale['Jayyid']?.max !== undefined && scale['Jayyid']?.max !== '' ? Number(scale['Jayyid'].max) : 0;
-        // Mumtaz min is strictly above Jayyid max
         min = jayyidMax + 1;
         if (max === null) max = 2000;
       } else if (pred === 'Rodi\'' && max === null && min !== null) {
-        // User put value in min but left max blank for the bottom tier
         max = min;
         min = 0;
       }
       
-      // Default fallbacks
       if (min === null) min = 0;
       if (max === null) max = 2000;
-      
       if (min > max) {
         const temp = min;
         min = max;
@@ -672,15 +512,6 @@ export const ManajemenNilai = ({ mode = 'input' }) => {
     return '';
   };
 
-  // Debounced Auto Save
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      // Logic for auto-save will be triggered when santriList changes
-      // but we need to ensure it only saves after changes, not on initial load
-    }, 1000);
-    return () => clearTimeout(timer);
-  }, [santriList]);
-
   const handleNilaiChange = (santriId, field, value) => {
     setSantriList(prev => prev.map(s => {
       if (s.santri_id === santriId) {
@@ -689,10 +520,9 @@ export const ManajemenNilai = ({ mode = 'input' }) => {
         const jenis = mapel?.jenis;
         const isTaftisy = jenis === 'Taftisy';
         const isQiroat = jenis === 'Qiroah';
-        const isMuhafadzoh = jenis === 'Muhafadzoh';
 
         if (field === 'nilai_angka') {
-          if (isMuhafadzoh && !isTaftisy && !isQiroat) {
+          if (jenis === 'Muhafadzoh' && !isTaftisy && !isQiroat) {
             newData.predikat = getPredikat(value);
           } else {
             newData.predikat = '';
@@ -704,9 +534,7 @@ export const ManajemenNilai = ({ mode = 'input' }) => {
           if (matched && !isTaftisy) newData.predikat = matched.predikat;
         }
 
-        // Trigger Auto Save
         triggerAutoSave(santriId, field, value, newData);
-        
         return newData;
       }
       return s;
@@ -730,7 +558,7 @@ export const ManajemenNilai = ({ mode = 'input' }) => {
         }]
       });
       setAutoSaveStatus('saved');
-      setTimeout(() => setAutoSaveStatus(null), 5000);
+      setTimeout(() => setAutoSaveStatus(null), 3000);
     } catch (err) {
       console.error('Auto save failed:', err);
       setAutoSaveStatus('error');
@@ -747,59 +575,9 @@ export const ManajemenNilai = ({ mode = 'input' }) => {
         data: santriList
       };
       await nilaiService.saveNilaiBulk(payload);
-      message.success('Semua nilai berhasil disimpan!');
+      toast.success('Semua nilai berhasil disimpan!');
     } catch (err) {
-      message.error('Gagal menyimpan nilai');
-    } finally {
-      setSaveLoading(false);
-    }
-  };
-
-  const saveKriteria = async () => {
-    if (selectedTingkat === null || !selectedMapel) {
-      message.warning('Pilih Tingkatan dan Mata Pelajaran terlebih dahulu');
-      return;
-    }
-
-    try {
-      setSaveLoading(true);
-      const mapel = mataPelajaran.find(m => m.id === selectedMapel);
-      const payload = {
-        tingkat: selectedTingkat,
-        mata_pelajaran_id: selectedMapel,
-        jenis_mapel: mapel?.jenis || 'Muhafadzoh',
-        tipe_input: kriteriaType,
-        konfigurasi: kriteriaType === 'Angka' ? configAngka : configTeks,
-        tahun_ajaran_id: tahunAjaran?.id,
-        kategori_evaluasi_id: selectedKategori
-      };
-      await nilaiService.saveKriteria(payload);
-      message.success(`Pengaturan kriteria ${mapel?.nama || ''} berhasil disimpan!`);
-      loadKriteria();
-    } catch (err) {
-      console.error('Save kriteria failed:', err);
-      const errorMsg = err.response?.data?.error || err.message || 'Gagal menyimpan kriteria';
-      message.error(errorMsg);
-    } finally {
-      setSaveLoading(false);
-    }
-  };
-
-  const saveJadwal = async () => {
-    if (selectedTingkat === null) {
-      message.warning('Pilih Tingkatan terlebih dahulu');
-      return;
-    }
-    try {
-      setSaveLoading(true);
-      await nilaiService.saveMapelTingkat(selectedTingkat, jadwalMapelIds, tahunAjaran?.id, selectedKategori);
-      message.success('Jadwal pelajaran berhasil disimpan!');
-      const newMtData = await nilaiService.fetchMapelTingkat(tahunAjaran?.id, selectedKategori);
-      setMapelTingkat(Array.isArray(newMtData) ? newMtData : []);
-    } catch (err) {
-      console.error('Save jadwal failed:', err);
-      const errorMsg = err.response?.data?.error || err.message || 'Gagal menyimpan jadwal pelajaran';
-      message.error(errorMsg);
+      toast.error('Gagal menyimpan nilai');
     } finally {
       setSaveLoading(false);
     }
@@ -811,856 +589,128 @@ export const ManajemenNilai = ({ mode = 'input' }) => {
     return `Kelas ${t}`;
   };
 
-  const columns = [
-    ...(isMobile ? [] : [{ title: 'NIS', dataIndex: 'nis', key: 'nis', width: 100 }]),
-    { title: 'Nama Santri', dataIndex: 'nama', key: 'nama', ellipsis: true },
-    { 
-      title: 'Input Nilai', 
-      width: isMobile ? 100 : undefined,
-      render: (_, record) => {
-        const mapel = mataPelajaran.find(m => m.id === selectedMapel);
-        const jenis = mapel?.jenis;
-        const isTaftisy = jenis === 'Taftisy';
-        const isQiroat = jenis === 'Qiroah';
-        const isMuhafadzoh = jenis === 'Muhafadzoh';
-
-        if (isTaftisy) {
-          return (
-            <Select 
-              placeholder="Tam / Naqish" 
-              value={record.capaian || undefined}
-              onChange={val => handleNilaiChange(record.santri_id, 'capaian', val)}
-              style={{ width: '100%' }}
-            >
-              <Select.Option value="Tam">Tam (Lengkap)</Select.Option>
-              <Select.Option value="Naqish">Naqish (Belum Lengkap)</Select.Option>
-            </Select>
-          );
-        }
-        
-        let useAngka = isQiroat || mapel?.jenis === 'Reguler';
-        let maxAngka = 100;
-
-        if (isMuhafadzoh) {
-          maxAngka = 2000;
-        }
-        
-        if (isMuhafadzoh) {
-          // Use effective kriteria type
-          if (effectiveKriteriaType === 'Teks') {
-            useAngka = false;
-          } else if (effectiveKriteriaType === 'Angka') {
-            useAngka = true;
-          } else {
-            // Default logic if not configured
-            if (selectedTingkat === 2 || selectedTingkat === 99) useAngka = false;
-            else if (selectedTingkat !== 0) useAngka = true;
-            else useAngka = true;
-          }
-        }
-
-        if (useAngka) {
-          const isSelected = activeSantriId === record.santri_id && showKeypad;
-          return (
-            <InputNumber 
-              min={0} max={maxAngka} 
-              value={record.nilai_angka} 
-              onChange={val => handleNilaiChange(record.santri_id, 'nilai_angka', val)}
-              placeholder={`0-${maxAngka}`}
-              readOnly={isMobile} // Prevent physical keyboard on mobile
-              onClick={() => {
-                if (isMobile) {
-                  setActiveSantriId(record.santri_id);
-                  setShowKeypad(true);
-                }
-              }}
-              style={{ 
-                width: isMobile ? '85px' : '100%',
-                backgroundColor: isSelected ? '#e6f7ff' : undefined,
-                borderColor: isSelected ? '#1890ff' : undefined,
-                boxShadow: isSelected ? '0 0 0 2px rgba(24, 144, 255, 0.2)' : undefined
-              }}
-            />
-          );
-        }
-        return (
-          <Select
-            placeholder="Pilih"
-            value={record.capaian || undefined}
-            onChange={val => handleNilaiChange(record.santri_id, 'capaian', val)}
-            style={{ width: isMobile ? '90px' : '100%' }}
-            className="arabic-text"
-          >
-            {Array.isArray(configTeks) ? configTeks.map((item, idx) => (
-              <Select.Option key={idx} value={item.bab}>{item.bab}</Select.Option>
-            )) : null}
-          </Select>
-        );
-      }
-    },
-    ...(isMobile ? [] : [{ 
-      title: 'Predikat', 
-      dataIndex: 'predikat', 
-      key: 'predikat',
-      width: 150,
-      render: (pred, record) => {
-        const mapel = mataPelajaran.find(m => m.id === selectedMapel);
-        const jenis = mapel?.jenis;
-        const isTaftisy = jenis === 'Taftisy';
-        const isQiroat = jenis === 'Qiroah';
-        const isMuhafadzoh = jenis === 'Muhafadzoh';
-        const isRegulerMurni = jenis === 'Reguler';
-
-        if (isRegulerMurni || isQiroat || isTaftisy) {
-            return <Text type="secondary">-</Text>;
-        }
-        return <Tag color={pred === 'Mumtaz' ? 'gold' : pred === 'Jayyid' ? 'green' : pred === 'Mutawassith' ? 'blue' : 'default'}>{pred || '-'}</Tag>
-      }
-    }])
-  ];
-
-  const renderTingkatSelection = (isSettings = false) => {
-    const levels = [...new Set(kelas.map(k => k.tingkat))].sort((a, b) => {
+  const levels = useMemo(() => {
+    const uniqueTingkat = [...new Set(kelas.map(k => k.tingkat))].sort((a, b) => {
       const order = { 0: 0, 1: 1, 99: 2, 2: 3, 3: 4, 4: 5, 5: 6, 6: 7 };
       return (order[a] ?? 999) - (order[b] ?? 999);
     });
-    if (isSettings) {
-      return (
-        <Select 
-          placeholder="Pilih Tingkatan" 
-          style={{ width: '100%' }} 
-          value={selectedTingkat} 
-          onChange={setSelectedTingkat}
-        >
-          {levels.map(t => <Select.Option key={t} value={t}>{getTingkatLabel(t)}</Select.Option>)}
-        </Select>
-      );
-    }
-    
-    // For Input Nilai tab
-    const classOptions = kelas.filter(k => k.tingkat === selectedTingkat);
+    return uniqueTingkat;
+  }, [kelas]);
 
-    return (
-      <div className="selection-container">
-        <Title level={5}><GroupOutlined /> Pilih Tingkatan</Title>
-        <Space wrap style={{ marginBottom: selectedTingkat !== null ? 16 : 0 }}>
-          {levels.map(t => (
-            <Card
-              key={t}
-              hoverable
-              size="small"
-              className={`selection-card ${selectedTingkat === t ? 'active' : ''}`}
-              onClick={() => setSelectedTingkat(t)}
-            >
-              <Text strong>{getTingkatLabel(t)}</Text>
-            </Card>
-          ))}
-        </Space>
-
-        {selectedTingkat !== null && (
-          <div className="class-detail-selection" style={{ marginTop: 12, paddingTop: 12, borderTop: '1px solid #f0f0f0' }}>
-            <Text type="secondary" style={{ display: 'block', marginBottom: 8 }}>Pilih Rincian Kelas:</Text>
-            <Space wrap>
-              {classOptions.map(c => (
-                <Card
-                  key={c.id}
-                  hoverable
-                  size="small"
-                  className={`selection-card detail-card ${selectedKelasDetail === c.id ? 'active' : ''}`}
-                  onClick={() => setSelectedKelasDetail(c.id)}
-                  style={{ 
-                    padding: '4px 12px', 
-                    borderRadius: '20px',
-                    borderColor: selectedKelasDetail === c.id ? 'var(--ant-primary-color)' : '#d9d9d9',
-                    backgroundColor: selectedKelasDetail === c.id ? '#e6f7ff' : '#fff'
-                  }}
-                >
-                  <Text strong>{c.nama}</Text>
-                </Card>
-              ))}
-            </Space>
-          </div>
-        )}
-      </div>
-    );
+  const handleTaftisyManualRankTrigger = () => {
+    setManualRankData(rekapData.map(r => ({
+      santri_id: r.santri_id,
+      nama: r.nama,
+      nis: r.nis,
+      total_nilai: r.total_nilai,
+      rata_rata: r.rata_rata,
+      peringkat_sistem: r.peringkat_sistem,
+      peringkat_manual: r.peringkat_manual || ''
+    })));
+    setIsManualRankModalOpen(true);
   };
 
-  const renderKriteriaConfig = () => {
-    const showAngka = selectedTingkat !== 2 && selectedTingkat !== 99;
-    const showTeks = selectedTingkat === 0 || selectedTingkat === 2 || selectedTingkat === 99;
-
-    const isAngkaDisabled = kriteriaConfig && kriteriaConfig.tipe_input === 'Teks' && configTeks && configTeks.length > 0;
-    const isTeksDisabled = kriteriaConfig && kriteriaConfig.tipe_input === 'Angka' && Object.values(configAngka).some(v => typeof v.min === 'number' || typeof v.max === 'number');
-
-    return (
-      <>
-        <div style={{ marginBottom: 16 }}>
-          <Radio.Group 
-            value={kriteriaType} 
-            onChange={e => setKriteriaType(e.target.value)}
-            size="large"
-          >
-            {showAngka && <Radio.Button value="Angka" disabled={isAngkaDisabled || selectedTingkat === 0}>Skala Angka</Radio.Button>}
-            {showTeks && <Radio.Button value="Teks" disabled={isTeksDisabled || selectedTingkat === 0}>Teks / Capaian</Radio.Button>}
-          </Radio.Group>
-        </div>
-
-        {kriteriaType === 'Angka' && showAngka && (
-          <Table dataSource={['Mumtaz', 'Jayyid', 'Mutawassith', 'Rodi\''].map(pred => ({ predikat: pred, ...(configAngka[pred] || {min: null, max: null}) }))} pagination={false} size="small" columns={[
-            { title: 'Predikat', dataIndex: 'predikat', render: text => <Text strong>{text}</Text> },
-            { title: 'Min', dataIndex: 'min', render: (val, record) => <InputNumber min={0} max={2000} value={record.predikat === 'Mumtaz' ? null : val} disabled={record.predikat === 'Mumtaz'} placeholder={record.predikat === 'Mumtaz' ? 'Otomatis' : ''} onChange={v => setConfigAngka(prev => ({...prev, [record.predikat]: {...prev[record.predikat], min: v}}))} /> },
-            { title: 'Max', dataIndex: 'max', render: (val, record) => <InputNumber min={0} max={2000} value={val} onChange={v => setConfigAngka(prev => ({...prev, [record.predikat]: {...prev[record.predikat], max: v}}))} /> }
-          ]} />
-        )}
-
-        {kriteriaType === 'Teks' && showTeks && (
-          <>
-            <Table 
-              dataSource={configTeks} 
-              pagination={false} 
-              size="small" 
-              rowKey={(record, idx) => idx}
-              columns={[
-                { 
-                  title: 'Daftar Bab / Capaian', 
-                  dataIndex: 'bab', 
-                  render: (val, _, idx) => (
-                    <Input 
-                      value={val} 
-                      className={(selectedTingkat === 2 || selectedTingkat === 99) ? "arabic-text" : ""} 
-                      placeholder="Contoh: Bab 1 / Materi A / Juz 30"
-                      onChange={e => {
-                        const newConf = [...configTeks];
-                        newConf[idx].bab = e.target.value;
-                        setConfigTeks(newConf);
-                      }} 
-                    />
-                  ) 
-                },
-                { 
-                  title: 'Predikat Otomatis', 
-                  dataIndex: 'predikat', 
-                  width: 160,
-                  render: (val, _, idx) => (
-                    <Select value={val} style={{ width: '100%' }} onChange={v => {
-                      const newConf = [...configTeks];
-                      newConf[idx].predikat = v;
-                      setConfigTeks(newConf);
-                    }}>
-                      <Select.Option value="Mumtaz">Mumtaz</Select.Option>
-                      <Select.Option value="Jayyid">Jayyid</Select.Option>
-                      <Select.Option value="Mutawassith">Mutawassith</Select.Option>
-                      <Select.Option value="Rodi'">Rodi'</Select.Option>
-                    </Select>
-                  )
-                },
-                { 
-                  title: 'Aksi', 
-                  width: 80,
-                  render: (_, __, idx) => (
-                    <Button 
-                      type="text" 
-                      danger 
-                      icon={<DeleteOutlined />} 
-                      onClick={() => {
-                        const current = Array.isArray(configTeks) ? configTeks : [];
-                        setConfigTeks(current.filter((_, i) => i !== idx));
-                      }}
-                    >
-                      Hapus
-                    </Button>
-                  ) 
-                }
-              ]} 
-            />
-            <div style={{ marginTop: 16 }}>
-              <Button type="dashed" block onClick={() => {
-                const current = Array.isArray(configTeks) ? configTeks : [];
-                setConfigTeks([...current, { bab: '', predikat: 'Jayyid' }]);
-              }}>
-                + Tambah Capaian Baru
-              </Button>
-            </div>
-          </>
-        )}
-      </>
-    );
-  }
-
-  const allTabs = [
-    {
-      key: 'input',
-      label: <span><EditOutlined /> Input Nilai</span>,
-      children: (
-        <Row gutter={[16, 16]}>
-          {isMobile && (
-            <Col span={24}>
-              <Button 
-                type="link" 
-                icon={<ArrowLeftOutlined />} 
-                onClick={() => setMobileViewMode('dashboard')}
-                style={{ paddingLeft: 0, fontSize: '15px', color: '#1890ff', fontWeight: 600, marginBottom: '-8px' }}
-              >
-                Kembali ke Menu Utama
-              </Button>
-            </Col>
-          )}
-          <Col span={24}>
-            <Card className="filter-card">
-              <Row gutter={[24, 24]}>
-                <Col xs={24} lg={isMobile ? 24 : 12}>
-                  {renderTingkatSelection()}
-                </Col>
-                {!isMobile && (
-                  <Col xs={24} lg={12}>
-                      <Title level={5}>
-                      <BookOutlined /> Pilih Mata Pelajaran
-                      {isMobile && (
-                        <div style={{ float: 'right' }}>
-                          <Checkbox 
-                            checked={mobileFocusMode} 
-                            onChange={e => setMobileFocusMode(e.target.checked)}
-                            style={{ fontSize: '12px' }}
-                          >
-                            Prioritas
-                          </Checkbox>
-                        </div>
-                      )}
-                    </Title>
-                    {selectedTingkat !== null && selectedKelasDetail !== null ? (
-                      <div className="mapel-selection-cards">
-                        {mode === 'input-ujian' ? (
-                          // Direct Mode for Input Ujian (Always show Reguler subjects)
-                          <div className="direct-mapel-selection">
-                            <Space wrap>
-                              {mataPelajaran
-                                .filter(m => m.jenis === 'Reguler')
-                                .filter(m => {
-                                  const allowedMapelIds = mapelTingkat.filter(mt => mt.tingkat === selectedTingkat).map(mt => mt.mata_pelajaran_id);
-                                  return allowedMapelIds.includes(m.id);
-                                })
-                                .map(m => (
-                                  <Card
-                                    key={m.id}
-                                    hoverable
-                                    size="small"
-                                    className={`selection-card ${selectedMapel === m.id ? 'active' : ''}`}
-                                    onClick={() => setSelectedMapel(m.id)}
-                                    style={{ 
-                                      padding: '2px 8px', 
-                                      borderRadius: '8px',
-                                      borderColor: selectedMapel === m.id ? 'var(--ant-primary-color)' : '#f0f0f0',
-                                      backgroundColor: selectedMapel === m.id ? '#e6f7ff' : '#fafafa'
-                                    }}
-                                  >
-                                    <Space>
-                                      <Badge color="blue" />
-                                      <Text strong={selectedMapel === m.id} style={{ fontSize: '13px' }}>{m.nama}</Text>
-                                    </Space>
-                                  </Card>
-                                ))
-                              }
-                              {mataPelajaran
-                                .filter(m => m.jenis === 'Reguler')
-                                .filter(m => {
-                                  const allowedMapelIds = mapelTingkat.filter(mt => mt.tingkat === selectedTingkat).map(mt => mt.mata_pelajaran_id);
-                                  return allowedMapelIds.includes(m.id);
-                                }).length === 0 && (
-                                  <Text type="secondary" style={{ fontSize: '13px' }}>Tidak ada mata pelajaran reguler yang terjadwal untuk tingkatan ini.</Text>
-                                )
-                              }
-                            </Space>
-                          </div>
-                        ) : isMobile && mobileFocusMode ? (
-                          // Simplified Mode for Mobile Priority
-                          <div className="mobile-priority-selection">
-                            <Space wrap>
-                              {mapelCategories
-                                .filter(cat => cat.key === 'ujian_khusus') // Only Ujian Khusus
-                                .flatMap(cat => cat.items)
-                                .map(m => (
-                                  <Card
-                                    key={m.id}
-                                    hoverable
-                                    size="small"
-                                    className={`selection-card priority-card ${selectedMapel === m.id ? 'active' : ''}`}
-                                    onClick={() => setSelectedMapel(m.id)}
-                                  >
-                                    <Space direction="vertical" align="center" size={2}>
-                                      <RocketOutlined style={{ fontSize: '20px', color: selectedMapel === m.id ? '#1890ff' : '#8c8c8c' }} />
-                                      <Text strong={selectedMapel === m.id} style={{ fontSize: '11px' }}>{m.nama}</Text>
-                                    </Space>
-                                  </Card>
-                                ))
-                              }
-                              <Button 
-                                type="dashed" 
-                                size="small" 
-                                icon={<StarOutlined />}
-                                onClick={() => setMobileFocusMode(false)}
-                                style={{ height: '54px', borderRadius: '8px', fontSize: '11px' }}
-                              >
-                                Lainnya
-                              </Button>
-                            </Space>
-                          </div>
-                        ) : (
-                          <Collapse 
-                            ghost 
-                            activeKey={activeCollapseKeys}
-                            onChange={setActiveCollapseKeys}
-                            expandIconPosition="end"
-                            items={mapelCategories
-                              .filter(cat => !isMobile || !mobileFocusMode || cat.key === 'ujian_khusus')
-                              .map(cat => ({
-                                key: cat.key,
-                                label: (
-                                  <Text strong style={{ color: 'rgba(0,0,0,0.65)', textTransform: 'uppercase', fontSize: '11px', letterSpacing: '0.5px' }}>
-                                    {cat.label}
-                                  </Text>
-                                ),
-                                children: (
-                                  <Space wrap>
-                                    {cat.items.map(m => (
-                                      <Card
-                                        key={m.id}
-                                        hoverable
-                                        size="small"
-                                        className={`selection-card ${selectedMapel === m.id ? 'active' : ''}`}
-                                        onClick={(e) => {
-                                          e.stopPropagation();
-                                          setSelectedMapel(m.id);
-                                        }}
-                                        style={{ 
-                                          padding: '2px 8px', 
-                                          borderRadius: '8px',
-                                          borderColor: selectedMapel === m.id ? 'var(--ant-primary-color)' : '#f0f0f0',
-                                          backgroundColor: selectedMapel === m.id ? '#e6f7ff' : '#fafafa'
-                                        }}
-                                      >
-                                        <Space>
-                                          <Badge color={cat.color} />
-                                          <Text strong={selectedMapel === m.id} style={{ fontSize: '13px' }}>{m.nama}</Text>
-                                        </Space>
-                                      </Card>
-                                    ))}
-                                  </Space>
-                                )
-                              }))}
-                          />
-                        )}
-                      </div>
-                    ) : (
-                      <Empty description="Silakan pilih Tingkatan dan Rincian Kelas terlebih dahulu" />
-                    )}
-                  </Col>
-                )}
-              </Row>
-            </Card>
-          </Col>
-          <Col span={24}>
-            {selectedKelasDetail && selectedMapel && selectedKategori ? (
-              <Card 
-                title={
-                  <Space>
-                    <UserOutlined />
-                    <span>Daftar Santri - {kelas.find(k => k.id === selectedKelasDetail)?.nama}</span>
-                    <Divider type="vertical" />
-                    <BookOutlined />
-                    <span>{mataPelajaran.find(m => m.id === selectedMapel)?.nama}</span>
-                    <Badge count={mataPelajaran.find(m => m.id === selectedMapel)?.jenis} style={{ backgroundColor: '#52c41a', marginLeft: 8 }} />
-                  </Space>
-                }
-                extra={
-                  <Space>
-                    <Button icon={<ReloadOutlined />} onClick={loadSantriAndNilai}>Refresh</Button>
-                    <Button type="primary" icon={<SaveOutlined />} onClick={saveNilai} loading={saveLoading}>Simpan Semua Nilai</Button>
-                  </Space>
-                }
-              >
-                <Table 
-                  dataSource={santriList} 
-                  columns={columns} 
-                  rowKey="santri_id" 
-                  pagination={false} 
-                  size="middle"
-                  loading={loading}
-                  scroll={{ x: 'max-content' }}
-                />
-              </Card>
-            ) : <Empty description="Silakan pilih Tingkatan, Rincian Kelas, dan Mata Pelajaran terlebih dahulu" />}
-          </Col>
-        </Row>
-      )
-    },
-    {
-      key: 'absensi',
-      label: <span><CalendarOutlined /> Absensi</span>,
-      children: (
-        <Row gutter={[16, 16]}>
-          <Col span={24}>
-            <Card className="filter-card">
-              <Row gutter={[24, 24]}>
-                <Col xs={24} lg={12}>{renderTingkatSelection()}</Col>
-                <Col xs={24} lg={12}>
-                  <Alert message="Pilih Tingkat dan Kelas untuk mengisi Absensi berdasarkan Semester yang aktif di atas." type="info" showIcon style={{ marginTop: 16 }} />
-                </Col>
-              </Row>
-            </Card>
-          </Col>
-          <Col span={24}>
-            {selectedKelasDetail && selectedKategori ? (
-              <RaporSantriForms 
-                type="absensi" 
-                tahunAjaran={tahunAjaran} 
-                selectedKelasDetail={selectedKelasDetail} 
-                selectedKategori={selectedKategori} 
-                kelasName={kelas.find(k => k.id === selectedKelasDetail)?.nama}
-                kategoriNama={kategori.find(k => k.id === selectedKategori)?.nama}
-              />
-            ) : <Empty description="Silakan pilih Tingkat dan Kelas terlebih dahulu" />}
-          </Col>
-        </Row>
-      )
-    },
-    {
-      key: 'kepribadian',
-      label: <span><UserOutlined /> Kepribadian</span>,
-      children: (
-        <Row gutter={[16, 16]}>
-          <Col span={24}>
-            <Card className="filter-card">
-              <Row gutter={[24, 24]}>
-                <Col xs={24} lg={12}>{renderTingkatSelection()}</Col>
-                <Col xs={24} lg={12}>
-                  <Alert message="Pilih Tingkat dan Kelas untuk mengisi Nilai Kepribadian." type="info" showIcon style={{ marginTop: 16 }} />
-                </Col>
-              </Row>
-            </Card>
-          </Col>
-          <Col span={24}>
-            {selectedKelasDetail && selectedKategori ? (
-              <RaporSantriForms 
-                type="kepribadian" 
-                tahunAjaran={tahunAjaran} 
-                selectedKelasDetail={selectedKelasDetail} 
-                selectedKategori={selectedKategori} 
-                kelasName={kelas.find(k => k.id === selectedKelasDetail)?.nama}
-              />
-            ) : <Empty description="Silakan pilih Tingkat dan Kelas terlebih dahulu" />}
-          </Col>
-        </Row>
-      )
-    },
-    {
-      key: 'catatan',
-      label: <span><MessageOutlined /> Catatan Wali Kelas</span>,
-      children: (
-        <Row gutter={[16, 16]}>
-          <Col span={24}>
-            <Card className="filter-card">
-              <Row gutter={[24, 24]}>
-                <Col xs={24} lg={12}>{renderTingkatSelection()}</Col>
-                <Col xs={24} lg={12}>
-                  <Alert message="Pilih Tingkat dan Kelas untuk mengisi Catatan Wali Kelas." type="info" showIcon style={{ marginTop: 16 }} />
-                </Col>
-              </Row>
-            </Card>
-          </Col>
-          <Col span={24}>
-            {selectedKelasDetail && selectedKategori ? (
-              <RaporSantriForms 
-                type="catatan" 
-                tahunAjaran={tahunAjaran} 
-                selectedKelasDetail={selectedKelasDetail} 
-                selectedKategori={selectedKategori} 
-                kelasName={kelas.find(k => k.id === selectedKelasDetail)?.nama}
-              />
-            ) : <Empty description="Silakan pilih Tingkat dan Kelas terlebih dahulu" />}
-          </Col>
-        </Row>
-      )
-    },
-    ...(kategori.find(k => k.id === selectedKategori)?.nama?.toLowerCase().includes('genap') ? [{
-      key: 'kenaikan_kelas',
-      label: <span><ArrowRightOutlined /> Kenaikan Kelas</span>,
-      children: (
-        <Row gutter={[16, 16]}>
-          <Col span={24}>
-            <Card className="filter-card">
-              <Row gutter={[24, 24]}>
-                <Col xs={24} lg={12}>{renderTingkatSelection()}</Col>
-                <Col xs={24} lg={12}>
-                  <Alert message="Pilih Tingkat dan Kelas untuk mengisi Keputusan Kenaikan Kelas." type="info" showIcon style={{ marginTop: 16 }} />
-                </Col>
-              </Row>
-            </Card>
-          </Col>
-          <Col span={24}>
-            {selectedKelasDetail && selectedKategori ? (
-              <RaporSantriForms 
-                type="kenaikan_kelas" 
-                tahunAjaran={tahunAjaran} 
-                selectedKelasDetail={selectedKelasDetail} 
-                selectedKategori={selectedKategori} 
-                kelasName={kelas.find(k => k.id === selectedKelasDetail)?.nama}
-              />
-            ) : <Empty description="Silakan pilih Tingkat dan Kelas terlebih dahulu" />}
-          </Col>
-        </Row>
-      )
-    }] : []),
-    {
-      key: 'setting',
-      label: <span><SettingOutlined /> Pengaturan Kriteria</span>,
-      children: (
-        <Row gutter={[16, 16]}>
-          <Col xs={24} lg={8}>
-            <Card title="Cakupan Pengaturan (Khusus Muhafadzoh)">
-              <Paragraph type="secondary">
-                Pengaturan ini akan berlaku untuk seluruh kelas dalam tingkatan yang dipilih pada <strong>{kategori.find(k => k.id === selectedKategori)?.nama || 'Semester Aktif'}</strong>.
-              </Paragraph>
-              <Space direction="vertical" style={{ width: '100%' }}>
-                {renderTingkatSelection(true)}
-                <Select placeholder="Pilih Mata Pelajaran" style={{ width: '100%' }} value={selectedMapel} onChange={setSelectedMapel}>
-                  {mataPelajaran.filter(m => ['Muhafadzoh', 'Qiroah', 'Taftisy'].includes(m.jenis)).map(m => <Select.Option key={m.id} value={m.id}>{m.nama}</Select.Option>)}
-                </Select>
-                <Alert message="Informasi" description="Tingkat 2 dan SP wajib menggunakan format Teks. Selain Tingkat 2, SP, dan Sifir wajib Angka." type="info" showIcon style={{ marginTop: 16 }} />
-              </Space>
-            </Card>
-          </Col>
-          <Col xs={24} lg={16}>
-            <Card title="Konfigurasi Kriteria" extra={<Button type="primary" icon={<SaveOutlined />} onClick={saveKriteria} loading={saveLoading}>Simpan Kriteria</Button>}>
-              {selectedMapel && mataPelajaran.find(m => m.id === selectedMapel)?.jenis === 'Muhafadzoh' ? (
-                renderKriteriaConfig()
-              ) : <Empty description="Pilih Kategori Muhafadzoh untuk mengatur kriteria" />}
-            </Card>
-          </Col>
-        </Row>
-      )
-    },
-    {
-      key: 'jadwal',
-      label: <span><AppstoreOutlined /> Jadwal Pelajaran</span>,
-      children: (
-        <Row gutter={[16, 16]}>
-          <Col xs={24} lg={8}>
-            <Card title="Pilih Tingkatan">
-              {renderTingkatSelection(true)}
-              <Alert message="Konfigurasi Jadwal Ujian Semester" description="Pilih mata pelajaran umum (Reguler) yang akan diujikan pada tingkatan ini." type="info" showIcon style={{ marginTop: 16 }} />
-            </Card>
-          </Col>
-          <Col xs={24} lg={16}>
-            <Card 
-              title="Daftar Mata Pelajaran Semester" 
-              extra={<Button type="primary" icon={<SaveOutlined />} onClick={saveJadwal} loading={saveLoading} disabled={selectedTingkat === null}>Simpan Jadwal</Button>}
-            >
-              {selectedTingkat !== null ? (
-                <Checkbox.Group 
-                  style={{ width: '100%' }} 
-                  value={jadwalMapelIds} 
-                  onChange={setJadwalMapelIds}
-                >
-                  <Row gutter={[16, 16]}>
-                    {mataPelajaran.filter(m => m.jenis === 'Reguler').map(m => (
-                      <Col xs={12} key={m.id}>
-                        <Checkbox value={m.id}>
-                          <Text strong>{m.nama}</Text>
-                        </Checkbox>
-                      </Col>
-                    ))}
-                  </Row>
-                </Checkbox.Group>
-              ) : (
-                <Empty description="Pilih Tingkatan terlebih dahulu di kolom kiri" />
-              )}
-            </Card>
-          </Col>
-        </Row>
-      )
-    },
-    {
-      key: 'rekap',
-      label: <span><BookOutlined /> Rekap Nilai</span>,
-      children: (
-        <Row gutter={[16, 16]}>
-          <Col span={24}>
-            <Card className="filter-card">
-              <Row gutter={[24, 24]}>
-                <Col xs={24} lg={12}>{renderTingkatSelection()}</Col>
-                <Col xs={24} lg={12}>
-                  <Alert message="Pilih Tingkat dan Kelas untuk melihat Rekap Nilai secara otomatis berdasarkan Semester yang aktif di atas." type="info" showIcon style={{ marginTop: 16 }} />
-                </Col>
-              </Row>
-            </Card>
-          </Col>
-          <Col span={24}>
-            {selectedKelasDetail && selectedKategori ? (
-              <Card 
-                title={
-                  <Space>
-                    <UnorderedListOutlined />
-                    <span>Rekap Nilai - {kelas.find(k => k.id === selectedKelasDetail)?.nama}</span>
-                  </Space>
-                }
-                extra={
-                  <Space>
-                    <Button
-                      type="primary"
-                      icon={<EditOutlined />}
-                      onClick={() => setIsManualRankModalOpen(true)}
-                    >
-                      Sesuaikan Peringkat
-                    </Button>
-                    <Button 
-                      type="default" 
-                      icon={<FilePdfOutlined style={{ color: 'red' }} />}
-                      onClick={() => {
-                        try {
-                          const doc = new jsPDF({ orientation: 'landscape', format: 'a4' });
-                          const namaKelas = kelas.find(k => k.id === selectedKelasDetail)?.nama || 'Kelas';
-                          
-                          doc.setFontSize(14);
-                          doc.text(`Rekap Nilai - ${namaKelas}`, 14, 15);
-                          doc.setFontSize(10);
-                          doc.text(`Tahun Ajaran: ${tahunAjaran?.kode || ''} | Semester: ${kategori.find(k => k.id === selectedKategori)?.nama || ''}`, 14, 22);
-                  
-                          const allowedMapelIds = mapelTingkat.filter(mt => mt.tingkat === selectedTingkat).map(mt => mt.mata_pelajaran_id);
-                          const semesterMapels = mataPelajaran.filter(m => m.jenis === 'Reguler' && allowedMapelIds.includes(m.id));
-                          const akbarMapels = mataPelajaran.filter(m => m.jenis === 'Muhafadzoh' && m.nama?.toLowerCase().includes('akbar'));
-                          const qiroatulMapels = mataPelajaran.filter(m => m.jenis === 'Qiroah');
-                          const taftisyulMapels = mataPelajaran.filter(m => m.jenis === 'Taftisy');
-                          const allRekapMapels = [...semesterMapels, ...akbarMapels, ...qiroatulMapels, ...taftisyulMapels];
-
-                          const headers = ['No', 'NIS', 'Nama Santri'];
-                          allRekapMapels.forEach(m => headers.push(m.nama));
-                          headers.push('Total', 'Rata-rata', 'Peringkat');
-                  
-                          const body = rekapData.map((row, idx) => {
-                            const rowData = [idx + 1, row.nis || '-', row.nama || '-'];
-                            
-                            allRekapMapels.forEach(m => {
-                              const val = row[`mapel_${m.id}`];
-                              if (!val || val === '-') {
-                                rowData.push('-');
-                              } else if (m.jenis === 'Muhafadzoh') {
-                                rowData.push(`${val}`);
-                              } else if (m.jenis === 'Taftisy') {
-                                rowData.push(`${val}`);
-                              } else {
-                                rowData.push(val);
-                              }
-                            });
-                            
-                            rowData.push(row.total_nilai, row.rata_rata, row.peringkat);
-                            return rowData;
-                          });
-                  
-                  
-                          import('jspdf-autotable').then(({ default: autoTable }) => {
-                            autoTable(doc, {
-                              head: [headers],
-                              body: body,
-                              startY: 28,
-                              theme: 'grid',
-                              styles: { fontSize: 8 },
-                              headStyles: { fillColor: [24, 144, 255], textColor: 255, halign: 'center' },
-                              columnStyles: {
-                                0: { halign: 'center' },
-                                1: { halign: 'center' }
-                              },
-                              bodyStyles: { valign: 'middle' }
-                            });
-                            doc.save(`Rekap_Nilai_${namaKelas}_${tahunAjaran?.kode}.pdf`);
-                          }).catch(err => {
-                            console.error('autotable error:', err);
-                            message.error(`Autotable Error: ${err.message}`);
-                          });
-                          
-                        } catch (err) {
-                          message.error(`Error: ${err.message || 'Gagal membuat file PDF'}`);
-                          console.error(err);
-                        }
-                      }}
-                    >
-                      Ekspor PDF
-                    </Button>
-                    <Button 
-                      type="primary" 
-                      icon={<PrinterOutlined />}
-                      onClick={() => window.open(`/rapor-print/${tahunAjaran.id}/${selectedKelasDetail}/${selectedKategori}/all`, '_blank')}
-                    >
-                      Buka Rapor Kelas (Slide)
-                    </Button>
-                  </Space>
-                }
-              >
-                <Table 
-                  dataSource={rekapData} 
-                  columns={rekapColumns} 
-                  rowKey="santri_id" 
-                  pagination={false} 
-                  size="small"
-                  scroll={{ x: 'max-content', y: 'calc(100vh - 350px)' }}
-                  loading={rekapLoading}
-                  bordered
-                />
-              </Card>
-            ) : <Empty description="Silakan lengkapi pilihan filter di atas untuk melihat rekap nilai" />}
-          </Col>
-        </Row>
-      )
-    },
-    {
-      key: 'pengaturan-rapor',
-      label: <span><SettingOutlined /> Pengaturan Rapor</span>,
-      children: (
-        <Card className="filter-card">
-          <RaporSettingsTab />
-        </Card>
-      )
+  const handleManualRankSave = async () => {
+    try {
+      setManualRankSaveLoading(true);
+      const payload = manualRankData
+        .filter(d => d.peringkat_manual !== undefined && d.peringkat_manual !== null && d.peringkat_manual !== '')
+        .map(d => ({
+          santri_id: d.santri_id,
+          peringkat_manual: Number(d.peringkat_manual)
+        }));
+      await nilaiService.saveManualRankBulk(tahunAjaran.id, selectedKelasDetail, selectedKategori, payload);
+      toast.success('Peringkat manual berhasil disinkronisasi!');
+      setIsManualRankModalOpen(false);
+      loadRekapData();
+    } catch (err) {
+      toast.error('Gagal menyimpan peringkat manual');
+    } finally {
+      setManualRankSaveLoading(false);
     }
-  ];
+  };
 
-  const mainTabs = allTabs.filter(tab => {
-    if (mode === 'config') return ['setting', 'jadwal'].includes(tab.key);
-    if (mode === 'rekap') return ['rekap', 'pengaturan-rapor'].includes(tab.key);
-    if (mode === 'input-ujian') return ['input'];
-    return ['input', 'absensi', 'kepribadian', 'catatan', 'kenaikan_kelas'].includes(tab.key);
-  });
+  const handleTaftisyPdfExport = () => {
+    try {
+      const doc = new jsPDF({ orientation: 'landscape', format: 'a4' });
+      const namaKelas = kelas.find(k => k.id === selectedKelasDetail)?.nama || 'Kelas';
+      
+      doc.setFontSize(14);
+      doc.text(`Rekap Nilai - ${namaKelas}`, 14, 15);
+      doc.setFontSize(10);
+      doc.text(`Tahun Ajaran: ${tahunAjaran?.kode || ''} | Semester: ${kategori.find(k => k.id === selectedKategori)?.nama || ''}`, 14, 22);
 
-  if (loading && !santriList.length) return <LoadingState tip="Memuat modul manajemen nilai..." />;
-  if (error) return <ErrorState message={error} onRetry={loadInitialData} />;
+      const allowedMapelIds = mapelTingkat.filter(mt => mt.tingkat === selectedTingkat).map(mt => mt.mata_pelajaran_id);
+      const semesterMapels = mataPelajaran.filter(m => m.jenis === 'Reguler' && allowedMapelIds.includes(m.id));
+      const akbarMapels = mataPelajaran.filter(m => m.jenis === 'Muhafadzoh' && m.nama?.toLowerCase().includes('akbar'));
+      const qiroatulMapels = mataPelajaran.filter(m => m.jenis === 'Qiroah');
+      const taftisyulMapels = mataPelajaran.filter(m => m.jenis === 'Taftisy');
+      const allRekapMapels = [...semesterMapels, ...akbarMapels, ...qiroatulMapels, ...taftisyulMapels];
+
+      const headers = ['No', 'NIS', 'Nama Santri'];
+      allRekapMapels.forEach(m => headers.push(m.nama));
+      headers.push('Total', 'Rata-rata', 'Peringkat');
+
+      const body = rekapData.map((row, idx) => {
+        const rowData = [idx + 1, row.nis || '-', row.nama || '-'];
+        allRekapMapels.forEach(m => {
+          const val = row[`mapel_${m.id}`];
+          rowData.push(val || '-');
+        });
+        rowData.push(row.total_nilai, row.rata_rata, row.peringkat);
+        return rowData;
+      });
+
+      import('jspdf-autotable').then(({ default: autoTable }) => {
+        autoTable(doc, {
+          head: [headers],
+          body: body,
+          startY: 28,
+          theme: 'grid',
+          styles: { fontSize: 8 },
+          headStyles: { fillColor: [79, 70, 229], textColor: 255, halign: 'center' },
+          columnStyles: {
+            0: { halign: 'center' },
+            1: { halign: 'center' }
+          },
+          bodyStyles: { valign: 'middle' }
+        });
+        doc.save(`Rekap_Nilai_${namaKelas}_${tahunAjaran?.kode}.pdf`);
+      }).catch(err => {
+        toast.error(`Autotable Error: ${err.message}`);
+      });
+    } catch (err) {
+      toast.error(`Gagal membuat berkas PDF: ${err.message}`);
+    }
+  };
 
   const getHeaderInfo = () => {
     if (isMobile && mobileViewMode === 'input' && selectedMapel) {
       const mapelName = mataPelajaran.find(m => m.id === selectedMapel)?.nama || '';
       return {
-        title: `Input ${mapelName}`,
-        subtitle: "Manajemen penilaian santri"
+        title: `✍️ Input ${mapelName}`,
+        subtitle: "Kelola penilaian santri per kompetensi kelas"
       };
     }
 
-    switch(mode) {
-      case 'config':
-        return {
-          title: "Pengaturan & Jadwal",
-          subtitle: "Konfigurasi kriteria nilai dan jadwal mata pelajaran"
-        };
-      case 'rekap':
-        return {
-          title: "Rekap & Rapor",
-          subtitle: "Laporan rekapitulasi nilai dan pencetakan rapor santri"
-        };
-      default:
-        return {
-          title: "Input Penilaian",
-          subtitle: "Input nilai Muhafadzoh, Qiroatul Kitab, dan Taftisyul kutub"
-        };
+    if (mode === 'rekap') {
+      return {
+        title: "📊 Rekapitulasi & Rapor Santri",
+        subtitle: "Laporan rekapitulasi nilai kumulatif dan pencetakan rapor semester santri"
+      };
     }
+    return {
+      title: "✍️ Input Penilaian Santri",
+      subtitle: "Input nilai Muhafadzoh, Qiroatul Kitab, dan Taftisyul Kutub"
+    };
   };
 
+  if (loading && !santriList.length && !rekapData.length) {
+    return <LoadingState message="Memuat modul manajemen penilaian..." />;
+  }
+
   const headerInfo = getHeaderInfo();
+  const classOptions = kelas.filter(k => k.tingkat === selectedTingkat);
 
   return (
     <div className="nilai-page">
@@ -1668,89 +718,730 @@ export const ManajemenNilai = ({ mode = 'input' }) => {
         title={headerInfo.title} 
         subtitle={headerInfo.subtitle}
         extra={[
-          <Segmented 
-            key="semester"
-            className="semester-segmented-highlight"
-            block={isMobile}
-            options={kategori
-              .filter(k => !k.nama.toLowerCase().includes('harian') && !k.nama.toLowerCase().includes('tugas'))
-              .map(k => ({ label: k.nama, value: k.id }))}
-            value={selectedKategori}
-            onChange={(val) => {
-              setSelectedKategori(val);
-              localStorage.setItem('sekolah_info_selected_kategori', val);
-            }}
-            size="default"
-            style={isMobile ? { width: '100%' } : { marginRight: 16 }}
-          />,
-          <Select
-            key="ta"
-            style={{ width: 150, alignSelf: 'center', marginRight: 16 }}
-            value={tahunAjaran?.id}
-            onChange={handleTahunAjaranChange}
-            options={tahunAjaranList.map(ta => ({ value: ta.id, label: ta.kode }))}
-            size="large"
-          />
+          <div key="filters" className="header-selectors-row">
+            <div className="selector-box">
+              <CustomSelect
+                value={selectedKategori ? String(selectedKategori) : ''}
+                onChange={(val) => {
+                  setSelectedKategori(val ? Number(val) : null);
+                  localStorage.setItem('sekolah_info_selected_kategori', val);
+                }}
+                options={kategori
+                  .filter(k => !k.nama.toLowerCase().includes('harian') && !k.nama.toLowerCase().includes('tugas'))
+                  .map(k => ({ value: String(k.id), label: k.nama }))}
+                placeholder="Pilih Semester"
+                disabled={showKeypad}
+              />
+            </div>
+            <div className="selector-box">
+              <CustomSelect
+                value={tahunAjaran?.id ? String(tahunAjaran.id) : ''}
+                onChange={(val) => {
+                  const selected = tahunAjaranList.find(ta => ta.id === Number(val));
+                  setTahunAjaran(selected || null);
+                }}
+                options={tahunAjaranList.map(ta => ({ value: String(ta.id), label: ta.kode }))}
+                placeholder="Tahun Ajaran"
+                disabled={showKeypad}
+              />
+            </div>
+          </div>
         ]}
       />
+
       {isMobile && mobileViewMode === 'dashboard' ? (
-        <div className="mobile-dashboard-container">
-          <div className="dashboard-header">
-            <Title level={3}>Manajemen Nilai</Title>
-            <Text type="secondary">Pilih kategori ujian untuk mulai input cepat</Text>
+        <div className="mobile-dashboard-container" style={{ padding: '0 16px' }}>
+          <div style={{ marginBottom: '24px' }}>
+            <h3 style={{ margin: '0 0 6px 0', fontSize: '18px', fontWeight: 800 }}>Pilihan Input Cepat</h3>
+            <p style={{ margin: 0, fontSize: '13px', color: '#64748b' }}>Pilih modul ujian khusus di bawah untuk memulai</p>
           </div>
           
-          <div className="quick-cards-grid">
-            <div className="quick-card muhafadzoh" onClick={() => handleQuickStart('muhafadzoh')}>
-              <div className="card-icon"><AuditOutlined /></div>
-              <div className="card-content">
-                <h3>Muhafadzoh Kubro</h3>
-                <p>Nadzom dan lainnya</p>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+            <div className="frosted-card" style={{ padding: '16px', cursor: 'pointer', display: 'flex', gap: '16px', alignItems: 'center' }} onClick={() => handleQuickStart('muhafadzoh')}>
+              <div style={{ padding: '12px', background: 'rgba(168, 85, 247, 0.1)', borderRadius: '12px', color: '#a855f7' }}>
+                <Star size={24} />
               </div>
-              <div className="card-arrow"><ArrowRightOutlined /></div>
+              <div style={{ flex: 1 }}>
+                <h4 style={{ margin: '0 0 4px 0', fontSize: '14.5px', fontWeight: 700 }}>Muhafadzoh Kubro</h4>
+                <p style={{ margin: 0, fontSize: '12px', color: '#64748b' }}>Nadzom hafalan pertingkatan</p>
+              </div>
+              <ArrowRight size={18} style={{ color: '#94a3b8' }} />
             </div>
 
-            <div className="quick-card qiroah" onClick={() => handleQuickStart('qiroah')}>
-              <div className="card-icon"><ReadOutlined /></div>
-              <div className="card-content">
-                <h3>Qiroatul Kitab</h3>
-                <p>Ujian Baca Kitab Kuning</p>
+            <div className="frosted-card" style={{ padding: '16px', cursor: 'pointer', display: 'flex', gap: '16px', alignItems: 'center' }} onClick={() => handleQuickStart('qiroah')}>
+              <div style={{ padding: '12px', background: 'rgba(59, 130, 246, 0.1)', borderRadius: '12px', color: '#3b82f6' }}>
+                <Rocket size={24} />
               </div>
-              <div className="card-arrow"><ArrowRightOutlined /></div>
+              <div style={{ flex: 1 }}>
+                <h4 style={{ margin: '0 0 4px 0', fontSize: '14.5px', fontWeight: 700 }}>Qiroatul Kitab</h4>
+                <p style={{ margin: 0, fontSize: '12px', color: '#64748b' }}>Ujian membaca kitab kuning</p>
+              </div>
+              <ArrowRight size={18} style={{ color: '#94a3b8' }} />
             </div>
 
-            <div className="quick-card taftisy" onClick={() => handleQuickStart('taftisy')}>
-              <div className="card-icon"><FileSearchOutlined /></div>
-              <div className="card-content">
-                <h3>Taftisyul Kutub</h3>
-                <p>Pemeriksaan Kelengkapan Kitab</p>
+            <div className="frosted-card" style={{ padding: '16px', cursor: 'pointer', display: 'flex', gap: '16px', alignItems: 'center' }} onClick={() => handleQuickStart('taftisy')}>
+              <div style={{ padding: '12px', background: 'rgba(234, 179, 8, 0.1)', borderRadius: '12px', color: '#eab308' }}>
+                <Zap size={24} />
               </div>
-              <div className="card-arrow"><ArrowRightOutlined /></div>
+              <div style={{ flex: 1 }}>
+                <h4 style={{ margin: '0 0 4px 0', fontSize: '14.5px', fontWeight: 700 }}>Taftisyul Kutub</h4>
+                <p style={{ margin: 0, fontSize: '12px', color: '#64748b' }}>Pemeriksaan kelengkapan catatan kitab</p>
+              </div>
+              <ArrowRight size={18} style={{ color: '#94a3b8' }} />
             </div>
           </div>
         </div>
       ) : (
-        <div className="page-content">
-          {isMobile ? (
-            allTabs.find(tab => tab.key === 'input')?.children
-          ) : (
-            <Tabs activeKey={activeTab} onChange={setActiveTab} type="line" items={mainTabs} />
+        <div className="page-content" style={{ marginTop: '8px' }}>
+          
+          {/* Custom Tabs Navigation (for non-ujian mode) */}
+          {mode !== 'input-ujian' && mode !== 'rekap' && (
+            <div className="custom-tabs-nav">
+              <button
+                type="button"
+                className={`custom-tabs-tab ${activeTab === 'input' ? 'active' : ''}`}
+                onClick={() => setActiveTab('input')}
+              >
+                <Edit3 size={15} />
+                <span>Input Nilai</span>
+              </button>
+              <button
+                type="button"
+                className={`custom-tabs-tab ${activeTab === 'absensi' ? 'active' : ''}`}
+                onClick={() => setActiveTab('absensi')}
+              >
+                <Calendar size={15} />
+                <span>Absensi</span>
+              </button>
+              <button
+                type="button"
+                className={`custom-tabs-tab ${activeTab === 'kepribadian' ? 'active' : ''}`}
+                onClick={() => setActiveTab('kepribadian')}
+              >
+                <User size={15} />
+                <span>Kepribadian</span>
+              </button>
+              <button
+                type="button"
+                className={`custom-tabs-tab ${activeTab === 'catatan' ? 'active' : ''}`}
+                onClick={() => setActiveTab('catatan')}
+              >
+                <MessageSquare size={15} />
+                <span>Catatan Wali Kelas</span>
+              </button>
+              {kategori.find(k => k.id === selectedKategori)?.nama?.toLowerCase().includes('genap') && (
+                <button
+                  type="button"
+                  className={`custom-tabs-tab ${activeTab === 'kenaikan_kelas' ? 'active' : ''}`}
+                  onClick={() => setActiveTab('kenaikan_kelas')}
+                >
+                  <TrendingUp size={15} />
+                  <span>Kenaikan Kelas</span>
+                </button>
+              )}
+            </div>
           )}
+
+          {mode === 'rekap' && (
+            <div className="custom-tabs-nav">
+              <button
+                type="button"
+                className={`custom-tabs-tab ${activeTab === 'rekap' ? 'active' : ''}`}
+                onClick={() => setActiveTab('rekap')}
+              >
+                <Layers size={15} />
+                <span>Rekap Nilai</span>
+              </button>
+              <button
+                type="button"
+                className={`custom-tabs-tab ${activeTab === 'pengaturan-rapor' ? 'active' : ''}`}
+                onClick={() => setActiveTab('pengaturan-rapor')}
+              >
+                <Settings size={15} />
+                <span>Pengaturan Rapor</span>
+              </button>
+            </div>
+          )}
+
+          {/* TAB: INPUT NILAI (CORE INPUT) */}
+          {activeTab === 'input' && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+              {isMobile && (
+                <button 
+                  type="button" 
+                  className="dashed-btn" 
+                  onClick={() => setMobileViewMode('dashboard')}
+                  style={{ width: 'fit-content' }}
+                >
+                  <ArrowLeft size={14} />
+                  <span>Kembali ke Menu Utama</span>
+                </button>
+              )}
+
+              {/* Filters Box */}
+              <div className="filter-grid-layout">
+                
+                {/* Column left: Tingkat / Rincian Kelas selection */}
+                <div className="frosted-card">
+                  <div className="card-header">
+                    <div className="card-title-box">
+                      <Layers size={16} className="card-icon" />
+                      <h3 className="card-title">Pilih Kelas Diniyah</h3>
+                    </div>
+                  </div>
+                  <div className="card-body">
+                    <div className="selection-container">
+                      <h4 className="section-title">Pilih Tingkatan</h4>
+                      <div className="levels-pill-grid">
+                        {levels.map(t => (
+                          <button
+                            key={t}
+                            type="button"
+                            className={`level-pill-btn ${selectedTingkat === t ? 'active' : ''}`}
+                            onClick={() => setSelectedTingkat(t)}
+                          >
+                            {getTingkatLabel(t)}
+                          </button>
+                        ))}
+                      </div>
+
+                      {selectedTingkat !== null && (
+                        <div className="class-detail-wrapper">
+                          <span style={{ fontSize: '12px', fontWeight: 700, color: '#64748b' }}>Pilih Rincian Kelas:</span>
+                          <div className="class-pill-grid">
+                            {classOptions.map(c => (
+                              <button
+                                key={c.id}
+                                type="button"
+                                className={`class-pill-btn ${selectedKelasDetail === c.id ? 'active' : ''}`}
+                                onClick={() => setSelectedKelasDetail(c.id)}
+                              >
+                                {c.nama}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Column right: Mata Pelajaran selection accordion */}
+                <div className="frosted-card">
+                  <div className="card-header">
+                    <div className="card-title-box">
+                      <BookOpen size={16} className="card-icon" />
+                      <h3 className="card-title">Pilih Mata Pelajaran</h3>
+                    </div>
+                  </div>
+                  <div className="card-body">
+                    {selectedTingkat !== null && selectedKelasDetail !== null ? (
+                      mode === 'input-ujian' ? (
+                        /* Input Ujian Subject selection */
+                        <div className="mapel-buttons-grid">
+                          {mataPelajaran
+                            .filter(m => m.jenis === 'Reguler')
+                            .filter(m => {
+                              const allowedMapelIds = mapelTingkat.filter(mt => mt.tingkat === selectedTingkat).map(mt => mt.mata_pelajaran_id);
+                              return allowedMapelIds.includes(m.id);
+                            })
+                            .map(m => (
+                              <button
+                                key={m.id}
+                                type="button"
+                                className={`mapel-select-btn ${selectedMapel === m.id ? 'active' : ''}`}
+                                onClick={() => setSelectedMapel(m.id)}
+                              >
+                                <span className="bullet-color blue"></span>
+                                <span>{m.nama}</span>
+                              </button>
+                            ))
+                          }
+                          {mataPelajaran
+                            .filter(m => m.jenis === 'Reguler')
+                            .filter(m => {
+                              const allowedMapelIds = mapelTingkat.filter(mt => mt.tingkat === selectedTingkat).map(mt => mt.mata_pelajaran_id);
+                              return allowedMapelIds.includes(m.id);
+                            }).length === 0 && (
+                              <span style={{ fontSize: '13px', color: '#94a3b8' }}>Tidak ada mata pelajaran reguler yang terjadwal untuk tingkatan ini.</span>
+                            )
+                          }
+                        </div>
+                      ) : (
+                        /* Normal input subject select categories */
+                        <div className="custom-accordion">
+                          {mapelCategories.map(cat => {
+                            const isExpanded = activeCollapseKeys.includes(cat.key);
+                            return (
+                              <div key={cat.key} className="accordion-section">
+                                <button 
+                                  type="button" 
+                                  className="accordion-header"
+                                  onClick={() => {
+                                    if (isExpanded) {
+                                      setActiveCollapseKeys(activeCollapseKeys.filter(k => k !== cat.key));
+                                    } else {
+                                      setActiveCollapseKeys([...activeCollapseKeys, cat.key]);
+                                    }
+                                  }}
+                                >
+                                  <span className="accordion-title">{cat.label}</span>
+                                  <ChevronDown className={`chevron-icon ${isExpanded ? 'rotated' : ''}`} size={16} />
+                                </button>
+                                {isExpanded && (
+                                  <div className="accordion-content">
+                                    <div className="mapel-buttons-grid">
+                                      {cat.items.map(m => (
+                                        <button
+                                          key={m.id}
+                                          type="button"
+                                          className={`mapel-select-btn ${selectedMapel === m.id ? 'active' : ''}`}
+                                          onClick={() => setSelectedMapel(m.id)}
+                                        >
+                                          <span className={`bullet-color ${cat.color}`}></span>
+                                          <span>{m.nama}</span>
+                                        </button>
+                                      ))}
+                                    </div>
+                                  </div>
+                                )}
+                              </div>
+                            );
+                          })}
+                        </div>
+                      )
+                    ) : (
+                      <div className="page-empty-box">
+                        <Info size={40} className="empty-icon" />
+                        <span>Silakan tentukan rincian kelas diniyah terlebih dahulu pada panel kiri.</span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+              </div>
+
+              {/* Santri Penilaian input sheet */}
+              {selectedKelasDetail && selectedMapel && selectedKategori ? (
+                <div className="frosted-card">
+                  <div className="card-header">
+                    <div className="card-title-box">
+                      <List size={16} className="card-icon" />
+                      <h3 className="card-title">
+                        Daftar Santri — {kelas.find(k => k.id === selectedKelasDetail)?.nama || ''} ({mataPelajaran.find(m => m.id === selectedMapel)?.nama || ''})
+                      </h3>
+                    </div>
+                    <div className="card-actions">
+                      <button 
+                        type="button" 
+                        className="btn-custom btn-secondary" 
+                        onClick={loadSantriAndNilai}
+                      >
+                        <RefreshCw size={14} />
+                        <span>Refresh</span>
+                      </button>
+                      <button 
+                        type="button" 
+                        className="btn-custom btn-primary" 
+                        onClick={saveNilai}
+                        disabled={saveLoading}
+                      >
+                        {saveLoading ? <span className="loading-spinner"></span> : <><Save size={15} /><span>Simpan Semua</span></>}
+                      </button>
+                    </div>
+                  </div>
+                  <div className="card-body">
+                    
+                    <div className="table-responsive-nilai">
+                      <table className="custom-data-table">
+                        <thead>
+                          <tr>
+                            {!isMobile && <th style={{ width: '120px' }}>NIS</th>}
+                            <th>Nama Santri</th>
+                            <th style={{ width: '160px', textAlign: 'center' }}>Input Penilaian</th>
+                            {!isMobile && <th style={{ width: '160px', textAlign: 'center' }}>Predikat</th>}
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {santriList.map((record) => {
+                            const mapel = mataPelajaran.find(m => m.id === selectedMapel);
+                            const jenis = mapel?.jenis;
+                            const isTaftisy = jenis === 'Taftisy';
+                            const isQiroat = jenis === 'Qiroah';
+                            const isMuhafadzoh = jenis === 'Muhafadzoh';
+
+                            let inputComponent = null;
+
+                            if (isTaftisy) {
+                              inputComponent = (
+                                <CustomSelect
+                                  value={record.capaian || ''}
+                                  onChange={(val) => handleNilaiChange(record.santri_id, 'capaian', val || null)}
+                                  options={[
+                                    { value: 'Tam', label: 'Tam (Lengkap)' },
+                                    { value: 'Naqish', label: 'Naqish (Belum Lengkap)' }
+                                  ]}
+                                  placeholder="Tam / Naqish"
+                                />
+                              );
+                            } else {
+                              let useAngka = isQiroat || jenis === 'Reguler';
+                              let maxAngka = 100;
+                              if (isMuhafadzoh) {
+                                maxAngka = 2000;
+                                if (effectiveKriteriaType === 'Teks') useAngka = false;
+                                else if (effectiveKriteriaType === 'Angka') useAngka = true;
+                              }
+
+                              if (useAngka) {
+                                const isSelected = activeSantriId === record.santri_id && showKeypad;
+                                inputComponent = (
+                                  <input 
+                                    type="number" 
+                                    className="cell-input-number"
+                                    min={0}
+                                    max={maxAngka}
+                                    value={record.nilai_angka ?? ''}
+                                    placeholder={`0-${maxAngka}`}
+                                    readOnly={isMobile}
+                                    onClick={() => {
+                                      if (isMobile) {
+                                        setActiveSantriId(record.santri_id);
+                                        setShowKeypad(true);
+                                      }
+                                    }}
+                                    onChange={(e) => {
+                                      const v = e.target.value === '' ? null : Number(e.target.value);
+                                      handleNilaiChange(record.santri_id, 'nilai_angka', v);
+                                    }}
+                                    style={isSelected ? {
+                                      borderColor: '#4f46e5',
+                                      boxShadow: '0 0 0 2px rgba(99, 102, 241, 0.15)',
+                                      backgroundColor: 'rgba(99, 102, 241, 0.02)'
+                                    } : {}}
+                                  />
+                                );
+                              } else {
+                                inputComponent = (
+                                  <CustomSelect
+                                    value={record.capaian || ''}
+                                    onChange={(val) => handleNilaiChange(record.santri_id, 'capaian', val || null)}
+                                    options={configTeks.map(item => ({ value: item.bab, label: item.bab }))}
+                                    placeholder="Pilih"
+                                  />
+                                );
+                              }
+                            }
+
+                            return (
+                              <tr key={record.santri_id}>
+                                {!isMobile && <td className="student-nis-cell">{record.nis || '-'}</td>}
+                                <td className="student-name-cell">{record.nama}</td>
+                                <td>
+                                  <div style={{ display: 'flex', justifyContent: 'center' }}>
+                                    {inputComponent}
+                                  </div>
+                                </td>
+                                {!isMobile && (
+                                  <td>
+                                    <div style={{ display: 'flex', justifyContent: 'center' }}>
+                                      {jenis === 'Reguler' || isQiroat || isTaftisy ? (
+                                        <span style={{ fontSize: '13px', color: '#94a3b8' }}>-</span>
+                                      ) : (
+                                        <span className={`predikat-badge ${record.predikat ? record.predikat.toLowerCase().replace("'", "") : 'empty'}`}>
+                                          {record.predikat || 'Kosong'}
+                                        </span>
+                                      )}
+                                    </div>
+                                  </td>
+                                )}
+                              </tr>
+                            );
+                          })}
+                        </tbody>
+                      </table>
+                    </div>
+
+                  </div>
+                </div>
+              ) : (
+                <div className="frosted-card" style={{ padding: '40px 20px', textAlign: 'center' }}>
+                  <Info size={40} style={{ opacity: 0.4, margin: '0 auto 12px' }} />
+                  <p style={{ margin: 0, color: '#64748b', fontSize: '13.5px' }}>
+                    Tentukan filters tingkatan kelas diniyah beserta mata pelajaran di atas untuk memulai penginputan nilai.
+                  </p>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* TAB ABSENSI */}
+          {activeTab === 'absensi' && (
+            <RaporSantriForms 
+              type="absensi" 
+              tahunAjaran={tahunAjaran} 
+              selectedKelasDetail={selectedKelasDetail} 
+              selectedKategori={selectedKategori} 
+              kelasName={kelas.find(k => k.id === selectedKelasDetail)?.nama}
+              kategoriNama={kategori.find(k => k.id === selectedKategori)?.nama}
+            />
+          )}
+
+          {/* TAB KEPRIBADIAN */}
+          {activeTab === 'kepribadian' && (
+            <RaporSantriForms 
+              type="kepribadian" 
+              tahunAjaran={tahunAjaran} 
+              selectedKelasDetail={selectedKelasDetail} 
+              selectedKategori={selectedKategori} 
+              kelasName={kelas.find(k => k.id === selectedKelasDetail)?.nama}
+            />
+          )}
+
+          {/* TAB CATATAN WALI KELAS */}
+          {activeTab === 'catatan' && (
+            <RaporSantriForms 
+              type="catatan" 
+              tahunAjaran={tahunAjaran} 
+              selectedKelasDetail={selectedKelasDetail} 
+              selectedKategori={selectedKategori} 
+              kelasName={kelas.find(k => k.id === selectedKelasDetail)?.nama}
+            />
+          )}
+
+          {/* TAB KENAIKAN KELAS */}
+          {activeTab === 'kenaikan_kelas' && (
+            <RaporSantriForms 
+              type="kenaikan_kelas" 
+              tahunAjaran={tahunAjaran} 
+              selectedKelasDetail={selectedKelasDetail} 
+              selectedKategori={selectedKategori} 
+              kelasName={kelas.find(k => k.id === selectedKelasDetail)?.nama}
+            />
+          )}
+
+          {/* TAB REKAP & RAPOR */}
+          {activeTab === 'rekap' && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+              <div className="frosted-card">
+                <div className="card-header">
+                  <div className="card-title-box">
+                    <Layers size={16} className="card-icon" />
+                    <h3 className="card-title">Cakupan Rekap Rapor</h3>
+                  </div>
+                </div>
+                <div className="card-body">
+                  <div className="selection-container">
+                    <h4 className="section-title">Pilih Tingkatan</h4>
+                    <div className="levels-pill-grid">
+                      {levels.map(t => (
+                        <button
+                          key={t}
+                          type="button"
+                          className={`level-pill-btn ${selectedTingkat === t ? 'active' : ''}`}
+                          onClick={() => setSelectedTingkat(t)}
+                        >
+                          {getTingkatLabel(t)}
+                        </button>
+                      ))}
+                    </div>
+
+                    {selectedTingkat !== null && (
+                      <div className="class-detail-wrapper">
+                        <span style={{ fontSize: '12px', fontWeight: 700, color: '#64748b' }}>Pilih Rincian Kelas:</span>
+                        <div className="class-pill-grid">
+                          {classOptions.map(c => (
+                            <button
+                              key={c.id}
+                              type="button"
+                              className={`class-pill-btn ${selectedKelasDetail === c.id ? 'active' : ''}`}
+                              onClick={() => setSelectedKelasDetail(c.id)}
+                            >
+                              {c.nama}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              {selectedKelasDetail && selectedKategori ? (
+                <div className="frosted-card">
+                  <div className="card-header">
+                    <div className="card-title-box">
+                      <TableIcon size={16} className="card-icon" />
+                      <h3 className="card-title">
+                        Rekap Nilai — {kelas.find(k => k.id === selectedKelasDetail)?.nama || ''}
+                      </h3>
+                    </div>
+                    <div className="card-actions">
+                      <button 
+                        type="button" 
+                        className="btn-custom btn-secondary" 
+                        onClick={handleTaftisyManualRankTrigger}
+                      >
+                        <Settings size={14} />
+                        <span>Sesuaikan Peringkat</span>
+                      </button>
+                      <button 
+                        type="button" 
+                        className="btn-custom btn-secondary" 
+                        onClick={handleTaftisyPdfExport}
+                      >
+                        <FileText size={14} />
+                        <span>Ekspor PDF</span>
+                      </button>
+                      <button 
+                        type="button" 
+                        className="btn-custom btn-primary" 
+                        onClick={() => window.open(`/rapor-print/${tahunAjaran.id}/${selectedKelasDetail}/${selectedKategori}/all`, '_blank')}
+                      >
+                        <Printer size={15} />
+                        <span>Cetak Rapor Kelas</span>
+                      </button>
+                    </div>
+                  </div>
+                  <div className="card-body">
+                    {rekapLoading ? (
+                      <div className="page-loading-box">
+                        <div className="spinner"></div>
+                        <span>Memuat data rekap santri...</span>
+                      </div>
+                    ) : (
+                      <div className="table-responsive-nilai">
+                        <table className="custom-data-table">
+                          <thead>
+                            <tr>
+                              <th style={{ width: '100px' }}>NIS</th>
+                              <th style={{ minWidth: '180px' }}>Nama Santri</th>
+                              {/* Dynamic Subjects columns list */}
+                              {mataPelajaran
+                                .filter(m => ['Reguler', 'Muhafadzoh', 'Qiroah', 'Taftisy'].includes(m.jenis))
+                                .filter(m => {
+                                  if (m.jenis === 'Reguler') {
+                                    const allowedMapelIds = mapelTingkat.filter(mt => mt.tingkat === selectedTingkat).map(mt => mt.mata_pelajaran_id);
+                                    return allowedMapelIds.includes(m.id);
+                                  }
+                                  return !m.nama?.toLowerCase().includes('mini');
+                                })
+                                .map(m => <th key={m.id} style={{ textAlign: 'center' }}>{m.nama}</th>)}
+                              <th style={{ textAlign: 'center' }}>Total</th>
+                              <th style={{ textAlign: 'center' }}>Rata-rata</th>
+                              <th style={{ textAlign: 'center', width: '80px' }}>Peringkat</th>
+                              <th style={{ textAlign: 'center', width: '120px' }}>Aksi</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {rekapData.map((row) => (
+                              <tr key={row.santri_id}>
+                                <td className="student-nis-cell">{row.nis || '-'}</td>
+                                <td className="student-name-cell">{row.nama}</td>
+                                {/* Render grades for each subject */}
+                                {mataPelajaran
+                                  .filter(m => ['Reguler', 'Muhafadzoh', 'Qiroah', 'Taftisy'].includes(m.jenis))
+                                  .filter(m => {
+                                    if (m.jenis === 'Reguler') {
+                                      const allowedMapelIds = mapelTingkat.filter(mt => mt.tingkat === selectedTingkat).map(mt => mt.mata_pelajaran_id);
+                                      return allowedMapelIds.includes(m.id);
+                                    }
+                                    return !m.nama?.toLowerCase().includes('mini');
+                                  })
+                                  .map(m => {
+                                    const val = row[`mapel_${m.id}`];
+                                    if (!val || val === '-') {
+                                      return <td key={m.id} style={{ textAlign: 'center', color: '#94a3b8' }}>-</td>;
+                                    }
+                                    if (m.jenis === 'Muhafadzoh') {
+                                      return (
+                                        <td key={m.id} style={{ textAlign: 'center' }}>
+                                          <span className={`predikat-badge ${val.toLowerCase().replace("'", "")}`}>
+                                            {val}
+                                          </span>
+                                        </td>
+                                      );
+                                    }
+                                    if (m.jenis === 'Taftisy') {
+                                      return (
+                                        <td key={m.id} style={{ textAlign: 'center', fontWeight: 'bold', color: val === 'Tam' ? '#10b981' : '#ef4444' }}>
+                                          {val}
+                                        </td>
+                                      );
+                                    }
+                                    return <td key={m.id} style={{ textAlign: 'center', fontWeight: 'bold' }}>{val}</td>;
+                                  })}
+                                <td style={{ textAlign: 'center', fontWeight: 'bold', color: '#10b981' }}>{row.total_nilai}</td>
+                                <td style={{ textAlign: 'center', fontWeight: 'bold' }}>{row.rata_rata}</td>
+                                <td style={{ textAlign: 'center', fontWeight: 'bold' }}>
+                                  <span style={{ 
+                                    padding: '4px 8px', 
+                                    borderRadius: '50%', 
+                                    background: row.peringkat <= 3 ? '#10b981' : '#f1f5f9',
+                                    color: row.peringkat <= 3 ? '#ffffff' : '#64748b'
+                                  }}>
+                                    {row.peringkat}
+                                  </span>
+                                </td>
+                                <td>
+                                  <div style={{ display: 'flex', justifyContent: 'center' }}>
+                                    <button
+                                      type="button"
+                                      className="btn-custom btn-secondary btn-small"
+                                      onClick={() => window.open(`/rapor-print/${tahunAjaran.id}/${selectedKelasDetail}/${selectedKategori}/${row.santri_id}`, '_blank')}
+                                    >
+                                      <span>Lihat Rapor</span>
+                                    </button>
+                                  </div>
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              ) : (
+                <div className="frosted-card" style={{ padding: '40px 20px', textAlign: 'center' }}>
+                  <Info size={40} style={{ opacity: 0.4, margin: '0 auto 12px' }} />
+                  <p style={{ margin: 0, color: '#64748b', fontSize: '13.5px' }}>
+                    Tentukan rincian kelas diniyah terlebih dahulu untuk memuat rekapitulasi penilaian.
+                  </p>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* TAB RAPOR SETTINGS */}
+          {activeTab === 'pengaturan-rapor' && (
+            <div className="frosted-card" style={{ padding: '24px' }}>
+              <RaporSettingsTab />
+            </div>
+          )}
+
         </div>
       )}
-      {/* Mobile Input Console (Virtual Keypad Expanded) */}
+
+      {/* Dynamic Keypad Console Overlay for mobile input */}
       {isMobile && showKeypad && (
         <div className="mobile-console-overlay">
           <div className="console-container">
-            {/* --- FIXED HEADER AREA --- */}
+            
             <div className="console-fixed-header">
-              {/* 0. Status Bar (Notif Tersimpan) */}
               <div className={`console-status-bar ${autoSaveStatus || 'idle'}`}>
-                {autoSaveStatus === 'saving' ? <Spin size="small" /> : autoSaveStatus === 'saved' ? <CheckCircleOutlined /> : <InfoCircleOutlined />}
-                <span>{autoSaveStatus === 'saving' ? 'Sedang Menyimpan...' : autoSaveStatus === 'saved' ? 'Data Berhasil Tersimpan!' : 'Siap Input'}</span>
+                {autoSaveStatus === 'saving' ? (
+                  <div className="loading-spinner"></div>
+                ) : autoSaveStatus === 'saved' ? (
+                  <CheckCircle size={14} />
+                ) : (
+                  <Info size={14} />
+                )}
+                <span>
+                  {autoSaveStatus === 'saving' ? 'Menyimpan ke Cloud...' : autoSaveStatus === 'saved' ? 'Penilaian Disimpan!' : 'Siap Input'}
+                </span>
               </div>
 
-              {/* 1. Quick Selectors (Tingkat & Kelas) */}
               <div className="console-selectors">
                 <div className="selector-row">
                   <div className="selector-label">Tingkat:</div>
@@ -1790,26 +1481,26 @@ export const ManajemenNilai = ({ mode = 'input' }) => {
                 )}
               </div>
 
-              <Divider style={{ margin: '8px 0' }} />
+              <div style={{ height: '1px', background: 'rgba(0,0,0,0.06)', margin: '10px 0' }} />
 
-              {/* 2. Student Navigation & Preview */}
               <div className="console-navigation">
-                <Button 
-                  shape="circle" 
-                  size="large"
-                  icon={<ArrowLeftOutlined />} 
+                <button 
+                  type="button" 
+                  className="action-icon-btn" 
                   onClick={() => {
                     const idx = santriList.findIndex(s => s.santri_id === activeSantriId);
                     if (idx > 0) setActiveSantriId(santriList[idx - 1].santri_id);
                   }}
                   disabled={santriList.findIndex(s => s.santri_id === activeSantriId) <= 0}
-                />
+                >
+                  <ArrowLeft size={16} />
+                </button>
                 
-                <div className="active-student-info" style={{ marginTop: '16px', marginBottom: '16px' }}>
-                  <div className="student-name" style={{ marginBottom: '8px' }}>
-                    {loading ? 'Memuat...' : (santriList.find(s => s.santri_id === activeSantriId)?.nama || (santriList.length > 0 ? 'Pilih Santri' : 'Data Kosong'))}
+                <div className="active-student-info" style={{ textAlign: 'center' }}>
+                  <div className="student-name" style={{ fontWeight: 800, fontSize: '14.5px', color: '#1e293b' }}>
+                    {loading ? 'Memuat...' : (santriList.find(s => s.santri_id === activeSantriId)?.nama || 'Pilih Santri')}
                   </div>
-                  <div className={`score-preview ${effectiveKriteriaType === 'Teks' ? 'text-mode' : ''}`}>
+                  <div className={`score-preview ${effectiveKriteriaType === 'Teks' ? 'text-mode' : ''}`} style={{ fontSize: '24px', fontWeight: 800, color: '#4f46e5', margin: '4px 0' }}>
                     {loading ? '...' : (
                       effectiveKriteriaType === 'Angka' 
                         ? (Math.floor(santriList.find(s => s.santri_id === activeSantriId)?.nilai_angka ?? 0) || '-')
@@ -1818,25 +1509,23 @@ export const ManajemenNilai = ({ mode = 'input' }) => {
                   </div>
                 </div>
 
-                <Button 
-                  shape="circle" 
-                  size="large"
-                  icon={<ArrowRightOutlined />} 
+                <button 
+                  type="button" 
+                  className="action-icon-btn" 
                   onClick={() => {
                     const idx = santriList.findIndex(s => s.santri_id === activeSantriId);
                     if (idx < santriList.length - 1) setActiveSantriId(santriList[idx + 1].santri_id);
                   }}
                   disabled={santriList.findIndex(s => s.santri_id === activeSantriId) >= santriList.length - 1}
-                />
+                >
+                  <ArrowRight size={16} />
+                </button>
               </div>
             </div>
 
-            {/* --- SCROLLABLE BODY AREA --- */}
-            <div className="console-scrollable-body">
-              {/* 3. Dynamic Input Area (Keypad vs Achievement Pills) */}
+            <div className="console-scrollable-body" style={{ padding: '16px 0' }}>
               <div className="console-input-area">
                 {effectiveKriteriaType === 'Angka' ? (
-                  /* Numeric Keypad Mode */
                   <div className="keypad-grid">
                     {[1, 2, 3, 4, 5, 6, 7, 8, 9].map(num => (
                       <div key={num} className="key-item" onClick={() => {
@@ -1860,7 +1549,6 @@ export const ManajemenNilai = ({ mode = 'input' }) => {
                     }}>⌫</div>
                   </div>
                 ) : (
-                  /* Achievement Pills Mode (Teks/Arabic) */
                   <div className="achievement-grid">
                     {configTeks.map((item, idx) => {
                       const isSelected = santriList.find(s => s.santri_id === activeSantriId)?.capaian === item.bab;
@@ -1870,7 +1558,6 @@ export const ManajemenNilai = ({ mode = 'input' }) => {
                           className={`achievement-pill ${isSelected ? 'selected' : ''}`}
                           onClick={() => {
                             handleNilaiChange(activeSantriId, 'capaian', item.bab);
-                            // Auto-next logic: move to next student after selection if desired
                             const currentIndex = santriList.findIndex(s => s.santri_id === activeSantriId);
                             if (currentIndex < santriList.length - 1) {
                               setTimeout(() => setActiveSantriId(santriList[currentIndex + 1].santri_id), 300);
@@ -1886,143 +1573,115 @@ export const ManajemenNilai = ({ mode = 'input' }) => {
                       className="achievement-pill clear" 
                       onClick={() => handleNilaiChange(activeSantriId, 'capaian', null)}
                     >
-                      Kosongkan Data Nilai
+                      Kosongkan Data
                     </div>
                   </div>
                 )}
               </div>
             </div>
 
-            <div className="console-footer" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', width: '100%' }}>
+            <div className="console-footer" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '10px 0' }}>
               {autoSaveStatus === 'saved' && (
                 <div style={{ 
-                  marginBottom: '20px', 
-                  fontSize: '28px', 
+                  marginBottom: '14px', 
+                  fontSize: '24px', 
                   fontWeight: '800', 
-                  color: '#52c41a', 
+                  color: '#10b981', 
                   textAlign: 'center',
-                  fontStyle: 'italic',
-                  letterSpacing: '4px',
-                  textTransform: 'uppercase',
-                  textShadow: '0 2px 4px rgba(0,0,0,0.1)',
-                  fontFamily: '"Montserrat", "Arial", sans-serif'
+                  textTransform: 'uppercase'
                 }}>
                   {santriList.find(s => s.santri_id === activeSantriId)?.predikat || '-'}
                 </div>
               )}
-              <Button type="default" style={{ minWidth: '120px' }} onClick={() => {
-                setShowKeypad(false);
-                setMobileViewMode('dashboard'); // Kembali ke dashboard saat tutup
-              }}>Tutup</Button>
+              <button 
+                type="button" 
+                className="btn-custom btn-secondary" 
+                onClick={() => {
+                  setShowKeypad(false);
+                  setMobileViewMode('dashboard');
+                }}
+              >
+                Tutup Keypad
+              </button>
             </div>
+
           </div>
         </div>
       )}
 
-      {/* Auto Save Status Indicator */}
+      {/* Floating autosave status indicator */}
       {autoSaveStatus && (
         <div className={`auto-save-indicator ${autoSaveStatus}`}>
-          {autoSaveStatus === 'saving' ? <Spin size="small" /> : <CheckCircleOutlined />}
-          <span>{autoSaveStatus === 'saving' ? 'Menyimpan...' : autoSaveStatus === 'saved' ? 'Tersimpan' : 'Gagal Menyimpan'}</span>
+          {autoSaveStatus === 'saving' ? (
+            <div className="spinner"></div>
+          ) : (
+            <CheckCircle size={14} className="icon-check" />
+          )}
+          <span>
+            {autoSaveStatus === 'saving' ? 'Menyimpan...' : 'Tersimpan ke Cloud'}
+          </span>
         </div>
       )}
 
       {/* Manual Rank Modal */}
-      <Modal
-        title="Sesuaikan Peringkat Manual"
-        open={isManualRankModalOpen}
-        onCancel={() => {
-          setIsManualRankModalOpen(false);
-          setManualRankData([]);
-        }}
-        width={800}
-        footer={[
-          <Button key="cancel" onClick={() => setIsManualRankModalOpen(false)}>
-            Batal
-          </Button>,
-          <Button 
-            key="save" 
-            type="primary" 
-            loading={manualRankSaveLoading}
-            onClick={async () => {
-              try {
-                setManualRankSaveLoading(true);
-                const payload = manualRankData.filter(d => d.peringkat_manual !== undefined && d.peringkat_manual !== null && d.peringkat_manual !== '').map(d => ({
-                  santri_id: d.santri_id,
-                  peringkat_manual: d.peringkat_manual
-                }));
-                
-                // Fetch to backend API
-                await nilaiService.savePeringkatManual({
-                  tahun_ajaran_id: tahunAjaran.id,
-                  kategori_evaluasi_id: selectedKategori,
-                  data: payload
-                });
-                message.success('Peringkat kustom berhasil disimpan');
-                setIsManualRankModalOpen(false);
-                loadRekapData(); // reload rekap data
-              } catch (err) {
-                message.error('Gagal menyimpan peringkat');
-              } finally {
-                setManualRankSaveLoading(false);
-              }
-            }}
-          >
-            Simpan Peringkat
-          </Button>
-        ]}
+      <CustomModal
+        isOpen={isManualRankModalOpen}
+        onClose={() => setIsManualRankModalOpen(false)}
+        title="Sesuaikan Urutan Peringkat Rapor"
       >
-        <Alert 
-          message="Informasi" 
-          description="Mengubah peringkat di sini tidak akan merubah Total Nilai dan Rata-rata asli yang diolah sistem. Peringkat ini akan ditampilkan pada Rekap Nilai dan Rapor Santri." 
-          type="info" 
-          showIcon 
-          style={{ marginBottom: 16 }} 
-        />
-        <Table
-          dataSource={rekapData.map(r => {
-            const existing = manualRankData.find(m => m.santri_id === r.santri_id);
-            return {
-              ...r,
-              peringkat_manual_input: existing !== undefined ? existing.peringkat_manual : r.peringkat_manual
-            };
-          })}
-          rowKey="santri_id"
-          pagination={false}
-          size="small"
-          columns={[
-            { title: 'NIS', dataIndex: 'nis', width: 100 },
-            { title: 'Nama Santri', dataIndex: 'nama', width: 250 },
-            { title: 'Total Nilai', dataIndex: 'total_nilai', width: 100, align: 'center' },
-            { title: 'Peringkat Sistem', dataIndex: 'peringkat_sistem', width: 120, align: 'center' },
-            { 
-              title: 'Peringkat Manual', 
-              dataIndex: 'peringkat_manual_input', 
-              width: 150, 
-              align: 'center',
-              render: (val, record) => (
-                <InputNumber 
-                  min={1}
-                  value={val}
-                  placeholder="Isi angka"
-                  onChange={(v) => {
-                    setManualRankData(prev => {
-                      const clone = [...prev];
-                      const idx = clone.findIndex(d => d.santri_id === record.santri_id);
-                      if (idx >= 0) {
-                        clone[idx].peringkat_manual = v;
-                      } else {
-                        clone.push({ santri_id: record.santri_id, peringkat_manual: v });
-                      }
-                      return clone;
-                    });
-                  }}
-                />
-              )
-            }
-          ]}
-        />
-      </Modal>
+        <div style={{ padding: '4px 0' }}>
+          <SmartAlert
+            message="Mengubah peringkat di sini tidak akan merubah Total Nilai dan Rata-rata asli yang diolah sistem. Peringkat manual ini akan ditampilkan pada rekap cetak dan buku rapor."
+            type="warning"
+          />
+          
+          <div className="rank-adjust-list" style={{ marginTop: '16px' }}>
+            {manualRankData.map((row, idx) => (
+              <div key={row.santri_id} className="rank-adjust-row">
+                <div className="student-info">
+                  <span className="name">{row.nama}</span>
+                  <span className="desc">Total: {row.total_nilai} | Sistem: #{row.peringkat_sistem}</span>
+                </div>
+                <div className="input-wrapper">
+                  <span>Peringkat:</span>
+                  <input
+                    type="number"
+                    className="rank-input"
+                    min={1}
+                    value={row.peringkat_manual}
+                    onChange={(e) => {
+                      const updated = [...manualRankData];
+                      updated[idx].peringkat_manual = e.target.value;
+                      setManualRankData(updated);
+                    }}
+                    placeholder={`#${row.peringkat_sistem}`}
+                  />
+                </div>
+              </div>
+            ))}
+          </div>
+
+          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginTop: '20px' }}>
+            <button 
+              type="button" 
+              className="btn-custom btn-secondary" 
+              onClick={() => setIsManualRankModalOpen(false)}
+            >
+              Batal
+            </button>
+            <button 
+              type="button" 
+              className="btn-custom btn-primary" 
+              onClick={handleManualRankSave}
+              disabled={manualRankSaveLoading}
+            >
+              {manualRankSaveLoading ? <span className="loading-spinner"></span> : <span>Simpan Peringkat</span>}
+            </button>
+          </div>
+        </div>
+      </CustomModal>
+
     </div>
   );
-};
+}
+export default ManajemenNilai;

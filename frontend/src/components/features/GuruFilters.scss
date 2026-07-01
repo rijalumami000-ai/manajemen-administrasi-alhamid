@@ -90,6 +90,28 @@
       .select-container {
         display: flex;
         align-items: center;
+
+        .ui-custom-select {
+          margin-bottom: 0;
+          
+          .ui-custom-select__wrapper {
+            min-height: 42px; // Match search input height
+            border-radius: 12px;
+          }
+
+          .ui-custom-select__value-container {
+            padding: 16px 12px 2px;
+          }
+
+          .ui-custom-select__label {
+            font-size: 12.5px;
+          }
+
+          &.active .ui-custom-select__label {
+            top: 7px;
+            font-size: 9.5px;
+          }
+        }
       }
     }
   }

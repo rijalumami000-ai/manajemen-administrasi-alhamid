@@ -1,99 +1,374 @@
 @import url('https://fonts.googleapis.com/css2?family=Amiri&display=swap');
+@import '../styles/variables';
+@import '../styles/mixins';
 
 .lembar-ujian-page {
-  padding: 24px;
-  background: #f0f2f5;
-  min-height: 100vh;
+  @include container;
+  padding-top: $spacing-lg;
+  padding-bottom: $spacing-xl;
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-xl;
 
-  .page-header {
+  // Background Mesh Gradient
+  html[data-theme="light"] & {
+    background: radial-gradient(at 0% 0%, rgba(99, 102, 241, 0.04) 0px, transparent 50%),
+                radial-gradient(at 100% 0%, rgba(168, 85, 247, 0.04) 0px, transparent 50%),
+                radial-gradient(at 50% 100%, rgba(6, 182, 212, 0.03) 0px, transparent 50%);
+  }
+
+  // Header Panel styling
+  .header-actions-row {
     display: flex;
+    justify-content: space-between;
     align-items: center;
+    flex-wrap: wrap;
     gap: 16px;
-    margin-bottom: 24px;
-    background: #fff;
-    padding: 16px 24px;
+  }
+
+  // Frosted Glass cards
+  .frosted-card {
+    background: rgba(255, 255, 255, 0.7);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border-radius: $radius-2xl;
+    border: 1px solid rgba(226, 232, 240, 0.8);
+    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.02);
+    overflow: hidden;
+    padding: 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+
+    html[data-theme="dark"] & {
+      background: rgba(21, 26, 35, 0.6);
+      border-color: rgba(255, 255, 255, 0.05);
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+    }
+  }
+
+  // Filters styling
+  .global-filters {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 16px;
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
     border-radius: 12px;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+    padding: 16px;
 
-    .page-icon {
-      font-size: 24px;
-      color: #0052FF;
-      background: #e6f7ff;
-      padding: 12px;
-      border-radius: 10px;
+    @media (max-width: 768px) {
+      grid-template-columns: 1fr;
+    }
+
+    html[data-theme="dark"] & {
+      background: rgba(30, 41, 59, 0.2);
+      border-color: rgba(255, 255, 255, 0.05);
+    }
+
+    .filter-group {
       display: flex;
-      align-items: center;
-      justify-content: center;
-    }
+      flex-direction: column;
+      gap: 6px;
 
-    .page-actions {
-      margin-left: auto;
-    }
-  }
+      label {
+        font-size: 12.5px;
+        font-weight: 800;
+        color: #475569;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
 
-  .main-content {
-    height: calc(100vh - 140px);
-  }
-
-  .editor-container {
-    height: 100%;
-    overflow-y: auto;
-    padding-right: 12px;
-
-    .editor-card {
-      border-radius: 12px;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.05);
-      border: none;
-      height: 100%;
-
-      .ant-card-body {
-        height: calc(100% - 40px);
-        overflow-y: auto;
-        padding: 16px;
-      }
-
-      .ant-form-item-label > label {
-        font-weight: 500;
-        font-size: 13px;
-        color: #595959;
-      }
-    }
-
-    .soal-item-form {
-      position: relative;
-      background: #fafafa;
-      padding: 12px;
-      border-radius: 8px;
-      margin-bottom: 12px;
-      border: 1px solid #f0f0f0;
-
-      .soal-actions-container {
-        position: absolute;
-        top: 8px;
-        right: 8px;
-        z-index: 2;
-        display: flex;
-        gap: 4px;
-
-        .ant-btn {
-          padding: 4px;
-          height: auto;
-          line-height: 1;
+        html[data-theme="dark"] & {
+          color: #cbd5e1;
         }
       }
     }
   }
+
+  // Tabs Navigation
+  .custom-tabs-nav {
+    display: flex;
+    gap: 6px;
+    overflow-x: auto;
+    border-bottom: 2px solid rgba(226, 232, 240, 0.6);
+    padding-bottom: 2px;
+    margin-bottom: 8px;
+    @include custom-scrollbar;
+
+    html[data-theme="dark"] & {
+      border-bottom-color: rgba(255, 255, 255, 0.05);
+    }
+  }
+
+  .custom-tabs-tab {
+    background: none;
+    border: none;
+    color: #64748b;
+    font-weight: 700;
+    font-size: 14px;
+    padding: 12px 16px;
+    cursor: pointer;
+    position: relative;
+    transition: all 0.3s ease;
+    white-space: nowrap;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+
+    &:hover {
+      color: #4f46e5;
+    }
+
+    &::after {
+      content: '';
+      position: absolute;
+      bottom: -3px;
+      left: 0;
+      right: 0;
+      height: 3px;
+      background: transparent;
+      border-radius: $radius-full;
+      transition: background-color 0.2s ease;
+    }
+
+    &.active {
+      color: #4f46e5;
+
+      &::after {
+        background: linear-gradient(90deg, #6366f1 0%, #a855f7 100%);
+      }
+    }
+
+    html[data-theme="dark"] & {
+      color: rgba(255, 255, 255, 0.45);
+      
+      &:hover {
+        color: #3b82f6;
+      }
+      
+      &.active {
+        color: #3b82f6;
+        &::after {
+          background: #3b82f6;
+        }
+      }
+    }
+  }
+
+  // Form Fields Setup
+  .form-grid-layout {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  .form-group-box {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+
+    label {
+      font-size: 13px;
+      font-weight: 700;
+      color: #475569;
+      html[data-theme="dark"] & {
+        color: #cbd5e1;
+      }
+    }
+
+    input, textarea {
+      width: 100%;
+      border: 1px solid rgba(226, 232, 240, 0.9);
+      border-radius: 8px;
+      padding: 10px 14px;
+      font-size: 13.5px;
+      color: #1e293b;
+      background: #ffffff;
+      transition: all 0.2s;
+      outline: none;
+
+      &:hover { border-color: #cbd5e1; }
+      &:focus {
+        border-color: #3b82f6;
+        box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.15);
+      }
+
+      html[data-theme="dark"] & {
+        border-color: rgba(255,255,255,0.08);
+        background: rgba(30, 41, 59, 0.4);
+        color: #f8fafc;
+        &:hover { border-color: rgba(255,255,255,0.15); }
+        &:focus { border-color: #3b82f6; }
+      }
+    }
+  }
+
+  // Soal Item Card in Form
+  .soal-item-form {
+    position: relative;
+    background: #f8fafc;
+    padding: 16px;
+    border-radius: 12px;
+    margin-bottom: 16px;
+    border: 1px solid #e2e8f0;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+
+    html[data-theme="dark"] & {
+      background: rgba(30, 41, 59, 0.2);
+      border-color: rgba(255, 255, 255, 0.05);
+    }
+
+    .soal-actions-container {
+      position: absolute;
+      top: 12px;
+      right: 12px;
+      display: flex;
+      gap: 6px;
+
+      .btn-icon-only {
+        background: none;
+        border: none;
+        color: #ef4444;
+        cursor: pointer;
+        padding: 4px;
+        border-radius: 6px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: background-color 0.2s;
+
+        &:hover {
+          background: rgba(239, 68, 68, 0.08);
+        }
+      }
+    }
+  }
+
+  // Uploader Styling
+  .custom-file-uploader-box {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 16px;
+    border: 2px dashed rgba(226, 232, 240, 0.8);
+    border-radius: 12px;
+    cursor: pointer;
+    background: #ffffff;
+    transition: all 0.2s;
+
+    html[data-theme="dark"] & {
+      background: rgba(30, 41, 59, 0.4);
+      border-color: rgba(255, 255, 255, 0.05);
+    }
+
+    &:hover {
+      border-color: #4f46e5;
+      html[data-theme="dark"] & {
+        border-color: #3b82f6;
+      }
+    }
+
+    .uploader-text {
+      font-size: 13.5px;
+      color: #64748b;
+      font-weight: 600;
+    }
+  }
+
+  // Custom Modal Preview
+  .custom-preview-modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(15, 23, 42, 0.85);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    z-index: 1000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+    overflow-y: auto;
+  }
+
+  .custom-preview-modal {
+    background: #525659;
+    border-radius: 16px;
+    width: 100%;
+    max-width: 1050px;
+    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+    display: flex;
+    flex-direction: column;
+    max-height: 90vh;
+    overflow: hidden;
+
+    .modal-header {
+      padding: 16px 24px;
+      background: #323639;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      color: #ffffff;
+
+      h3 {
+        margin: 0;
+        font-size: 16px;
+        font-weight: 700;
+        color: #ffffff;
+      }
+
+      .btn-close-modal {
+        background: none;
+        border: none;
+        color: #94a3b8;
+        cursor: pointer;
+        padding: 4px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+
+        &:hover {
+          color: #ffffff;
+        }
+      }
+    }
+
+    .modal-body {
+      flex: 1;
+      padding: 24px;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      background: #525659;
+      @include custom-scrollbar;
+    }
+
+    .modal-footer {
+      padding: 16px 24px;
+      background: #323639;
+      border-top: 1px solid rgba(255, 255, 255, 0.08);
+      display: flex;
+      justify-content: flex-end;
+      gap: 12px;
+    }
+  }
 }
 
-/* ─── Kertas Ujian (Gaya Cetak) ─── */
+// ─── Kertas Ujian (Gaya Cetak di Layar / Preview) ───
 .kertas-ujian {
   width: 210mm;
   min-height: 297mm; /* Tinggi A4 */
-  background: #fff !important;
+  background: #ffffff !important;
   padding: 10mm 15mm 20mm 15mm; 
   box-sizing: border-box;
   box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-  color: #000 !important;
+  color: #000000 !important;
   font-family: 'Times New Roman', Times, serif;
   font-size: 12pt;
 
@@ -114,6 +389,7 @@
       img {
         max-height: 100px;
         max-width: 100px;
+        object-fit: contain;
       }
 
       .logo-placeholder {
@@ -229,65 +505,70 @@
   }
 }
 
-/* ─── JURUS PAMUNGKAS UNTUK CETAK (REVISI FINAL) ─── */
+/* ─── CETAK PRINT MEDIA ─── */
 @media print {
-  /* Sembunyikan elemen UI spesifik menggunakan CLASS ASLI project ini */
   .no-print,
   .app-sidebar,
   .app-header,
+  .bottom-nav,
+  .mobile-menu-drawer,
   .page-header,
   .editor-container,
-  .ant-btn {
+  .custom-tabs-nav,
+  .global-filters,
+  .modal-header,
+  .modal-footer {
     display: none !important;
   }
 
-  /* Pastikan hanya Modal Portal yang muncul */
-  .ant-modal-root {
-    display: block !important;
+  body, html {
+    background: #ffffff !important;
+    width: 100% !important;
+    height: auto !important;
   }
 
-  .ant-modal-wrap {
-    position: static !important;
+  .app-layout, .app-main, .app-content, .content-wrapper {
     display: block !important;
-  }
-
-  .ant-modal {
-    position: static !important;
-    width: 210mm !important;
-    margin: 0 auto !important;
+    background: #ffffff !important;
     padding: 0 !important;
+    margin: 0 !important;
   }
 
-  .ant-modal-content {
+  .custom-preview-modal-overlay {
+    position: static !important;
+    background: none !important;
+    padding: 0 !important;
+    display: block !important;
+  }
+
+  .custom-preview-modal {
+    position: static !important;
+    background: none !important;
     box-shadow: none !important;
-    background: transparent !important;
-    padding: 0 !important;
+    max-height: none !important;
+    overflow: visible !important;
+    display: block !important;
   }
 
-  .ant-modal-body {
-    background: transparent !important;
+  .modal-body {
+    background: none !important;
     padding: 0 !important;
+    overflow: visible !important;
+    display: block !important;
   }
 
-  /* Kertas Ujian mengalir alami dari atas */
   .kertas-ujian {
     position: static !important;
     margin: 0 auto !important;
     width: 210mm !important;
     box-shadow: none !important;
     padding: 10mm 15mm !important; 
-    background: #fff !important;
-    visibility: visible !important;
+    background: #ffffff !important;
   }
 
-  .kertas-ujian * {
-    visibility: visible !important;
-  }
-
-  body, html {
-    background: #fff !important;
-    width: 100% !important;
-    height: auto !important;
+  @page { 
+    size: 215mm 330mm; // F4
+    margin: 0 !important; 
   }
 }
 
@@ -295,30 +576,6 @@
 @media (max-width: 768px) {
   .lembar-ujian-page {
     padding: 12px;
-    
-    .page-header {
-      flex-direction: column;
-      align-items: center;
-      text-align: center;
-      gap: 8px;
-      padding: 16px;
-      
-      .page-icon {
-        margin-bottom: 4px;
-      }
-      
-      .page-actions {
-        margin-left: 0;
-        margin-top: 8px;
-        width: 100%;
-        display: flex;
-        justify-content: center;
-      }
-    }
-    
-    .main-content {
-      height: auto;
-    }
   }
   
   .preview-wrapper {
@@ -326,9 +583,8 @@
     display: flex !important;
     justify-content: center;
     align-items: flex-start;
-    height: 60vh; /* Batasi tinggi agar footer modal kelihatan */
+    height: 50vh;
     overflow-y: auto;
-    overflow-x: hidden;
     padding: 10px;
     background: #525659;
   }
@@ -337,20 +593,5 @@
     width: 210mm !important; 
     zoom: 0.42; /* Skala cerdas agar pas di layar HP */
     margin: 0 auto !important;
-  }
-  
-  /* Fix vertical text in header */
-  .ant-typography {
-    word-break: break-word;
-  }
-
-  /* Sembunyikan footer modal di mobile */
-  .ant-modal-footer {
-    display: none !important;
-  }
-  
-  /* Tampilkan tombol aksi di atas preview */
-  .mobile-actions {
-    display: flex !important;
   }
 }

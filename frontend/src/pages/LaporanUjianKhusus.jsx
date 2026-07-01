@@ -1,17 +1,30 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
-import { Table, Button, Space, Typography, Card, Spin, Empty, Tag, Radio, Select, Tabs } from 'antd';
-import { BookOutlined, PrinterOutlined, ShareAltOutlined, CheckCircleOutlined, CloseCircleOutlined, SearchOutlined, BarChartOutlined, UndoOutlined, ExportOutlined, FilePdfOutlined, FileExcelOutlined } from '@ant-design/icons';
+import { 
+  BookOpen, 
+  Printer, 
+  Share2, 
+  CheckCircle, 
+  XCircle, 
+  Search, 
+  BarChart2, 
+  RotateCcw, 
+  Download, 
+  FileText, 
+  Grid,
+  Info,
+  ChevronDown
+} from 'lucide-react';
 import { nilaiService } from '../services/nilaiService';
 import { settingsService } from '../services/settingsService';
+import { PageHeader, LoadingState, ErrorState } from '../components/common';
+import { CustomSelect } from '../components/ui/CustomSelect';
 import { useResponsive } from '../hooks/useResponsive';
 import { useLocation } from 'react-router-dom';
 import { BottomNav } from '../components/layout/BottomNav';
 import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import * as XLSX from 'xlsx';
-import './ManajemenNilai.scss'; // Reuse styles
-
-const { Title, Text } = Typography;
+import './LaporanUjianKhusus.scss';
 
 export const LaporanUjianKhusus = () => {
   const [loading, setLoading] = useState(false);
@@ -28,11 +41,17 @@ export const LaporanUjianKhusus = () => {
   const [mapelAkbar, setMapelAkbar] = useState(null);
   const [mapelQiroah, setMapelQiroah] = useState(null);
   const [mapelTaftisy, setMapelTaftisy] = useState(null);
-  const [activeTab, setActiveTab] = useState('muhafadzoh'); // 'muhafadzoh', 'qiroatul_kitab', 'taftisyul_kutub'
+  const [activeTab, setActiveTab] = useState('muhafadzoh'); // 'muhafadzoh', 'qiroatul_kitab', 'taftisyul_kutub', 'ringkasan'
   const [viewMode, setViewMode] = useState('detail'); // 'detail' or 'akumulasi'
+  
+  // Search text states
+  const [searchQuery, setSearchQuery] = useState('');
+  const [showSearchResults, setShowSearchResults] = useState(false);
+
   const { isMobile } = useResponsive();
   const location = useLocation();
   const listRef = useRef(null);
+  const searchContainerRef = useRef(null);
 
   const isPublicRoute = location.pathname.startsWith('/pub/');
 
@@ -50,7 +69,6 @@ export const LaporanUjianKhusus = () => {
 
         setTahunAjaranList(Array.isArray(taData) ? taData : []);
 
-        // Selalu gunakan tahun ajaran aktif dari server — tidak perlu localStorage
         const activeTA = Array.isArray(taData) ? taData.find(ta => ta.is_active) : null;
         setTahunAjaran(activeTA);
 
@@ -119,6 +137,15 @@ export const LaporanUjianKhusus = () => {
       }
     };
     init();
+
+    // Click outside search container listener
+    const handleOutsideClick = (e) => {
+      if (searchContainerRef.current && !searchContainerRef.current.contains(e.target)) {
+        setShowSearchResults(false);
+      }
+    };
+    document.addEventListener('click', handleOutsideClick);
+    return () => document.removeEventListener('click', handleOutsideClick);
   }, []);
 
   const getCurrentMapel = () => {
@@ -342,16 +369,10 @@ export const LaporanUjianKhusus = () => {
     };
   }, [akumulasiData, activeTab]);
 
-  const getPredikatColor = (pred) => {
-    switch (pred) {
-      case 'Mumtaz': return '#52c41a';
-      case 'Jayyid': return '#1890ff';
-      case 'Mutawassith': return '#faad14';
-      case "Rodi'": return '#ff4d4f';
-      case 'Tam': return '#52c41a';
-      case 'Naqish': return '#ff4d4f';
-      default: return '#d9d9d9';
-    }
+  const getPredikatClass = (pred) => {
+    if (!pred) return 'empty';
+    const cleanPred = pred.toLowerCase().replace("'", "");
+    return cleanPred;
   };
 
   const formatNilai = (val) => val === null || val === undefined ? '-' : Number(val).toString();
@@ -373,23 +394,15 @@ export const LaporanUjianKhusus = () => {
     return { dataUrl: canvas.toDataURL('image/png'), width: canvas.width, height: canvas.height };
   };
 
-  const renderCountCell = (v, total) => {
-    const percent = total > 0 ? Math.round((v / total) * 100) : 0;
-    return (
-      <div style={{ textAlign: 'center' }}>
-        <div>{v}</div>
-        <div style={{ fontSize: 10, color: '#8c8c8c' }}>{percent}%</div>
-      </div>
-    );
-  };
-
-  const handleSearchSelect = (val, option) => {
-    if (option.tingkat !== undefined) {
-      setSelectedTingkat(option.tingkat);
+  const handleSearchSelect = (s) => {
+    if (s.tingkat !== undefined) {
+      setSelectedTingkat(s.tingkat);
     }
-    if (option.kelas_id) {
-      setSelectedKelas(option.kelas_id);
+    if (s.kelas_id) {
+      setSelectedKelas(s.kelas_id);
     }
+    setSearchQuery('');
+    setShowSearchResults(false);
   };
 
   const getPageTitle = () => {
@@ -397,132 +410,6 @@ export const LaporanUjianKhusus = () => {
     if (activeTab === 'qiroatul_kitab') return 'LAPORAN QIROATUL KITAB';
     if (activeTab === 'taftisyul_kutub') return 'LAPORAN TAFTISYUL KUTUB';
     return 'LAPORAN';
-  };
-
-  const getColumns = () => {
-    if (activeTab === 'ringkasan') {
-      return [
-        { title: 'No', width: 50, align: 'center', render: (_, __, idx) => idx + 1 },
-        { title: 'Nama Santri', dataIndex: 'nama', className: 'font-weight-bold' },
-        { title: 'Hasil Muhafazdoh', align: 'center', render: (_, r) => r.akbar?.predikat || '-' },
-        { title: 'Hasil Qiroatul Kitab', align: 'center', render: (_, r) => r.qiroah?.nilai_angka !== null && r.qiroah?.nilai_angka !== undefined ? Number(r.qiroah.nilai_angka).toString() : (r.qiroah?.capaian || '-') },
-        { title: 'Hasil Taftisyul Kutub', align: 'center', render: (_, r) => r.taftisy?.predikat || r.taftisy?.capaian || '-' }
-      ];
-    }
-
-    const base = [
-      { title: 'No', width: 50, align: 'center', render: (_, __, idx) => idx + 1 },
-      { title: 'Nama Santri', dataIndex: 'nama', className: 'font-weight-bold' },
-      { 
-        title: 'Nilai', 
-        width: 150, 
-        align: 'center', 
-        render: (_, r) => r.nilai_angka !== null ? Number(r.nilai_angka).toString() : (r.capaian || '-')
-      }
-    ];
-
-    if (activeTab === 'muhafadzoh') {
-      return [
-        ...base,
-        {
-          title: 'Predikat',
-          children: [
-            { title: "Rodi'", width: 80, align: 'center', render: (_, r) => r.predikat === "Rodi'" ? <Text type="danger">✓</Text> : '' },
-            { title: 'Mutawasith', width: 100, align: 'center', render: (_, r) => r.predikat === "Mutawassith" ? <Text type="warning">✓</Text> : '' },
-            { title: 'Jayyid', width: 80, align: 'center', render: (_, r) => r.predikat === "Jayyid" ? <Text type="primary">✓</Text> : '' },
-            { title: 'Mumtaz', width: 80, align: 'center', render: (_, r) => r.predikat === "Mumtaz" ? <Text style={{ color: '#52c41a' }}>✓</Text> : '' },
-          ]
-        },
-        {
-          title: 'Kelulusan',
-          children: [
-            { title: 'Lulus', width: 80, align: 'center', render: (_, r) => ["Mutawassith", "Jayyid", "Mumtaz"].includes(r.predikat) ? <CheckCircleOutlined style={{ color: '#52c41a' }} /> : '' },
-            { title: 'Tidak', width: 80, align: 'center', render: (_, r) => r.predikat === "Rodi'" ? <CloseCircleOutlined style={{ color: '#ff4d4f' }} /> : '' },
-          ]
-        },
-        { title: 'Ghoib', width: 80, align: 'center', render: (_, r) => (r.nilai_angka === null && !r.capaian) ? <CloseCircleOutlined style={{ color: '#ff4d4f' }} /> : '' }
-      ];
-    } else if (activeTab === 'taftisyul_kutub') {
-      return [
-        ...base,
-        {
-          title: 'Hasil',
-          children: [
-            { title: 'Naqish', width: 100, align: 'center', render: (_, r) => (r.predikat === "Naqish" || r.capaian === "Naqish") ? <Text type="danger">✓</Text> : '' },
-            { title: 'Tam', width: 100, align: 'center', render: (_, r) => (r.predikat === "Tam" || r.capaian === "Tam") ? <Text style={{ color: '#52c41a' }}>✓</Text> : '' },
-          ]
-        },
-        {
-          title: 'Kelulusan',
-          children: [
-            { title: 'Lulus', width: 80, align: 'center', render: (_, r) => (r.predikat === "Tam" || r.capaian === "Tam") ? <CheckCircleOutlined style={{ color: '#52c41a' }} /> : '' },
-            { title: 'Tidak', width: 80, align: 'center', render: (_, r) => (r.predikat === "Naqish" || r.capaian === "Naqish") ? <CloseCircleOutlined style={{ color: '#ff4d4f' }} /> : '' },
-          ]
-        },
-        { title: 'Ghoib', width: 80, align: 'center', render: (_, r) => (r.nilai_angka === null && !r.capaian) ? <CloseCircleOutlined style={{ color: '#ff4d4f' }} /> : '' }
-      ];
-    } else {
-      return [
-        ...base,
-        { title: 'Ghoib', width: 100, align: 'center', render: (_, r) => (r.nilai_angka === null && !r.capaian) ? <CloseCircleOutlined style={{ color: '#ff4d4f' }} /> : '' }
-      ];
-    }
-  };
-
-  const getAkumulasiColumns = () => {
-    const base = [
-      { title: 'No', width: 50, align: 'center', render: (_, __, idx) => idx + 1 },
-      { title: 'Kelas-Kelas', dataIndex: 'nama_kelas', className: 'font-weight-bold' },
-      { title: 'Jumlah Siswa', dataIndex: 'jumlah_siswa', align: 'center', className: 'font-weight-bold' }
-    ];
-
-    if (activeTab === 'muhafadzoh') {
-      return [
-        ...base,
-        {
-          title: 'Predikat',
-          children: [
-            { title: "Rodi'", dataIndex: 'rodi', align: 'center', render: (v, r) => renderCountCell(v, r.jumlah_siswa) },
-            { title: 'Mutawasith', dataIndex: 'mutawassith', align: 'center', render: (v, r) => renderCountCell(v, r.jumlah_siswa) },
-            { title: 'Jayyid', dataIndex: 'jayyid', align: 'center', render: (v, r) => renderCountCell(v, r.jumlah_siswa) },
-            { title: 'Mumtaz', dataIndex: 'mumtaz', align: 'center', render: (v, r) => renderCountCell(v, r.jumlah_siswa) },
-          ]
-        },
-        {
-          title: 'Kelulusan',
-          children: [
-            { title: 'Lulus', dataIndex: 'lulus', align: 'center', render: (v, r) => renderCountCell(v, r.jumlah_siswa) },
-            { title: 'Tidak', dataIndex: 'tidak', align: 'center', render: (v, r) => renderCountCell(v, r.jumlah_siswa) },
-          ]
-        },
-        { title: 'Ghoib', dataIndex: 'ghoib', align: 'center', render: (v, r) => renderCountCell(v, r.jumlah_siswa) }
-      ];
-    } else if (activeTab === 'taftisyul_kutub') {
-      return [
-        ...base,
-        {
-          title: 'Hasil',
-          children: [
-            { title: 'Naqish', dataIndex: 'naqish', align: 'center', render: (v, r) => renderCountCell(v, r.jumlah_siswa) },
-            { title: 'Tam', dataIndex: 'tam', align: 'center', render: (v, r) => renderCountCell(v, r.jumlah_siswa) },
-          ]
-        },
-        {
-          title: 'Kelulusan',
-          children: [
-            { title: 'Lulus', dataIndex: 'lulus', align: 'center', render: (v, r) => renderCountCell(v, r.jumlah_siswa) },
-            { title: 'Tidak', dataIndex: 'tidak', align: 'center', render: (v, r) => renderCountCell(v, r.jumlah_siswa) },
-          ]
-        },
-        { title: 'Ghoib', dataIndex: 'ghoib', align: 'center', render: (v, r) => renderCountCell(v, r.jumlah_siswa) }
-      ];
-    } else {
-      return [
-        ...base,
-        { title: 'Rata-rata Nilai', dataIndex: 'rata_rata', align: 'center', render: (v) => <div style={{fontWeight:'bold'}}>{v}</div> },
-        { title: 'Ghoib', dataIndex: 'ghoib', align: 'center', render: (v, r) => renderCountCell(v, r.jumlah_siswa) }
-      ];
-    }
   };
 
   const generatePDFContent = (doc, classObj, classData) => {
@@ -1067,225 +954,6 @@ export const LaporanUjianKhusus = () => {
     XLSX.writeFile(wb, `Ringkasan_Hasil_Ujian_Khusus_${currentKelasObj?.nama || 'Kelas'}_${tahunAjaran?.kode || 'TA'}.xlsx`);
   };
 
-  const renderMobileView = () => (
-    <Space direction="vertical" style={{ width: '100%' }} size="small" ref={listRef}>
-      {data.map((r, idx) => {
-        if (activeTab === 'ringkasan') {
-          return (
-            <Card key={r.santri_id} size="small" className="mobile-santri-card" style={{ borderRadius: 8, marginBottom: 8, borderLeft: '4px solid #1890ff' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
-                <Space>
-                  <Text type="secondary" style={{ fontSize: 12 }}>{idx + 1}.</Text>
-                  <Text strong style={{ fontSize: 14 }}>{r.nama}</Text>
-                </Space>
-              </div>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 4, fontSize: 12 }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                  <Text type="secondary">Hasil Muhafazdoh:</Text>
-                  <Text strong>{r.akbar?.predikat || '-'}</Text>
-                </div>
-                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                  <Text type="secondary">Hasil Qiroatul Kitab:</Text>
-                  <Text strong>{r.qiroah?.nilai_angka !== null && r.qiroah?.nilai_angka !== undefined ? Number(r.qiroah.nilai_angka).toString() : (r.qiroah?.capaian || '-')}</Text>
-                </div>
-                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                  <Text type="secondary">Hasil Taftisyul Kutub:</Text>
-                  <Text strong>{r.taftisy?.predikat || r.taftisy?.capaian || '-'}</Text>
-                </div>
-              </div>
-            </Card>
-          );
-        }
-
-        let isLulus = false;
-        if (activeTab === 'muhafadzoh') isLulus = ["Mutawassith", "Jayyid", "Mumtaz"].includes(r.predikat);
-        else if (activeTab === 'taftisyul_kutub') isLulus = r.predikat === "Tam";
-        
-        return (
-          <Card key={r.santri_id} size="small" className="mobile-santri-card" style={{ 
-            borderRadius: 8, 
-            borderLeft: `4px solid ${r.predikat ? (isLulus ? '#52c41a' : '#ff4d4f') : '#d9d9d9'}`,
-            marginBottom: 8
-          }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <Space>
-                <Text type="secondary" style={{ fontSize: 12 }}>{idx + 1}.</Text>
-                <Text strong style={{ fontSize: 14 }}>{r.nama}</Text>
-              </Space>
-              <div style={{ textAlign: 'right' }}>
-                <div style={{ fontSize: 16, fontWeight: 'bold', color: r.nilai_angka !== null ? '#1890ff' : '#8c8c8c' }}>
-                  {r.nilai_angka !== null ? formatNilai(r.nilai_angka) : (r.capaian || '-')}
-                </div>
-              </div>
-            </div>
-            {activeTab !== 'qiroatul_kitab' && (
-              <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 8, alignItems: 'center' }}>
-                <Tag color={getPredikatColor(r.predikat)} style={{ borderRadius: 4 }}>{r.predikat || 'Belum Diisi'}</Tag>
-                {r.predikat && (
-                  <Tag color={isLulus ? 'green' : 'red'} style={{ borderRadius: 4 }}>
-                    {isLulus ? 'Lulus' : 'Tidak Lulus'}
-                  </Tag>
-                )}
-              </div>
-            )}
-          </Card>
-        );
-      })}
-
-      <Card title="Ringkasan Kelas" size="small" style={{ marginTop: 12, borderRadius: 8 }}>
-        {activeTab === 'muhafadzoh' && (
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 8 }}>
-            {['Mumtaz', 'Jayyid', 'Mutawassith', "Rodi'"].map(p => (
-              <div key={p} style={{ textAlign: 'center', padding: 8, background: '#f5f5f5', borderRadius: 6 }}>
-                <Text type="secondary" style={{ fontSize: 11 }}>{p}</Text>
-                <div style={{ fontSize: 14, fontWeight: 'bold' }}>{summary.counts[p.replace("'", "")]}</div>
-              </div>
-            ))}
-          </div>
-        )}
-        {activeTab === 'taftisyul_kutub' && (
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 8 }}>
-            <div style={{ textAlign: 'center', padding: 8, background: '#f5f5f5', borderRadius: 6 }}>
-              <Text type="secondary" style={{ fontSize: 11 }}>Tam</Text>
-              <div style={{ fontSize: 14, fontWeight: 'bold' }}>{summary.counts.Tam}</div>
-            </div>
-            <div style={{ textAlign: 'center', padding: 8, background: '#f5f5f5', borderRadius: 6 }}>
-              <Text type="secondary" style={{ fontSize: 11 }}>Naqish</Text>
-              <div style={{ fontSize: 14, fontWeight: 'bold' }}>{summary.counts.Naqish}</div>
-            </div>
-          </div>
-        )}
-        {activeTab === 'qiroatul_kitab' && (
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 8 }}>
-            <div style={{ textAlign: 'center', padding: 8, background: '#e6f7ff', borderRadius: 6 }}>
-              <Text type="secondary" style={{ fontSize: 11 }}>Dinilai</Text>
-              <div style={{ fontSize: 14, fontWeight: 'bold', color: '#1890ff' }}>{summary.counts.Rated}</div>
-            </div>
-            <div style={{ textAlign: 'center', padding: 8, background: '#fff1f0', borderRadius: 6 }}>
-              <Text type="secondary" style={{ fontSize: 11 }}>Ghoib</Text>
-              <div style={{ fontSize: 14, fontWeight: 'bold', color: '#ff4d4f' }}>{summary.counts.Ghoib}</div>
-            </div>
-          </div>
-        )}
-      </Card>
-    </Space>
-  );
-
-  const renderMobileAkumulasi = () => (
-    <Space direction="vertical" style={{ width: '100%' }} size="small">
-      {akumulasiData.map((k, idx) => (
-        <Card key={k.kelas_id} size="small" style={{ borderRadius: 8, borderLeft: '4px solid #1890ff' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
-            <Text strong>{idx + 1}. {k.nama_kelas}</Text>
-            <Text type="secondary">{k.jumlah_siswa} Siswa</Text>
-          </div>
-          
-          {/* Tampilan Dinamis Berdasarkan Tab */}
-          {activeTab === 'muhafadzoh' && (
-            <>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '6px', marginTop: '8px' }}>
-                <div style={{ textAlign: 'center', background: '#f5f5f5', padding: '4px', borderRadius: '4px' }}>
-                  <div style={{ fontSize: '10px', color: '#8c8c8c' }}>Rodi'</div>
-                  <div style={{ fontWeight: 'bold', fontSize: '12px' }}>{k.rodi || 0}</div>
-                </div>
-                <div style={{ textAlign: 'center', background: '#f5f5f5', padding: '4px', borderRadius: '4px' }}>
-                  <div style={{ fontSize: '10px', color: '#8c8c8c' }}>Mtwsth</div>
-                  <div style={{ fontWeight: 'bold', fontSize: '12px' }}>{k.mutawassith || 0}</div>
-                </div>
-                <div style={{ textAlign: 'center', background: '#f5f5f5', padding: '4px', borderRadius: '4px' }}>
-                  <div style={{ fontSize: '10px', color: '#8c8c8c' }}>Jayyid</div>
-                  <div style={{ fontWeight: 'bold', fontSize: '12px' }}>{k.jayyid || 0}</div>
-                </div>
-                <div style={{ textAlign: 'center', background: '#f5f5f5', padding: '4px', borderRadius: '4px' }}>
-                  <div style={{ fontSize: '10px', color: '#8c8c8c' }}>Mumtaz</div>
-                  <div style={{ fontWeight: 'bold', fontSize: '12px' }}>{k.mumtaz || 0}</div>
-                </div>
-              </div>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '6px', marginTop: '6px' }}>
-                <div style={{ textAlign: 'center', background: '#e6f7ff', padding: '4px', borderRadius: '4px' }}>
-                  <div style={{ fontSize: '10px', color: '#096dd9' }}>Lulus</div>
-                  <div style={{ fontWeight: 'bold', color: '#096dd9', fontSize: '12px' }}>{k.lulus || 0}</div>
-                </div>
-                <div style={{ textAlign: 'center', background: '#fff1f0', padding: '4px', borderRadius: '4px' }}>
-                  <div style={{ fontSize: '10px', color: '#cf1322' }}>Tidak</div>
-                  <div style={{ fontWeight: 'bold', color: '#cf1322', fontSize: '12px' }}>{k.tidak || 0}</div>
-                </div>
-                <div style={{ textAlign: 'center', background: '#fafafa', padding: '4px', borderRadius: '4px' }}>
-                  <div style={{ fontSize: '10px', color: '#8c8c8c' }}>Ghoib</div>
-                  <div style={{ fontWeight: 'bold', fontSize: '12px' }}>{k.ghoib || 0}</div>
-                </div>
-              </div>
-            </>
-          )}
-
-          {activeTab === 'taftisyul_kutub' && (
-            <>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '6px', marginTop: '8px' }}>
-                <div style={{ textAlign: 'center', background: '#f5f5f5', padding: '4px', borderRadius: '4px' }}>
-                  <div style={{ fontSize: '10px', color: '#8c8c8c' }}>Naqish</div>
-                  <div style={{ fontWeight: 'bold', fontSize: '12px' }}>{k.naqish || 0}</div>
-                </div>
-                <div style={{ textAlign: 'center', background: '#f5f5f5', padding: '4px', borderRadius: '4px' }}>
-                  <div style={{ fontSize: '10px', color: '#8c8c8c' }}>Tam</div>
-                  <div style={{ fontWeight: 'bold', fontSize: '12px' }}>{k.tam || 0}</div>
-                </div>
-              </div>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '6px', marginTop: '6px' }}>
-                <div style={{ textAlign: 'center', background: '#e6f7ff', padding: '4px', borderRadius: '4px' }}>
-                  <div style={{ fontSize: '10px', color: '#096dd9' }}>Lulus</div>
-                  <div style={{ fontWeight: 'bold', color: '#096dd9', fontSize: '12px' }}>{k.lulus || 0}</div>
-                </div>
-                <div style={{ textAlign: 'center', background: '#fff1f0', padding: '4px', borderRadius: '4px' }}>
-                  <div style={{ fontSize: '10px', color: '#cf1322' }}>Tidak</div>
-                  <div style={{ fontWeight: 'bold', color: '#cf1322', fontSize: '12px' }}>{k.tidak || 0}</div>
-                </div>
-                <div style={{ textAlign: 'center', background: '#fafafa', padding: '4px', borderRadius: '4px' }}>
-                  <div style={{ fontSize: '10px', color: '#8c8c8c' }}>Ghoib</div>
-                  <div style={{ fontWeight: 'bold', fontSize: '12px' }}>{k.ghoib || 0}</div>
-                </div>
-              </div>
-            </>
-          )}
-
-          {activeTab !== 'muhafadzoh' && activeTab !== 'taftisyul_kutub' && (
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '6px', marginTop: '8px' }}>
-              <div style={{ textAlign: 'center', background: '#f5f5f5', padding: '4px', borderRadius: '4px' }}>
-                <div style={{ fontSize: '10px', color: '#8c8c8c' }}>Rata-rata</div>
-                <div style={{ fontWeight: 'bold', fontSize: '12px' }}>{k.rata_rata || 0}</div>
-              </div>
-              <div style={{ textAlign: 'center', background: '#fafafa', padding: '4px', borderRadius: '4px' }}>
-                <div style={{ fontSize: '10px', color: '#8c8c8c' }}>Ghoib</div>
-                <div style={{ fontWeight: 'bold', fontSize: '12px' }}>{k.ghoib || 0}</div>
-              </div>
-            </div>
-          )}
-        </Card>
-      ))}
-      <Card title="Total Keseluruhan" size="small" style={{ marginTop: 12, borderRadius: 8, background: '#fafafa' }}>
-        <div style={{ textAlign: 'center' }}>
-          <Text strong style={{ fontSize: 16 }}>{grandTotal.totalSiswa} Siswa</Text>
-        </div>
-      </Card>
-    </Space>
-  );
-
-  const tingkatOptions = [
-    { label: 'Sifir', value: 0 },
-    { label: 'Kelas 1', value: 1 },
-    { label: 'SP', value: 1.5 },
-    { label: 'Kelas 2', value: 2 },
-    { label: 'Kelas 3', value: 3 },
-    { label: 'Kelas 4', value: 4 },
-    { label: 'Kelas 5', value: 5 },
-    { label: 'Kelas 6', value: 6 },
-  ];
-
-  const handleTahunAjaranChange = (val) => {
-    const selected = tahunAjaranList.find(t => t.id === val);
-    setTahunAjaran(selected);
-    // Tidak disimpan ke localStorage — pilihan user hanya berlaku sesi ini
-  };
-
   const handleShare = () => {
     if (!selectedKelas || !selectedKategori) return;
     const shareUrl = `${window.location.origin}/pub/laporan-ujian-khusus?kelas_id=${selectedKelas}&kategori_id=${selectedKategori}`;
@@ -1305,190 +973,605 @@ export const LaporanUjianKhusus = () => {
     }
   };
 
-  return (
-    <div className={`laporan-container ${isMobile ? 'mobile' : 'desktop'}`} style={{ padding: isMobile ? 8 : 24, paddingBottom: isMobile && isPublicRoute ? 70 : (isMobile ? 8 : 24), background: '#f0f2f5', minHeight: '100vh' }}>
-      <Card 
-        style={{ marginBottom: 12, borderRadius: 12, boxShadow: '0 2px 8px rgba(0,0,0,0.05)', position: 'sticky', top: 0, zIndex: 10 }}
-        bodyStyle={{ padding: isMobile ? 12 : 16 }}
-      >
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 8 }}>
-          <div>
-            <Title level={isMobile ? 5 : 4} style={{ margin: 0, color: '#1a365d' }}>
-              Laporan Ujian Khusus
-            </Title>
-            <Space wrap style={{ marginTop: 8 }}>
-              <Select
-                size="small"
-                value={tahunAjaran?.id}
-                onChange={handleTahunAjaranChange}
-                style={{ width: 140 }}
-                options={tahunAjaranList.map(t => ({ label: t.kode, value: t.id }))}
-                placeholder="Tahun Ajaran"
-              />
-              <Select
-                size="small"
-                value={selectedKategori}
-                onChange={setSelectedKategori}
-                style={{ width: 140 }}
-                options={kategori.map(k => ({ label: k.nama, value: k.id }))}
-                placeholder="Semester"
-              />
-            </Space>
-          </div>
-          
-          <Space wrap>
-            <Button 
-              size="small" 
-              type={viewMode === 'akumulasi' ? 'primary' : 'default'}
-              icon={viewMode === 'akumulasi' ? <UndoOutlined /> : <BarChartOutlined />}
-              onClick={() => setViewMode(viewMode === 'detail' ? 'akumulasi' : 'detail')}
-              style={{ display: activeTab === 'ringkasan' ? 'none' : 'inline-block' }}
-            >
-              {viewMode === 'detail' ? 'Lihat Akumulasi' : 'Kembali ke Detail'}
-            </Button>
-            
-            {!isMobile && (
-              <Space wrap>
-                {activeTab !== 'ringkasan' && <Button size="small" icon={<PrinterOutlined />} onClick={() => window.print()}>Cetak</Button>}
-                {viewMode === 'detail' && activeTab !== 'ringkasan' && (
-                  <>
-                    <Button size="small" icon={<ShareAltOutlined />} onClick={handleShare}>Bagikan</Button>
-                    <Button size="small" type="primary" icon={<FilePdfOutlined />} onClick={exportLaporanToPDF} loading={loading}>Ekspor PDF</Button>
-                  </>
-                )}
-                {viewMode === 'akumulasi' && activeTab !== 'ringkasan' && (
-                  <Button size="small" type="primary" icon={<ExportOutlined />} onClick={exportAllToPDF} loading={loading}>Ekspor Semua Kelas (PDF)</Button>
-                )}
-                {activeTab === 'ringkasan' && (
-                  <>
-                    <Button size="small" type="primary" icon={<FilePdfOutlined />} onClick={exportLaporanToPDF} loading={loading}>Ekspor PDF</Button>
-                    <Button size="small" type="primary" icon={<FileExcelOutlined />} onClick={exportToExcel} loading={loading} style={{ background: '#52c41a', borderColor: '#52c41a' }}>Ekspor Excel</Button>
-                  </>
-                )}
-              </Space>
-            )}
-          </Space>
-        </div>
-      </Card>
+  const tingkatOptions = [
+    { label: 'Sifir', value: 0 },
+    { label: 'Kelas 1', value: 1 },
+    { label: 'SP', value: 1.5 },
+    { label: 'Kelas 2', value: 2 },
+    { label: 'Kelas 3', value: 3 },
+    { label: 'Kelas 4', value: 4 },
+    { label: 'Kelas 5', value: 5 },
+    { label: 'Kelas 6', value: 6 },
+  ];
 
-      <Card style={{ borderRadius: 12, boxShadow: '0 2px 8px rgba(0,0,0,0.05)' }} bodyStyle={{ padding: isMobile ? 12 : 24 }}>
-        <Tabs 
-          activeKey={activeTab} 
-          onChange={(key) => { setActiveTab(key); setViewMode('detail'); }} 
-          type="card" 
-          style={{ marginBottom: 16 }}
-          items={[
-            { key: 'muhafadzoh', label: 'Muhafadzoh Akbar' },
-            { key: 'qiroatul_kitab', label: 'Qiroatul Kitab' },
-            { key: 'taftisyul_kutub', label: 'Taftisyul Kutub' },
-            { key: 'ringkasan', label: 'Ringkasan Hasil Ujian Khusus' },
-          ]}
-        />
+  // Local filtered search results for autocomplete search input
+  const searchResults = useMemo(() => {
+    if (!searchQuery) return [];
+    const query = searchQuery.toLowerCase();
+    return santriSearchList.filter(s => 
+      s.nama.toLowerCase().includes(query) ||
+      (s.nis && s.nis.toLowerCase().includes(query))
+    );
+  }, [searchQuery, santriSearchList]);
+
+  return (
+    <div className="laporan-page-container">
+      <PageHeader 
+        title="📊 Laporan Hasil Ujian Khusus"
+        subtitle="Laporan kumulatif hasil evaluasi ujian Muhafadzoh, Qiroah, dan Taftisy"
+        extra={[
+          <div key="filters" className="header-actions-row" style={{ width: '100%' }}>
+            <div className="left-filters">
+              <div style={{ width: '150px' }}>
+                <CustomSelect
+                  value={tahunAjaran?.id ? String(tahunAjaran.id) : ''}
+                  onChange={(val) => {
+                    const selected = tahunAjaranList.find(t => t.id === Number(val));
+                    setTahunAjaran(selected || null);
+                  }}
+                  options={tahunAjaranList.map(t => ({ value: String(t.id), label: t.kode }))}
+                  placeholder="Tahun Ajaran"
+                />
+              </div>
+              <div style={{ width: '150px' }}>
+                <CustomSelect
+                  value={selectedKategori ? String(selectedKategori) : ''}
+                  onChange={(val) => setSelectedKategori(val ? Number(val) : null)}
+                  options={kategori.map(k => ({ value: String(k.id), label: k.nama }))}
+                  placeholder="Semester"
+                />
+              </div>
+            </div>
+
+            <div className="right-buttons">
+              {activeTab !== 'ringkasan' && (
+                <button 
+                  type="button" 
+                  className={`btn-custom ${viewMode === 'akumulasi' ? 'btn-primary' : 'btn-secondary'}`}
+                  onClick={() => setViewMode(viewMode === 'detail' ? 'akumulasi' : 'detail')}
+                >
+                  {viewMode === 'detail' ? <BarChart2 size={16} /> : <RotateCcw size={16} />}
+                  <span>{viewMode === 'detail' ? 'Lihat Akumulasi' : 'Kembali ke Detail'}</span>
+                </button>
+              )}
+
+              {!isMobile && (
+                <>
+                  {activeTab !== 'ringkasan' && (
+                    <button type="button" className="btn-custom btn-secondary" onClick={() => window.print()}>
+                      <Printer size={16} />
+                      <span>Cetak</span>
+                    </button>
+                  )}
+                  {viewMode === 'detail' && activeTab !== 'ringkasan' && (
+                    <>
+                      <button type="button" className="btn-custom btn-secondary" onClick={handleShare}>
+                        <Share2 size={16} />
+                        <span>Bagikan</span>
+                      </button>
+                      <button type="button" className="btn-custom btn-primary" onClick={exportLaporanToPDF} disabled={loading}>
+                        <FileText size={16} />
+                        <span>Ekspor PDF</span>
+                      </button>
+                    </>
+                  )}
+                  {viewMode === 'akumulasi' && activeTab !== 'ringkasan' && (
+                    <button type="button" className="btn-custom btn-primary" onClick={exportAllToPDF} disabled={loading}>
+                      <Download size={16} />
+                      <span>Ekspor Semua Kelas (PDF)</span>
+                    </button>
+                  )}
+                  {activeTab === 'ringkasan' && (
+                    <>
+                      <button type="button" className="btn-custom btn-primary" onClick={exportLaporanToPDF} disabled={loading}>
+                        <FileText size={16} />
+                        <span>Ekspor PDF</span>
+                      </button>
+                      <button type="button" className="btn-custom btn-secondary" onClick={exportToExcel} disabled={loading} style={{ background: '#10b981', color: '#ffffff', borderColor: '#10b981' }}>
+                        <Grid size={16} />
+                        <span>Ekspor Excel</span>
+                      </button>
+                    </>
+                  )}
+                </>
+              )}
+            </div>
+          </div>
+        ]}
+      />
+
+      <div className="laporan-frosted-card">
+        
+        {/* Custom tabs row navigation */}
+        <div className="custom-tabs-nav">
+          <button
+            type="button"
+            className={`custom-tabs-tab ${activeTab === 'muhafadzoh' ? 'active' : ''}`}
+            onClick={() => { setActiveTab('muhafadzoh'); setViewMode('detail'); }}
+          >
+            <span>Muhafadzoh Akbar</span>
+          </button>
+          <button
+            type="button"
+            className={`custom-tabs-tab ${activeTab === 'qiroatul_kitab' ? 'active' : ''}`}
+            onClick={() => { setActiveTab('qiroatul_kitab'); setViewMode('detail'); }}
+          >
+            <span>Qiroatul Kitab</span>
+          </button>
+          <button
+            type="button"
+            className={`custom-tabs-tab ${activeTab === 'taftisyul_kutub' ? 'active' : ''}`}
+            onClick={() => { setActiveTab('taftisyul_kutub'); setViewMode('detail'); }}
+          >
+            <span>Taftisyul Kutub</span>
+          </button>
+          <button
+            type="button"
+            className={`custom-tabs-tab ${activeTab === 'ringkasan' ? 'active' : ''}`}
+            onClick={() => { setActiveTab('ringkasan'); setViewMode('detail'); }}
+          >
+            <span>Ringkasan Hasil</span>
+          </button>
+        </div>
 
         {loading ? (
-          <div style={{ textAlign: 'center', padding: '40px 0' }}>
-            <Spin size="large" tip="Memuat Data Laporan..." />
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '60px 0', gap: '12px' }}>
+            <div className="rapor-loading-spinner" style={{ minHeight: 'unset' }}><div className="spinner"></div></div>
+            <span style={{ fontSize: '13px', color: '#64748b' }}>Memuat data laporan...</span>
           </div>
         ) : (
           <>
             {viewMode === 'detail' ? (
               <>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 16, marginBottom: 16 }}>
-                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, justifyContent: 'space-between' }}>
-                    <Radio.Group 
-                      value={selectedTingkat} 
-                      onChange={e => setSelectedTingkat(e.target.value)}
-                      buttonStyle="solid"
-                      size="small"
-                      style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}
-                    >
-                      {tingkatOptions.map(opt => (
-                        <Radio.Button key={opt.value} value={opt.value} style={{ borderRadius: 4 }}>
-                          {opt.label}
-                        </Radio.Button>
-                      ))}
-                    </Radio.Group>
-
-                    <Select
-                      showSearch
-                      placeholder="Cari Santri..."
-                      style={{ width: isMobile ? '100%' : 250 }}
-                      size="small"
-                      filterOption={false}
-                      suffixIcon={<SearchOutlined />}
-                      onSelect={handleSearchSelect}
-                      options={santriSearchList.map(s => ({
-                        value: s.santri_id,
-                        label: `${s.nama} - ${s.nama_kelas}`,
-                        kelas_id: s.kelas_id,
-                        tingkat: s.tingkat
-                      }))}
-                    />
-                  </div>
+                <div className="inner-filter-bar">
                   
-                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
-                    {filteredKelas.map(k => (
-                      <Button
-                        key={k.id}
-                        type={selectedKelas === k.id ? 'primary' : 'default'}
-                        onClick={() => setSelectedKelas(k.id)}
-                        size="small"
-                        style={{ borderRadius: 12 }}
+                  {/* Levels toggles */}
+                  <div className="segmented-pills-row">
+                    {tingkatOptions.map(opt => (
+                      <button
+                        key={opt.value}
+                        type="button"
+                        className={`pill-btn ${selectedTingkat === opt.value ? 'active' : ''}`}
+                        onClick={() => setSelectedTingkat(opt.value)}
                       >
-                        {k.nama}
-                      </Button>
+                        {opt.label}
+                      </button>
                     ))}
                   </div>
+
+                  {/* Autocomplete Search input */}
+                  <div className="student-search-box" ref={searchContainerRef}>
+                    <div style={{ position: 'relative' }}>
+                      <input 
+                        type="text" 
+                        className="settings-text-input" 
+                        placeholder="Cari nama santri..."
+                        value={searchQuery}
+                        onChange={(e) => {
+                          setSearchQuery(e.target.value);
+                          setShowSearchResults(true);
+                        }}
+                        onFocus={() => setShowSearchResults(true)}
+                        style={{ paddingLeft: '34px', fontSize: '12.5px' }}
+                      />
+                      <Search size={14} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: '#94a3b8' }} />
+                    </div>
+
+                    {showSearchResults && searchResults.length > 0 && (
+                      <div className="custom-select-portal-dropdown" style={{ 
+                        position: 'absolute', 
+                        top: '100%', 
+                        left: 0, 
+                        right: 0, 
+                        zIndex: 9999,
+                        background: '#ffffff',
+                        border: '1px solid rgba(226, 232, 240, 0.8)',
+                        borderRadius: '12px',
+                        boxShadow: '0 10px 25px rgba(0,0,0,0.08)',
+                        maxHeight: '240px',
+                        overflowY: 'auto',
+                        marginTop: '4px'
+                      }}>
+                        {searchResults.map(s => (
+                          <div 
+                            key={s.santri_id}
+                            className="dropdown-item-custom"
+                            onClick={() => handleSearchSelect(s)}
+                            style={{ 
+                              padding: '10px 14px', 
+                              cursor: 'pointer', 
+                              fontSize: '12.5px',
+                              borderBottom: '1px solid rgba(226,232,240,0.4)',
+                              color: '#334155'
+                            }}
+                          >
+                            <span style={{ fontWeight: 700 }}>{s.nama}</span>
+                            <span style={{ fontSize: '11px', color: '#64748b', marginLeft: '6px' }}>— {s.nama_kelas}</span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+
                 </div>
 
-                {isMobile ? renderMobileView() : (
-                  <Table 
-                    columns={getColumns()} 
-                    dataSource={data} 
-                    rowKey="santri_id"
-                    pagination={false}
-                    size="small"
-                    bordered
-                    scroll={{ x: 'max-content' }}
-                    className="laporan-table"
-                  />
+                {/* Class selector row */}
+                <div className="class-selection-row">
+                  {filteredKelas.map(k => (
+                    <button
+                      key={k.id}
+                      type="button"
+                      className={`class-pill-btn ${selectedKelas === k.id ? 'active' : ''}`}
+                      onClick={() => setSelectedKelas(k.id)}
+                    >
+                      {k.nama}
+                    </button>
+                  ))}
+                </div>
+
+                {/* HTML Table Detail View */}
+                <div className="table-responsive-laporan">
+                  <table className="custom-data-table">
+                    <thead>
+                      {activeTab === 'muhafadzoh' && (
+                        <>
+                          <tr>
+                            <th rowSpan={2} style={{ width: '50px', textAlign: 'center' }}>No</th>
+                            <th rowSpan={2}>Nama Santri</th>
+                            <th rowSpan={2} style={{ width: '100px', textAlign: 'center' }}>Nilai</th>
+                            <th colSpan={4} className="main-span-header">Predikat</th>
+                            <th colSpan={2} className="main-span-header">Kelulusan</th>
+                            <th rowSpan={2} style={{ width: '80px', textAlign: 'center' }}>Ghoib</th>
+                          </tr>
+                          <tr>
+                            <th className="sub-header-th">Rodi'</th>
+                            <th className="sub-header-th">Mutawasith</th>
+                            <th className="sub-header-th">Jayyid</th>
+                            <th className="sub-header-th">Mumtaz</th>
+                            <th className="sub-header-th">Lulus</th>
+                            <th className="sub-header-th">Tidak</th>
+                          </tr>
+                        </>
+                      )}
+
+                      {activeTab === 'taftisyul_kutub' && (
+                        <>
+                          <tr>
+                            <th rowSpan={2} style={{ width: '50px', textAlign: 'center' }}>No</th>
+                            <th rowSpan={2}>Nama Santri</th>
+                            <th rowSpan={2} style={{ width: '100px', textAlign: 'center' }}>Nilai</th>
+                            <th colSpan={2} className="main-span-header">Hasil</th>
+                            <th colSpan={2} className="main-span-header">Kelulusan</th>
+                            <th rowSpan={2} style={{ width: '80px', textAlign: 'center' }}>Ghoib</th>
+                          </tr>
+                          <tr>
+                            <th className="sub-header-th">Naqish</th>
+                            <th className="sub-header-th">Tam</th>
+                            <th className="sub-header-th">Lulus</th>
+                            <th className="sub-header-th">Tidak</th>
+                          </tr>
+                        </>
+                      )}
+
+                      {activeTab === 'qiroatul_kitab' && (
+                        <tr>
+                          <th style={{ width: '50px', textAlign: 'center' }}>No</th>
+                          <th>Nama Santri</th>
+                          <th style={{ width: '120px', textAlign: 'center' }}>Nilai</th>
+                          <th style={{ width: '100px', textAlign: 'center' }}>Ghoib</th>
+                        </tr>
+                      )}
+
+                      {activeTab === 'ringkasan' && (
+                        <tr>
+                          <th style={{ width: '50px', textAlign: 'center' }}>No</th>
+                          <th>Nama Santri</th>
+                          <th style={{ textAlign: 'center' }}>Hasil Muhafadzoh</th>
+                          <th style={{ textAlign: 'center' }}>Hasil Qiroatul Kitab</th>
+                          <th style={{ textAlign: 'center' }}>Hasil Taftisyul Kutub</th>
+                        </tr>
+                      )}
+                    </thead>
+                    <tbody>
+                      {data.map((record, idx) => {
+                        const isGhoib = record.nilai_angka === null && !record.capaian;
+                        
+                        if (activeTab === 'ringkasan') {
+                          return (
+                            <tr key={record.santri_id}>
+                              <td className="center-text">{idx + 1}</td>
+                              <td className="student-name-cell">{record.nama}</td>
+                              <td className="center-text">
+                                <span className={`predikat-badge ${getPredClass(record.akbar?.predikat)}`}>
+                                  {record.akbar?.predikat || '-'}
+                                </span>
+                              </td>
+                              <td className="center-text" style={{ fontWeight: 'bold' }}>
+                                {record.qiroah?.nilai_angka !== null && record.qiroah?.nilai_angka !== undefined 
+                                  ? Number(record.qiroah.nilai_angka).toString() 
+                                  : (record.qiroah?.capaian || '-')}
+                              </td>
+                              <td className="center-text">
+                                <span className={`predikat-badge ${getPredClass(record.taftisy?.predikat || record.taftisy?.capaian)}`}>
+                                  {record.taftisy?.predikat || record.taftisy?.capaian || '-'}
+                                </span>
+                              </td>
+                            </tr>
+                          );
+                        }
+
+                        if (activeTab === 'muhafadzoh') {
+                          const isLulus = ["Mutawassith", "Jayyid", "Mumtaz"].includes(record.predikat);
+                          return (
+                            <tr key={record.santri_id}>
+                              <td className="center-text">{idx + 1}</td>
+                              <td className="student-name-cell">{record.nama}</td>
+                              <td className="center-text" style={{ fontWeight: 'bold' }}>
+                                {record.nilai_angka !== null ? Number(record.nilai_angka).toString() : (record.capaian || '-')}
+                              </td>
+                              {/* Predikats */}
+                              <td className="center-text">{record.predikat === "Rodi'" && <span className="tidak-cross">✓</span>}</td>
+                              <td className="center-text">{record.predikat === "Mutawassith" && <span style={{ color: '#eab308' }}>✓</span>}</td>
+                              <td className="center-text">{record.predikat === "Jayyid" && <span className="lulus-check">✓</span>}</td>
+                              <td className="center-text">{record.predikat === "Mumtaz" && <span className="lulus-check" style={{ color: '#10b981' }}>✓</span>}</td>
+                              {/* Kelulusan */}
+                              <td className="center-text">{isLulus && <CheckCircle size={16} className="lulus-check" />}</td>
+                              <td className="center-text">{record.predikat === "Rodi'" && <XCircle size={16} className="tidak-cross" />}</td>
+                              {/* Ghoib */}
+                              <td className="center-text">{isGhoib && <XCircle size={16} className="tidak-cross" />}</td>
+                            </tr>
+                          );
+                        }
+
+                        if (activeTab === 'taftisyul_kutub') {
+                          const isLulus = record.predikat === "Tam" || record.capaian === "Tam";
+                          return (
+                            <tr key={record.santri_id}>
+                              <td className="center-text">{idx + 1}</td>
+                              <td className="student-name-cell">{record.nama}</td>
+                              <td className="center-text" style={{ fontWeight: 'bold' }}>
+                                {record.nilai_angka !== null ? Number(record.nilai_angka).toString() : (record.capaian || '-')}
+                              </td>
+                              {/* Hasil */}
+                              <td className="center-text">{(record.predikat === "Naqish" || record.capaian === "Naqish") && <span className="tidak-cross">✓</span>}</td>
+                              <td className="center-text">{(record.predikat === "Tam" || record.capaian === "Tam") && <span className="lulus-check">✓</span>}</td>
+                              {/* Kelulusan */}
+                              <td className="center-text">{isLulus && <CheckCircle size={16} className="lulus-check" />}</td>
+                              <td className="center-text">{(record.predikat === "Naqish" || record.capaian === "Naqish") && <XCircle size={16} className="tidak-cross" />}</td>
+                              {/* Ghoib */}
+                              <td className="center-text">{isGhoib && <XCircle size={16} className="tidak-cross" />}</td>
+                            </tr>
+                          );
+                        }
+
+                        // Qiroatul Kitab default view
+                        return (
+                          <tr key={record.santri_id}>
+                            <td className="center-text">{idx + 1}</td>
+                            <td className="student-name-cell">{record.nama}</td>
+                            <td className="center-text" style={{ fontWeight: 'bold' }}>
+                              {record.nilai_angka !== null ? Number(record.nilai_angka).toString() : (record.capaian || '-')}
+                            </td>
+                            <td className="center-text">{isGhoib && <XCircle size={16} className="tidak-cross" />}</td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+
+                {/* Class summary widgets footer */}
+                {activeTab !== 'ringkasan' && (
+                  <div className="ringkasan-summary-grid">
+                    {activeTab === 'muhafadzoh' && (
+                      <>
+                        <div className="summary-widget">
+                          <span className="widget-title">Rodi'</span>
+                          <span className="widget-val">{summary.counts.Rodi || 0}</span>
+                        </div>
+                        <div className="summary-widget">
+                          <span className="widget-title">Mutawassith</span>
+                          <span className="widget-val">{summary.counts.Mutawassith || 0}</span>
+                        </div>
+                        <div className="summary-widget">
+                          <span className="widget-title">Jayyid</span>
+                          <span className="widget-val">{summary.counts.Jayyid || 0}</span>
+                        </div>
+                        <div className="summary-widget">
+                          <span className="widget-title">Mumtaz</span>
+                          <span className="widget-val">{summary.counts.Mumtaz || 0}</span>
+                        </div>
+                      </>
+                    )}
+                    {activeTab === 'taftisyul_kutub' && (
+                      <>
+                        <div className="summary-widget">
+                          <span className="widget-title">Tam</span>
+                          <span className="widget-val">{summary.counts.Tam || 0}</span>
+                        </div>
+                        <div className="summary-widget">
+                          <span className="widget-title">Naqish</span>
+                          <span className="widget-val">{summary.counts.Naqish || 0}</span>
+                        </div>
+                      </>
+                    )}
+                    {activeTab === 'qiroatul_kitab' && (
+                      <>
+                        <div className="summary-widget">
+                          <span className="widget-title">Dinilai</span>
+                          <span className="widget-val">{summary.counts.Rated || 0}</span>
+                        </div>
+                        <div className="summary-widget">
+                          <span className="widget-title">Rerata Kelas</span>
+                          <span className="widget-val" style={{ color: '#4f46e5' }}>{summary.counts.Rata || 0}</span>
+                        </div>
+                      </>
+                    )}
+                    <div className="summary-widget">
+                      <span className="widget-title">Lulus</span>
+                      <span className="widget-val" style={{ color: '#10b981' }}>{summary.counts.Lulus ?? (summary.total - (summary.counts.Ghoib || 0))}</span>
+                    </div>
+                    <div className="summary-widget">
+                      <span className="widget-title">Ghoib / Kosong</span>
+                      <span className="widget-val" style={{ color: '#ef4444' }}>{summary.counts.Ghoib || 0}</span>
+                    </div>
+                  </div>
                 )}
               </>
             ) : (
-              <>
-                {isMobile ? renderMobileAkumulasi() : (
-                  <Table 
-                    columns={getAkumulasiColumns()} 
-                    dataSource={akumulasiData} 
-                    rowKey="kelas_id"
-                    pagination={false}
-                    size="small"
-                    bordered
-                    scroll={{ x: 'max-content' }}
-                    className="laporan-table akumulasi-table"
-                  />
-                )}
-              </>
+              /* Akumulasi View */
+              <div className="table-responsive-laporan">
+                <table className="custom-data-table">
+                  <thead>
+                    {activeTab === 'muhafadzoh' && (
+                      <>
+                        <tr>
+                          <th rowSpan={2} style={{ width: '50px', textAlign: 'center' }}>No</th>
+                          <th rowSpan={2}>Kelas-Kelas</th>
+                          <th rowSpan={2} style={{ width: '110px', textAlign: 'center' }}>Jumlah Siswa</th>
+                          <th colSpan={4} className="main-span-header">Predikat</th>
+                          <th colSpan={2} className="main-span-header">Kelulusan</th>
+                          <th rowSpan={2} style={{ width: '90px', textAlign: 'center' }}>Ghoib</th>
+                        </tr>
+                        <tr>
+                          <th className="sub-header-th">Rodi'</th>
+                          <th className="sub-header-th">Mutawasith</th>
+                          <th className="sub-header-th">Jayyid</th>
+                          <th className="sub-header-th">Mumtaz</th>
+                          <th className="sub-header-th">Lulus</th>
+                          <th className="sub-header-th">Tidak</th>
+                        </tr>
+                      </>
+                    )}
+
+                    {activeTab === 'taftisyul_kutub' && (
+                      <>
+                        <tr>
+                          <th rowSpan={2} style={{ width: '50px', textAlign: 'center' }}>No</th>
+                          <th rowSpan={2}>Kelas-Kelas</th>
+                          <th rowSpan={2} style={{ width: '110px', textAlign: 'center' }}>Jumlah Siswa</th>
+                          <th colSpan={2} className="main-span-header">Hasil</th>
+                          <th colSpan={2} className="main-span-header">Kelulusan</th>
+                          <th rowSpan={2} style={{ width: '90px', textAlign: 'center' }}>Ghoib</th>
+                        </tr>
+                        <tr>
+                          <th className="sub-header-th">Naqish</th>
+                          <th className="sub-header-th">Tam</th>
+                          <th className="sub-header-th">Lulus</th>
+                          <th className="sub-header-th">Tidak</th>
+                        </tr>
+                      </>
+                    )}
+
+                    {activeTab !== 'muhafadzoh' && activeTab !== 'taftisyul_kutub' && (
+                      <tr>
+                        <th style={{ width: '50px', textAlign: 'center' }}>No</th>
+                        <th>Kelas-Kelas</th>
+                        <th style={{ width: '120px', textAlign: 'center' }}>Jumlah Siswa</th>
+                        <th style={{ width: '140px', textAlign: 'center' }}>Rerata Ujian</th>
+                        <th style={{ width: '120px', textAlign: 'center' }}>Ghoib</th>
+                      </tr>
+                    )}
+                  </thead>
+                  <tbody>
+                    {akumulasiData.map((row, idx) => {
+                      const total = Number(row.jumlah_siswa);
+                      const getPercentSpan = (val) => {
+                        const pct = total > 0 ? Math.round((val / total) * 100) : 0;
+                        return (
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', alignItems: 'center' }}>
+                            <span style={{ fontWeight: 700 }}>{val}</span>
+                            <span style={{ fontSize: '10px', color: '#94a3b8' }}>{pct}%</span>
+                          </div>
+                        );
+                      };
+
+                      if (activeTab === 'muhafadzoh') {
+                        return (
+                          <tr key={row.kelas_id}>
+                            <td className="center-text">{idx + 1}</td>
+                            <td className="student-name-cell">{row.nama_kelas}</td>
+                            <td className="center-text" style={{ fontWeight: 'bold' }}>{row.jumlah_siswa}</td>
+                            <td className="center-text">{getPercentSpan(row.rodi || 0)}</td>
+                            <td className="center-text">{getPercentSpan(row.mutawassith || 0)}</td>
+                            <td className="center-text">{getPercentSpan(row.jayyid || 0)}</td>
+                            <td className="center-text">{getPercentSpan(row.mumtaz || 0)}</td>
+                            <td className="center-text">{getPercentSpan(row.lulus || 0)}</td>
+                            <td className="center-text">{getPercentSpan(row.tidak || 0)}</td>
+                            <td className="center-text">{getPercentSpan(row.ghoib || 0)}</td>
+                          </tr>
+                        );
+                      }
+
+                      if (activeTab === 'taftisyul_kutub') {
+                        return (
+                          <tr key={row.kelas_id}>
+                            <td className="center-text">{idx + 1}</td>
+                            <td className="student-name-cell">{row.nama_kelas}</td>
+                            <td className="center-text" style={{ fontWeight: 'bold' }}>{row.jumlah_siswa}</td>
+                            <td className="center-text">{getPercentSpan(row.naqish || 0)}</td>
+                            <td className="center-text">{getPercentSpan(row.tam || 0)}</td>
+                            <td className="center-text">{getPercentSpan(row.lulus || 0)}</td>
+                            <td className="center-text">{getPercentSpan(row.tidak || 0)}</td>
+                            <td className="center-text">{getPercentSpan(row.ghoib || 0)}</td>
+                          </tr>
+                        );
+                      }
+
+                      // Qiroatul kitab default view
+                      return (
+                        <tr key={row.kelas_id}>
+                          <td className="center-text">{idx + 1}</td>
+                          <td className="student-name-cell">{row.nama_kelas}</td>
+                          <td className="center-text" style={{ fontWeight: 'bold' }}>{row.jumlah_siswa}</td>
+                          <td className="center-text" style={{ fontWeight: 'bold', color: '#4f46e5' }}>{row.rata_rata || '0'}</td>
+                          <td className="center-text">{getPercentSpan(row.ghoib || 0)}</td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
             )}
           </>
         )}
-      </Card>
-      
+
+      </div>
+
+      {/* Floating Action Button Column for mobile */}
       {isMobile && (
-        <div style={{ position: 'fixed', bottom: 64, right: 16, display: 'flex', flexDirection: 'column', gap: 8 }}>
+        <div className="mobile-fab-column">
           {viewMode === 'detail' ? (
             <>
-              {activeTab !== 'ringkasan' && <Button type="primary" shape="circle" icon={<ShareAltOutlined />} size="large" onClick={handleShare} style={{ boxShadow: '0 4px 12px rgba(24,144,255,0.5)', background: '#52c41a', borderColor: '#52c41a' }} />}
-              {activeTab !== 'ringkasan' && <Button type="primary" shape="circle" icon={<FilePdfOutlined />} size="large" onClick={exportLaporanToPDF} loading={loading} style={{ boxShadow: '0 4px 12px rgba(24,144,255,0.5)' }} />}
-              {activeTab === 'ringkasan' && <Button type="primary" shape="circle" icon={<FilePdfOutlined />} size="large" onClick={exportLaporanToPDF} loading={loading} style={{ boxShadow: '0 4px 12px rgba(24,144,255,0.5)' }} />}
-              {activeTab === 'ringkasan' && <Button type="primary" shape="circle" icon={<FileExcelOutlined />} size="large" onClick={exportToExcel} loading={loading} style={{ boxShadow: '0 4px 12px rgba(82,196,26,0.5)', background: '#52c41a', borderColor: '#52c41a' }} />}
+              {activeTab !== 'ringkasan' && (
+                <button type="button" className="fab-btn" onClick={handleShare}>
+                  <Share2 size={18} />
+                </button>
+              )}
+              <button type="button" className="fab-btn" onClick={exportLaporanToPDF} disabled={loading}>
+                <FileText size={18} />
+              </button>
+              {activeTab === 'ringkasan' && (
+                <button type="button" className="fab-btn excel" onClick={exportToExcel} disabled={loading}>
+                  <Grid size={18} />
+                </button>
+              )}
             </>
           ) : (
-            <Button type="primary" shape="circle" icon={<ExportOutlined />} size="large" onClick={exportAllToPDF} loading={loading} style={{ boxShadow: '0 4px 12px rgba(24,144,255,0.5)' }} />
+            <button type="button" className="fab-btn" onClick={exportAllToPDF} disabled={loading}>
+              <Download size={18} />
+            </button>
           )}
         </div>
       )}
+
       {isMobile && isPublicRoute && <BottomNav />}
     </div>
   );
 };
+
+// Helper: map predicate name to css suffix
+function getPredClass(pred) {
+  if (!pred) return 'empty';
+  return pred.toLowerCase().replace("'", "");
+}
