@@ -9,6 +9,8 @@ import 'package:url_launcher/url_launcher.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:path/path.dart' as p;
+import 'package:record/record.dart';
+import 'package:audioplayers/audioplayers.dart';
 import '../services/api_service.dart';
 import '../services/theme_manager.dart';
 
@@ -56,6 +58,12 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
   Timer? _recordingTimer;
   bool _showSendButton = false;
 
+  // Real voice note recording & playing
+  final AudioRecorder _audioRecorder = AudioRecorder();
+  AudioPlayer? _audioPlayer;
+  int? _activePlayingMsgId;
+  String? _localRecordingPath;
+
   // Voice note playing simulation
   final Map<int, bool> _playingVoiceNotes = {};
   final Map<int, double> _voiceNoteProgress = {};
@@ -85,6 +93,8 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
     _recordingTimer?.cancel();
     _voiceNoteTimers.forEach((_, timer) => timer?.cancel());
     _messageController.removeListener(_handleTextChange);
+    _audioRecorder.dispose();
+    _audioPlayer?.dispose();
     _scrollController.dispose();
     _messageController.dispose();
     super.dispose();
@@ -674,7 +684,13 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
     } else if (text.startsWith('[voice_note:') && text.endsWith(']')) {
       final durationStr = text.substring(12, text.length - 1);
       final duration = int.tryParse(durationStr) ?? 3;
-      return _buildVoiceNoteWidget(msgId, duration, textColor, isMe);
+      return _buildVoiceNoteWidget(msgId, duration, null, textColor, isMe);
+    } else if (text.startsWith('[voice_note_base64:') && text.endsWith(']')) {
+      final String content = text.substring(19, text.length - 1);
+      final parts = content.split(':');
+      final duration = int.tryParse(parts[0]) ?? 3;
+      final base64Data = parts.sublist(1).join(':');
+      return _buildVoiceNoteWidget(msgId, duration, base64Data, textColor, isMe);
     }
     
     // Default text message
@@ -1167,9 +1183,9 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
       final ImagePicker picker = ImagePicker();
       final XFile? image = await picker.pickImage(
         source: ImageSource.gallery,
-        imageQuality: 60,
-        maxWidth: 1080,
-        maxHeight: 1920,
+        imageQuality: 85,
+        maxWidth: 1440,
+        maxHeight: 2560,
       );
       if (image != null) {
         final Directory appDocDir = await getApplicationDocumentsDirectory();
@@ -1235,9 +1251,9 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
       final ImagePicker picker = ImagePicker();
       final XFile? image = await picker.pickImage(
         source: ImageSource.gallery,
-        imageQuality: 40,
-        maxWidth: 1080,
-        maxHeight: 1080,
+        imageQuality: 82,
+        maxWidth: 2048,
+        maxHeight: 2048,
       );
       if (image == null) return;
 
@@ -1408,7 +1424,7 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
     }
   }
 
-  Widget _buildVoiceNoteWidget(int msgId, int durationSeconds, Color textColor, bool isMe) {
+  Widget _buildVoiceNoteWidget(int msgId, int durationSeconds, String? base64Data, Color textColor, bool isMe) {
     final isPlaying = _playingVoiceNotes[msgId] ?? false;
     final progress = _voiceNoteProgress[msgId] ?? 0.0;
 
@@ -1423,7 +1439,7 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
           ),
           padding: EdgeInsets.zero,
           constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
-          onPressed: () => _toggleVoiceNote(msgId, durationSeconds),
+          onPressed: () => _toggleVoiceNote(msgId, durationSeconds, base64Data),
         ),
         const SizedBox(width: 8),
         Expanded(
@@ -1473,82 +1489,168 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
     );
   }
 
-  void _toggleVoiceNote(int msgId, int durationSeconds) {
-    final isPlaying = _playingVoiceNotes[msgId] ?? false;
-    
-    if (isPlaying) {
-      _voiceNoteTimers[msgId]?.cancel();
+  Future<void> _toggleVoiceNote(int msgId, int durationSeconds, String? base64Data) async {
+    if (base64Data == null || base64Data.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Voice note ini tidak memiliki audio.')),
+      );
+      return;
+    }
+
+    final isCurrentlyPlaying = _activePlayingMsgId == msgId;
+
+    if (isCurrentlyPlaying) {
+      await _audioPlayer?.stop();
       setState(() {
+        _activePlayingMsgId = null;
         _playingVoiceNotes[msgId] = false;
       });
     } else {
-      setState(() {
-        _playingVoiceNotes[msgId] = true;
-      });
-      
-      const intervalMs = 100;
-      final totalSteps = (durationSeconds * 1000) / intervalMs;
-      
-      _voiceNoteTimers[msgId]?.cancel();
-      _voiceNoteTimers[msgId] = Timer.periodic(const Duration(milliseconds: intervalMs), (timer) {
-        double currentProgress = _voiceNoteProgress[msgId] ?? 0.0;
-        currentProgress += 1.0 / totalSteps;
-        
-        if (currentProgress >= 1.0) {
-          timer.cancel();
+      if (_audioPlayer != null) {
+        await _audioPlayer!.stop();
+        if (_activePlayingMsgId != null) {
           setState(() {
-            _playingVoiceNotes[msgId] = false;
-            _voiceNoteProgress[msgId] = 0.0;
-          });
-        } else {
-          setState(() {
-            _voiceNoteProgress[msgId] = currentProgress;
+            _playingVoiceNotes[_activePlayingMsgId!] = false;
           });
         }
+      }
+
+      setState(() {
+        _activePlayingMsgId = msgId;
+        _playingVoiceNotes[msgId] = true;
       });
+
+      try {
+        final tempDir = await getTemporaryDirectory();
+        final file = File('${tempDir.path}/vn_play_$msgId.m4a');
+        if (!await file.exists()) {
+          await file.writeAsBytes(base64Decode(base64Data));
+        }
+
+        _audioPlayer ??= AudioPlayer();
+        
+        _audioPlayer!.onPositionChanged.listen((pos) {
+          if (mounted && _activePlayingMsgId == msgId) {
+            final double progress = pos.inMilliseconds / (durationSeconds * 1000);
+            setState(() {
+              _voiceNoteProgress[msgId] = progress.clamp(0.0, 1.0);
+            });
+          }
+        });
+
+        _audioPlayer!.onPlayerComplete.listen((_) {
+          if (mounted && _activePlayingMsgId == msgId) {
+            setState(() {
+              _playingVoiceNotes[msgId] = false;
+              _voiceNoteProgress[msgId] = 0.0;
+              _activePlayingMsgId = null;
+            });
+          }
+        });
+
+        await _audioPlayer!.play(DeviceFileSource(file.path));
+      } catch (e) {
+        setState(() {
+          _playingVoiceNotes[msgId] = false;
+          _activePlayingMsgId = null;
+        });
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Gagal memutar audio: $e'), backgroundColor: Colors.redAccent),
+          );
+        }
+      }
     }
   }
 
-  void _startRecording() {
-    setState(() {
-      _isRecordingAudio = true;
-      _recordingDuration = 0;
-    });
-    _recordingTimer?.cancel();
-    _recordingTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
-      setState(() {
-        _recordingDuration++;
-      });
-    });
+  Future<void> _startRecording() async {
+    try {
+      if (await _audioRecorder.hasPermission()) {
+        final tempDir = await getTemporaryDirectory();
+        final path = p.join(tempDir.path, 'voice_note_${DateTime.now().millisecondsSinceEpoch}.m4a');
+        _localRecordingPath = path;
+
+        await _audioRecorder.start(
+          const RecordConfig(encoder: AudioEncoder.aacLc, bitRate: 32000, sampleRate: 16000),
+          path: path,
+        );
+
+        setState(() {
+          _isRecordingAudio = true;
+          _recordingDuration = 0;
+        });
+
+        _recordingTimer?.cancel();
+        _recordingTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
+          setState(() {
+            _recordingDuration++;
+          });
+        });
+      } else {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Izin mikrofon diperlukan untuk merekam voice note.'),
+              backgroundColor: Colors.redAccent,
+            ),
+          );
+        }
+      }
+    } catch (e) {
+      debugPrint('Error starting recording: $e');
+    }
   }
 
-  void _cancelRecording() {
-    _recordingTimer?.cancel();
+  Future<void> _cancelRecording() async {
+    try {
+      _recordingTimer?.cancel();
+      await _audioRecorder.stop();
+      if (_localRecordingPath != null) {
+        final file = File(_localRecordingPath!);
+        if (await file.exists()) {
+          await file.delete();
+        }
+      }
+    } catch (_) {}
     setState(() {
       _isRecordingAudio = false;
       _recordingDuration = 0;
+      _localRecordingPath = null;
     });
   }
 
   Future<void> _sendVoiceNote() async {
     _recordingTimer?.cancel();
-    final duration = _recordingDuration > 0 ? _recordingDuration : 3;
+    final duration = _recordingDuration > 0 ? _recordingDuration : 1;
+    
     setState(() {
       _isRecordingAudio = false;
       _recordingDuration = 0;
     });
-    
+
     try {
+      final path = await _audioRecorder.stop();
+      if (path == null) return;
+
+      final file = File(path);
+      if (!await file.exists()) return;
+
       setState(() {
         _isSending = true;
       });
-      final text = '[voice_note:$duration]';
+
+      final bytes = await file.readAsBytes();
+      final base64Str = base64Encode(bytes);
+      final text = '[voice_note_base64:$duration:$base64Str]';
+
       final res = await _apiService.sendChatMessage(widget.kelasId, text);
       if (res['success'] == true) {
         await _fetchMessages();
         await _updateLastRead();
         _scrollToBottom();
       }
+      
+      await file.delete();
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -1559,11 +1661,10 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
         );
       }
     } finally {
-      if (mounted) {
-        setState(() {
-          _isSending = false;
-        });
-      }
+      setState(() {
+        _isSending = false;
+        _localRecordingPath = null;
+      });
     }
   }
 }
