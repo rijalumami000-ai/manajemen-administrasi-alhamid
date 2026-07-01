@@ -13,6 +13,7 @@ import '../widgets/muhafadzoh_info_bottom_sheet.dart';
 import '../widgets/qiroah_maqro_bottom_sheet.dart';
 import '../widgets/taftisy_materi_bottom_sheet.dart';
 import '../widgets/ujian_tulis_materi_bottom_sheet.dart';
+import 'kalender_akademik_screen.dart';
 
 class TabAkademik extends StatelessWidget {
   const TabAkademik({super.key});
@@ -581,6 +582,112 @@ class TabAkademik extends StatelessWidget {
                   ),
                 ),
               ],
+            ),
+            const SizedBox(height: 16),
+            // Kalender Akademik - Full Width card
+            GestureDetector(
+              onTap: () => Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const KalenderAkademikScreen(),
+                ),
+              ),
+              child: Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(18),
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: isDark
+                        ? [const Color(0xFF134E4A), const Color(0xFF0F172A)]
+                        : [const Color(0xFFECFDF5), const Color(0xFFF0FDF4)],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
+                  borderRadius: BorderRadius.circular(22),
+                  border: Border.all(
+                    color: isDark
+                        ? const Color(0xFF10B981).withOpacity(0.25)
+                        : const Color(0xFF10B981).withOpacity(0.35),
+                    width: 1.5,
+                  ),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(isDark ? 0.2 : 0.03),
+                      blurRadius: 10,
+                      offset: const Offset(0, 4),
+                    ),
+                  ],
+                ),
+                child: Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: isDark
+                            ? Colors.white.withOpacity(0.06)
+                            : Colors.white.withOpacity(0.6),
+                        borderRadius: BorderRadius.circular(14),
+                        border: isDark ? null : Border.all(color: Colors.white, width: 1.5),
+                      ),
+                      child: Icon(
+                        Icons.calendar_month_rounded,
+                        color: isDark ? Colors.white : const Color(0xFF10B981),
+                        size: 28,
+                      ),
+                    ),
+                    const SizedBox(width: 16),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Kalender Akademik',
+                            style: GoogleFonts.outfit(
+                              color: isDark ? Colors.white : const Color(0xFF065F46),
+                              fontSize: 15,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            'Lihat jadwal & agenda kegiatan akademik semester Ganjil & Genap.',
+                            style: GoogleFonts.outfit(
+                              color: isDark
+                                  ? Colors.white.withOpacity(0.6)
+                                  : const Color(0xFF065F46).withOpacity(0.75),
+                              fontSize: 11,
+                              height: 1.4,
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          Row(
+                            children: [
+                              Text(
+                                'Lihat Kalender',
+                                style: GoogleFonts.outfit(
+                                  color: isDark
+                                      ? const Color(0xFF34D399)
+                                      : const Color(0xFF065F46),
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                              const SizedBox(width: 4),
+                              Icon(
+                                Icons.arrow_forward_rounded,
+                                color: isDark
+                                    ? const Color(0xFF34D399)
+                                    : const Color(0xFF065F46),
+                                size: 12,
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
             ),
           ],
         ),

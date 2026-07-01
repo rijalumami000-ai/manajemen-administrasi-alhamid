@@ -144,5 +144,13 @@ export const nilaiService = {
 
   saveMateriUjianTulis: async (data) => {
     return apiPost('/nilai/materi-ujian-tulis', data);
+  },
+
+  fetchKalenderAkademik: async (tahunAjaranId, semester) => {
+    return apiGet(`/nilai/kalender-akademik?tahun_ajaran_id=${tahunAjaranId}&semester=${encodeURIComponent(semester)}`);
+  },
+
+  saveKalenderAkademik: async (data) => {
+    return apiPost('/nilai/kalender-akademik', data);
   }
 };

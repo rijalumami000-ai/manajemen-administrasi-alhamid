@@ -686,7 +686,48 @@ Write-Host "SCAN_SUCCESS"
     }
   });
 
+  // ── Kalender Akademik ─────────────────────────────────────────────────────
+  router.get('/kalender-akademik', async (req, res, next) => {
+    const db = require('../../db');
+    const { tahun_ajaran_id, semester } = req.query;
+    if (!tahun_ajaran_id || !semester) {
+      return res.status(400).json({ error: 'tahun_ajaran_id dan semester wajib diisi.' });
+    }
+    try {
+      const key = `kalender_akademik_${tahun_ajaran_id}_${semester.toLowerCase()}`;
+      const result = await db.query(
+        "SELECT value FROM system_settings WHERE key = $1",
+        [key]
+      );
+      if (result.rows.length > 0) {
+        return res.json(JSON.parse(result.rows[0].value));
+      }
+      return res.json([]);
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  router.post('/kalender-akademik', async (req, res, next) => {
+    const db = require('../../db');
+    const { tahun_ajaran_id, semester, data } = req.body;
+    if (!tahun_ajaran_id || !semester || !Array.isArray(data)) {
+      return res.status(400).json({ error: 'tahun_ajaran_id, semester, dan data (array) wajib diisi.' });
+    }
+    try {
+      const key = `kalender_akademik_${tahun_ajaran_id}_${semester.toLowerCase()}`;
+      await db.query(
+        "INSERT INTO system_settings (key, value) VALUES ($1, $2) ON CONFLICT (key) DO UPDATE SET value = $2",
+        [key, JSON.stringify(data)]
+      );
+      res.json({ success: true, message: 'Kalender akademik berhasil diperbarui.' });
+    } catch (error) {
+      next(error);
+    }
+  });
+
   app.use('/api/nilai', router);
+
 }
 
 module.exports = registerNilaiRoutes;

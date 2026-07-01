@@ -908,7 +908,32 @@ class ApiService {
       rethrow;
     }
   }
+  // --- KALENDER AKADEMIK ---
+  Future<List<dynamic>> getKalenderAkademik({
+    required int tahunAjaranId,
+    required String semester,
+  }) async {
+    try {
+      final response = await _dio.get(
+        '/nilai/kalender-akademik',
+        queryParameters: {
+          'tahun_ajaran_id': tahunAjaranId,
+          'semester': semester,
+        },
+      );
+      if (response.statusCode == 200) {
+        return response.data as List<dynamic>;
+      }
+      throw Exception('Gagal mengambil kalender akademik.');
+    } catch (e) {
+      if (e is DioException && e.response != null) {
+        throw Exception(e.response?.data['error'] ?? 'Gagal mengambil kalender akademik.');
+      }
+      rethrow;
+    }
+  }
 }
+
 
 
 

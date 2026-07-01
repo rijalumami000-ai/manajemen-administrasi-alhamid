@@ -5,7 +5,8 @@ import {
 } from 'antd';
 import { 
   EditOutlined, SaveOutlined, CloseOutlined, 
-  InfoCircleOutlined, BookOutlined, DeleteOutlined, PlusOutlined 
+  InfoCircleOutlined, BookOutlined, DeleteOutlined, PlusOutlined,
+  CalendarOutlined
 } from '@ant-design/icons';
 import { nilaiService } from '../services/nilaiService';
 import { settingsService } from '../services/settingsService';
@@ -204,6 +205,12 @@ export function InformasiUjian() {
   const [ujianTulisMateri, setUjianTulisMateri] = useState([]);
   const [editUjianTulisMateri, setEditUjianTulisMateri] = useState([]);
   const [isEditingUjianTulis, setIsEditingUjianTulis] = useState(false);
+
+  // Kalender Akademik states
+  const [kalenderAkademik, setKalenderAkademik] = useState([]);
+  const [editKalender, setEditKalender] = useState([]);
+  const [isEditingKalender, setIsEditingKalender] = useState(false);
+  const [kalenderLoading, setKalenderLoading] = useState(false);
   
   const [loading, setLoading] = useState(true);
   const [saveLoading, setSaveLoading] = useState(false);
@@ -261,6 +268,7 @@ export function InformasiUjian() {
   useEffect(() => {
     if (tahunAjaran?.id && selectedKategori) {
       fetchData();
+      fetchKalenderData();
     }
   }, [tahunAjaran, selectedKategori]);
 
@@ -328,6 +336,60 @@ export function InformasiUjian() {
       console.error('Failed to fetch written exam info:', err);
       message.error('Gagal mengambil data batasan materi Ujian Tulis.');
     }
+  };
+
+  const fetchKalenderData = async () => {
+    if (!tahunAjaran?.id || !selectedKategori) return;
+    try {
+      setKalenderLoading(true);
+      setIsEditingKalender(false);
+      // Determine semester name from kategori
+      const kat = kategori.find(k => k.id === selectedKategori);
+      const semesterName = kat?.nama?.toLowerCase().includes('genap') ? 'Genap' : 'Ganjil';
+      const data = await nilaiService.fetchKalenderAkademik(tahunAjaran.id, semesterName);
+      const list = Array.isArray(data) ? data : [];
+      setKalenderAkademik(list);
+      setEditKalender(JSON.parse(JSON.stringify(list)));
+    } catch (err) {
+      console.error('Failed to fetch kalender:', err);
+    } finally {
+      setKalenderLoading(false);
+    }
+  };
+
+  const handleSaveKalender = async () => {
+    if (!tahunAjaran?.id || !selectedKategori) return;
+    try {
+      setSaveLoading(true);
+      const kat = kategori.find(k => k.id === selectedKategori);
+      const semesterName = kat?.nama?.toLowerCase().includes('genap') ? 'Genap' : 'Ganjil';
+      await nilaiService.saveKalenderAkademik({
+        tahun_ajaran_id: tahunAjaran.id,
+        semester: semesterName,
+        data: editKalender
+      });
+      message.success('Kalender akademik berhasil disimpan!');
+      setKalenderAkademik(JSON.parse(JSON.stringify(editKalender)));
+      setIsEditingKalender(false);
+    } catch (err) {
+      message.error(err.message || 'Gagal menyimpan kalender akademik.');
+    } finally {
+      setSaveLoading(false);
+    }
+  };
+
+  const handleKalenderRowChange = (index, field, value) => {
+    const updated = [...editKalender];
+    updated[index] = { ...updated[index], [field]: value };
+    setEditKalender(updated);
+  };
+
+  const handleAddKalenderRow = () => {
+    setEditKalender([...editKalender, { tanggal: '', kegiatan: '' }]);
+  };
+
+  const handleRemoveKalenderRow = (index) => {
+    setEditKalender(editKalender.filter((_, i) => i !== index));
   };
 
   const handleTahunAjaranChange = (val) => {
@@ -1335,7 +1397,149 @@ export function InformasiUjian() {
                 </div>
               )
             }
-          ]} 
+            ,
+            {
+              key: 'kalender-akademik',
+              label: (
+                <span>
+                  <CalendarOutlined />
+                  Kalender Akademik
+                </span>
+              ),
+              children: (
+                <div style={{ marginTop: '16px' }}>
+                  <Alert
+                    message="Kalender Kerja Akademik"
+                    description="Kelola jadwal dan agenda kegiatan akademik semester ini. Data bersifat informatif dan dapat diperbarui setiap saat."
+                    type="info"
+                    showIcon
+                    style={{ marginBottom: 20, borderRadius: '8px' }}
+                  />
+                  <Card
+                    title={
+                      <span>
+                        <CalendarOutlined style={{ marginRight: 8, color: '#10b981' }} />
+                        Jadwal Kegiatan Akademik
+                      </span>
+                    }
+                    extra={
+                      isEditingKalender ? (
+                        <Space>
+                          <Button
+                            icon={<CloseOutlined />}
+                            onClick={() => {
+                              setEditKalender(JSON.parse(JSON.stringify(kalenderAkademik)));
+                              setIsEditingKalender(false);
+                            }}
+                            disabled={saveLoading}
+                          >
+                            Batal
+                          </Button>
+                          <Button
+                            type="primary"
+                            icon={<SaveOutlined />}
+                            onClick={handleSaveKalender}
+                            loading={saveLoading}
+                            style={{ backgroundColor: '#10b981', borderColor: '#10b981' }}
+                          >
+                            Simpan Kalender
+                          </Button>
+                        </Space>
+                      ) : (
+                        <Button
+                          type="primary"
+                          icon={<EditOutlined />}
+                          onClick={() => setIsEditingKalender(true)}
+                        >
+                          Ubah Kalender
+                        </Button>
+                      )
+                    }
+                    loading={kalenderLoading}
+                    style={{ borderRadius: '8px', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)' }}
+                  >
+                    {isEditingKalender ? (
+                      <div>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 12 }}>
+                          {editKalender.map((row, index) => (
+                            <div key={index} style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                              <div style={{ flex: '0 0 200px' }}>
+                                <Input
+                                  placeholder="Tanggal / Periode"
+                                  value={row.tanggal}
+                                  onChange={e => handleKalenderRowChange(index, 'tanggal', e.target.value)}
+                                />
+                              </div>
+                              <div style={{ flex: 1 }}>
+                                <Input
+                                  placeholder="Keterangan Kegiatan"
+                                  value={row.kegiatan}
+                                  onChange={e => handleKalenderRowChange(index, 'kegiatan', e.target.value)}
+                                />
+                              </div>
+                              <Button
+                                type="text"
+                                danger
+                                icon={<DeleteOutlined />}
+                                onClick={() => handleRemoveKalenderRow(index)}
+                              />
+                            </div>
+                          ))}
+                        </div>
+                        <Button
+                          type="dashed"
+                          icon={<PlusOutlined />}
+                          onClick={handleAddKalenderRow}
+                          block
+                        >
+                          Tambah Baris Kegiatan
+                        </Button>
+                      </div>
+                    ) : kalenderAkademik.length > 0 ? (
+                      <Table
+                        dataSource={kalenderAkademik.map((row, i) => ({ ...row, key: i }))}
+                        columns={[
+                          {
+                            title: 'No',
+                            key: 'no',
+                            width: 50,
+                            align: 'center',
+                            render: (_, __, idx) => <Text strong>{idx + 1}</Text>
+                          },
+                          {
+                            title: 'Tanggal / Periode',
+                            dataIndex: 'tanggal',
+                            key: 'tanggal',
+                            width: 240,
+                            render: (text) => <Text strong style={{ color: '#1a365d' }}>{text || '-'}</Text>
+                          },
+                          {
+                            title: 'Kegiatan',
+                            dataIndex: 'kegiatan',
+                            key: 'kegiatan',
+                            render: (text) => <Text style={{ color: '#334155' }}>{text || '-'}</Text>
+                          }
+                        ]}
+                        pagination={false}
+                        size="middle"
+                        bordered
+                        rowKey="key"
+                      />
+                    ) : (
+                      <Empty
+                        description="Belum ada data kalender akademik. Klik 'Ubah Kalender' untuk mulai menambahkan."
+                        image={Empty.PRESENTED_IMAGE_SIMPLE}
+                      >
+                        <Button type="primary" icon={<PlusOutlined />} onClick={() => setIsEditingKalender(true)}>
+                          Buat Kalender
+                        </Button>
+                      </Empty>
+                    )}
+                  </Card>
+                </div>
+              )
+            }
+          ]}
         />
       </div>
     </div>
