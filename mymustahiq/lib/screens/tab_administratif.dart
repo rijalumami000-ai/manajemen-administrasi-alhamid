@@ -5,6 +5,7 @@ import 'buku_induk_screen.dart';
 import 'santri_explorer_screen.dart';
 import 'struktur_organisasi_screen.dart';
 import 'teacher_list_screen.dart';
+import 'alumni_list_screen.dart';
 
 class TabAdministratif extends StatelessWidget {
   const TabAdministratif({super.key});
@@ -93,6 +94,38 @@ class TabAdministratif extends StatelessWidget {
         'bodyColor': isDark ? Colors.white.withOpacity(0.6) : const Color(0xFF064E3B).withOpacity(0.8),
         'iconColor': isDark ? Colors.white : const Color(0xFF10B981),
         'screen': const TeacherListScreen(isMustahiq: false),
+      },
+      {
+        'title': 'Alumni',
+        'desc': 'Data alumni santri yang telah lulus Madrasah Diniyah.',
+        'icon': Icons.school_rounded,
+        'colors': isDark
+            ? [const Color(0xFF115E59), const Color(0xFF0F172A)]
+            : [const Color(0xFFECFDF5), const Color(0xFFD1FAE5)],
+        'borderColor': isDark
+            ? const Color(0xFF10B981).withOpacity(0.25)
+            : const Color(0xFF10B981).withOpacity(0.4),
+        'textColor': isDark ? const Color(0xFF34D399) : const Color(0xFF047857),
+        'headingColor': isDark ? Colors.white : const Color(0xFF065F46),
+        'bodyColor': isDark ? Colors.white.withOpacity(0.6) : const Color(0xFF047857).withOpacity(0.8),
+        'iconColor': isDark ? Colors.white : const Color(0xFF10B981),
+        'screen': const AlumniListScreen(tipe: 'alumni', title: 'Data Alumni'),
+      },
+      {
+        'title': 'Migrasi / Pindah',
+        'desc': 'Data santri pindahan, mutasi keluar, atau dikeluarkan.',
+        'icon': Icons.swap_horiz_rounded,
+        'colors': isDark
+            ? [const Color(0xFF78350F), const Color(0xFF0F172A)]
+            : [const Color(0xFFFFFBEB), const Color(0xFFFEF3C7)],
+        'borderColor': isDark
+            ? const Color(0xFFF59E0B).withOpacity(0.25)
+            : const Color(0xFFF59E0B).withOpacity(0.4),
+        'textColor': isDark ? const Color(0xFFFBBF24) : const Color(0xFFB45309),
+        'headingColor': isDark ? Colors.white : const Color(0xFF92400E),
+        'bodyColor': isDark ? Colors.white.withOpacity(0.6) : const Color(0xFFB45309).withOpacity(0.8),
+        'iconColor': isDark ? Colors.white : const Color(0xFFF59E0B),
+        'screen': const AlumniListScreen(tipe: 'pindah', title: 'Siswa Pindah / Migrasi'),
       },
     ];
 

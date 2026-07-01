@@ -932,6 +932,51 @@ class ApiService {
       rethrow;
     }
   }
+
+  // --- ALUMNI & MIGRASI/PINDAH ---
+  Future<List<dynamic>> getAlumni({
+    String? tipe,
+    String? search,
+    String? tahunLulus,
+    int? tahunAjaranId,
+  }) async {
+    try {
+      final queryParams = <String, dynamic>{};
+      if (tipe != null && tipe.isNotEmpty) queryParams['tipe'] = tipe;
+      if (search != null && search.isNotEmpty) queryParams['q'] = search;
+      if (tahunLulus != null && tahunLulus.isNotEmpty) queryParams['tahun'] = tahunLulus;
+      if (tahunAjaranId != null) queryParams['tahun_ajaran_id'] = tahunAjaranId;
+
+      final response = await _dio.get(
+        '/alumni/search',
+        queryParameters: queryParams,
+      );
+      if (response.statusCode == 200) {
+        return response.data as List<dynamic>;
+      }
+      throw Exception('Gagal mengambil data.');
+    } catch (e) {
+      if (e is DioException && e.response != null) {
+        throw Exception(e.response?.data['error'] ?? 'Gagal mengambil data.');
+      }
+      rethrow;
+    }
+  }
+
+  Future<Map<String, dynamic>> getAlumniDetail(int id) async {
+    try {
+      final response = await _dio.get('/alumni/$id/detail');
+      if (response.statusCode == 200) {
+        return response.data as Map<String, dynamic>;
+      }
+      throw Exception('Gagal mengambil detail.');
+    } catch (e) {
+      if (e is DioException && e.response != null) {
+        throw Exception(e.response?.data['error'] ?? 'Gagal mengambil detail.');
+      }
+      rethrow;
+    }
+  }
 }
 
 
