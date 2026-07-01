@@ -977,6 +977,33 @@ class ApiService {
       rethrow;
     }
   }
+
+  // --- SILABUS PEMBELAJARAN ---
+  Future<List<dynamic>> getSilabus({
+    required int tahunAjaranId,
+    required String semester,
+    required int kelasId,
+  }) async {
+    try {
+      final response = await _dio.get(
+        '/nilai/silabus',
+        queryParameters: {
+          'tahun_ajaran_id': tahunAjaranId,
+          'semester': semester,
+          'kelas_id': kelasId,
+        },
+      );
+      if (response.statusCode == 200) {
+        return response.data as List<dynamic>;
+      }
+      throw Exception('Gagal mengambil silabus.');
+    } catch (e) {
+      if (e is DioException && e.response != null) {
+        throw Exception(e.response?.data['error'] ?? 'Gagal mengambil silabus.');
+      }
+      rethrow;
+    }
+  }
 }
 
 

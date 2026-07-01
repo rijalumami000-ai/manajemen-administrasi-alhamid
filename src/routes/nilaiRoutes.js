@@ -726,6 +726,46 @@ Write-Host "SCAN_SUCCESS"
     }
   });
 
+  // ── Silabus Pembelajaran ──────────────────────────────────────────────────
+  router.get('/silabus', async (req, res, next) => {
+    const db = require('../../db');
+    const { tahun_ajaran_id, semester, kelas_id } = req.query;
+    if (!tahun_ajaran_id || !semester || !kelas_id) {
+      return res.status(400).json({ error: 'tahun_ajaran_id, semester, dan kelas_id wajib diisi.' });
+    }
+    try {
+      const key = `silabus_${tahun_ajaran_id}_${semester.toLowerCase()}_${kelas_id}`;
+      const result = await db.query(
+        "SELECT value FROM system_settings WHERE key = $1",
+        [key]
+      );
+      if (result.rows.length > 0) {
+        return res.json(JSON.parse(result.rows[0].value));
+      }
+      return res.json([]);
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  router.post('/silabus', async (req, res, next) => {
+    const db = require('../../db');
+    const { tahun_ajaran_id, semester, kelas_id, data } = req.body;
+    if (!tahun_ajaran_id || !semester || !kelas_id || !Array.isArray(data)) {
+      return res.status(400).json({ error: 'tahun_ajaran_id, semester, kelas_id, dan data (array) wajib diisi.' });
+    }
+    try {
+      const key = `silabus_${tahun_ajaran_id}_${semester.toLowerCase()}_${kelas_id}`;
+      await db.query(
+        "INSERT INTO system_settings (key, value) VALUES ($1, $2) ON CONFLICT (key) DO UPDATE SET value = $2",
+        [key, JSON.stringify(data)]
+      );
+      res.json({ success: true, message: 'Silabus pembelajaran berhasil diperbarui.' });
+    } catch (error) {
+      next(error);
+    }
+  });
+
   app.use('/api/nilai', router);
 
 }

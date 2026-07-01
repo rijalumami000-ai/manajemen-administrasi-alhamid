@@ -14,6 +14,7 @@ import '../widgets/qiroah_maqro_bottom_sheet.dart';
 import '../widgets/taftisy_materi_bottom_sheet.dart';
 import '../widgets/ujian_tulis_materi_bottom_sheet.dart';
 import 'kalender_akademik_screen.dart';
+import 'silabus_pembelajaran_screen.dart';
 
 class TabAkademik extends StatelessWidget {
   const TabAkademik({super.key});
@@ -678,6 +679,112 @@ class TabAkademik extends StatelessWidget {
                                 color: isDark
                                     ? const Color(0xFF34D399)
                                     : const Color(0xFF065F46),
+                                size: 12,
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            const SizedBox(height: 16),
+            // Silabus Pembelajaran - Full Width card
+            GestureDetector(
+              onTap: () => Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const SilabusPembelajaranScreen(),
+                ),
+              ),
+              child: Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(18),
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: isDark
+                        ? [const Color(0xFF1E3A8A), const Color(0xFF0F172A)]
+                        : [const Color(0xFFEFF6FF), const Color(0xFFDBEAFE)],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
+                  borderRadius: BorderRadius.circular(22),
+                  border: Border.all(
+                    color: isDark
+                        ? const Color(0xFF3B82F6).withOpacity(0.25)
+                        : const Color(0xFF3B82F6).withOpacity(0.4),
+                    width: 1.5,
+                  ),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(isDark ? 0.2 : 0.03),
+                      blurRadius: 10,
+                      offset: const Offset(0, 4),
+                    ),
+                  ],
+                ),
+                child: Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: isDark
+                            ? Colors.white.withOpacity(0.06)
+                            : Colors.white.withOpacity(0.6),
+                        borderRadius: BorderRadius.circular(14),
+                        border: isDark ? null : Border.all(color: Colors.white, width: 1.5),
+                      ),
+                      child: Icon(
+                        Icons.menu_book_rounded,
+                        color: isDark ? Colors.white : const Color(0xFF3B82F6),
+                        size: 28,
+                      ),
+                    ),
+                    const SizedBox(width: 16),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Silabus Pembelajaran',
+                            style: GoogleFonts.outfit(
+                              color: isDark ? Colors.white : const Color(0xFF1E3A8A),
+                              fontSize: 15,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            'Lihat rencana & target materi pembelajaran bulanan kelas Diniyyah.',
+                            style: GoogleFonts.outfit(
+                              color: isDark
+                                  ? Colors.white.withOpacity(0.6)
+                                  : const Color(0xFF1E3A8A).withOpacity(0.75),
+                              fontSize: 11,
+                              height: 1.4,
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          Row(
+                            children: [
+                              Text(
+                                'Lihat Silabus',
+                                style: GoogleFonts.outfit(
+                                  color: isDark
+                                      ? const Color(0xFF60A5FA)
+                                      : const Color(0xFF1E3A8A),
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                              const SizedBox(width: 4),
+                              Icon(
+                                Icons.arrow_forward_rounded,
+                                color: isDark
+                                    ? const Color(0xFF60A5FA)
+                                    : const Color(0xFF1E3A8A),
                                 size: 12,
                               ),
                             ],

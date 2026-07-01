@@ -224,6 +224,7 @@ export function Sidebar({ collapsed, onCollapse }) {
         { key: '/guru', icon: 'Contact', label: 'Data Guru', disabled: isStaff() },
         { key: '/struktur-organisasi', icon: 'Users', label: 'Struktur Organisasi', disabled: isStaff() },
         { key: '/jadwal-pelajaran', icon: 'Clock', label: 'Jadwal Harian', disabled: isStaff() },
+        { key: '/silabus-pembelajaran', icon: 'BookOpen', label: 'Silabus Pembelajaran', disabled: isStaff() },
         { key: '/nilai-pengaturan', icon: 'Sliders', label: 'Pengaturan & Jadwal', disabled: isStaff() },
         { key: '/informasi-ujian', icon: 'FileText', label: 'Informasi Ujian', disabled: isStaff() },
         { key: '/nilai', icon: 'Edit', label: 'Input Penilaian', disabled: isStaff() },

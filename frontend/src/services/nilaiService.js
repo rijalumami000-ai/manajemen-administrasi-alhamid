@@ -152,5 +152,13 @@ export const nilaiService = {
 
   saveKalenderAkademik: async (data) => {
     return apiPost('/nilai/kalender-akademik', data);
+  },
+
+  fetchSilabus: async (tahunAjaranId, semester, kelasId) => {
+    return apiGet(`/nilai/silabus?tahun_ajaran_id=${tahunAjaranId}&semester=${encodeURIComponent(semester)}&kelas_id=${kelasId}`);
+  },
+
+  saveSilabus: async (data) => {
+    return apiPost('/nilai/silabus', data);
   }
 };
