@@ -71,7 +71,7 @@ export const antdTheme = {
     motionDurationSlow: '0.35s',
 
     // Z-Index
-    zIndexPopupBase: 1000,
+    zIndexPopupBase: 2000,
     zIndexBase: 0,
 
     // Box Shadow
