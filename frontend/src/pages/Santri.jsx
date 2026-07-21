@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo, useRef } from 'react';
-import { Button, Space, Alert, message as antMessage, Modal, Form, Select, Input, Dropdown } from 'antd';
+import { Button, Space, Alert, message as antMessage, Modal, Form, Input } from 'antd';
 import { SwapOutlined, RollbackOutlined, FileExcelOutlined, FilePdfOutlined, DownOutlined, BarChartOutlined, LineChartOutlined, InfoCircleOutlined } from '@ant-design/icons';
 import { Sparkles, Users, Award, Home, Activity, CheckCircle, HelpCircle } from 'lucide-react';
 import { santriService } from '../services/santriService';
@@ -10,8 +10,6 @@ import { TahunAjaranBoard } from '../components/features/TahunAjaranBoard';
 import { PageHeader, LoadingState, ErrorState, PasswordConfirmModal } from '../components/common';
 import { exportToExcel, exportToPDF } from '../utils/exportUtils';
 import './Santri.scss';
-
-const { Option } = Select;
 
 export function Santri() {
   // State
@@ -46,6 +44,10 @@ export function Santri() {
   const [passwordAction, setPasswordAction] = useState(null); // 'rollback' | 'migration'
   const [passwordModalConfig, setPasswordModalConfig] = useState({ title: '', message: '' });
 
+  // Custom Export Dropdown State
+  const [exportDropdownOpen, setExportDropdownOpen] = useState(false);
+  const exportDropdownRef = useRef(null);
+
   // Messages
   const [modalError, setModalError] = useState('');
 
@@ -56,6 +58,17 @@ export function Santri() {
   // Load initial data
   useEffect(() => {
     loadInitialData();
+  }, []);
+
+  // Handle click outside for export dropdown
+  useEffect(() => {
+    const handleClickOutsideExport = (e) => {
+      if (exportDropdownRef.current && !exportDropdownRef.current.contains(e.target)) {
+        setExportDropdownOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutsideExport);
+    return () => document.removeEventListener('mousedown', handleClickOutsideExport);
   }, []);
 
   // Load santri when user manually switches tahun ajaran (after initial load)
@@ -232,6 +245,9 @@ export function Santri() {
       const submitData = {
         ...editingData,
         ...values,
+        kelas_diniyah_id: values.kelas_diniyah_id ? Number(values.kelas_diniyah_id) : null,
+        kelas_sekolah_id: values.kelas_sekolah_id ? Number(values.kelas_sekolah_id) : null,
+        kamar_id: values.kamar_id ? Number(values.kamar_id) : null,
         tahun_ajaran_id: selectedTahunAjaranId ? Number(selectedTahunAjaranId) : activeTahunAjaran?.id,
       };
       await santriService.updateSantri(editingData.id, submitData);
@@ -598,11 +614,38 @@ export function Santri() {
             >
               Analisis & Statistik
             </Button>
-            <Dropdown menu={{ items: exportCenterItems }} disabled={filteredSantri.length === 0} trigger={['click']}>
-              <Button icon={<FileExcelOutlined />} type="default">
+            <div className="custom-export-dropdown" ref={exportDropdownRef}>
+              <Button 
+                icon={<FileExcelOutlined />} 
+                type="default"
+                disabled={filteredSantri.length === 0}
+                onClick={() => setExportDropdownOpen(!exportDropdownOpen)}
+              >
                 Ekspor Laporan <DownOutlined />
               </Button>
-            </Dropdown>
+              {exportDropdownOpen && (
+                <div className="export-dropdown-menu">
+                  {exportCenterItems.map((item, index) => {
+                    if (item.type === 'divider') {
+                      return <div key={`div-${index}`} className="dropdown-divider" />;
+                    }
+                    return (
+                      <div 
+                        key={item.key} 
+                        className="dropdown-item" 
+                        onClick={() => {
+                          item.onClick();
+                          setExportDropdownOpen(false);
+                        }}
+                      >
+                        <span className="item-icon">{item.icon}</span>
+                        <span className="item-label">{item.label}</span>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
             <Button
               icon={<RollbackOutlined />}
               onClick={handleRollbackClick}
@@ -877,25 +920,28 @@ export function Santri() {
           }}
         >
           <Form.Item name="kelas_diniyah_id" label="Kelas Kurikulum Diniyah">
-            <Select placeholder="Pilih Kelas" allowClear>
-              {kelasList.filter(k => k.jenis === 'Diniyah').map(k => <Option key={k.id} value={k.id}>{k.nama}</Option>)}
-            </Select>
+            <select className="custom-native-select">
+              <option value="">Pilih Kelas (Kosong)</option>
+              {kelasList.filter(k => k.jenis === 'Diniyah').map(k => <option key={k.id} value={k.id}>{k.nama}</option>)}
+            </select>
           </Form.Item>
           <Form.Item name="kelas_sekolah_id" label="Kelas Kurikulum Sekolah">
-            <Select placeholder="Pilih Kelas" allowClear>
-              {kelasList.filter(k => k.jenis === 'Sekolah').map(k => <Option key={k.id} value={k.id}>{k.nama}</Option>)}
-            </Select>
+            <select className="custom-native-select">
+              <option value="">Pilih Kelas (Kosong)</option>
+              {kelasList.filter(k => k.jenis === 'Sekolah').map(k => <option key={k.id} value={k.id}>{k.nama}</option>)}
+            </select>
           </Form.Item>
           <Form.Item name="kamar_id" label="Kamar Asrama Santri">
-            <Select placeholder="Pilih Kamar" allowClear>
-              {kamarList.map(k => <Option key={k.id} value={k.id}>{k.nama} ({k.jenis})</Option>)}
-            </Select>
+            <select className="custom-native-select">
+              <option value="">Pilih Kamar (Kosong)</option>
+              {kamarList.map(k => <option key={k.id} value={k.id}>{k.nama} ({k.jenis})</option>)}
+            </select>
           </Form.Item>
           <Form.Item name="status_tahun_ajaran" label="Status Akademik Periode">
-            <Select>
-              <Option value="aktif">Aktif</Option>
-              <Option value="pindah">Pindah / Migrasi</Option>
-            </Select>
+            <select className="custom-native-select">
+              <option value="aktif">Aktif</option>
+              <option value="pindah">Pindah / Migrasi</option>
+            </select>
           </Form.Item>
           <Form.Item name="catatan_tahun_ajaran" label="Catatan Riwayat Akademik">
             <Input.TextArea rows={2} placeholder="Masukkan catatan opsional..." />

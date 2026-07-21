@@ -1,10 +1,8 @@
 import { useState } from 'react';
-import { Select, Input, Button, Badge } from 'antd';
+import { Button, Badge } from 'antd';
 import { Search, SlidersHorizontal, RotateCcw, HelpCircle, CheckCircle, UserCheck } from 'lucide-react';
 import { formatStatusTahunAjaran } from '../../utils/formatters';
 import './SantriFilters.scss';
-
-const { Option } = Select;
 
 export function SantriFilters({
   searchValue,
@@ -77,19 +75,18 @@ export function SantriFilters({
           {/* Tahun Ajaran Selector */}
           <div className="select-container">
             <span className="select-label">Tahun Ajaran</span>
-            <Select
-              value={tahunAjaranValue}
-              onChange={onTahunAjaranChange}
-              className="modern-select year-select"
-              popupClassName="modern-select-dropdown"
+            <select
+              value={tahunAjaranValue || ''}
+              onChange={(e) => onTahunAjaranChange(e.target.value)}
+              className="custom-native-select year-select"
               style={{ width: 180 }}
             >
               {tahunAjaranOptions.map(option => (
-                <Option key={option.id} value={String(option.id)}>
+                <option key={option.id} value={String(option.id)}>
                   {option.kode}{option.is_active ? ' (Berjalan)' : ''}
-                </Option>
+                </option>
               ))}
-            </Select>
+            </select>
           </div>
 
           {/* Toggle Advanced Filters */}
@@ -127,71 +124,63 @@ export function SantriFilters({
             {/* Status Filter */}
             <div className="tray-col">
               <label className="filter-label">Status Akademik</label>
-              <Select
-                value={statusValue || undefined}
-                onChange={onStatusChange}
-                placeholder="Semua Status"
-                allowClear
-                className="modern-select"
-                popupClassName="modern-select-dropdown"
+              <select
+                value={statusValue || ''}
+                onChange={(e) => onStatusChange(e.target.value || undefined)}
+                className="custom-native-select"
               >
-                <Option value="aktif">{formatStatusTahunAjaran('aktif')}</Option>
-                <Option value="pindah">Pindah / Migrasi</Option>
-              </Select>
+                <option value="">Semua Status</option>
+                <option value="aktif">{formatStatusTahunAjaran('aktif')}</option>
+                <option value="pindah">Pindah / Migrasi</option>
+              </select>
             </div>
 
             {/* Gender Filter */}
             <div className="tray-col">
               <label className="filter-label">Jenis Kelamin</label>
-              <Select
-                value={genderValue || undefined}
-                onChange={onGenderChange}
-                placeholder="Semua Gender"
-                allowClear
-                className="modern-select"
-                popupClassName="modern-select-dropdown"
+              <select
+                value={genderValue || ''}
+                onChange={(e) => onGenderChange(e.target.value || undefined)}
+                className="custom-native-select"
               >
-                <Option value="Laki-laki">Laki-laki</Option>
-                <Option value="Perempuan">Perempuan</Option>
-              </Select>
+                <option value="">Semua Gender</option>
+                <option value="Laki-laki">Laki-laki</option>
+                <option value="Perempuan">Perempuan</option>
+              </select>
             </div>
 
             {/* Diniyah Filter */}
             <div className="tray-col">
               <label className="filter-label">Kelas Diniyah</label>
-              <Select
-                value={diniyahValue || undefined}
-                onChange={onDiniyahChange}
-                placeholder="Semua Kelas Diniyah"
-                allowClear
-                className="modern-select"
-                popupClassName="modern-select-dropdown"
+              <select
+                value={diniyahValue || ''}
+                onChange={(e) => onDiniyahChange(e.target.value || undefined)}
+                className="custom-native-select"
               >
+                <option value="">Semua Kelas Diniyah</option>
                 {diniyahOptions.map((option, index) => (
-                  <Option key={index} value={option}>
+                  <option key={index} value={option}>
                     {option}
-                  </Option>
+                  </option>
                 ))}
-              </Select>
+              </select>
             </div>
 
             {/* Sekolah Filter */}
             <div className="tray-col">
               <label className="filter-label">Kelas Sekolah</label>
-              <Select
-                value={sekolahValue || undefined}
-                onChange={onSekolahChange}
-                placeholder="Semua Kelas Sekolah"
-                allowClear
-                className="modern-select"
-                popupClassName="modern-select-dropdown"
+              <select
+                value={sekolahValue || ''}
+                onChange={(e) => onSekolahChange(e.target.value || undefined)}
+                className="custom-native-select"
               >
+                <option value="">Semua Kelas Sekolah</option>
                 {sekolahOptions.map((option, index) => (
-                  <Option key={index} value={option}>
+                  <option key={index} value={option}>
                     {option}
-                  </Option>
+                  </option>
                 ))}
-              </Select>
+              </select>
             </div>
           </div>
         </div>

@@ -390,23 +390,59 @@
     }
 
     .modal-table-select {
-      .ant-select-selector {
-        height: 28px !important;
-        padding: 0 8px !important;
-        border-radius: $radius-sm !important;
-        border-color: #cbd5e1 !important;
-        font-size: 11px !important;
-        display: flex;
-        align-items: center;
-        
-        &:hover {
-          border-color: #94a3b8 !important;
-        }
+      height: 28px;
+      padding: 2px 24px 2px 8px;
+      border-radius: $radius-sm;
+      border: 1px solid #cbd5e1;
+      font-size: 11px;
+      color: #334155;
+      background: #ffffff;
+      outline: none;
+      cursor: pointer;
+      appearance: none;
+      -webkit-appearance: none;
+      -moz-appearance: none;
+      transition: all 0.2s;
+      box-sizing: border-box;
+
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%2364748b' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right 6px center;
+      background-size: 12px;
+
+      &:hover {
+        border-color: #94a3b8;
       }
 
-      &.ant-select-focused .ant-select-selector {
-        border-color: #0052FF !important;
-        box-shadow: 0 0 0 2px rgba(0, 82, 255, 0.05) !important;
+      &:focus {
+        border-color: #0052FF;
+        box-shadow: 0 0 0 2px rgba(0, 82, 255, 0.05);
+      }
+
+      option {
+        background: #ffffff;
+        color: #334155;
+      }
+
+      html[data-theme="dark"] & {
+        background: rgba(30, 41, 59, 0.4);
+        border-color: rgba(255, 255, 255, 0.08);
+        color: #cbd5e1;
+        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%2394a3b8' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+
+        &:hover {
+          border-color: rgba(255, 255, 255, 0.15);
+        }
+
+        &:focus {
+          border-color: #3b82f6;
+          box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
+        }
+
+        option {
+          background: #1e293b;
+          color: #cbd5e1;
+        }
       }
     }
   }

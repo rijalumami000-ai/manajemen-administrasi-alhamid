@@ -312,6 +312,16 @@
     .ui-custom-select__value-container {
       padding: 12px $lt-space-3;
     }
+
+    .placeholder {
+      color: $lt-text-disabled;
+    }
+
+    [data-theme="dark"] & {
+      .placeholder {
+        color: #475569;
+      }
+    }
   }
 }
 

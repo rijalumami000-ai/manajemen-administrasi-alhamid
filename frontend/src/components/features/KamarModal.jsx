@@ -1,9 +1,8 @@
 import { useEffect } from 'react';
-import { Modal, Form, Input, InputNumber, Select, Alert, Row, Col } from 'antd';
+import { Modal, Form, Input, InputNumber, Alert, Row, Col } from 'antd';
 import { HomeOutlined, TeamOutlined, ToolOutlined } from '@ant-design/icons';
 import './KamarModal.scss';
 
-const { Option } = Select;
 const { TextArea } = Input;
 
 export function KamarModal({
@@ -104,10 +103,11 @@ export function KamarModal({
                 label="Jenis"
                 rules={[{ required: true, message: 'Jenis kamar wajib dipilih' }]}
               >
-                <Select placeholder="Pilih jenis kamar" allowClear>
-                  <Option value="Putra">Putra</Option>
-                  <Option value="Putri">Putri</Option>
-                </Select>
+                <select className="custom-native-select">
+                  <option value="" disabled hidden>Pilih jenis kamar</option>
+                  <option value="Putra">Putra</option>
+                  <option value="Putri">Putri</option>
+                </select>
               </Form.Item>
             </Col>
           </Row>
@@ -170,12 +170,12 @@ export function KamarModal({
             </Col>
 
             <Col xs={24} sm={8}>
-              <Form.Item name="status" label="Status">
-                <Select placeholder="Pilih status">
-                  <Option value="Tersedia">Tersedia</Option>
-                  <Option value="Penuh">Penuh</Option>
-                  <Option value="Maintenance">Maintenance</Option>
-                </Select>
+               <Form.Item name="status" label="Status">
+                <select className="custom-native-select">
+                  <option value="Tersedia">Tersedia</option>
+                  <option value="Penuh">Penuh</option>
+                  <option value="Maintenance">Maintenance</option>
+                </select>
               </Form.Item>
             </Col>
           </Row>

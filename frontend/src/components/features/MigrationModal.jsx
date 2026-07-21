@@ -1,10 +1,9 @@
 import { useState, useEffect, useMemo } from 'react';
-import { Modal, Table, Checkbox, Alert, Space, Typography, Tag, Tooltip, Input, Select } from 'antd';
+import { Modal, Table, Checkbox, Alert, Space, Typography, Tag, Tooltip, Input } from 'antd';
 import { ExclamationCircleOutlined, ArrowRightOutlined, TrophyOutlined, SearchOutlined } from '@ant-design/icons';
 import './MigrationModal.scss';
 
 const { Text, Title } = Typography;
-const { Option } = Select;
 
 // Helper function to extract tingkat from class name
 function extractTingkat(kelasNama) {
@@ -286,17 +285,15 @@ export function MigrationModal({
           <div className="class-promotion-select-cell">
             <span className="current-class-label">{text || '-'}</span>
             <div className="adv-arrow-wrap">&rarr;</div>
-            <Select
-              placeholder="Pilih"
-              value={value}
-              onChange={(val) => handleDiniyahChange(record.id, val)}
+            <select
+              value={value || ''}
+              onChange={(e) => handleDiniyahChange(record.id, e.target.value ? Number(e.target.value) : null)}
               className="modal-table-select"
-              popupClassName="modal-select-popup"
               style={{ width: 140 }}
-              allowClear
             >
-              {options.map(o => <Option key={o.id} value={o.id}>{o.nama}</Option>)}
-            </Select>
+              <option value="">Pilih</option>
+              {options.map(o => <option key={o.id} value={o.id}>{o.nama}</option>)}
+            </select>
           </div>
         );
       },
