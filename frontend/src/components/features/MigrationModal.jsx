@@ -9,6 +9,9 @@ const { Text, Title } = Typography;
 function extractTingkat(kelasNama) {
   if (!kelasNama) return null;
 
+  // Handle SP (Sifir Persiapan, tingkat 1)
+  if (kelasNama.toLowerCase() === 'sp') return 1;
+
   // Handle Sifir
   if (kelasNama.toLowerCase().includes('sifir')) return 0;
 
