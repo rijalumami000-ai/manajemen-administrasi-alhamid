@@ -124,7 +124,7 @@ export function CustomSelect({
             options.map((opt) => (
               <div
                 key={opt.value}
-                className={`ui-custom-select__option ${opt.value === value ? 'selected' : ''}`}
+                className={`ui-custom-select__option ${opt.value == value ? 'selected' : ''}`}
                 onClick={() => {
                   onChange(opt.value);
                   setOpen(false);

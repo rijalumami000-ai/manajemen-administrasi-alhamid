@@ -378,39 +378,6 @@
   }
 }
 
-// Premium styling for Antd Select dropdown menu options (outside form, portaled to body)
-.ant-select-dropdown {
-  background-color: #1e293b !important;
-  border: 1px solid rgba(255, 255, 255, 0.1) !important;
-  border-radius: 12px !important;
-  padding: 6px !important;
-  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.4) !important;
-  z-index: 10000 !important;
-
-  .ant-select-dropdown-menu {
-    background-color: #1e293b !important;
-  }
-
-  .ant-select-item {
-    background-color: transparent !important;
-    color: rgba(255, 255, 255, 0.8) !important;
-    border-radius: 8px !important;
-    padding: 8px 12px !important;
-    font-size: 14px !important;
-    transition: all 0.2s ease !important;
-
-    &-option-active {
-      background-color: rgba(255, 255, 255, 0.08) !important;
-      color: white !important;
-    }
-
-    &-option-selected {
-      background-color: #3b82f6 !important;
-      color: white !important;
-      font-weight: 600 !important;
-    }
-  }
-}
 
 .login-footer-right {
   margin-top: 40px;

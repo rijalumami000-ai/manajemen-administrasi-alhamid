@@ -397,10 +397,16 @@ export function AbsensiSholatScan() {
     }
   };
 
+  // Keep focus on the scanner inputs for Kiosk mode, except when modals/overlays are active
   useEffect(() => {
-    if (activeTab === 'nfc') setTimeout(() => nfcInputRef.current?.focus(), 100);
-    else if (activeTab === 'fingerprint') setTimeout(() => fingerprintInputRef.current?.focus(), 100);
-  }, [activeTab]);
+    if (!isPasscodeModalVisible && !successPopup.visible) {
+      if (activeTab === 'nfc') {
+        setTimeout(() => nfcInputRef.current?.focus(), 100);
+      } else if (activeTab === 'fingerprint') {
+        setTimeout(() => fingerprintInputRef.current?.focus(), 100);
+      }
+    }
+  }, [activeTab, isPasscodeModalVisible, successPopup.visible]);
 
   return (
     <div className="kiosk-container">
@@ -513,7 +519,14 @@ export function AbsensiSholatScan() {
                   ref={nfcInputRef}
                   value={nfcInput}
                   onChange={e => setNfcInput(e.target.value)}
-                  onPressEnter={handleNfcScan}
+                  onKeyDown={e => {
+                    if (e.key === 'Enter') handleNfcScan();
+                  }}
+                  onBlur={() => {
+                    if (activeTab === 'nfc' && !isPasscodeModalVisible && !successPopup.visible) {
+                      setTimeout(() => nfcInputRef.current?.focus(), 100);
+                    }
+                  }}
                   className="hidden-input"
                   autoFocus
                 />
@@ -532,7 +545,14 @@ export function AbsensiSholatScan() {
                   ref={fingerprintInputRef}
                   value={fingerprintInput}
                   onChange={e => setFingerprintInput(e.target.value)}
-                  onPressEnter={handleFingerprintScan}
+                  onKeyDown={e => {
+                    if (e.key === 'Enter') handleFingerprintScan();
+                  }}
+                  onBlur={() => {
+                    if (activeTab === 'fingerprint' && !isPasscodeModalVisible && !successPopup.visible) {
+                      setTimeout(() => fingerprintInputRef.current?.focus(), 100);
+                    }
+                  }}
                   className="hidden-input"
                   autoFocus
                 />
