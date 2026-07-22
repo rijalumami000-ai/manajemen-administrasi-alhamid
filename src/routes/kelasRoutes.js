@@ -200,10 +200,38 @@ function registerKelasRoutes(app) {
     try {
       await db.query('BEGIN');
 
-      // 1. Delete from junction table kelas_tahun_ajaran
-      await db.query('DELETE FROM kelas_tahun_ajaran WHERE kelas_id = $1', [id]);
+      // 1. Fetch class info
+      const kelasRes = await db.query('SELECT * FROM kelas WHERE id = $1', [id]);
+      if (!kelasRes.rows.length) {
+        await db.query('ROLLBACK');
+        return res.status(404).json({ error: 'Data kelas tidak ditemukan.' });
+      }
+      const targetKelas = kelasRes.rows[0];
 
-      // 2. Set NULL on santri tables
+      // 2. Check if active students are currently assigned to this class in active academic year
+      const activeYear = await getActiveTahunAjaran();
+      const activeYearId = activeYear ? activeYear.id : null;
+
+      const studentCheck = await db.query(`
+        SELECT COUNT(*) 
+        FROM santri_tahun_ajaran sta
+        WHERE (sta.kelas_diniyah_id = $1 OR sta.kelas_sekolah_id = $1)
+          AND ($2::INTEGER IS NULL OR sta.tahun_ajaran_id = $2::INTEGER)
+          AND sta.status = 'aktif'
+      `, [id, activeYearId]);
+
+      const activeStudentCount = parseInt(studentCheck.rows[0].count, 10);
+
+      // If active students exist in this class, BLOCK deletion!
+      if (activeStudentCount > 0) {
+        await db.query('ROLLBACK');
+        return res.status(400).json({
+          error: `Kelas "${targetKelas.nama}" tidak dapat dihapus karena masih digunakan oleh ${activeStudentCount} santri aktif. Pindahkan santri ke kelas lain terlebih dahulu.`
+        });
+      }
+
+      // If NO active students (empty class), proceed with clean deletion of orphan history/junction entries
+      await db.query('DELETE FROM kelas_tahun_ajaran WHERE kelas_id = $1', [id]);
       await db.query('UPDATE santri SET kelas_diniyah_id = NULL WHERE kelas_diniyah_id = $1', [id]);
       await db.query('UPDATE santri SET kelas_sekolah_id = NULL WHERE kelas_sekolah_id = $1', [id]);
       await db.query('UPDATE santri_tahun_ajaran SET kelas_diniyah_id = NULL WHERE kelas_diniyah_id = $1', [id]);
@@ -211,24 +239,18 @@ function registerKelasRoutes(app) {
       await db.query('UPDATE santri_kelas_history SET kelas_diniyah_id = NULL WHERE kelas_diniyah_id = $1', [id]);
       await db.query('UPDATE santri_kelas_history SET kelas_sekolah_id = NULL WHERE kelas_sekolah_id = $1', [id]);
 
-      // 3. Set NULL on other related tables if columns exist
       await db.query('UPDATE peserta_ujian SET kelas_diniyah_id = NULL WHERE kelas_diniyah_id = $1', [id]).catch(() => {});
       await db.query('UPDATE jadwal_pelajaran_harian SET kelas_id = NULL WHERE kelas_id = $1', [id]).catch(() => {});
       await db.query('UPDATE setting_kriteria_nilai SET kelas_id = NULL WHERE kelas_id = $1', [id]).catch(() => {});
       await db.query('UPDATE chat_messages SET kelas_id = NULL WHERE kelas_id = $1', [id]).catch(() => {});
       await db.query('UPDATE saran_aplikasi SET kelas_id = NULL WHERE kelas_id = $1', [id]).catch(() => {});
 
-      // 4. Delete the main kelas record
-      const result = await db.query('DELETE FROM kelas WHERE id = $1 RETURNING id', [id]);
-
-      if (!result.rows.length) {
-        await db.query('ROLLBACK');
-        return res.status(404).json({ error: 'Data kelas tidak ditemukan.' });
-      }
+      // Delete the main kelas record
+      await db.query('DELETE FROM kelas WHERE id = $1', [id]);
 
       await db.query('COMMIT');
-      console.log(`✅ Kelas ${id} deleted successfully`);
-      res.json({ message: 'Data kelas berhasil dihapus.' });
+      console.log(`✅ Empty kelas ${id} (${targetKelas.nama}) deleted successfully`);
+      res.json({ message: `Data kelas ${targetKelas.nama} berhasil dihapus.` });
     } catch (error) {
       await db.query('ROLLBACK');
       console.error('❌ Error deleting kelas:', error);
