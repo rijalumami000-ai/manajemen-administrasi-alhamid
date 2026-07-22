@@ -1,16 +1,13 @@
 import { useState, useEffect, useMemo } from 'react';
-import { Select, message, Button } from 'antd';
 import { FileDown, RotateCcw, TrendingUp, Users, UserX, Target } from 'lucide-react';
 import { absensiSholatService } from '../services/absensiSholatService';
 import { santriService } from '../services/santriService';
 import { DataGrid } from '../components/ui/DataGrid';
 import { PrayerCard } from '../components/ui/PrayerCard';
 import { StatusPill } from '../components/ui/StatusPill';
+import { CustomSelect } from '../components/ui/CustomSelect';
 import { exportToExcel } from '../utils/exportUtils';
 import './RekapAbsensiSholat.scss';
-
-const { Option } = Select;
-const API_BASE = import.meta.env.VITE_API_URL || '';
 
 export function RekapAbsensiSholat() {
   const [loading, setLoading] = useState(false);
@@ -19,16 +16,15 @@ export function RekapAbsensiSholat() {
   const [kamarList, setKamarList] = useState([]);
   const [tahunAjaranList, setTahunAjaranList] = useState([]);
   
-  // Filters
   const now = new Date();
   const [selectedBulan, setSelectedBulan] = useState(now.getMonth() + 1);
   const [selectedTahun, setSelectedTahun] = useState(now.getFullYear());
-  const [selectedKelas, setSelectedKelas] = useState(null);
-  const [selectedKamar, setSelectedKamar] = useState(null);
-  const [selectedJenisKelamin, setSelectedJenisKelamin] = useState(null);
-  const [selectedSholat, setSelectedSholat] = useState(null);
-  const [selectedStatus, setSelectedStatus] = useState(null);
-  const [selectedTahunAjaran, setSelectedTahunAjaran] = useState(null);
+  const [selectedKelas, setSelectedKelas] = useState('');
+  const [selectedKamar, setSelectedKamar] = useState('');
+  const [selectedJenisKelamin, setSelectedJenisKelamin] = useState('');
+  const [selectedSholat, setSelectedSholat] = useState('');
+  const [selectedStatus, setSelectedStatus] = useState('');
+  const [selectedTahunAjaran, setSelectedTahunAjaran] = useState('');
 
   const sholatOptions = ['Subuh', 'Dzuhur', 'Ashar', 'Maghrib', 'Isya'];
   const statusOptions = ['Hadir', 'Sakit', 'Izin', 'Alfa', 'Masbuq', 'Haid', 'Istihadoh'];
@@ -53,10 +49,9 @@ export function RekapAbsensiSholat() {
       setTahunAjaranList(taData);
       
       const activeTA = taData.find(ta => ta.status === 'aktif');
-      if (activeTA) setSelectedTahunAjaran(activeTA.id);
+      if (activeTA) setSelectedTahunAjaran(String(activeTA.id));
     } catch (error) {
       console.error('Failed to load filter data:', error);
-      message.error('Gagal memuat data filter');
     }
   };
 
@@ -73,7 +68,6 @@ export function RekapAbsensiSholat() {
       setData(result);
     } catch (error) {
       console.error('Failed to load recap:', error);
-      message.error('Gagal memuat data rekap absensi');
     } finally {
       setLoading(false);
     }
@@ -98,7 +92,6 @@ export function RekapAbsensiSholat() {
     exportToExcel(dataToExport, `Rekap_Absensi_Sholat.xlsx`);
   };
 
-  // Stats calculation
   const stats = useMemo(() => {
     if (!data.length) return { hadir: 0, alfa: 0, total: 0, rate: 0 };
     const hadir = data.filter(d => d.status === 'Hadir').length;
@@ -201,7 +194,7 @@ export function RekapAbsensiSholat() {
                 <PrayerCard 
                   key={s} name={s} 
                   active={selectedSholat === s} 
-                  onClick={() => setSelectedSholat(selectedSholat === s ? null : s)} 
+                  onClick={() => setSelectedSholat(selectedSholat === s ? '' : s)} 
                 />
               ))}
             </div>
@@ -214,7 +207,7 @@ export function RekapAbsensiSholat() {
                 <StatusPill 
                   key={s} status={s} 
                   active={selectedStatus === s} 
-                  onClick={() => setSelectedStatus(selectedStatus === s ? null : s)} 
+                  onClick={() => setSelectedStatus(selectedStatus === s ? '' : s)} 
                 />
               ))}
             </div>
@@ -222,54 +215,80 @@ export function RekapAbsensiSholat() {
 
           <div className="filter-group">
             <label>Bulan & Tahun</label>
-            <div className="split-selects">
-              <Select value={selectedBulan} onChange={setSelectedBulan} style={{ flex: 1 }}>
-                {['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Ags', 'Sep', 'Okt', 'Nov', 'Des'].map((m, i) => (
-                  <Option key={i + 1} value={i + 1}>{m}</Option>
-                ))}
-              </Select>
-              <Select value={selectedTahun} onChange={setSelectedTahun} style={{ width: 90 }}>
-                {[2025, 2026, 2027].map(y => <Option key={y} value={y}>{y}</Option>)}
-              </Select>
+            <div className="split-selects" style={{ display: 'flex', gap: '8px' }}>
+              <CustomSelect
+                value={selectedBulan}
+                onChange={setSelectedBulan}
+                options={['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Ags', 'Sep', 'Okt', 'Nov', 'Des'].map((m, i) => ({ label: m, value: i + 1 }))}
+              />
+              <CustomSelect
+                value={selectedTahun}
+                onChange={setSelectedTahun}
+                options={[2025, 2026, 2027].map(y => ({ label: String(y), value: y }))}
+              />
             </div>
           </div>
 
           <div className="filter-group">
             <label>Tahun Ajaran</label>
-            <Select placeholder="Pilih TA" value={selectedTahunAjaran} onChange={setSelectedTahunAjaran} allowClear style={{ width: '100%' }}>
-              {tahunAjaranList.map((ta) => <Option key={ta.id} value={ta.id}>{ta.kode}</Option>)}
-            </Select>
+            <CustomSelect
+              placeholder="Pilih TA"
+              value={selectedTahunAjaran}
+              onChange={setSelectedTahunAjaran}
+              options={[
+                { label: 'Semua TA', value: '' },
+                ...tahunAjaranList.map(ta => ({ label: ta.kode, value: String(ta.id) }))
+              ]}
+            />
           </div>
 
           <div className="filter-group">
             <label>Kelas</label>
-            <Select placeholder="Pilih Kelas" allowClear onChange={setSelectedKelas} value={selectedKelas} style={{ width: '100%' }}>
-              {kelasList.map((k) => <Option key={k.id} value={k.id}>{k.nama}</Option>)}
-            </Select>
+            <CustomSelect
+              placeholder="Pilih Kelas"
+              value={selectedKelas}
+              onChange={setSelectedKelas}
+              options={[
+                { label: 'Semua Kelas', value: '' },
+                ...kelasList.map(k => ({ label: k.nama, value: String(k.id) }))
+              ]}
+            />
           </div>
 
           <div className="filter-group">
             <label>Kamar</label>
-            <Select placeholder="Pilih Kamar" allowClear onChange={setSelectedKamar} value={selectedKamar} style={{ width: '100%' }}>
-              {kamarList.map((k) => <Option key={k.id} value={k.id}>{k.nama}</Option>)}
-            </Select>
+            <CustomSelect
+              placeholder="Pilih Kamar"
+              value={selectedKamar}
+              onChange={setSelectedKamar}
+              options={[
+                { label: 'Semua Kamar', value: '' },
+                ...kamarList.map(k => ({ label: k.nama, value: String(k.id) }))
+              ]}
+            />
           </div>
 
           <div className="filter-group">
             <label>Jenis Kelamin</label>
-            <Select placeholder="Semua" allowClear onChange={setSelectedJenisKelamin} value={selectedJenisKelamin} style={{ width: '100%' }}>
-              <Option value="Laki-laki">Laki-laki</Option>
-              <Option value="Perempuan">Perempuan</Option>
-            </Select>
+            <CustomSelect
+              placeholder="Semua Gender"
+              value={selectedJenisKelamin}
+              onChange={setSelectedJenisKelamin}
+              options={[
+                { label: 'Semua Gender', value: '' },
+                { label: 'Laki-laki', value: 'Laki-laki' },
+                { label: 'Perempuan', value: 'Perempuan' }
+              ]}
+            />
           </div>
 
           <button 
             className="btn-reset" 
             onClick={() => {
-              setSelectedKelas(null); setSelectedKamar(null); setSelectedJenisKelamin(null);
-              setSelectedSholat(null); setSelectedStatus(null);
+              setSelectedKelas(''); setSelectedKamar(''); setSelectedJenisKelamin('');
+              setSelectedSholat(''); setSelectedStatus('');
               const activeTA = tahunAjaranList.find(ta => ta.status === 'aktif');
-              if (activeTA) setSelectedTahunAjaran(activeTA.id);
+              if (activeTA) setSelectedTahunAjaran(String(activeTA.id));
             }}
           >
             <RotateCcw size={16} /> Reset Filter

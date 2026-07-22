@@ -1,40 +1,30 @@
 import { useState, useEffect } from 'react';
-import { Tabs, Button, message as antMessage } from 'antd';
-import { PlusOutlined, WarningOutlined, TrophyOutlined } from '@ant-design/icons';
+import { Plus, AlertTriangle, Trophy } from 'lucide-react';
 import { pelanggaranService } from '../services/pelanggaranService';
 import { PelanggaranTable } from '../components/features/PelanggaranTable';
 import { PrestasiTable } from '../components/features/PrestasiTable';
 import { PelanggaranModal } from '../components/features/PelanggaranModal';
 import { PrestasiModal } from '../components/features/PrestasiModal';
 import { PageHeader, LoadingState, ErrorState } from '../components/common';
+import { CustomTabs } from '../components/ui/CustomTabs';
 import './PelanggaranPrestasi.scss';
 
 export function PelanggaranPrestasi() {
-  // State
   const [pelanggaranList, setPelanggaranList] = useState([]);
   const [prestasiList, setPrestasiList] = useState([]);
-
-  // Active tab
   const [activeTab, setActiveTab] = useState('pelanggaran');
 
-  // Modals
   const [isPelanggaranModalOpen, setIsPelanggaranModalOpen] = useState(false);
   const [isPrestasiModalOpen, setIsPrestasiModalOpen] = useState(false);
-
   const [editingPelanggaran, setEditingPelanggaran] = useState(null);
   const [editingPrestasi, setEditingPrestasi] = useState(null);
-
   const [isSubmitting, setIsSubmitting] = useState(false);
-
-  // Messages
   const [pelanggaranModalError, setPelanggaranModalError] = useState('');
   const [prestasiModalError, setPrestasiModalError] = useState('');
 
-  // Loading & Error
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  // Load initial data
   useEffect(() => {
     loadInitialData();
   }, []);
@@ -43,10 +33,7 @@ export function PelanggaranPrestasi() {
     try {
       setLoading(true);
       setError(null);
-      await Promise.all([
-        loadPelanggaran(),
-        loadPrestasi()
-      ]);
+      await Promise.all([loadPelanggaran(), loadPrestasi()]);
     } catch (err) {
       console.error('Gagal memuat data awal:', err);
       setError(err.message || 'Gagal memuat data awal');
@@ -56,26 +43,15 @@ export function PelanggaranPrestasi() {
   };
 
   const loadPelanggaran = async () => {
-    try {
-      const data = await pelanggaranService.fetchPelanggaran();
-      setPelanggaranList(data);
-    } catch (err) {
-      console.error('Gagal memuat data pelanggaran:', err);
-      throw err;
-    }
+    const data = await pelanggaranService.fetchPelanggaran();
+    setPelanggaranList(data);
   };
 
   const loadPrestasi = async () => {
-    try {
-      const data = await pelanggaranService.fetchPrestasi();
-      setPrestasiList(data);
-    } catch (err) {
-      console.error('Gagal memuat data prestasi:', err);
-      throw err;
-    }
+    const data = await pelanggaranService.fetchPrestasi();
+    setPrestasiList(data);
   };
 
-  // Pelanggaran handlers
   const handleAddPelanggaranClick = () => {
     setEditingPelanggaran(null);
     setPelanggaranModalError('');
@@ -93,10 +69,9 @@ export function PelanggaranPrestasi() {
 
     try {
       await pelanggaranService.deletePelanggaran(id);
-      antMessage.success('Data pelanggaran berhasil dihapus');
       await loadPelanggaran();
     } catch (err) {
-      antMessage.error(err.message || 'Gagal menghapus pelanggaran');
+      alert(err.message || 'Gagal menghapus pelanggaran');
     }
   };
 
@@ -107,12 +82,9 @@ export function PelanggaranPrestasi() {
     try {
       if (editingPelanggaran) {
         await pelanggaranService.updatePelanggaran(editingPelanggaran.id, data);
-        antMessage.success('Data pelanggaran berhasil diperbarui');
       } else {
         await pelanggaranService.createPelanggaran(data);
-        antMessage.success('Data pelanggaran berhasil disimpan');
       }
-
       setIsPelanggaranModalOpen(false);
       await loadPelanggaran();
     } catch (err) {
@@ -122,7 +94,6 @@ export function PelanggaranPrestasi() {
     }
   };
 
-  // Prestasi handlers
   const handleAddPrestasiClick = () => {
     setEditingPrestasi(null);
     setPrestasiModalError('');
@@ -140,10 +111,9 @@ export function PelanggaranPrestasi() {
 
     try {
       await pelanggaranService.deletePrestasi(id);
-      antMessage.success('Data prestasi berhasil dihapus');
       await loadPrestasi();
     } catch (err) {
-      antMessage.error(err.message || 'Gagal menghapus prestasi');
+      alert(err.message || 'Gagal menghapus prestasi');
     }
   };
 
@@ -154,12 +124,9 @@ export function PelanggaranPrestasi() {
     try {
       if (editingPrestasi) {
         await pelanggaranService.updatePrestasi(editingPrestasi.id, data);
-        antMessage.success('Data prestasi berhasil diperbarui');
       } else {
         await pelanggaranService.createPrestasi(data);
-        antMessage.success('Data prestasi berhasil disimpan');
       }
-
       setIsPrestasiModalOpen(false);
       await loadPrestasi();
     } catch (err) {
@@ -174,22 +141,15 @@ export function PelanggaranPrestasi() {
   }
 
   if (error) {
-    return (
-      <ErrorState
-        message={error}
-        onRetry={loadInitialData}
-      />
-    );
+    return <ErrorState message={error} onRetry={loadInitialData} />;
   }
 
   const tabItems = [
     {
       key: 'pelanggaran',
-      label: (
-        <span>
-          <WarningOutlined /> Pelanggaran ({pelanggaranList.length})
-        </span>
-      ),
+      label: 'Pelanggaran',
+      icon: <AlertTriangle size={16} style={{ color: '#ef4444' }} />,
+      badge: pelanggaranList.length,
       children: (
         <PelanggaranTable
           data={pelanggaranList}
@@ -200,11 +160,9 @@ export function PelanggaranPrestasi() {
     },
     {
       key: 'prestasi',
-      label: (
-        <span>
-          <TrophyOutlined /> Prestasi ({prestasiList.length})
-        </span>
-      ),
+      label: 'Prestasi',
+      icon: <Trophy size={16} style={{ color: '#f59e0b' }} />,
+      badge: prestasiList.length,
       children: (
         <PrestasiTable
           data={prestasiList}
@@ -215,47 +173,32 @@ export function PelanggaranPrestasi() {
     }
   ];
 
-  const getTabExtra = () => {
-    if (activeTab === 'pelanggaran') {
-      return (
-        <Button
-          type="primary"
-          icon={<PlusOutlined />}
-          onClick={handleAddPelanggaranClick}
-        >
-          Tambah Pelanggaran
-        </Button>
-      );
-    }
-    return (
-      <Button
-        type="primary"
-        icon={<PlusOutlined />}
-        onClick={handleAddPrestasiClick}
-      >
-        Tambah Prestasi
-      </Button>
-    );
-  };
-
   return (
     <div className="pelanggaran-prestasi-page">
       <PageHeader
         title="⚠️ Manajemen Pelanggaran & Prestasi"
         subtitle="Kelola catatan pelanggaran dan prestasi santri dari satu tempat"
+        extra={
+          activeTab === 'pelanggaran' ? (
+            <button type="button" className="btn-custom btn-primary" onClick={handleAddPelanggaranClick}>
+              <Plus size={16} /> Tambah Pelanggaran
+            </button>
+          ) : (
+            <button type="button" className="btn-custom btn-primary" onClick={handleAddPrestasiClick}>
+              <Plus size={16} /> Tambah Prestasi
+            </button>
+          )
+        }
       />
 
-      <div className="pelanggaran-prestasi-content">
-        <Tabs
+      <div className="pelanggaran-prestasi-content" style={{ marginTop: '16px' }}>
+        <CustomTabs
+          items={tabItems}
           activeKey={activeTab}
           onChange={setActiveTab}
-          items={tabItems}
-          tabBarExtraContent={getTabExtra()}
-          className="pelanggaran-prestasi-tabs"
         />
       </div>
 
-      {/* Modals */}
       <PelanggaranModal
         isOpen={isPelanggaranModalOpen}
         onClose={() => setIsPelanggaranModalOpen(false)}

@@ -1,9 +1,10 @@
 import React, { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
-import { Typography, Spin, Alert, Button } from 'antd';
-import { PrinterOutlined } from '@ant-design/icons';
+import { Printer } from 'lucide-react';
 import { nilaiService } from '../services/nilaiService';
 import { terbilangIndonesia, terbilangArab, predikatToArab, getPredikat, toArabicNumerals } from '../utils/terbilang';
+import { LoadingState } from '../components/common/LoadingState';
+import { SmartAlert } from '../components/ui/SmartAlert';
 import './RaporPrint.scss';
 
 const API_BASE = import.meta.env.VITE_API_URL || '';
@@ -85,9 +86,9 @@ export function RaporPrint() {
     fetchNewRapor();
   }, [currentIndex, santriList]);
 
-  if (loading) return <div style={{ padding: '50px', textAlign: 'center' }}><Spin size="large" /></div>;
-  if (error) return <div style={{ padding: '50px' }}><Alert type="error" message={error} /></div>;
-  if (!data) return <div style={{ padding: '50px' }}><Alert type="warning" message="Data rapor tidak ditemukan" /></div>;
+  if (loading) return <LoadingState message="Memuat data rapor..." />;
+  if (error) return <div style={{ padding: '50px' }}><SmartAlert type="error" message={error} /></div>;
+  if (!data) return <div style={{ padding: '50px' }}><SmartAlert type="warning" message="Data rapor tidak ditemukan" /></div>;
 
   const { santri, kelas, tahun_ajaran, semester, nilai, tambahan, statistik } = data;
 

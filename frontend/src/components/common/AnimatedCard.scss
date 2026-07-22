@@ -1,81 +1,12 @@
-@import '../../styles/variables.scss';
-@import '../../styles/animations.scss';
+.custom-animated-card {
+  background: var(--lt-bg-surface, #ffffff);
+  border: 1px solid var(--lt-border-light, #e2e8f0);
+  border-radius: 12px;
+  padding: 16px;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
 
-// ============================================
-// ANIMATED CARD STYLES
-// ============================================
-
-.animated-card {
-  transition: all $transition-base;
-  animation: fadeInUp $transition-base;
-
-  // Lift Effect
-  &.animated-card-lift {
-    &:hover {
-      transform: translateY(-8px);
-      box-shadow: $shadow-xl;
-    }
-  }
-
-  // Scale Effect
-  &.animated-card-scale {
-    &:hover {
-      transform: scale(1.03);
-      box-shadow: $shadow-lg;
-    }
-  }
-
-  // Glow Effect
-  &.animated-card-glow {
-    &:hover {
-      box-shadow: 0 0 20px rgba($primary-500, 0.3), $shadow-lg;
-    }
-  }
-
-  // Border Effect
-  &.animated-card-border {
-    border: 2px solid transparent;
-    transition: border-color $transition-base, box-shadow $transition-base;
-
-    &:hover {
-      border-color: $primary-500;
-      box-shadow: $shadow-md;
-    }
-  }
-
-  // Shadow Effect
-  &.animated-card-shadow {
-    &:hover {
-      box-shadow: $shadow-2xl;
-    }
-  }
-
-  // Card Actions Animation
-  .ant-card-actions {
-    > li {
-      transition: all $transition-fast;
-
-      &:hover {
-        color: $primary-500;
-        transform: scale(1.1);
-      }
-
-      &:active {
-        transform: scale(0.95);
-      }
-    }
-  }
-}
-
-// Stagger Animation for Multiple Cards
-.animated-card-container {
-  .animated-card {
-    animation: fadeInUp $transition-base both;
-
-    @for $i from 1 through 20 {
-      &:nth-child(#{$i}) {
-        animation-delay: #{$i * 50}ms;
-      }
-    }
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.05), 0 4px 6px -2px rgba(0, 0, 0, 0.025);
   }
 }

@@ -1,47 +1,20 @@
-import { Empty, Button, Space, Typography } from 'antd';
-import { PlusOutlined } from '@ant-design/icons';
+import React from 'react';
+import { Inbox } from 'lucide-react';
 import './EmptyState.scss';
 
-const { Text } = Typography;
-
-/**
- * EmptyState Component
- *
- * @param {string} title - Empty state title
- * @param {string} description - Empty state description
- * @param {string} image - Empty image type: 'default', 'simple', or custom image URL
- * @param {string} actionText - Action button text
- * @param {function} onAction - Action button click handler
- * @param {node} icon - Custom icon for action button
- */
 export function EmptyState({
-  title = 'Tidak ada data',
-  description = 'Belum ada data yang tersedia',
-  image = Empty.PRESENTED_IMAGE_DEFAULT,
-  actionText,
-  onAction,
-  icon = <PlusOutlined />
+  title = 'Tidak Ada Data',
+  description = 'Belum ada data yang tersedia untuk ditampilkan.',
+  action
 }) {
   return (
-    <div className="empty-state">
-      <Empty
-        image={image}
-        imageStyle={{
-          height: 120,
-        }}
-        description={
-          <Space direction="vertical" size={4}>
-            <Text strong className="empty-title">{title}</Text>
-            <Text type="secondary" className="empty-description">{description}</Text>
-          </Space>
-        }
-      >
-        {actionText && onAction && (
-          <Button type="primary" icon={icon} onClick={onAction}>
-            {actionText}
-          </Button>
-        )}
-      </Empty>
+    <div className="custom-empty-state">
+      <div className="empty-icon-wrapper">
+        <Inbox size={40} />
+      </div>
+      <h4 className="empty-title">{title}</h4>
+      <p className="empty-description">{description}</p>
+      {action && <div className="empty-action">{action}</div>}
     </div>
   );
 }

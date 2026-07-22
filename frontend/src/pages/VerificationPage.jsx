@@ -1,9 +1,8 @@
 import { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
-import { Card, Typography, Row, Col, Badge, Avatar, Empty, Spin, Result } from 'antd';
-import { CheckCircleFilled, CloseCircleFilled, UserOutlined } from '@ant-design/icons';
+import { CheckCircle2, XCircle, User } from 'lucide-react';
+import { LoadingState } from '../components/common/LoadingState';
 
-const { Title, Text } = Typography;
 const API_BASE = import.meta.env.VITE_API_URL || '';
 
 export function VerificationPage() {
@@ -43,140 +42,80 @@ export function VerificationPage() {
 
   const ttl = data ? [data.tempat_lahir, formatTGL(data.tanggal_lahir)].filter(Boolean).join(', ') : '-';
 
-  if (loading) {
-    return (
-      <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '100vh', background: '#f5f7fa' }}>
-        <Spin size="large" tip="Memverifikasi Data..." />
-      </div>
-    );
-  }
+  if (loading) return <LoadingState message="Memverifikasi Data..." />;
 
   if (error || !data) {
     return (
-      <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '100vh', background: '#f5f7fa', padding: '20px' }}>
-        <Result
-          status="error"
-          title="Verifikasi Gagal"
-          subTitle={error || 'Data peserta ujian tidak ditemukan atau barcode tidak valid.'}
-          icon={<CloseCircleFilled style={{ color: '#ff4d4f' }} />}
-        />
+      <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '100vh', background: '#f8fafc', padding: '20px' }}>
+        <div style={{ background: '#fff', padding: '32px', borderRadius: '12px', textAlign: 'center', border: '1px solid #cbd5e1', maxWidth: '400px' }}>
+          <XCircle size={56} style={{ color: '#ef4444', marginBottom: '16px' }} />
+          <h3 style={{ margin: '0 0 8px 0', color: '#0f172a' }}>Verifikasi Gagal</h3>
+          <p style={{ margin: 0, color: '#64748b', fontSize: '14px' }}>{error || 'Data peserta tidak ditemukan.'}</p>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="force-light-mode" style={{ minHeight: '100vh', background: '#f5f7fa', padding: '20px', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
-      {/* CSS Khusus untuk memaksa mode terang tanpa merusak elemen lain */}
-      <style>{`
-        .force-light-mode {
-          color-scheme: light !important;
-        }
-        .force-light-mode .ant-card {
-          background-color: #ffffff !important;
-          color: #262626 !important;
-        }
-        .force-light-mode .ant-typography {
-          color: #262626 !important;
-        }
-        .force-light-mode .ant-typography-secondary {
-          color: #8c8c8c !important;
-        }
-        .data-row-custom {
-          display: flex !important;
-          justify-content: space-between !important;
-          align-items: center !important;
-          padding: 12px 0 !important;
-          border-bottom: 1px solid #f0f0f0 !important;
-        }
-        .data-row-custom:last-child {
-          border-bottom: none !important;
-        }
-        .data-row-custom span:first-child {
-          color: #8c8c8c !important;
-          font-size: 14px !important;
-        }
-        .data-row-custom span:last-child {
-          color: #262626 !important;
-          font-weight: 600 !important;
-          text-align: right !important;
-          font-size: 14px !important;
-          max-width: 70% !important;
-        }
-      `}</style>
-
-      <Card 
-        style={{ width: '100%', maxWidth: '500px', borderRadius: '12px', boxShadow: '0 4px 20px rgba(0,0,0,0.08)' }}
-        bodyStyle={{ padding: '24px' }}
-      >
-        {/* Header Verifikasi */}
+    <div style={{ minHeight: '100vh', background: '#f8fafc', padding: '20px', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+      <div style={{ width: '100%', maxWidth: '480px', background: '#fff', borderRadius: '12px', border: '1px solid #e2e8f0', boxShadow: '0 4px 20px rgba(0,0,0,0.06)', padding: '24px' }}>
         <div style={{ textAlign: 'center', marginBottom: '24px' }}>
-          <CheckCircleFilled style={{ fontSize: '48px', color: '#52c41a', marginBottom: '12px' }} />
-          <Title level={3} style={{ margin: 0 }}>Kartu Terverifikasi</Title>
-          <Text type="secondary">Data peserta ujian ini resmi terdaftar di sistem.</Text>
+          <CheckCircle2 size={48} style={{ color: '#16a34a', marginBottom: '12px' }} />
+          <h2 style={{ margin: '0 0 4px 0', color: '#0f172a', fontSize: '20px' }}>Kartu Terverifikasi</h2>
+          <p style={{ margin: 0, color: '#64748b', fontSize: '13px' }}>Data peserta ujian ini resmi terdaftar di sistem.</p>
         </div>
 
-        {/* Banner Status */}
-        <div style={{ background: '#f6ffed', border: '1px solid #b7eb8f', borderRadius: '8px', padding: '12px', textAlign: 'center', marginBottom: '24px' }}>
-          <Text style={{ color: '#389e0d', fontWeight: '600' }}>
-            PESERTA UJIAN SEMESTER
-          </Text>
+        <div style={{ background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: '8px', padding: '10px', textAlign: 'center', marginBottom: '20px', color: '#166534', fontWeight: 600, fontSize: '13px' }}>
+          PESERTA UJIAN SEMESTER
         </div>
 
-        {/* Konten Data Atas */}
-        <Row gutter={[16, 16]} align="middle">
-          <Col xs={24} sm={8} style={{ textAlign: 'center' }}>
-            {data.foto_url ? (
-              <img 
-                src={`${API_BASE}${data.foto_url}`} 
-                alt="Foto Santri" 
-                style={{ width: '100px', height: '125px', objectFit: 'cover', borderRadius: '6px', border: '1px solid #ddd' }}
-              />
-            ) : (
-              <Avatar size={100} icon={<UserOutlined />} shape="square" style={{ borderRadius: '6px', backgroundColor: '#f0f0f0' }} />
-            )}
-          </Col>
-          <Col xs={24} sm={16}>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-              <div>
-                <Text type="secondary" style={{ fontSize: '12px' }}>NAMA LENGKAP</Text>
-                <div style={{ fontSize: '16px', fontWeight: '600' }}>{data.nama || '-'}</div>
-              </div>
-              <div>
-                <Text type="secondary" style={{ fontSize: '12px' }}>NO. PESERTA</Text>
-                <div style={{ fontSize: '14px', fontWeight: 'bold', color: '#003399', fontFamily: 'monospace' }}>{data.no_peserta || '-'}</div>
-              </div>
-              <div>
-                <Text type="secondary" style={{ fontSize: '12px' }}>NIS</Text>
-                <div style={{ fontSize: '14px' }}>{data.nis || '-'}</div>
-              </div>
+        <div style={{ display: 'flex', gap: '16px', alignItems: 'center', marginBottom: '20px' }}>
+          {data.foto_url ? (
+            <img 
+              src={`${API_BASE}${data.foto_url}`} 
+              alt="Foto Santri" 
+              style={{ width: '90px', height: '115px', objectFit: 'cover', borderRadius: '8px', border: '1px solid #cbd5e1' }}
+            />
+          ) : (
+            <div style={{ width: '90px', height: '115px', borderRadius: '8px', background: '#f1f5f9', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#94a3b8' }}>
+              <User size={36} />
             </div>
-          </Col>
-        </Row>
-
-        <hr style={{ border: 0, borderTop: '1px solid #f0f0f0', margin: '20px 0' }} />
-
-        {/* Data Detail Bawah */}
-        <div style={{ display: 'flex', flexDirection: 'column' }}>
-          <div className="data-row-custom">
-            <span>Kelas</span>
-            <span>{data.nama_kelas || '-'}</span>
-          </div>
-          <div className="data-row-custom">
-            <span>Jenis Kelamin</span>
-            <span>
-              {data.jenis_kelamin === 'L' ? 'Laki-laki' : data.jenis_kelamin === 'P' ? 'Perempuan' : (data.jenis_kelamin || '-')}
-            </span>
-          </div>
-          <div className="data-row-custom">
-            <span>TTL</span>
-            <span>{ttl}</span>
-          </div>
-          <div className="data-row-custom" style={{ alignItems: 'flex-start' }}>
-            <span>Alamat</span>
-            <span>{data.alamat || '-'}</span>
+          )}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+            <div>
+              <span style={{ fontSize: '11px', color: '#64748b', fontWeight: 600 }}>NAMA LENGKAP</span>
+              <div style={{ fontSize: '15px', fontWeight: 600, color: '#0f172a' }}>{data.nama || '-'}</div>
+            </div>
+            <div>
+              <span style={{ fontSize: '11px', color: '#64748b', fontWeight: 600 }}>NO. PESERTA</span>
+              <div style={{ fontSize: '13px', fontWeight: 'bold', color: '#2196f3', fontFamily: 'monospace' }}>{data.no_peserta || '-'}</div>
+            </div>
+            <div>
+              <span style={{ fontSize: '11px', color: '#64748b', fontWeight: 600 }}>NIS</span>
+              <div style={{ fontSize: '13px', color: '#334155' }}>{data.nis || '-'}</div>
+            </div>
           </div>
         </div>
-      </Card>
+
+        <div style={{ borderTop: '1px solid #e2e8f0', paddingTop: '16px', display: 'flex', flexDirection: 'column', gap: '10px', fontSize: '13px' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+            <span style={{ color: '#64748b' }}>Kelas:</span>
+            <strong>{data.nama_kelas || '-'}</strong>
+          </div>
+          <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+            <span style={{ color: '#64748b' }}>Jenis Kelamin:</span>
+            <strong>{data.jenis_kelamin === 'L' ? 'Laki-laki' : data.jenis_kelamin === 'P' ? 'Perempuan' : (data.jenis_kelamin || '-')}</strong>
+          </div>
+          <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+            <span style={{ color: '#64748b' }}>TTL:</span>
+            <strong>{ttl}</strong>
+          </div>
+          <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+            <span style={{ color: '#64748b' }}>Alamat:</span>
+            <strong style={{ textAlign: 'right', maxWidth: '60%' }}>{data.alamat || '-'}</strong>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }

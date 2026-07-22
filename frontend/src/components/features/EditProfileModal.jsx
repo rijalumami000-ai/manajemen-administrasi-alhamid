@@ -1,105 +1,89 @@
-import { useEffect } from 'react';
-import { Modal, Form, Input, Alert } from 'antd';
-import { UserOutlined, MailOutlined, PhoneOutlined } from '@ant-design/icons';
+import { useState, useEffect } from 'react';
+import { CustomModal } from '../ui/CustomModal';
+import { FloatingInput } from '../ui/FloatingInput';
+import { SmartAlert } from '../ui/SmartAlert';
+import { User, Mail, Phone, Save } from 'lucide-react';
 
 export function EditProfileModal({ isOpen, onClose, onSubmit, profileData, isSubmitting, error }) {
-  const [form] = Form.useForm();
+  const [formData, setFormData] = useState({
+    full_name: '',
+    email: '',
+    phone: ''
+  });
+  const [formError, setFormError] = useState('');
 
   useEffect(() => {
     if (isOpen && profileData) {
-      form.setFieldsValue({
+      setFormData({
         full_name: profileData.full_name || '',
         email: profileData.email || '',
         phone: profileData.phone || ''
       });
+      setFormError('');
     }
-  }, [isOpen, profileData, form]);
+  }, [isOpen, profileData]);
 
-  const handleSubmit = async () => {
-    try {
-      const values = await form.validateFields();
-      onSubmit(values);
-    } catch (err) {
-      console.error('Validation failed:', err);
+  const handleSubmit = (e) => {
+    if (e) e.preventDefault();
+    if (!formData.full_name || formData.full_name.trim().length < 3) {
+      setFormError('Nama lengkap minimal 3 karakter!');
+      return;
     }
-  };
-
-  const handleCancel = () => {
-    form.resetFields();
-    onClose();
+    setFormError('');
+    onSubmit(formData);
   };
 
   return (
-    <Modal
-      title="Edit Profile"
+    <CustomModal
       open={isOpen}
-      onOk={handleSubmit}
-      onCancel={handleCancel}
-      confirmLoading={isSubmitting}
-      okText={isSubmitting ? 'Menyimpan...' : 'Simpan'}
-      cancelText="Batal"
-      width={500}
-      destroyOnClose
+      onClose={onClose}
+      title="Edit Profil Saya"
+      subtitle="Perbarui data profil personal Anda"
+      icon={<User />}
+      width={480}
+      footer={
+        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px', width: '100%' }}>
+          <button type="button" className="btn-custom btn-secondary" onClick={onClose} disabled={isSubmitting}>
+            Batal
+          </button>
+          <button type="button" className="btn-custom btn-primary" onClick={handleSubmit} disabled={isSubmitting}>
+            {isSubmitting ? 'Menyimpan...' : <span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}><Save size={16} /> Simpan</span>}
+          </button>
+        </div>
+      }
     >
-      {error && (
-        <Alert
-          message="Error"
-          description={error}
-          type="error"
-          showIcon
-          closable
-          style={{ marginBottom: 16 }}
-        />
-      )}
-
-      <Form
-        form={form}
-        layout="vertical"
-        autoComplete="off"
-      >
-        <Form.Item
+      <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+        {(error || formError) && <SmartAlert message={formError || error} type="error" />}
+        
+        <FloatingInput
           label="Nama Lengkap"
           name="full_name"
-          rules={[
-            { required: true, message: 'Nama lengkap wajib diisi!' },
-            { min: 3, message: 'Nama minimal 3 karakter!' }
-          ]}
-        >
-          <Input
-            prefix={<UserOutlined />}
-            placeholder="Masukkan nama lengkap"
-            disabled={isSubmitting}
-          />
-        </Form.Item>
+          icon={User}
+          value={formData.full_name}
+          onChange={(e) => setFormData(prev => ({ ...prev, full_name: e.target.value }))}
+          required
+          disabled={isSubmitting}
+        />
 
-        <Form.Item
+        <FloatingInput
           label="Email"
           name="email"
-          rules={[
-            { type: 'email', message: 'Format email tidak valid!' }
-          ]}
-        >
-          <Input
-            prefix={<MailOutlined />}
-            placeholder="Masukkan email"
-            disabled={isSubmitting}
-          />
-        </Form.Item>
+          type="email"
+          icon={Mail}
+          value={formData.email}
+          onChange={(e) => setFormData(prev => ({ ...prev, email: e.target.value }))}
+          disabled={isSubmitting}
+        />
 
-        <Form.Item
+        <FloatingInput
           label="No. HP"
           name="phone"
-          rules={[
-            { pattern: /^[0-9+\-\s()]*$/, message: 'Format nomor HP tidak valid!' }
-          ]}
-        >
-          <Input
-            prefix={<PhoneOutlined />}
-            placeholder="Masukkan nomor HP"
-            disabled={isSubmitting}
-          />
-        </Form.Item>
-      </Form>
-    </Modal>
+          icon={Phone}
+          value={formData.phone}
+          onChange={(e) => setFormData(prev => ({ ...prev, phone: e.target.value }))}
+          disabled={isSubmitting}
+        />
+      </form>
+    </CustomModal>
   );
 }

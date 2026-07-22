@@ -1,5 +1,4 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { Modal } from 'antd';
 import {
   FileText, Plus, Search, Filter, Download,
   CheckCircle, Clock, XCircle, Minus, RefreshCw,
@@ -335,87 +334,66 @@ export default function TagihanSantri() {
 
   const handleGenerateSPP = async () => {
     if (!tahunId) return;
-    Modal.confirm({
-      title: 'Generate Tagihan SPP',
-      content: `Generate tagihan SPP untuk semua santri aktif — ${NAMA_BULAN[bulan]} ${tahunKal}?\n\nProses ini aman, tagihan yang sudah ada tidak akan digandakan.`,
-      okText: 'Generate',
-      cancelText: 'Batal',
-      onOk: async () => {
-        setGenerating(true); setGenerateMsg('');
-        try {
-          const res = await fetch('/api/keuangan/tagihan/generate-spp', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-            body: JSON.stringify({ tahun_ajaran_id: tahunId, bulan, ...({ tahun: tahunKal }) }),
-          });
-          const json = await res.json();
-          if (!res.ok) throw new Error(json.error ?? 'Gagal');
-          setGenerateMsg(`✅ ${json.message}`);
-          fetchTagihan();
-        } catch (e) {
-          setGenerateMsg(`❌ ${e instanceof Error ? e.message : 'Gagal generate'}`);
-        } finally {
-          setGenerating(false);
-        }
-      }
-    });
+    if (!window.confirm(`Generate tagihan SPP untuk semua santri aktif — ${NAMA_BULAN[bulan]} ${tahunKal}?\n\nProses ini aman, tagihan yang sudah ada tidak akan digandakan.`)) return;
+    setGenerating(true); setGenerateMsg('');
+    try {
+      const res = await fetch('/api/keuangan/tagihan/generate-spp', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ tahun_ajaran_id: tahunId, bulan, ...({ tahun: tahunKal }) }),
+      });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error ?? 'Gagal');
+      setGenerateMsg(`✅ ${json.message}`);
+      fetchTagihan();
+    } catch (e) {
+      setGenerateMsg(`❌ ${e instanceof Error ? e.message : 'Gagal generate'}`);
+    } finally {
+      setGenerating(false);
+    }
   };
 
   const handleGenerateDU = async () => {
     if (!tahunId) return;
-    Modal.confirm({
-      title: 'Generate Tagihan Daftar Ulang',
-      content: 'Generate tagihan Daftar Ulang (Santri Baru & Lama) untuk semua santri aktif?\n\nProses ini aman, tagihan yang sudah ada tidak akan digandakan.',
-      okText: 'Generate',
-      cancelText: 'Batal',
-      onOk: async () => {
-        setGenerating(true); setGenerateMsg('');
-        try {
-          const res = await fetch('/api/keuangan/tagihan/generate-du', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-            body: JSON.stringify({ tahun_ajaran_id: tahunId }),
-          });
-          const json = await res.json();
-          if (!res.ok) throw new Error(json.error ?? 'Gagal');
-          setGenerateMsg(`✅ ${json.message}`);
-          fetchTagihan();
-        } catch (e) {
-          setGenerateMsg(`❌ ${e instanceof Error ? e.message : 'Gagal generate'}`);
-        } finally {
-          setGenerating(false);
-        }
-      }
-    });
+    if (!window.confirm('Generate tagihan Daftar Ulang (Santri Baru & Lama) untuk semua santri aktif?\n\nProses ini aman, tagihan yang sudah ada tidak akan digandakan.')) return;
+    setGenerating(true); setGenerateMsg('');
+    try {
+      const res = await fetch('/api/keuangan/tagihan/generate-du', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ tahun_ajaran_id: tahunId }),
+      });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error ?? 'Gagal');
+      setGenerateMsg(`✅ ${json.message}`);
+      fetchTagihan();
+    } catch (e) {
+      setGenerateMsg(`❌ ${e instanceof Error ? e.message : 'Gagal generate'}`);
+    } finally {
+      setGenerating(false);
+    }
   };
 
   const handleGenerateEvent = async () => {
     if (!tahunId || !selectedEventId) return;
     const eventName = eventTypeList.find(e => e.id === selectedEventId)?.nama ?? 'Event';
-    Modal.confirm({
-      title: 'Generate Tagihan Event',
-      content: `Generate tagihan Event "${eventName}" untuk semua santri aktif?\n\nProses ini aman, tagihan yang sudah ada tidak akan digandakan.`,
-      okText: 'Generate',
-      cancelText: 'Batal',
-      onOk: async () => {
-        setGenerating(true); setGenerateMsg('');
-        try {
-          const res = await fetch('/api/keuangan/tagihan/generate-event', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-            body: JSON.stringify({ tahun_ajaran_id: tahunId, jenis_iuran_id: selectedEventId }),
-          });
-          const json = await res.json();
-          if (!res.ok) throw new Error(json.error ?? 'Gagal');
-          setGenerateMsg(`✅ ${json.message}`);
-          fetchTagihan();
-        } catch (e) {
-          setGenerateMsg(`❌ ${e instanceof Error ? e.message : 'Gagal generate'}`);
-        } finally {
-          setGenerating(false);
-        }
-      }
-    });
+    if (!window.confirm(`Generate tagihan Event "${eventName}" untuk semua santri aktif?\n\nProses ini aman, tagihan yang sudah ada tidak akan digandakan.`)) return;
+    setGenerating(true); setGenerateMsg('');
+    try {
+      const res = await fetch('/api/keuangan/tagihan/generate-event', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ tahun_ajaran_id: tahunId, jenis_iuran_id: selectedEventId }),
+      });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error ?? 'Gagal');
+      setGenerateMsg(`✅ ${json.message}`);
+      fetchTagihan();
+    } catch (e) {
+      setGenerateMsg(`❌ ${e instanceof Error ? e.message : 'Gagal generate'}`);
+    } finally {
+      setGenerating(false);
+    }
   };
 
   // Filter pencarian lokal

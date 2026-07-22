@@ -1,5 +1,5 @@
 import { memo } from 'react';
-import { ArrowUpOutlined, ArrowDownOutlined } from '@ant-design/icons';
+import { TrendingUp, TrendingDown } from 'lucide-react';
 import './StatCard.scss';
 
 export const StatCard = memo(function StatCard({
@@ -20,7 +20,6 @@ export const StatCard = memo(function StatCard({
     return <div className="stat-card skeleton"></div>;
   }
 
-  // Convert hex color to rgba for soft background
   const hexToRgba = (hex, opacity) => {
     let r = 0, g = 0, b = 0;
     if (hex.length === 4) {
@@ -66,7 +65,7 @@ export const StatCard = memo(function StatCard({
         {trend !== undefined && (
           <div className="stat-card-trend-wrapper">
             <div className={`stat-card-trend ${isPositiveTrend ? 'positive' : 'negative'}`}>
-              {isPositiveTrend ? <ArrowUpOutlined /> : <ArrowDownOutlined />}
+              {isPositiveTrend ? <TrendingUp size={14} /> : <TrendingDown size={14} />}
               <span>{Math.abs(trend)}%</span>
             </div>
             {trendText && <span className="stat-card-trend-text">{trendText}</span>}

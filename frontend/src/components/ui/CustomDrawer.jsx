@@ -1,56 +1,45 @@
-import { useEffect, useRef, useCallback } from 'react';
+import React, { useEffect } from 'react';
 import { X } from 'lucide-react';
 import './CustomDrawer.scss';
 
-export function CustomDrawer({ open, onClose, title, subtitle, icon, children, width = 480 }) {
-  const overlayRef = useRef(null);
-
-  const handleEsc = useCallback((e) => {
-    if (e.key === 'Escape') onClose?.();
-  }, [onClose]);
-
+export function CustomDrawer({
+  open,
+  onClose,
+  title,
+  children,
+  placement = 'left',
+  width = 280
+}) {
   useEffect(() => {
     if (open) {
-      document.addEventListener('keydown', handleEsc);
       document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = 'unset';
     }
     return () => {
-      document.removeEventListener('keydown', handleEsc);
-      document.body.style.overflow = '';
+      document.body.style.overflow = 'unset';
     };
-  }, [open, handleEsc]);
+  }, [open]);
 
-  const handleOverlayClick = (e) => {
-    if (e.target === overlayRef.current) onClose?.();
-  };
+  if (!open) return null;
 
   return (
-    <div
-      ref={overlayRef}
-      className={`ui-drawer-overlay ${open ? 'visible' : ''}`}
-      onClick={handleOverlayClick}
-    >
-      <aside
-        className={`ui-drawer-panel ${open ? 'enter' : ''}`}
-        style={{ width }}
+    <div className="custom-drawer-overlay" onClick={onClose}>
+      <div
+        className={`custom-drawer-panel drawer-${placement}`}
+        style={{ width: typeof width === 'number' ? `${width}px` : width }}
+        onClick={(e) => e.stopPropagation()}
       >
-        {/* Header */}
-        <div className="ui-drawer-header">
-          <div className="ui-drawer-header__left">
-            {icon && <div className="ui-drawer-header__icon">{icon}</div>}
-            <div>
-              <h3 className="ui-drawer-header__title">{title}</h3>
-              {subtitle && <p className="ui-drawer-header__subtitle">{subtitle}</p>}
-            </div>
-          </div>
-          <button className="ui-drawer-close" onClick={onClose}>
-            <X size={18} />
+        <div className="custom-drawer-header">
+          {title && <h3 className="custom-drawer-title">{title}</h3>}
+          <button type="button" className="drawer-close-btn" onClick={onClose}>
+            <X size={20} />
           </button>
         </div>
-
-        {/* Content */}
-        <div className="ui-drawer-body">{children}</div>
-      </aside>
+        <div className="custom-drawer-body">
+          {children}
+        </div>
+      </div>
     </div>
   );
 }

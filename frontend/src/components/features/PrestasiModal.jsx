@@ -1,127 +1,150 @@
-import { useEffect } from 'react';
-import { Modal, Form, Input, DatePicker, Alert } from 'antd';
-import { TrophyOutlined } from '@ant-design/icons';
-import dayjs from 'dayjs';
+import { useState, useEffect } from 'react';
+import { CustomModal } from '../ui/CustomModal';
+import { FloatingInput } from '../ui/FloatingInput';
+import { CustomDatePicker } from '../ui/CustomDatePicker';
+import { SmartAlert } from '../ui/SmartAlert';
+import { Trophy, Save, FileText, Award } from 'lucide-react';
 import { SantriAutocomplete } from './SantriAutocomplete';
 import './PrestasiModal.scss';
 
-const { TextArea } = Input;
-
 export function PrestasiModal({ isOpen, onClose, onSubmit, editData, isSubmitting, error }) {
-  const [form] = Form.useForm();
+  const [formData, setFormData] = useState({
+    santri_id: '',
+    jenis: '',
+    tanggal: '',
+    deskripsi: '',
+    penghargaan: ''
+  });
+  const [formErrors, setFormErrors] = useState({});
 
   useEffect(() => {
-    if (isOpen && editData) {
-      const tanggal = editData.tanggal ? dayjs(editData.tanggal) : null;
-
-      form.setFieldsValue({
-        santri_id: editData.santri_id || '',
-        jenis: editData.jenis || '',
-        tanggal: tanggal,
-        deskripsi: editData.deskripsi || '',
-        penghargaan: editData.penghargaan || ''
-      });
-    } else if (isOpen) {
-      form.resetFields();
+    if (isOpen) {
+      if (editData) {
+        setFormData({
+          santri_id: editData.santri_id || '',
+          jenis: editData.jenis || '',
+          tanggal: editData.tanggal ? editData.tanggal.split('T')[0] : '',
+          deskripsi: editData.deskripsi || '',
+          penghargaan: editData.penghargaan || ''
+        });
+      } else {
+        setFormData({
+          santri_id: '',
+          jenis: '',
+          tanggal: new Date().toISOString().split('T')[0],
+          deskripsi: '',
+          penghargaan: ''
+        });
+      }
+      setFormErrors({});
     }
-  }, [isOpen, editData, form]);
+  }, [isOpen, editData]);
 
-  const handleSubmit = async () => {
-    try {
-      const values = await form.validateFields();
-
-      const submitData = {
-        ...values,
-        tanggal: values.tanggal ? values.tanggal.format('YYYY-MM-DD') : null
-      };
-
-      onSubmit(submitData);
-    } catch (err) {
-      console.error('Validasi gagal:', err);
+  const handleChange = (name, value) => {
+    setFormData(prev => ({ ...prev, [name]: value }));
+    if (formErrors[name]) {
+      setFormErrors(prev => ({ ...prev, [name]: '' }));
     }
   };
 
-  const handleCancel = () => {
-    form.resetFields();
-    onClose();
+  const handleSubmit = (e) => {
+    if (e) e.preventDefault();
+
+    const errors = {};
+    if (!formData.santri_id) errors.santri_id = 'Santri wajib dipilih';
+    if (!formData.jenis || !formData.jenis.trim()) errors.jenis = 'Jenis prestasi wajib diisi';
+    if (!formData.tanggal) errors.tanggal = 'Tanggal wajib diisi';
+
+    if (Object.keys(errors).length > 0) {
+      setFormErrors(errors);
+      return;
+    }
+
+    onSubmit({
+      santri_id: formData.santri_id,
+      jenis: formData.jenis.trim(),
+      tanggal: formData.tanggal,
+      deskripsi: formData.deskripsi ? formData.deskripsi.trim() : null,
+      penghargaan: formData.penghargaan ? formData.penghargaan.trim() : null
+    });
   };
 
   return (
-    <Modal
+    <CustomModal
       open={isOpen}
-      title={
-        <span>
-          <TrophyOutlined style={{ color: '#ff9800' }} /> {editData ? 'Edit Prestasi' : 'Tambah Prestasi'}
-        </span>
+      onClose={onClose}
+      title={editData ? 'Edit Data Prestasi' : 'Tambah Data Prestasi'}
+      subtitle={editData ? 'Perbarui pencapaian dan prestasi santri' : 'Catat prestasi santri baru'}
+      icon={<Trophy style={{ color: '#f59e0b' }} />}
+      width={560}
+      footer={
+        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px', width: '100%' }}>
+          <button type="button" className="btn-custom btn-secondary" onClick={onClose} disabled={isSubmitting}>
+            Batal
+          </button>
+          <button type="button" className="btn-custom btn-primary" onClick={handleSubmit} disabled={isSubmitting}>
+            {isSubmitting ? 'Menyimpan...' : <span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}><Save size={16} /> {editData ? 'Perbarui' : 'Simpan'}</span>}
+          </button>
+        </div>
       }
-      onCancel={handleCancel}
-      onOk={handleSubmit}
-      confirmLoading={isSubmitting}
-      width={600}
-      okText={editData ? 'Perbarui' : 'Simpan'}
-      cancelText="Batal"
-      className="prestasi-modal"
-      destroyOnClose
     >
-      {error && (
-        <Alert
-          message="Error"
-          description={error}
-          type="error"
-          showIcon
-          closable
-          style={{ marginBottom: 16 }}
-        />
-      )}
+      <div className="prestasi-form-container">
+        {error && <div style={{ marginBottom: '16px' }}><SmartAlert message={error} type="error" /></div>}
 
-      <Form
-        form={form}
-        layout="vertical"
-        disabled={isSubmitting}
-      >
-        <Form.Item
-          name="santri_id"
-          label="Santri"
-          rules={[{ required: true, message: 'Santri wajib dipilih' }]}
-        >
-          <SantriAutocomplete
-            value={form.getFieldValue('santri_id')}
-            onChange={(value) => form.setFieldsValue({ santri_id: value })}
-            error={form.getFieldError('santri_id')[0]}
-          />
-        </Form.Item>
+        <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+          <div>
+            <label style={{ display: 'block', marginBottom: '6px', fontSize: '13px', fontWeight: 500, color: 'var(--lt-text-secondary, #475569)' }}>
+              Santri <span style={{ color: '#ef4444' }}>*</span>
+            </label>
+            <SantriAutocomplete
+              value={formData.santri_id}
+              onChange={(val) => handleChange('santri_id', val)}
+              error={formErrors.santri_id}
+            />
+          </div>
 
-        <Form.Item
-          name="jenis"
-          label="Jenis Prestasi"
-          rules={[{ required: true, message: 'Jenis prestasi wajib diisi' }]}
-        >
-          <Input
-            prefix={<TrophyOutlined />}
+          <FloatingInput
+            label="Jenis Prestasi"
+            name="jenis"
+            icon={Trophy}
+            value={formData.jenis}
+            onChange={(e) => handleChange('jenis', e.target.value)}
+            error={formErrors.jenis}
+            required
+            disabled={isSubmitting}
             placeholder="Contoh: Juara Lomba, Hafalan Terbaik"
           />
-        </Form.Item>
 
-        <Form.Item
-          name="tanggal"
-          label="Tanggal"
-          rules={[{ required: true, message: 'Tanggal wajib diisi' }]}
-        >
-          <DatePicker
-            style={{ width: '100%' }}
-            format="DD/MM/YYYY"
-            placeholder="Pilih tanggal"
+          <CustomDatePicker
+            label="Tanggal Prestasi"
+            value={formData.tanggal}
+            onChange={(val) => handleChange('tanggal', val)}
+            error={formErrors.tanggal}
+            required
+            disabled={isSubmitting}
           />
-        </Form.Item>
 
-        <Form.Item name="deskripsi" label="Deskripsi">
-          <TextArea rows={3} placeholder="Detail prestasi..." />
-        </Form.Item>
+          <FloatingInput
+            label="Deskripsi Prestasi"
+            name="deskripsi"
+            icon={FileText}
+            value={formData.deskripsi}
+            onChange={(e) => handleChange('deskripsi', e.target.value)}
+            disabled={isSubmitting}
+            placeholder="Detail penjelasan pencapaian..."
+          />
 
-        <Form.Item name="penghargaan" label="Penghargaan">
-          <TextArea rows={3} placeholder="Penghargaan yang diterima..." />
-        </Form.Item>
-      </Form>
-    </Modal>
+          <FloatingInput
+            label="Penghargaan yang Diterima"
+            name="penghargaan"
+            icon={Award}
+            value={formData.penghargaan}
+            onChange={(e) => handleChange('penghargaan', e.target.value)}
+            disabled={isSubmitting}
+            placeholder="Piala, Sertifikat, Beasiswa..."
+          />
+        </form>
+      </div>
+    </CustomModal>
   );
 }

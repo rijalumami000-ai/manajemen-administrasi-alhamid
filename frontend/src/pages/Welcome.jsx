@@ -1,11 +1,7 @@
 import React from 'react';
-import { Typography, Card, Button, Space, Divider } from 'antd';
-import { BookOutlined, FileTextOutlined, SmileOutlined } from '@ant-design/icons';
+import { BookOpen, FileText, Smile } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useResponsive } from '../hooks/useResponsive';
-import './ManajemenNilai.scss'; // Reuse some layout styles
-
-const { Title, Text, Paragraph } = Typography;
 
 export function Welcome() {
   const navigate = useNavigate();
@@ -14,77 +10,74 @@ export function Welcome() {
   return (
     <div style={{
       padding: isMobile ? 16 : 24,
-      background: '#f0f2f5',
+      background: 'var(--lt-bg-main, #f8fafc)',
       minHeight: '100vh',
       display: 'flex',
       flexDirection: 'column',
       justifyContent: 'center',
       alignItems: 'center'
     }}>
-      <Card style={{
-        maxWidth: 500,
+      <div style={{
+        maxWidth: 480,
         width: '100%',
         borderRadius: 16,
-        boxShadow: '0 4px 20px rgba(0,0,0,0.08)',
+        background: '#fff',
+        border: '1px solid #e2e8f0',
+        boxShadow: '0 4px 20px rgba(0,0,0,0.06)',
         textAlign: 'center',
-        padding: isMobile ? 12 : 24
+        padding: isMobile ? '20px' : '32px'
       }}>
-        <div style={{ marginBottom: 16 }}>
+        <div style={{ marginBottom: 16, display: 'flex', justifyContent: 'center' }}>
           <img 
             src="/logo-pondok.png" 
             alt="Logo Pondok" 
             style={{ width: 80, height: 80, objectFit: 'contain' }}
             onError={(e) => {
-              // Jika logo belum ada, tampilkan emoji fallback agar tidak rusak
               e.target.style.display = 'none';
-              e.target.parentNode.innerHTML = '<span style="font-size: 60px;">😊</span>';
             }}
           />
         </div>
 
-        <Title level={isMobile ? 3 : 2} style={{ color: '#1a365d', marginBottom: 8 }}>
+        <h2 style={{ color: '#0f172a', marginBottom: 8, fontSize: isMobile ? '20px' : '24px', fontWeight: 'bold' }}>
           Selamat datang Ustadz dan Ustadzoh 😊
-        </Title>
+        </h2>
 
-        <Paragraph type="secondary" style={{ fontSize: 16, marginBottom: 24 }}>
+        <p style={{ fontSize: '14px', color: '#64748b', marginBottom: 24 }}>
           Sistem Informasi Online dan terintegrasi Madrasah Diniyah Ponpes Al-Hamid.
-        </Paragraph>
+        </p>
 
-        <Divider style={{ margin: '24px 0' }} />
+        <div style={{ height: '1px', background: '#e2e8f0', margin: '24px 0' }} />
 
-        <Title level={5} style={{ textAlign: 'left', marginBottom: 16 }}>
+        <h4 style={{ textAlign: 'left', marginBottom: 16, fontSize: '14px', fontWeight: 600, color: '#0f172a' }}>
           Pilih Menu Untuk Memulai:
-        </Title>
+        </h4>
 
-        <Space direction="vertical" style={{ width: '100%' }} size="middle">
-          <Button
-            type="primary"
-            size="large"
-            block
-            icon={<BookOutlined />}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', width: '100%' }}>
+          <button
+            type="button"
+            className="btn-custom btn-primary"
             onClick={() => navigate('/nilai')}
-            style={{ height: 50, borderRadius: 8, fontSize: 16, background: '#1890ff' }}
+            style={{ height: 48, fontSize: '15px', width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}
           >
-            Input Penilaian
-          </Button>
+            <BookOpen size={18} /> Input Penilaian
+          </button>
 
-          <Button
-            size="large"
-            block
-            icon={<FileTextOutlined />}
+          <button
+            type="button"
+            className="btn-custom btn-secondary"
             onClick={() => navigate('/laporan-ujian-khusus')}
-            style={{ height: 50, borderRadius: 8, fontSize: 16 }}
+            style={{ height: 48, fontSize: '15px', width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}
           >
-            Laporan Ujian
-          </Button>
-        </Space>
-
-        <div style={{ marginTop: 32 }}>
-          <Text type="secondary" style={{ fontSize: 12 }}>
-            💡 Tips: Tambahkan halaman ini ke Layar Utama HP Anda untuk akses lebih cepat di kemudian hari.
-          </Text>
+            <FileText size={18} /> Laporan Ujian
+          </button>
         </div>
-      </Card>
+
+        <div style={{ marginTop: 28, background: '#f8fafc', padding: '12px', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
+          <span style={{ fontSize: '12px', color: '#64748b' }}>
+            💡 <strong>Tips:</strong> Tambahkan halaman ini ke Layar Utama HP Anda untuk akses lebih cepat di kemudian hari.
+          </span>
+        </div>
+      </div>
     </div>
   );
 }

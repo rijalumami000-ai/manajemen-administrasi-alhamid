@@ -6,9 +6,6 @@ import { ErrorBoundary } from './components/common/ErrorBoundary';
 import { ProtectedRoute } from './components/common/ProtectedRoute';
 import { LoadingState } from './components/common/LoadingState';
 import { Layout } from './components/layout/Layout';
-import { ConfigProvider, theme } from 'antd';
-import antdTheme from './config/theme';
-import { useTheme } from './context/ThemeContext';
 
 // Lazy load pages for code splitting
 const Login = lazy(() => import('./pages/Login').then(m => ({ default: m.Login })));
@@ -55,108 +52,97 @@ const LaporanEvent = lazy(() => import('./pages/LaporanEvent'));
 const SetupKeuangan = lazy(() => import('./pages/SetupKeuangan'));
 const AuditKeuangan = lazy(() => import('./pages/AuditKeuangan'));
 
-
-
 function App() {
-  const { isDarkMode } = useTheme();
-
   return (
-    <ConfigProvider 
-      theme={{
-        ...antdTheme,
-        algorithm: isDarkMode ? theme.darkAlgorithm : theme.defaultAlgorithm,
-      }}
-    >
-      <ErrorBoundary>
-        <AuthProvider>
-          <ToastProvider>
-            <BrowserRouter>
-              <Suspense fallback={<LoadingState message="Memuat aplikasi..." />}>
-                <Routes>
-                  <Route path="/login" element={<Login />} />
-                  <Route 
-                    path="/rapor-print/:tahun_ajaran_id/:kelas_id/:kategori_id/:santri_id" 
-                    element={
-                      <ProtectedRoute>
-                        <RaporPrint />
-                      </ProtectedRoute>
-                    } 
-                  />
-                  <Route 
-                    path="/pub/laporan-ujian-khusus" 
-                    element={<LaporanUjianKhusus />} 
-                  />
-                  <Route 
-                    path="/verify/:no_peserta" 
-                    element={<VerificationPage />} 
-                  />
-                  <Route 
-                    path="/masuk/:key" 
-                    element={<QuickLogin />} 
-                  />
-
-                  <Route path="/absensi-sholat-scan" element={<AbsensiSholatScan />} />
-
-                  <Route path="/" element={
+    <ErrorBoundary>
+      <AuthProvider>
+        <ToastProvider>
+          <BrowserRouter>
+            <Suspense fallback={<LoadingState message="Memuat aplikasi..." />}>
+              <Routes>
+                <Route path="/login" element={<Login />} />
+                <Route 
+                  path="/rapor-print/:tahun_ajaran_id/:kelas_id/:kategori_id/:santri_id" 
+                  element={
                     <ProtectedRoute>
-                      <Layout />
+                      <RaporPrint />
                     </ProtectedRoute>
-                  }>
-                    <Route index element={<Dashboard />} />
-                    <Route path="santri" element={<Santri />} />
-                    <Route path="guru" element={<Guru />} />
-                    <Route path="alumni" element={<Alumni />} />
-                    <Route path="kelas" element={<Kelas />} />
-                    <Route path="kamar" element={<Kamar />} />
-                    <Route path="pelanggaran-prestasi" element={<PelanggaranPrestasi />} />
-                    <Route path="users" element={<Users />} />
-                    <Route path="mymustahiq-settings" element={<MyMustahiqSettings />} />
-                     <Route path="profile" element={<Profile />} />
-                    <Route path="nilai" element={<ManajemenNilai mode="input" key="input" />} />
-                    <Route path="input-nilai-ujian" element={<ManajemenNilai mode="input-ujian" key="input-ujian" />} />
-                    <Route path="nilai-pengaturan" element={<PengaturanJadwal />} />
-                    <Route path="informasi-ujian" element={<InformasiUjian />} />
-                    <Route path="nilai-rekap" element={<ManajemenNilai mode="rekap" key="rekap" />} />
-                    <Route path="laporan-ujian-khusus" element={<LaporanUjianKhusus />} />
-                    <Route path="welcome" element={<Welcome />} />
-                    <Route path="buku-induk" element={<BukuInduk />} />
-                    <Route path="kartu-ujian-semester" element={<KartuUjianSemester />} />
-                    <Route path="absensi-sholat" element={<AbsensiSholat />} />
-                    <Route path="rekap-absensi-sholat" element={<RekapAbsensiSholat />} />
-                    <Route path="lembar-ujian" element={<LembarUjian />} />
-                    <Route path="ujian" element={<UjianMenu />} />
-                    <Route path="scan-nilai" element={<ScanNilai />} />
-                    <Route path="radio" element={<RadioPlayer />} />
-                    <Route path="struktur-organisasi" element={<StrukturOrganisasi />} />
-                    <Route path="jadwal-pelajaran" element={<JadwalPelajaran />} />
-                    <Route path="silabus-pembelajaran" element={<SilabusPembelajaran />} />
+                  } 
+                />
+                <Route 
+                  path="/pub/laporan-ujian-khusus" 
+                  element={<LaporanUjianKhusus />} 
+                />
+                <Route 
+                  path="/verify/:no_peserta" 
+                  element={<VerificationPage />} 
+                />
+                <Route 
+                  path="/masuk/:key" 
+                  element={<QuickLogin />} 
+                />
 
-                    {/* ── Keuangan ─────────────────────────────────────── */}
-                    <Route path="keuangan" element={<KeuanganDashboard />} />
-                    <Route path="keuangan/tagihan" element={<TagihanSantri />} />
-                    <Route path="keuangan/laporan/spp" element={<LaporanSPP />} />
-                    <Route path="keuangan/laporan/daftar-ulang" element={<LaporanDaftarUlang />} />
-                    <Route path="keuangan/laporan/event" element={<LaporanEvent />} />
-                    <Route path="keuangan/kas" element={<BukuKas />} />
-                    <Route path="keuangan/setup" element={<SetupKeuangan />} />
-                    <Route path="keuangan/audit" element={<AuditKeuangan />} />
-                  </Route>
+                <Route path="/absensi-sholat-scan" element={<AbsensiSholatScan />} />
 
-                  {/* Kwitansi: tab baru, luar Layout */}
-                  <Route path="/keuangan/kwitansi/:id" element={
-                    <ProtectedRoute>
-                      <CetakKwitansi />
-                    </ProtectedRoute>
-                  } />
+                <Route path="/" element={
+                  <ProtectedRoute>
+                    <Layout />
+                  </ProtectedRoute>
+                }>
+                  <Route index element={<Dashboard />} />
+                  <Route path="santri" element={<Santri />} />
+                  <Route path="guru" element={<Guru />} />
+                  <Route path="alumni" element={<Alumni />} />
+                  <Route path="kelas" element={<Kelas />} />
+                  <Route path="kamar" element={<Kamar />} />
+                  <Route path="pelanggaran-prestasi" element={<PelanggaranPrestasi />} />
+                  <Route path="users" element={<Users />} />
+                  <Route path="mymustahiq-settings" element={<MyMustahiqSettings />} />
+                  <Route path="profile" element={<Profile />} />
+                  <Route path="nilai" element={<ManajemenNilai mode="input" key="input" />} />
+                  <Route path="input-nilai-ujian" element={<ManajemenNilai mode="input-ujian" key="input-ujian" />} />
+                  <Route path="nilai-pengaturan" element={<PengaturanJadwal />} />
+                  <Route path="informasi-ujian" element={<InformasiUjian />} />
+                  <Route path="nilai-rekap" element={<ManajemenNilai mode="rekap" key="rekap" />} />
+                  <Route path="laporan-ujian-khusus" element={<LaporanUjianKhusus />} />
+                  <Route path="welcome" element={<Welcome />} />
+                  <Route path="buku-induk" element={<BukuInduk />} />
+                  <Route path="kartu-ujian-semester" element={<KartuUjianSemester />} />
+                  <Route path="absensi-sholat" element={<AbsensiSholat />} />
+                  <Route path="rekap-absensi-sholat" element={<RekapAbsensiSholat />} />
+                  <Route path="lembar-ujian" element={<LembarUjian />} />
+                  <Route path="ujian" element={<UjianMenu />} />
+                  <Route path="scan-nilai" element={<ScanNilai />} />
+                  <Route path="radio" element={<RadioPlayer />} />
+                  <Route path="struktur-organisasi" element={<StrukturOrganisasi />} />
+                  <Route path="jadwal-pelajaran" element={<JadwalPelajaran />} />
+                  <Route path="silabus-pembelajaran" element={<SilabusPembelajaran />} />
 
-                  <Route path="*" element={<Navigate to="/" replace />} />
-                </Routes>
-              </Suspense>
-            </BrowserRouter>
-          </ToastProvider>
-        </AuthProvider>
-      </ErrorBoundary>
-    </ConfigProvider>
+                  {/* ── Keuangan ─────────────────────────────────────── */}
+                  <Route path="keuangan" element={<KeuanganDashboard />} />
+                  <Route path="keuangan/tagihan" element={<TagihanSantri />} />
+                  <Route path="keuangan/laporan/spp" element={<LaporanSPP />} />
+                  <Route path="keuangan/laporan/daftar-ulang" element={<LaporanDaftarUlang />} />
+                  <Route path="keuangan/laporan/event" element={<LaporanEvent />} />
+                  <Route path="keuangan/kas" element={<BukuKas />} />
+                  <Route path="keuangan/setup" element={<SetupKeuangan />} />
+                  <Route path="keuangan/audit" element={<AuditKeuangan />} />
+                </Route>
+
+                {/* Kwitansi: tab baru, luar Layout */}
+                <Route path="/keuangan/kwitansi/:id" element={
+                  <ProtectedRoute>
+                    <CetakKwitansi />
+                  </ProtectedRoute>
+                } />
+
+                <Route path="*" element={<Navigate to="/" replace />} />
+              </Routes>
+            </Suspense>
+          </BrowserRouter>
+        </ToastProvider>
+      </AuthProvider>
+    </ErrorBoundary>
   );
 }
 

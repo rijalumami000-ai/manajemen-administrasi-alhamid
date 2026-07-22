@@ -1,48 +1,49 @@
-import { Input, Select, Button, Space } from 'antd';
-import { SearchOutlined, ReloadOutlined } from '@ant-design/icons';
+import React from 'react';
+import { SearchInput } from '../common/SearchInput';
+import { CustomSelect } from '../ui/CustomSelect';
+import { RotateCcw } from 'lucide-react';
 import './AlumniFilters.scss';
-
-const { Option } = Select;
 
 export function AlumniFilters({
   searchValue,
   onSearchChange,
   yearValue,
   onYearChange,
-  yearOptions,
+  yearOptions = [],
   onReset
 }) {
+  const selectOptions = [
+    { label: 'Semua Tahun Lulus', value: '' },
+    ...yearOptions.map(year => ({ label: `Tahun ${year}`, value: String(year) }))
+  ];
+
   return (
-    <div className="alumni-filters">
-      <Space wrap size="middle" style={{ width: '100%' }}>
-        <Input
-          prefix={<SearchOutlined />}
+    <div className="alumni-filters" style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
+      <div style={{ flex: 1, minWidth: '260px' }}>
+        <SearchInput
           placeholder="Cari nama atau NIS alumni..."
           value={searchValue}
-          onChange={(e) => onSearchChange(e.target.value)}
-          allowClear
-          style={{ minWidth: 300 }}
+          onChange={onSearchChange}
         />
+      </div>
 
-        <Select
-          value={yearValue || undefined}
+      <div style={{ width: '180px' }}>
+        <CustomSelect
+          value={yearValue ? String(yearValue) : ''}
           onChange={onYearChange}
-          placeholder="Semua Tahun"
-          allowClear
-          style={{ minWidth: 150 }}
-        >
-          {yearOptions.map(year => (
-            <Option key={year} value={year}>{year}</Option>
-          ))}
-        </Select>
+          options={selectOptions}
+          placeholder="Tahun Lulus"
+        />
+      </div>
 
-        <Button
-          icon={<ReloadOutlined />}
-          onClick={onReset}
-        >
-          Reset
-        </Button>
-      </Space>
+      <button
+        type="button"
+        className="btn-custom btn-secondary"
+        onClick={onReset}
+        style={{ display: 'flex', alignItems: 'center', gap: '6px' }}
+      >
+        <RotateCcw size={16} /> Reset
+      </button>
     </div>
   );
 }

@@ -1,5 +1,4 @@
 import { useState, useEffect, useRef } from 'react';
-import { Card, Button, Select, Alert, Typography, Input, message } from 'antd';
 import { Link } from 'react-router-dom';
 import { Camera, CheckCircle2, XCircle, Search, RefreshCw, Send, Settings, User } from 'lucide-react';
 import Webcam from 'react-webcam';
@@ -9,13 +8,12 @@ import { santriService } from '../services/santriService';
 import { LoadingState } from '../components/common';
 import { DataGrid } from '../components/ui/DataGrid';
 import { CustomModal } from '../components/ui/CustomModal';
+import { CustomSelect } from '../components/ui/CustomSelect';
 import { PrayerCard } from '../components/ui/PrayerCard';
 import { StatusPill } from '../components/ui/StatusPill';
 import { AttendanceSuccessOverlay } from '../components/ui/AttendanceSuccessOverlay';
 import './AbsensiSholat.scss';
 
-const { Text } = Typography;
-const { Option } = Select;
 const API_BASE = import.meta.env.VITE_API_URL || '';
 
 export function AbsensiSholat() {
@@ -55,8 +53,8 @@ export function AbsensiSholat() {
   
   // Filters for Manual
   const [searchManual, setSearchManual] = useState('');
-  const [filterKelasManual, setFilterKelasManual] = useState(null);
-  const [filterKamarManual, setFilterKamarManual] = useState(null);
+  const [filterKelasManual, setFilterKelasManual] = useState('');
+  const [filterKamarManual, setFilterKamarManual] = useState('');
   
   // Filters for History
   const [searchHistory, setSearchHistory] = useState('');
@@ -85,7 +83,6 @@ export function AbsensiSholat() {
         setModelsLoaded(true);
       } catch (error) {
         console.error('Failed to load models:', error);
-        message.error('Gagal memuat model AI. Pastikan file model ada di folder public/models');
       }
     };
 
@@ -117,7 +114,7 @@ export function AbsensiSholat() {
       const data = await absensiSholatService.getTodayAttendance();
       setTodayAttendance(data);
     } catch (error) {
-      message.error('Gagal memuat data absensi hari ini');
+      console.error('Gagal memuat data absensi hari ini:', error);
     } finally {
       setLoadingAttendance(false);
     }
@@ -130,7 +127,7 @@ export function AbsensiSholat() {
       const data = await absensiSholatService.getUnattendedSantri(selectedSholatManual, today);
       setUnattendedSantri(data);
     } catch (error) {
-      message.error('Gagal memuat data santri yang belum absen');
+      console.error('Gagal memuat data santri yang belum absen:', error);
     } finally {
       setLoadingUnattended(false);
     }
@@ -155,7 +152,7 @@ export function AbsensiSholat() {
         .withFaceDescriptor();
 
       if (!detection) {
-        message.warning('Wajah tidak terdeteksi. Silakan coba lagi.');
+        setScanResult({ success: false, message: 'Wajah tidak terdeteksi. Silakan coba lagi.' });
         setIsScanning(false);
         return;
       }
@@ -188,7 +185,6 @@ export function AbsensiSholat() {
       if (activeTab === 'manual') loadUnattendedSantri();
     } catch (error) {
       setScanResult({ success: false, message: error.message || 'Gagal mengenali wajah' });
-      message.error(error.message || 'Gagal mengenali wajah');
     } finally {
       setIsScanning(false);
     }
@@ -197,11 +193,10 @@ export function AbsensiSholat() {
   const handleManualAttendance = async (santriId, status, sholat) => {
     try {
       await absensiSholatService.recordManualAttendance(santriId, sholat || selectedSholatManual, status);
-      message.success(`Status berhasil diubah menjadi ${status}`);
       if (activeTab === 'manual') loadUnattendedSantri();
       loadTodayAttendance();
     } catch (error) {
-      message.error('Gagal mencatat absensi manual');
+      alert('Gagal mencatat absensi manual');
     }
   };
 
@@ -213,11 +208,10 @@ export function AbsensiSholat() {
           absensiSholatService.recordManualAttendance(s.id, selectedSholatManual, 'Alfa')
         )
       );
-      message.success('Semua santri yang tampil berhasil ditandai Alfa');
       loadUnattendedSantri();
       loadTodayAttendance();
     } catch (error) {
-      message.error('Gagal menandai Alfa massal');
+      alert('Gagal menandai Alfa massal');
     } finally {
       setLoadingUnattended(false);
     }
@@ -225,7 +219,7 @@ export function AbsensiSholat() {
 
   const handleSendWA = (record) => {
     const noHp = record.no_hp_ibu || record.no_hp_ayah;
-    if (!noHp) return message.error('Nomor HP tidak tersedia');
+    if (!noHp) return alert('Nomor HP tidak tersedia');
     
     let formattedNoHp = noHp.replace(/[^0-9]/g, '');
     if (formattedNoHp.startsWith('0')) formattedNoHp = '62' + formattedNoHp.slice(1);
@@ -243,15 +237,14 @@ export function AbsensiSholat() {
     setSentSantriIds(prev => prev.includes(record.santri_id) ? prev : [...prev, record.santri_id]);
   };
 
-  // Data processing for Tables
   const filteredTodayAttendance = todayAttendance.filter(a => 
     a.santri_nama.toLowerCase().includes(searchHistory.toLowerCase())
   );
 
   const filteredUnattendedSantri = unattendedSantri.filter(s => {
     const matchName = s.nama.toLowerCase().includes(searchManual.toLowerCase());
-    const matchKelas = filterKelasManual ? s.kelas_diniyah_id === filterKelasManual : true;
-    const matchKamar = filterKamarManual ? s.kamar_id === filterKamarManual : true;
+    const matchKelas = filterKelasManual ? String(s.kelas_diniyah_id) === String(filterKelasManual) : true;
+    const matchKamar = filterKamarManual ? String(s.kamar_id) === String(filterKamarManual) : true;
     return matchName && matchKelas && matchKamar;
   });
 
@@ -271,8 +264,7 @@ export function AbsensiSholat() {
   });
   const waDataSource = Object.values(aggregatedWAData);
 
-  // Statistics
-  const totalSantri = 80; // Placeholder, you might want to fetch this
+  const totalSantri = 80;
   const prayerStats = sholatOptions.map(sholat => {
     const count = todayAttendance.filter(a => a.sholat === sholat && a.status === 'Hadir').length;
     return { name: sholat, count, total: totalSantri };
@@ -302,17 +294,15 @@ export function AbsensiSholat() {
     { 
       header: 'Ubah', 
       accessor: (row) => (
-        <Select
-          defaultValue={row.status}
-          style={{ width: 120 }}
-          bordered={false}
-          className="sleek-select"
-          onChange={(val) => handleManualAttendance(row.santri_id, val, row.sholat)}
+        <select
+          value={row.status}
+          style={{ width: '120px', padding: '4px', borderRadius: '6px', border: '1px solid #cbd5e1' }}
+          onChange={(e) => handleManualAttendance(row.santri_id, e.target.value, row.sholat)}
         >
           {['Hadir', 'Sakit', 'Izin', 'Masbuq', 'Haid', 'Istihadoh', 'Alfa'].map(s => (
-            <Option key={s} value={s}>{s}</Option>
+            <option key={s} value={s}>{s}</option>
           ))}
-        </Select>
+        </select>
       )
     }
   ];
@@ -460,36 +450,51 @@ export function AbsensiSholat() {
 
         {activeTab === 'manual' && (
           <div className="manual-layout">
-            <div className="filters-bar">
-              <div className="filter-group">
-                <label>Sholat:</label>
-                <Select value={selectedSholatManual} onChange={setSelectedSholatManual} style={{ width: 120 }}>
-                  {sholatOptions.map(s => <Option key={s} value={s}>{s}</Option>)}
-                </Select>
+            <div className="filters-bar" style={{ display: 'flex', gap: '12px', flexWrap: 'wrap', alignItems: 'center' }}>
+              <div className="filter-group" style={{ width: '120px' }}>
+                <CustomSelect
+                  value={selectedSholatManual}
+                  onChange={setSelectedSholatManual}
+                  options={sholatOptions.map(s => ({ label: s, value: s }))}
+                />
               </div>
-              <div className="filter-group">
-                <label>Pencarian:</label>
-                <Input prefix={<Search size={14}/>} placeholder="Nama..." value={searchManual} onChange={e => setSearchManual(e.target.value)} />
+              <div className="filter-group" style={{ flex: 1, minWidth: '180px' }}>
+                <input
+                  type="text"
+                  placeholder="Cari nama santri..."
+                  value={searchManual}
+                  onChange={e => setSearchManual(e.target.value)}
+                  className="custom-native-select"
+                />
               </div>
-              <div className="filter-group">
-                <label>Kelas:</label>
-                <Select placeholder="Semua" allowClear value={filterKelasManual} onChange={setFilterKelasManual} style={{ width: 120 }}>
-                  {kelasList.map(k => <Option key={k.id} value={k.id}>{k.nama}</Option>)}
-                </Select>
+              <div className="filter-group" style={{ width: '140px' }}>
+                <CustomSelect
+                  value={filterKelasManual}
+                  onChange={setFilterKelasManual}
+                  placeholder="Semua Kelas"
+                  options={[
+                    { label: 'Semua Kelas', value: '' },
+                    ...kelasList.map(k => ({ label: k.nama, value: String(k.id) }))
+                  ]}
+                />
               </div>
-              <div className="filter-group">
-                <label>Kamar:</label>
-                <Select placeholder="Semua" allowClear value={filterKamarManual} onChange={setFilterKamarManual} style={{ width: 120 }}>
-                  {kamarList.map(k => <Option key={k.id} value={k.id}>{k.nama}</Option>)}
-                </Select>
+              <div className="filter-group" style={{ width: '140px' }}>
+                <CustomSelect
+                  value={filterKamarManual}
+                  onChange={setFilterKamarManual}
+                  placeholder="Semua Kamar"
+                  options={[
+                    { label: 'Semua Kamar', value: '' },
+                    ...kamarList.map(k => ({ label: k.nama, value: String(k.id) }))
+                  ]}
+                />
               </div>
-              <div className="spacer" />
-              <button className="btn-danger" onClick={handleMarkAllAsAlfa} disabled={filteredUnattendedSantri.length === 0 || loadingUnattended}>
+              <button className="btn-custom btn-danger" onClick={handleMarkAllAsAlfa} disabled={filteredUnattendedSantri.length === 0 || loadingUnattended}>
                 Tandai Alfa Semua ({filteredUnattendedSantri.length})
               </button>
             </div>
             
-            <div className="table-container">
+            <div className="table-container" style={{ marginTop: '16px' }}>
               <DataGrid data={filteredUnattendedSantri} columns={manualColumns} emptyText="Semua santri sudah diabsen" />
             </div>
           </div>
@@ -565,7 +570,7 @@ export function AbsensiSholat() {
         width={600}
       >
         <div className="wa-template-editor">
-          <div className="hint">
+          <div className="hint" style={{ marginBottom: '12px', fontSize: '12px', color: '#64748b' }}>
             <strong>Placeholder yang didukung:</strong> <code>[nama]</code>, <code>[Subuh]</code>, <code>[Dzuhur]</code>, dll.
           </div>
           <textarea 
@@ -573,10 +578,11 @@ export function AbsensiSholat() {
             value={tempTemplate} 
             onChange={e => setTempTemplate(e.target.value)}
             className="modern-textarea"
+            style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #cbd5e1' }}
           />
-          <div className="modal-actions">
-            <button className="btn-outline" onClick={() => setIsTemplateModalVisible(false)}>Batal</button>
-            <button className="btn-primary" onClick={() => { setWaTemplate(tempTemplate); setIsTemplateModalVisible(false); message.success('Template disimpan'); }}>
+          <div className="modal-actions" style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px', marginTop: '16px' }}>
+            <button className="btn-custom btn-secondary" onClick={() => setIsTemplateModalVisible(false)}>Batal</button>
+            <button className="btn-custom btn-primary" onClick={() => { setWaTemplate(tempTemplate); setIsTemplateModalVisible(false); }}>
               Simpan Template
             </button>
           </div>

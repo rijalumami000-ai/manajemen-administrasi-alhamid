@@ -3,7 +3,6 @@ import { useAuth } from '../context/AuthContext';
 import { ImportSantriModal } from '../components/features/ImportSantriModal';
 import { exportToExcel, exportToPDF } from '../utils/exportUtils';
 import { absensiSholatService } from '../services/absensiSholatService';
-import dayjs from 'dayjs';
 
 // Custom UI Components
 import { StatCard } from '../components/ui/StatCard';
@@ -191,7 +190,7 @@ export function BukuInduk() {
     try {
       const payload = {
         ...formData,
-        tanggal_lahir: formData.tanggal_lahir ? dayjs(formData.tanggal_lahir).format('YYYY-MM-DD') : null,
+        tanggal_lahir: formData.tanggal_lahir ? new Date(formData.tanggal_lahir).toISOString().split('T')[0] : null,
       };
 
       if (selectedSantri) {

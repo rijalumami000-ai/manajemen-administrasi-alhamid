@@ -1,113 +1,51 @@
-@import '../../styles/variables.scss';
-@import '../../styles/animations.scss';
-
-// ============================================
-// LOADING SKELETON STYLES
-// ============================================
-
-.skeleton-table-wrapper {
-  padding: $spacing-lg;
-  animation: fadeIn $transition-base;
+.skeleton-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 16px;
+  width: 100%;
 }
 
-.skeleton-card-grid {
-  animation: fadeIn $transition-base;
+.skeleton-card {
+  background: var(--lt-bg-surface, #ffffff);
+  border: 1px solid var(--lt-border-light, #e2e8f0);
+  border-radius: 12px;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
 
-  .ant-card {
-    height: 100%;
+.skeleton-line {
+  height: 24px;
+  background: var(--lt-bg-disabled, #e2e8f0);
+  border-radius: 6px;
+  margin-bottom: 8px;
+}
+
+.skeleton-header {
+  height: 20px;
+  width: 60%;
+  background: var(--lt-bg-disabled, #e2e8f0);
+  border-radius: 4px;
+}
+
+.skeleton-text {
+  height: 14px;
+  width: 100%;
+  background: var(--lt-bg-disabled, #e2e8f0);
+  border-radius: 4px;
+
+  &.short {
+    width: 40%;
   }
 }
 
-.skeleton-cards {
-  animation: fadeIn $transition-base;
+.pulse {
+  animation: skeletonPulse 1.5s ease-in-out infinite;
 }
 
-.skeleton-stats {
-  animation: fadeIn $transition-base;
-
-  .ant-card {
-    height: 120px;
-  }
-}
-
-.skeleton-form {
-  padding: $spacing-lg;
-  animation: fadeIn $transition-base;
-}
-
-.skeleton-list {
-  animation: fadeIn $transition-base;
-
-  .skeleton-list-item {
-    padding: $spacing-md;
-    border-bottom: 1px solid $border-light;
-
-    &:last-child {
-      border-bottom: none;
-    }
-  }
-}
-
-.skeleton-profile {
-  padding: $spacing-lg;
-  animation: fadeIn $transition-base;
-
-  .skeleton-profile-header {
-    display: flex;
-    align-items: center;
-    gap: $spacing-lg;
-    margin-bottom: $spacing-xl;
-
-    .skeleton-profile-info {
-      flex: 1;
-    }
-  }
-}
-
-.skeleton-simple {
-  padding: $spacing-lg;
-  animation: fadeIn $transition-base;
-}
-
-// ============================================
-// CUSTOM SKELETON ANIMATIONS
-// ============================================
-
-.ant-skeleton {
-  .ant-skeleton-content {
-    .ant-skeleton-title,
-    .ant-skeleton-paragraph > li {
-      background: linear-gradient(
-        90deg,
-        $neutral-200 25%,
-        $neutral-100 50%,
-        $neutral-200 75%
-      );
-      background-size: 200% 100%;
-      animation: shimmer 1.5s infinite;
-    }
-  }
-
-  .ant-skeleton-avatar {
-    background: linear-gradient(
-      90deg,
-      $neutral-200 25%,
-      $neutral-100 50%,
-      $neutral-200 75%
-    );
-    background-size: 200% 100%;
-    animation: shimmer 1.5s infinite;
-  }
-
-  .ant-skeleton-input,
-  .ant-skeleton-button {
-    background: linear-gradient(
-      90deg,
-      $neutral-200 25%,
-      $neutral-100 50%,
-      $neutral-200 75%
-    );
-    background-size: 200% 100%;
-    animation: shimmer 1.5s infinite;
-  }
+@keyframes skeletonPulse {
+  0% { opacity: 0.6; }
+  50% { opacity: 1; }
+  100% { opacity: 0.6; }
 }

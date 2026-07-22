@@ -1,4 +1,4 @@
-import { HomeOutlined } from '@ant-design/icons';
+import { Home } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import './PageHeader.scss';
 
@@ -10,7 +10,7 @@ export function PageHeader({
   children
 }) {
   const breadcrumbItems = [
-    { title: <Link to="/"><HomeOutlined /></Link>, path: '/' },
+    { title: <Link to="/"><Home size={14} /></Link>, path: '/' },
     ...breadcrumbs
   ];
 

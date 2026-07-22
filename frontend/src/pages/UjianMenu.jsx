@@ -1,10 +1,9 @@
 import React, { useState } from 'react';
-import { Typography, Space, Modal, Input, message } from 'antd';
-import { EditOutlined, FileTextOutlined, ArrowRightOutlined, LockOutlined } from '@ant-design/icons';
+import { FileText, Edit2, ArrowRight, Lock, KeyRound } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useResponsive } from '../hooks/useResponsive';
-
-const { Title, Text } = Typography;
+import { CustomModal } from '../components/ui/CustomModal';
+import { FloatingInput } from '../components/ui/FloatingInput';
 
 export function UjianMenu() {
   const navigate = useNavigate();
@@ -12,37 +11,39 @@ export function UjianMenu() {
   
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [accessCode, setAccessCode] = useState('');
+  const [errorMsg, setErrorMsg] = useState('');
 
-  const handleAccess = () => {
+  const handleAccess = (e) => {
+    if (e) e.preventDefault();
     if (accessCode === 'madin123') {
       setIsModalVisible(false);
       setAccessCode('');
+      setErrorMsg('');
       navigate('/lembar-ujian');
     } else {
-      message.error('Kode akses salah!');
+      setErrorMsg('Kode akses salah!');
     }
   };
 
   return (
     <div style={{
       padding: isMobile ? 16 : 24,
-      background: '#f0f2f5',
+      background: 'var(--lt-bg-main, #f8fafc)',
       minHeight: 'calc(100vh - 64px)',
       display: 'flex',
       flexDirection: 'column',
       alignItems: 'center',
-      justifyContent: 'flex-start',
       paddingTop: isMobile ? 40 : 60
     }}>
       <div style={{ maxWidth: 500, width: '100%' }}>
-        <Title level={3} style={{ color: '#1a365d', marginBottom: 8, textAlign: 'center', fontWeight: 'bold' }}>
+        <h2 style={{ color: '#0f172a', marginBottom: 8, textAlign: 'center', fontWeight: 'bold', fontSize: '22px' }}>
           Menu Ujian
-        </Title>
-        <Text type="secondary" style={{ display: 'block', textAlign: 'center', marginBottom: 32 }}>
+        </h2>
+        <p style={{ display: 'block', textAlign: 'center', marginBottom: 32, color: '#64748b', fontSize: '14px' }}>
           Pilih kategori untuk mulai kelola ujian
-        </Text>
+        </p>
 
-        <Space direction="vertical" style={{ width: '100%' }} size="middle">
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', width: '100%' }}>
           {/* Kartu 1: Input Soal */}
           <div
             onClick={() => setIsModalVisible(true)}
@@ -54,103 +55,105 @@ export function UjianMenu() {
               display: 'flex',
               alignItems: 'center',
               cursor: 'pointer',
-              borderLeft: '4px solid #1890ff',
-              transition: 'all 0.3s'
+              borderLeft: '4px solid #2196f3',
+              transition: 'all 0.2s'
             }}
-            className="menu-card-hover"
           >
             <div style={{
               width: 48,
               height: 48,
-              background: '#e6f7ff',
+              background: '#e3f2fd',
               borderRadius: '12px',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              fontSize: 22,
-              color: '#1890ff',
+              color: '#2196f3',
               marginRight: 16
             }}>
-              <FileTextOutlined />
+              <FileText size={24} />
             </div>
             <div style={{ flex: 1 }}>
-              <div style={{ fontWeight: 'bold', fontSize: 16, color: '#262626' }}>Input Soal</div>
-              <div style={{ fontSize: 12, color: '#8c8c8c' }}>Buat dan kelola lembar soal ujian santri.</div>
+              <div style={{ fontWeight: 'bold', fontSize: 16, color: '#0f172a' }}>Input Soal</div>
+              <div style={{ fontSize: 12, color: '#64748b' }}>Buat dan kelola lembar soal ujian santri.</div>
             </div>
-            <div style={{ color: '#bfbfbf', fontSize: 16 }}>
-              <ArrowRightOutlined />
+            <div style={{ color: '#94a3b8' }}>
+              <ArrowRight size={18} />
             </div>
           </div>
 
-          {/* Kartu 2: Input Nilai (Diparkir) */}
+          {/* Kartu 2: Input Nilai */}
           <div
             style={{
-              background: '#f5f5f5',
+              background: '#f1f5f9',
               padding: '16px 20px',
               borderRadius: '16px',
-              boxShadow: '0 2px 8px rgba(0,0,0,0.02)',
               display: 'flex',
               alignItems: 'center',
               cursor: 'not-allowed',
-              borderLeft: '4px solid #bfbfbf',
-              transition: 'all 0.3s',
-              opacity: 0.6
+              borderLeft: '4px solid #cbd5e1',
+              opacity: 0.7
             }}
           >
             <div style={{
               width: 48,
               height: 48,
-              background: '#f0f0f0',
+              background: '#e2e8f0',
               borderRadius: '12px',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              fontSize: 22,
-              color: '#bfbfbf',
+              color: '#94a3b8',
               marginRight: 16
             }}>
-              <EditOutlined />
+              <Edit2 size={24} />
             </div>
             <div style={{ flex: 1 }}>
-              <div style={{ fontWeight: 'bold', fontSize: 16, color: '#8c8c8c' }}>Input Nilai <span style={{ color: '#fa8c16', fontSize: '12px' }}>(Parkir)</span></div>
-              <div style={{ fontSize: 12, color: '#bfbfbf' }}>Input nilai ujian semester (Dalam Perbaikan).</div>
+              <div style={{ fontWeight: 'bold', fontSize: 16, color: '#64748b' }}>Input Nilai <span style={{ color: '#f59e0b', fontSize: '12px' }}>(Parkir)</span></div>
+              <div style={{ fontSize: 12, color: '#94a3b8' }}>Input nilai ujian semester (Dalam Perbaikan).</div>
             </div>
-            <div style={{ color: '#d9d9d9', fontSize: 16 }}>
-              <LockOutlined />
+            <div style={{ color: '#94a3b8' }}>
+              <Lock size={18} />
             </div>
           </div>
-        </Space>
+        </div>
       </div>
 
-      {/* Modal Kode Akses */}
-      <Modal
-        title="Verifikasi Tim Ujian"
+      <CustomModal
         open={isModalVisible}
-        onOk={handleAccess}
-        onCancel={() => {
+        onClose={() => {
           setIsModalVisible(false);
           setAccessCode('');
+          setErrorMsg('');
         }}
-        okText="Masuk"
-        cancelText="Batal"
-      >
-        <p style={{ marginBottom: 12 }}>Apakah anda tim ujian? Jika iya, silakan masukkan kode akses:</p>
-        <Input.Password
-          placeholder="Masukkan kode akses"
-          value={accessCode}
-          onChange={(e) => setAccessCode(e.target.value)}
-          onPressEnter={handleAccess}
-          autoFocus
-        />
-      </Modal>
-      
-      {/* CSS untuk hover effect */}
-      <style>{`
-        .menu-card-hover:hover {
-          transform: translateY(-2px);
-          box-shadow: 0 4px 12px rgba(0,0,0,0.08) !important;
+        title="Verifikasi Tim Ujian"
+        subtitle="Masukkan kode akses khusus tim ujian untuk melanjutkan"
+        icon={<KeyRound />}
+        width={420}
+        footer={
+          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px', width: '100%' }}>
+            <button type="button" className="btn-custom btn-secondary" onClick={() => setIsModalVisible(false)}>
+              Batal
+            </button>
+            <button type="button" className="btn-custom btn-primary" onClick={handleAccess}>
+              Masuk
+            </button>
+          </div>
         }
-      `}</style>
+      >
+        <form onSubmit={handleAccess} style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+          <FloatingInput
+            label="Kode Akses Tim Ujian"
+            name="accessCode"
+            type="password"
+            icon={Lock}
+            value={accessCode}
+            onChange={(e) => { setAccessCode(e.target.value); setErrorMsg(''); }}
+            error={errorMsg}
+            required
+            autoFocus
+          />
+        </form>
+      </CustomModal>
     </div>
   );
 }

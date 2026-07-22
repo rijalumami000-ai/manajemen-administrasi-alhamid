@@ -1,11 +1,11 @@
 import React from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { 
-  BookOutlined, 
-  FileTextOutlined,
-  HomeOutlined,
-  EditOutlined
-} from '@ant-design/icons';
+  Home, 
+  BookOpen, 
+  Edit,
+  FileText
+} from 'lucide-react';
 import './BottomNav.scss';
 
 export function BottomNav() {
@@ -15,22 +15,22 @@ export function BottomNav() {
   const navItems = [
     {
       key: '/welcome',
-      icon: <HomeOutlined />,
+      icon: <Home size={18} />,
       label: 'Welcome',
     },
     {
       key: '/nilai',
-      icon: <BookOutlined />,
+      icon: <BookOpen size={18} />,
       label: 'Input',
     },
     {
       key: '/ujian',
-      icon: <EditOutlined />,
+      icon: <Edit size={18} />,
       label: 'Ujian',
     },
     {
       key: '/laporan-ujian-khusus',
-      icon: <FileTextOutlined />,
+      icon: <FileText size={18} />,
       label: 'Laporan',
     },
   ];

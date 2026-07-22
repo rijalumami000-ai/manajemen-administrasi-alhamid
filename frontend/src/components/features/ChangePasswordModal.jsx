@@ -1,122 +1,102 @@
-import { useEffect } from 'react';
-import { Modal, Form, Input, Alert, Typography } from 'antd';
-import { LockOutlined } from '@ant-design/icons';
-
-const { Text } = Typography;
+import { useState, useEffect } from 'react';
+import { CustomModal } from '../ui/CustomModal';
+import { FloatingInput } from '../ui/FloatingInput';
+import { SmartAlert } from '../ui/SmartAlert';
+import { Lock, KeyRound } from 'lucide-react';
 
 export function ChangePasswordModal({ isOpen, onClose, onSubmit, isSubmitting, error }) {
-  const [form] = Form.useForm();
+  const [formData, setFormData] = useState({
+    currentPassword: '',
+    newPassword: '',
+    confirmPassword: ''
+  });
+  const [formError, setFormError] = useState('');
 
   useEffect(() => {
     if (isOpen) {
-      form.resetFields();
+      setFormData({ currentPassword: '', newPassword: '', confirmPassword: '' });
+      setFormError('');
     }
-  }, [isOpen, form]);
+  }, [isOpen]);
 
-  const handleSubmit = async () => {
-    try {
-      const values = await form.validateFields();
-      onSubmit({
-        currentPassword: values.currentPassword,
-        newPassword: values.newPassword
-      });
-    } catch (err) {
-      console.error('Validation failed:', err);
+  const handleSubmit = (e) => {
+    if (e) e.preventDefault();
+
+    if (!formData.currentPassword) {
+      setFormError('Password lama wajib diisi!');
+      return;
     }
-  };
+    if (!formData.newPassword || formData.newPassword.length < 8) {
+      setFormError('Password baru minimal 8 karakter!');
+      return;
+    }
+    if (formData.newPassword !== formData.confirmPassword) {
+      setFormError('Password baru dan konfirmasi tidak cocok!');
+      return;
+    }
 
-  const handleCancel = () => {
-    form.resetFields();
-    onClose();
+    setFormError('');
+    onSubmit({
+      currentPassword: formData.currentPassword,
+      newPassword: formData.newPassword
+    });
   };
 
   return (
-    <Modal
-      title="Ubah Password"
+    <CustomModal
       open={isOpen}
-      onOk={handleSubmit}
-      onCancel={handleCancel}
-      confirmLoading={isSubmitting}
-      okText={isSubmitting ? 'Mengubah...' : 'Ubah Password'}
-      cancelText="Batal"
-      width={500}
-      destroyOnClose
+      onClose={onClose}
+      title="Ubah Password Akun"
+      subtitle="Perbarui kata sandi akun Anda untuk menjaga keamanan"
+      icon={<KeyRound />}
+      width={480}
+      footer={
+        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px', width: '100%' }}>
+          <button type="button" className="btn-custom btn-secondary" onClick={onClose} disabled={isSubmitting}>
+            Batal
+          </button>
+          <button type="button" className="btn-custom btn-primary" onClick={handleSubmit} disabled={isSubmitting}>
+            {isSubmitting ? 'Mengubah...' : 'Ubah Password'}
+          </button>
+        </div>
+      }
     >
-      {error && (
-        <Alert
-          message="Error"
-          description={error}
-          type="error"
-          showIcon
-          closable
-          style={{ marginBottom: 16 }}
-        />
-      )}
+      <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+        {(error || formError) && <SmartAlert message={formError || error} type="error" />}
 
-      <Form
-        form={form}
-        layout="vertical"
-        autoComplete="off"
-      >
-        <Form.Item
+        <FloatingInput
           label="Password Lama"
           name="currentPassword"
-          rules={[
-            { required: true, message: 'Password lama wajib diisi!' }
-          ]}
-        >
-          <Input.Password
-            prefix={<LockOutlined />}
-            placeholder="Masukkan password lama"
-            disabled={isSubmitting}
-          />
-        </Form.Item>
+          type="password"
+          icon={Lock}
+          value={formData.currentPassword}
+          onChange={(e) => setFormData(prev => ({ ...prev, currentPassword: e.target.value }))}
+          required
+          disabled={isSubmitting}
+        />
 
-        <Form.Item
-          label="Password Baru"
+        <FloatingInput
+          label="Password Baru (min. 8 karakter)"
           name="newPassword"
-          rules={[
-            { required: true, message: 'Password baru wajib diisi!' },
-            { min: 8, message: 'Password minimal 8 karakter!' }
-          ]}
-        >
-          <Input.Password
-            prefix={<LockOutlined />}
-            placeholder="Masukkan password baru"
-            disabled={isSubmitting}
-          />
-        </Form.Item>
+          type="password"
+          icon={Lock}
+          value={formData.newPassword}
+          onChange={(e) => setFormData(prev => ({ ...prev, newPassword: e.target.value }))}
+          required
+          disabled={isSubmitting}
+        />
 
-        <Form.Item
+        <FloatingInput
           label="Konfirmasi Password Baru"
           name="confirmPassword"
-          dependencies={['newPassword']}
-          rules={[
-            { required: true, message: 'Konfirmasi password wajib diisi!' },
-            ({ getFieldValue }) => ({
-              validator(_, value) {
-                if (!value || getFieldValue('newPassword') === value) {
-                  return Promise.resolve();
-                }
-                return Promise.reject(new Error('Password baru dan konfirmasi tidak cocok!'));
-              },
-            }),
-          ]}
-        >
-          <Input.Password
-            prefix={<LockOutlined />}
-            placeholder="Konfirmasi password baru"
-            disabled={isSubmitting}
-          />
-        </Form.Item>
-
-        <Alert
-          message="Password minimal 8 karakter"
-          type="info"
-          showIcon
-          style={{ marginTop: 8 }}
+          type="password"
+          icon={Lock}
+          value={formData.confirmPassword}
+          onChange={(e) => setFormData(prev => ({ ...prev, confirmPassword: e.target.value }))}
+          required
+          disabled={isSubmitting}
         />
-      </Form>
-    </Modal>
+      </form>
+    </CustomModal>
   );
 }

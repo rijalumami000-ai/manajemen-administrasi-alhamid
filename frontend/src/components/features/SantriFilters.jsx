@@ -1,6 +1,5 @@
 import { useState } from 'react';
-import { Button, Badge } from 'antd';
-import { Search, SlidersHorizontal, RotateCcw, HelpCircle, CheckCircle, UserCheck } from 'lucide-react';
+import { Search, SlidersHorizontal, RotateCcw } from 'lucide-react';
 import { formatStatusTahunAjaran } from '../../utils/formatters';
 import './SantriFilters.scss';
 
@@ -23,7 +22,6 @@ export function SantriFilters({
 }) {
   const [isAdvancedOpen, setIsAdvancedOpen] = useState(false);
 
-  // Check if any filter is active (to show reset button/badge)
   const isAnyFilterActive = !!(
     searchValue ||
     diniyahValue ||
@@ -49,7 +47,6 @@ export function SantriFilters({
 
   return (
     <div className="santri-filters-panel">
-      {/* Search Toolbar Main Row */}
       <div className="filters-main-row">
         <div className="search-input-wrapper">
           <Search size={18} className="search-icon" />
@@ -72,7 +69,6 @@ export function SantriFilters({
         </div>
 
         <div className="filters-quick-actions">
-          {/* Tahun Ajaran Selector */}
           <div className="select-container">
             <span className="select-label">Tahun Ajaran</span>
             <select
@@ -89,39 +85,44 @@ export function SantriFilters({
             </select>
           </div>
 
-          {/* Toggle Advanced Filters */}
-          <Button
-            type={isAdvancedOpen ? 'primary' : 'default'}
-            icon={<SlidersHorizontal size={15} />}
+          <button
+            type="button"
+            className={`btn-custom ${isAdvancedOpen ? 'btn-primary' : 'btn-secondary'}`}
             onClick={() => setIsAdvancedOpen(!isAdvancedOpen)}
-            className={`advanced-toggle-btn ${isAdvancedOpen ? 'active' : ''}`}
+            style={{ display: 'flex', alignItems: 'center', gap: '6px' }}
           >
+            <SlidersHorizontal size={15} />
             <span>Filter</span>
             {activeFiltersCount > 0 && (
-              <Badge count={activeFiltersCount} className="filter-badge" />
+              <span style={{
+                background: '#ef4444',
+                color: '#fff',
+                borderRadius: '999px',
+                padding: '1px 6px',
+                fontSize: '11px',
+                fontWeight: 'bold'
+              }}>
+                {activeFiltersCount}
+              </span>
             )}
-          </Button>
+          </button>
 
-          {/* Reset Action */}
           {isAnyFilterActive && (
-            <Button
-              type="text"
-              danger
-              icon={<RotateCcw size={14} />}
+            <button
+              type="button"
+              className="btn-custom btn-secondary"
               onClick={handleResetAll}
-              className="reset-filters-btn"
+              style={{ display: 'flex', alignItems: 'center', gap: '6px', color: '#ef4444' }}
             >
-              Reset
-            </Button>
+              <RotateCcw size={14} /> Reset
+            </button>
           )}
         </div>
       </div>
 
-      {/* Advanced Filters Collapsible Tray */}
       {isAdvancedOpen && (
         <div className="filters-advanced-tray animate-slide-down">
           <div className="tray-grid">
-            {/* Status Filter */}
             <div className="tray-col">
               <label className="filter-label">Status Akademik</label>
               <select
@@ -135,7 +136,6 @@ export function SantriFilters({
               </select>
             </div>
 
-            {/* Gender Filter */}
             <div className="tray-col">
               <label className="filter-label">Jenis Kelamin</label>
               <select
@@ -149,7 +149,6 @@ export function SantriFilters({
               </select>
             </div>
 
-            {/* Diniyah Filter */}
             <div className="tray-col">
               <label className="filter-label">Kelas Diniyah</label>
               <select
@@ -166,7 +165,6 @@ export function SantriFilters({
               </select>
             </div>
 
-            {/* Sekolah Filter */}
             <div className="tray-col">
               <label className="filter-label">Kelas Sekolah</label>
               <select

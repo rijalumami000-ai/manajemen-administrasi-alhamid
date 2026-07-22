@@ -1,41 +1,28 @@
 import { useState, useEffect, useMemo } from 'react';
-import { Modal, Table, Checkbox, Alert, Space, Typography, Tag, Tooltip, Input } from 'antd';
-import { ExclamationCircleOutlined, ArrowRightOutlined, TrophyOutlined, SearchOutlined } from '@ant-design/icons';
+import { CustomModal } from '../ui/CustomModal';
+import { CustomTag } from '../ui/CustomTag';
+import { SmartAlert } from '../ui/SmartAlert';
+import { SearchInput } from '../common/SearchInput';
+import { RefreshCw, ArrowRight, Award } from 'lucide-react';
 import './MigrationModal.scss';
-
-const { Text, Title } = Typography;
 
 // Helper function to extract tingkat from class name
 function extractTingkat(kelasNama) {
   if (!kelasNama) return null;
-
-  // Handle SP (Sifir Persiapan, tingkat 1)
   if (kelasNama.toLowerCase() === 'sp') return 1;
-
-  // Handle Sifir
   if (kelasNama.toLowerCase().includes('sifir')) return 0;
-
-  // Extract number from class name (e.g., "1A" -> 1, "Kelas 2" -> 2)
   const match = kelasNama.match(/(\d+)/);
   return match ? parseInt(match[1], 10) : null;
 }
 
-// Helper function to determine next class level label (Sifir -> Class 1, Class 1 -> Class 2, etc.)
+// Helper function to determine next class level label
 function getNextClass(currentClass) {
   if (!currentClass) return null;
-
   const tingkat = extractTingkat(currentClass);
   if (tingkat === null) return null;
-
-  // Sifir (0) goes to Kelas 1
   if (tingkat === 0) return 'Kelas 1';
-  
-  // Diniyah standard progression: tingkat 1 goes directly to 2, 2 to 3, etc.
   if (tingkat >= 1 && tingkat < 6) return `Kelas ${tingkat + 1}`;
-  
-  // Tingkat 6 is graduation
   if (tingkat === 6) return '🎓 Lulus Diniyah';
-  
   return null;
 }
 
@@ -50,348 +37,162 @@ function getNextTingkatAndSP(currentClassNama) {
   return { tingkat: null, isSp: false };
 }
 
-// Helper function to determine Diniyah graduation status
-function getGraduationStatus(santri) {
-  const diniyahTingkat = extractTingkat(santri.nama_diniyah);
-  if (diniyahTingkat === 6) {
-    return { type: 'alumni', label: 'Lulus Diniyah Kelas 6', icon: '🎓', color: 'gold' };
-  }
-  return null;
-}
-
 export function MigrationModal({
   isOpen,
   onClose,
-  onConfirm,
-  santriList,
-  sourceYear,
+  onSubmit,
+  santriList = [],
   targetYear,
-  isSubmitting,
-  kelasList = []
+  sourceYear,
+  isSubmitting = false,
+  targetClasses = []
 }) {
   const [excludedIds, setExcludedIds] = useState([]);
+  const [customTargetClasses, setCustomTargetClasses] = useState({});
   const [activeClassTab, setActiveClassTab] = useState('Semua Kelas');
   const [searchQuery, setSearchQuery] = useState('');
-  const [customPromotions, setCustomPromotions] = useState({});
 
-  // Helper to filter next-year Diniyah class options
-  const getTargetClassOptions = (currentClassNama) => {
-    if (!kelasList || kelasList.length === 0) return [];
-    
-    // If student has no current class, let them choose any Diniyah class
-    if (!currentClassNama) {
-      return kelasList.filter(k => k.jenis.toLowerCase() === 'diniyah');
-    }
-    
-    const target = getNextTingkatAndSP(currentClassNama);
-    if (target.tingkat === null) return [];
+  const classTabs = useMemo(() => {
+    const classNames = Array.from(
+      new Set(santriList.map(s => s.nama_diniyah).filter(Boolean))
+    ).sort();
+    return ['Semua Kelas', ...classNames];
+  }, [santriList]);
 
-    return kelasList.filter(k => {
-      return k.jenis.toLowerCase() === 'diniyah' && k.tingkat === target.tingkat;
-    });
+  const targetDiniyahClasses = useMemo(() => {
+    return targetClasses.filter(k => k.jenis === 'Diniyah');
+  }, [targetClasses]);
+
+  const getAvailableTargetOptions = (currentClassNama) => {
+    if (!currentClassNama) return [];
+    const { tingkat } = getNextTingkatAndSP(currentClassNama);
+    if (tingkat === null) return [];
+
+    return targetDiniyahClasses.filter(k => k.tingkat === tingkat);
   };
 
-  // Pre-populate default class values when modal opens
   useEffect(() => {
-    if (isOpen && santriList && kelasList.length > 0) {
-      const defaults = {};
-      santriList.forEach(s => {
-        const diniyahOptions = getTargetClassOptions(s.nama_diniyah);
-        
-        defaults[s.id] = {
-          kelas_diniyah_id: diniyahOptions.length > 0 ? diniyahOptions[0].id : null,
-          kelas_sekolah_id: undefined // Let school classes auto-advance in the backend
-        };
+    if (isOpen && santriList.length > 0) {
+      const initialMap = {};
+
+      santriList.forEach(santri => {
+        const availableOptions = getAvailableTargetOptions(santri.nama_diniyah);
+        const { tingkat } = getNextTingkatAndSP(santri.nama_diniyah);
+
+        if (tingkat !== null && availableOptions.length > 0) {
+          const matchedBySuffix = availableOptions.find(k => {
+            const currentSub = santri.nama_diniyah ? santri.nama_diniyah.replace(/\d+/g, '').trim() : '';
+            const targetSub = k.nama ? k.nama.replace(/\d+/g, '').trim() : '';
+            return currentSub && targetSub && currentSub === targetSub;
+          });
+
+          initialMap[santri.id] = matchedBySuffix ? matchedBySuffix.id : availableOptions[0].id;
+        }
       });
-      setCustomPromotions(defaults);
+
+      setCustomTargetClasses(initialMap);
       setExcludedIds([]);
       setActiveClassTab('Semua Kelas');
       setSearchQuery('');
     }
-  }, [isOpen, santriList, kelasList]);
+  }, [isOpen, santriList, targetDiniyahClasses]);
 
-  const handleDiniyahChange = (santriId, classId) => {
-    setCustomPromotions(prev => ({
-      ...prev,
-      [santriId]: {
-        ...prev[santriId],
-        kelas_diniyah_id: classId
-      }
-    }));
-  };
-
-  const handleToggleSantri = (santriId) => {
-    setExcludedIds(prev => {
-      if (prev.includes(santriId)) {
-        return prev.filter(id => id !== santriId);
-      } else {
-        return [...prev, santriId];
-      }
-    });
-  };
-
-  // Get dynamic unique Diniyah classes list from current students
-  const classTabs = useMemo(() => {
-    const classes = new Set();
-    santriList.forEach(s => {
-      if (s.nama_diniyah) classes.add(s.nama_diniyah);
-    });
-    return ['Semua Kelas', ...Array.from(classes).sort()];
-  }, [santriList]);
-
-  // Filter students based on active class tab and search query
   const filteredSantri = useMemo(() => {
     return santriList.filter(s => {
-      const matchesClass = activeClassTab === 'Semua Kelas' || s.nama_diniyah === activeClassTab;
+      const matchesTab = activeClassTab === 'Semua Kelas' || s.nama_diniyah === activeClassTab;
 
-      const keyword = searchQuery.toLowerCase();
-      const matchesSearch = !keyword ||
-        (s.nama && s.nama.toLowerCase().includes(keyword)) ||
-        (s.nis && s.nis.toLowerCase().includes(keyword));
+      const q = searchQuery.toLowerCase().trim();
+      const matchesQuery = !q || (
+        (s.nama && s.nama.toLowerCase().includes(q)) ||
+        (s.nis && s.nis.toLowerCase().includes(q))
+      );
 
-      return matchesClass && matchesSearch;
+      return matchesTab && matchesQuery;
     });
   }, [santriList, activeClassTab, searchQuery]);
 
-  // Handle Select-All for the currently filtered list
-  const isAllFilteredSelected = useMemo(() => {
+  const toggleExclude = (id) => {
+    setExcludedIds(prev =>
+      prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id]
+    );
+  };
+
+  const toggleSelectAllTab = (checked) => {
+    const currentTabIds = filteredSantri.map(s => s.id);
+    if (checked) {
+      setExcludedIds(prev => prev.filter(id => !currentTabIds.includes(id)));
+    } else {
+      setExcludedIds(prev => Array.from(new Set([...prev, ...currentTabIds])));
+    }
+  };
+
+  const handleCustomClassChange = (santriId, classId) => {
+    setCustomTargetClasses(prev => ({
+      ...prev,
+      [santriId]: classId ? Number(classId) : null
+    }));
+  };
+
+  const isAllTabSelected = useMemo(() => {
     if (filteredSantri.length === 0) return false;
     return filteredSantri.every(s => !excludedIds.includes(s.id));
   }, [filteredSantri, excludedIds]);
 
-  const isFilteredIndeterminate = useMemo(() => {
-    if (filteredSantri.length === 0) return false;
-    const selectedCount = filteredSantri.filter(s => !excludedIds.includes(s.id)).length;
-    return selectedCount > 0 && selectedCount < filteredSantri.length;
-  }, [filteredSantri, excludedIds]);
-
-  const handleSelectAllFiltered = (checked) => {
-    const visibleIds = filteredSantri.map(s => s.id);
-    if (checked) {
-      // Include all visible (remove from exclusions)
-      setExcludedIds(prev => prev.filter(id => !visibleIds.includes(id)));
-    } else {
-      // Exclude all visible (add to exclusions)
-      setExcludedIds(prev => {
-        const nextExcluded = [...prev];
-        visibleIds.forEach(id => {
-          if (!nextExcluded.includes(id)) {
-            nextExcluded.push(id);
-          }
-        });
-        return nextExcluded;
-      });
-    }
-  };
-
-  const handleConfirm = () => {
-    const promotionsArray = Object.entries(customPromotions)
-      .filter(([id]) => !excludedIds.includes(Number(id)))
-      .map(([id, promo]) => ({
-        santri_id: Number(id),
-        kelas_diniyah_id: promo.kelas_diniyah_id,
-        kelas_sekolah_id: undefined // Handled automatically on the backend
-      }));
-    onConfirm(excludedIds, promotionsArray);
-  };
-
   const migratingCount = santriList.length - excludedIds.length;
   const notPromotedCount = excludedIds.length;
 
-  // Calculate statistics
   const alumniCount = useMemo(() => {
     return santriList.filter(s => {
       if (excludedIds.includes(s.id)) return false;
-      const status = getGraduationStatus(s);
-      return status && status.type === 'alumni';
+      const tingkat = extractTingkat(s.nama_diniyah);
+      return tingkat === 6;
     }).length;
   }, [santriList, excludedIds]);
 
-  const columns = [
-    {
-      title: (
-        <Checkbox
-          checked={isAllFilteredSelected}
-          indeterminate={isFilteredIndeterminate}
-          onChange={(e) => handleSelectAllFiltered(e.target.checked)}
-          className="migration-table-checkbox"
-        >
-          Naik
-        </Checkbox>
-      ),
-      dataIndex: 'migrate',
-      key: 'migrate',
-      width: 100,
-      render: (_, record) => (
-        <Checkbox
-          checked={!excludedIds.includes(record.id)}
-          onChange={() => handleToggleSantri(record.id)}
-          className="migration-table-checkbox"
-        >
-          Naik Kelas
-        </Checkbox>
-      ),
-    },
-    {
-      title: 'NIS',
-      dataIndex: 'nis',
-      key: 'nis',
-      width: 110,
-      render: (text) => <span className="mono-text">{text || '-'}</span>
-    },
-    {
-      title: 'Nama Santri',
-      dataIndex: 'nama',
-      key: 'nama',
-      ellipsis: true,
-      render: (text) => <strong style={{ color: '#0f172a' }}>{text}</strong>
-    },
-    {
-      title: 'Kelas Diniyah Baru',
-      dataIndex: 'nama_diniyah',
-      key: 'nama_diniyah',
-      width: 320,
-      render: (text, record) => {
-        const isExcluded = excludedIds.includes(record.id);
-        if (isExcluded) {
-          return (
-            <div className="class-adv-wrap is-repeating">
-              <span className="current-class">{text || '-'}</span>
-              <span className="next-class-indicator repeating">
-                <ArrowRightOutlined style={{ fontSize: 9 }} /> {text || '-'} (Mengulang)
-              </span>
-            </div>
-          );
-        }
+  const handleConfirm = () => {
+    if (migratingCount === 0) return;
 
-        const options = getTargetClassOptions(text);
-        const nextClassDefault = getNextClass(text);
-
-        if (nextClassDefault && nextClassDefault.includes('Lulus')) {
-          return (
-            <div className="class-adv-wrap">
-              <span className="current-class">{text}</span>
-              <span className="next-class-indicator success">
-                <ArrowRightOutlined /> {nextClassDefault}
-              </span>
-            </div>
-          );
-        }
-
-        if (options.length === 0) {
-          return <span className="current-class">{text || '-'}</span>;
-        }
-
-        const value = customPromotions[record.id]?.kelas_diniyah_id || undefined;
-
-        return (
-          <div className="class-promotion-select-cell">
-            <span className="current-class-label">{text || '-'}</span>
-            <div className="adv-arrow-wrap">&rarr;</div>
-            <select
-              value={value || ''}
-              onChange={(e) => handleDiniyahChange(record.id, e.target.value ? Number(e.target.value) : null)}
-              className="modal-table-select"
-              style={{ width: 140 }}
-            >
-              <option value="">Pilih</option>
-              {options.map(o => <option key={o.id} value={o.id}>{o.nama}</option>)}
-            </select>
-          </div>
-        );
-      },
-    },
-    {
-      title: 'Status Kelulusan',
-      key: 'graduation',
-      width: 180,
-      render: (_, record) => {
-        const isExcluded = excludedIds.includes(record.id);
-        if (isExcluded) return '-';
-
-        const status = getGraduationStatus(record);
-        if (!status) return '-';
-
-        return (
-          <Tooltip title={status.label}>
-            <Tag color={status.color} icon={<TrophyOutlined />} className="grad-badge">
-              {status.label}
-            </Tag>
-          </Tooltip>
-        );
-      },
-    },
-    {
-      title: 'Status',
-      dataIndex: 'status_tahun_ajaran',
-      key: 'status',
-      width: 95,
-      render: (status) => {
-        const colors = {
-          aktif: 'success',
-          draft: 'default',
-          tidak_naik: 'error',
-        };
-        return <span className={`status-tag-mini ${colors[status] || 'default'}`}>{status || 'aktif'}</span>;
-      },
-    },
-  ];
+    onSubmit({
+      excludedIds,
+      customTargetClasses
+    });
+  };
 
   return (
-    <Modal
+    <CustomModal
       open={isOpen}
-      title={
-        <div className="migration-modal-header">
-          <ExclamationCircleOutlined className="modal-title-icon" />
-          <div className="title-desc">
-            <Title level={4} style={{ margin: 0, color: '#0f172a' }}>
-              Migrasi Periode Akademik Diniyah
-            </Title>
-            <Text type="secondary" style={{ fontSize: 12 }}>
-              Proses menaikkan kelas Diniyah secara massal dari {sourceYear?.kode} ke {targetYear}
-            </Text>
-          </div>
+      onClose={onClose}
+      title="Migrasi Periode Akademik Diniyah"
+      subtitle={`Proses menaikkan kelas Diniyah secara massal dari ${sourceYear?.kode} ke ${targetYear}`}
+      icon={<RefreshCw />}
+      width={1020}
+      footer={
+        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px', width: '100%' }}>
+          <button type="button" className="btn-custom btn-secondary" onClick={onClose} disabled={isSubmitting}>
+            Batal
+          </button>
+          <button
+            type="button"
+            className="btn-custom btn-danger"
+            onClick={handleConfirm}
+            disabled={isSubmitting || migratingCount === 0}
+          >
+            {isSubmitting ? 'Memproses Migrasi...' : 'Proses Migrasi Massal'}
+          </button>
         </div>
       }
-      onCancel={onClose}
-      onOk={handleConfirm}
-      okText="Proses Migrasi"
-      cancelText="Batal"
-      width={1050}
-      confirmLoading={isSubmitting}
-      okButtonProps={{
-        danger: true,
-        disabled: migratingCount === 0
-      }}
-      className="migration-modal-redesign"
     >
-      <Space direction="vertical" size="middle" style={{ width: '100%' }}>
-        
-        {/* Solution Notice for Division Assignment */}
-        <Alert
-          message="💡 Informasi Migrasi & Pembagian Kelas Diniyah (Contoh: 1A ke 2A / 2C)"
-          description={
-            <div className="division-solution-guide">
-              <p>
-                * Hanya santri yang aktif di **Semester Genap** pada tahun ajaran ini yang terdaftar untuk dimigrasikan.
-              </p>
-              <p>
-                * Santri kelas **1** (Diniyah tingkat 1) akan otomatis didorong langsung naik ke kelas tingkat **2** (melewati tahapan SP).
-              </p>
-              <p style={{ marginBottom: 0 }}>
-                * Jika tingkat berikutnya memiliki beberapa pilihan kelas/divisi (contoh: dari <strong>1A</strong> ke <strong>2A</strong>, <strong>2B</strong>, atau <strong>2C</strong>), Anda dapat memilih kelas tujuannya secara langsung di bawah ini pada kolom <strong>Kelas Diniyah Baru</strong> sebelum memproses migrasi.
-              </p>
-            </div>
-          }
+      <div className="migration-modal-container">
+        <SmartAlert
+          message="💡 Informasi Migrasi & Pembagian Kelas Diniyah"
+          description="Hanya santri aktif Semester Genap yang dimigrasikan. Pilih kelas tujuan spesifik sebelum mengeksekusi."
           type="info"
-          showIcon
-          className="solution-alert"
         />
 
-        {/* Statistics Summary Cards */}
+        {/* Statistics Summary Strip */}
         <div className="migration-stats-strip">
           <div className="stat-pill-card">
-            <span className="stat-pill-label">Total Santri (Sem. Genap)</span>
+            <span className="stat-pill-label">Total Santri</span>
             <span className="stat-pill-val">{santriList.length}</span>
           </div>
           <div className="stat-pill-card success">
@@ -403,14 +204,13 @@ export function MigrationModal({
             <span className="stat-pill-val">{notPromotedCount}</span>
           </div>
           <div className="stat-pill-card warning">
-            <span className="stat-pill-label">Lulus Jadi Alumni Diniyah</span>
+            <span className="stat-pill-label">Lulus Diniyah</span>
             <span className="stat-pill-val">{alumniCount}</span>
           </div>
         </div>
 
         {/* Dynamic Class Tabs Filter & Search Controls */}
         <div className="migration-controls-row">
-          {/* Left: Class selection pill tabs */}
           <div className="class-tabs-container">
             <div className="class-tabs-track">
               {classTabs.map((tab) => {
@@ -434,50 +234,104 @@ export function MigrationModal({
             </div>
           </div>
 
-          {/* Right: Search Input */}
-          <div className="modal-search-wrapper">
-            <Input
-              prefix={<SearchOutlined style={{ color: '#94a3b8' }} />}
+          <div className="modal-search-wrapper" style={{ width: '240px' }}>
+            <SearchInput
               placeholder="Cari nama / NIS..."
               value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              allowClear
-              className="modal-search-input"
+              onChange={setSearchQuery}
             />
           </div>
         </div>
 
-        {/* Students Table */}
+        {/* Custom Table */}
         <div className="migration-table-wrap">
-          <Table
-            columns={columns}
-            dataSource={filteredSantri}
-            rowKey="id"
-            pagination={{
-              pageSize: 8,
-              showSizeChanger: false,
-              showTotal: (total) => `Total ${total} santri di kelas ini`
-            }}
-            scroll={{ y: 320 }}
-            size="small"
-            rowClassName={(record) =>
-              excludedIds.includes(record.id) ? 'not-promoted-row' : 'promoted-row'
-            }
-            locale={{
-              emptyText: 'Tidak ada data santri untuk kelas atau kata kunci ini.'
-            }}
-          />
-        </div>
+          <table className="custom-migration-table">
+            <thead>
+              <tr>
+                <th style={{ width: '40px' }}>
+                  <input
+                    type="checkbox"
+                    checked={isAllTabSelected}
+                    onChange={(e) => toggleSelectAllTab(e.target.checked)}
+                  />
+                </th>
+                <th>NIS</th>
+                <th>Nama Santri</th>
+                <th>Kelas Lama</th>
+                <th>Perkiraan Progresi</th>
+                <th>Kelas Diniyah Baru</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              {filteredSantri.length === 0 ? (
+                <tr>
+                  <td colSpan={7} style={{ textAlign: 'center', padding: '24px', color: '#94a3b8' }}>
+                    Tidak ada data santri untuk kelas atau pencarian ini.
+                  </td>
+                </tr>
+              ) : (
+                filteredSantri.map((record) => {
+                  const isExcluded = excludedIds.includes(record.id);
+                  const currentClass = record.nama_diniyah;
+                  const currentTingkat = extractTingkat(currentClass);
+                  const isClass6 = currentTingkat === 6;
+                  const nextClassLabel = getNextClass(currentClass);
+                  const availableOptions = getAvailableTargetOptions(currentClass);
 
-        {migratingCount === 0 && (
-          <Alert
-            message="Validasi Gagal"
-            description="Pilih minimal satu santri yang dicentang 'Naik Kelas' untuk memproses migrasi."
-            type="error"
-            showIcon
-          />
-        )}
-      </Space>
-    </Modal>
+                  return (
+                    <tr key={record.id} className={isExcluded ? 'not-promoted-row' : 'promoted-row'}>
+                      <td>
+                        <input
+                          type="checkbox"
+                          checked={!isExcluded}
+                          onChange={() => toggleExclude(record.id)}
+                        />
+                      </td>
+                      <td>{record.nis}</td>
+                      <td><strong>{record.nama}</strong></td>
+                      <td><CustomTag color="blue">{currentClass || '-'}</CustomTag></td>
+                      <td>
+                        {isClass6 ? (
+                          <CustomTag color="purple"><Award size={12} /> Lulus Diniyah</CustomTag>
+                        ) : nextClassLabel ? (
+                          <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', fontSize: '13px', color: '#16a34a' }}>
+                            <ArrowRight size={14} /> {nextClassLabel}
+                          </span>
+                        ) : (
+                          <span style={{ color: '#94a3b8' }}>-</span>
+                        )}
+                      </td>
+                      <td>
+                        {isExcluded || isClass6 || availableOptions.length === 0 ? (
+                          <span style={{ fontSize: '12px', color: '#94a3b8' }}>
+                            {isClass6 ? 'Menjadi Alumni Diniyah' : isExcluded ? 'Tinggal Kelas' : '-'}
+                          </span>
+                        ) : (
+                          <select
+                            className="custom-native-select mini"
+                            value={customTargetClasses[record.id] || ''}
+                            onChange={(e) => handleCustomClassChange(record.id, e.target.value)}
+                          >
+                            {availableOptions.map(opt => (
+                              <option key={opt.id} value={opt.id}>{opt.nama}</option>
+                            ))}
+                          </select>
+                        )}
+                      </td>
+                      <td>
+                        <CustomTag color={record.status_tahun_ajaran === 'aktif' ? 'green' : 'default'}>
+                          {record.status_tahun_ajaran || 'aktif'}
+                        </CustomTag>
+                      </td>
+                    </tr>
+                  );
+                })
+              )}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </CustomModal>
   );
 }

@@ -1,16 +1,11 @@
 import { useState, useEffect } from 'react';
-import { Modal, Tabs, Descriptions, Empty, Spin, Timeline, Tag } from 'antd';
-import {
-  UserOutlined,
-  BookOutlined,
-  HomeOutlined,
-  TrophyOutlined,
-  WarningOutlined,
-  CalendarOutlined,
-  CheckCircleOutlined
-} from '@ant-design/icons';
+import { CustomModal } from '../ui/CustomModal';
+import { CustomTabs } from '../ui/CustomTabs';
+import { CustomTag } from '../ui/CustomTag';
+import { LoadingState } from '../common/LoadingState';
 import { formatDate } from '../../utils/formatters';
 import { alumniService } from '../../services/alumniService';
+import { User, BookOpen, Home, Trophy, AlertTriangle, GraduationCap } from 'lucide-react';
 import './AlumniDetailModal.scss';
 
 export function AlumniDetailModal({ isOpen, onClose, alumniId }) {
@@ -32,232 +27,138 @@ export function AlumniDetailModal({ isOpen, onClose, alumniId }) {
       setActiveTab('info');
     } catch (error) {
       console.error('Gagal memuat detail alumni:', error);
-      alert('Gagal memuat detail alumni');
       onClose();
     } finally {
       setLoading(false);
     }
   };
 
-  if (!detailData) {
-    return (
-      <Modal
-        open={isOpen}
-        onCancel={onClose}
-        title="Detail Alumni"
-        width={900}
-        footer={null}
-      >
-        <div style={{ padding: '2rem', textAlign: 'center' }}>
-          {loading ? <Spin size="large" tip="Memuat data..." /> : <Empty description="Tidak ada data" />}
-        </div>
-      </Modal>
-    );
-  }
-
-  const { alumni, identitas, riwayat } = detailData;
-  const source = identitas || alumni;
-
-  // Parse kelas terakhir
-  const kelasParts = (alumni.kelas_terakhir || '').split('/').map(item => item.trim());
-  const kelasDiniyah = source.kelas_diniyah || source.nama_diniyah || kelasParts[0] || '-';
-  const kelasSekolah = source.kelas_sekolah || source.nama_sekolah || kelasParts[1] || '-';
-  const kamar = source.kamar || source.nama_kamar || '-';
+  const santri = detailData?.santri || {};
+  const history = detailData?.history || [];
+  const prestasi = detailData?.prestasi || [];
+  const pelanggaran = detailData?.pelanggaran || [];
 
   const tabItems = [
     {
       key: 'info',
-      label: (
-        <span>
-          <UserOutlined /> Identitas
-        </span>
-      ),
+      label: 'Informasi Profil',
+      icon: <User size={16} />,
       children: (
-        <Descriptions column={2} bordered size="small">
-          <Descriptions.Item label="NIS" span={1}>{alumni.nis}</Descriptions.Item>
-          <Descriptions.Item label="NIK" span={1}>{alumni.nik || '-'}</Descriptions.Item>
-          <Descriptions.Item label="Nama" span={2}>{alumni.nama}</Descriptions.Item>
-          <Descriptions.Item label="Tempat Lahir" span={1}>{alumni.tempat_lahir || '-'}</Descriptions.Item>
-          <Descriptions.Item label="Tanggal Lahir" span={1}>
-            {alumni.tanggal_lahir ? formatDate(alumni.tanggal_lahir) : '-'}
-          </Descriptions.Item>
-          <Descriptions.Item label="Tahun Masuk" span={1}>{alumni.tahun_masuk || '-'}</Descriptions.Item>
-          <Descriptions.Item label="Tahun Lulus" span={1}>
-            <Tag color="blue" icon={<CalendarOutlined />}>{alumni.tahun_lulus}</Tag>
-          </Descriptions.Item>
-          <Descriptions.Item label="Kelas Diniyah" span={1}>{kelasDiniyah}</Descriptions.Item>
-          <Descriptions.Item label="Kelas Sekolah" span={1}>{kelasSekolah}</Descriptions.Item>
-          <Descriptions.Item label="Kamar" span={2}>{kamar}</Descriptions.Item>
-          <Descriptions.Item label="Alamat Asal" span={2}>{alumni.alamat || '-'}</Descriptions.Item>
-          <Descriptions.Item label="No. HP" span={1}>{alumni.no_hp || '-'}</Descriptions.Item>
-          <Descriptions.Item label="Email" span={1}>{alumni.email || '-'}</Descriptions.Item>
-          <Descriptions.Item label="Pekerjaan" span={1}>{alumni.pekerjaan || '-'}</Descriptions.Item>
-          <Descriptions.Item label="Instansi" span={1}>{alumni.instansi || '-'}</Descriptions.Item>
-          <Descriptions.Item label="Status Pernikahan" span={2}>
-            {alumni.status_pernikahan ? (
-              <Tag color={alumni.status_pernikahan === 'Sudah Menikah' ? 'green' : 'default'}>
-                {alumni.status_pernikahan}
-              </Tag>
-            ) : '-'}
-          </Descriptions.Item>
-          <Descriptions.Item label="Alamat Sekarang" span={2}>{alumni.alamat_sekarang || '-'}</Descriptions.Item>
-          <Descriptions.Item label="Nama Ayah" span={1}>{source.nama_ayah || '-'}</Descriptions.Item>
-          <Descriptions.Item label="No HP Ayah" span={1}>{source.no_hp_ayah || '-'}</Descriptions.Item>
-          <Descriptions.Item label="Nama Ibu" span={1}>{source.nama_ibu || '-'}</Descriptions.Item>
-          <Descriptions.Item label="No HP Ibu" span={1}>{source.no_hp_ibu || '-'}</Descriptions.Item>
-        </Descriptions>
+        <div className="detail-section-grid">
+          <div className="info-group">
+            <h5>Data Identitas</h5>
+            <div className="info-item"><span>Nama Lengkap:</span> <strong>{santri.nama || '-'}</strong></div>
+            <div className="info-item"><span>NIS:</span> <strong>{santri.nis || '-'}</strong></div>
+            <div className="info-item"><span>NIK:</span> <strong>{santri.nik || '-'}</strong></div>
+            <div className="info-item"><span>Jenis Kelamin:</span> <strong>{santri.jenis_kelamin || '-'}</strong></div>
+            <div className="info-item"><span>TTL:</span> <strong>{santri.tempat_lahir ? `${santri.tempat_lahir}, ` : ''}{santri.tanggal_lahir ? formatDate(santri.tanggal_lahir) : '-'}</strong></div>
+          </div>
+
+          <div className="info-group">
+            <h5>Kelulusan & Karir</h5>
+            <div className="info-item"><span>Tahun Lulus:</span> <strong><CustomTag color="blue">{santri.tahun_lulus || '-'}</CustomTag></strong></div>
+            <div className="info-item"><span>Angkatan:</span> <strong>{santri.angkatan || '-'}</strong></div>
+            <div className="info-item"><span>Pekerjaan:</span> <strong>{santri.pekerjaan || '-'}</strong></div>
+            <div className="info-item"><span>Instansi:</span> <strong>{santri.instansi || '-'}</strong></div>
+            <div className="info-item"><span>No. HP:</span> <strong>{santri.no_hp || '-'}</strong></div>
+          </div>
+        </div>
       )
     },
     {
-      key: 'kelas',
-      label: (
-        <span>
-          <BookOutlined /> Riwayat Kelas
-        </span>
-      ),
+      key: 'history',
+      label: 'Riwayat Akademik',
+      icon: <BookOpen size={16} />,
+      badge: history.length,
       children: (
-        !riwayat.kelas || riwayat.kelas.length === 0 ? (
-          <Empty description="Tidak ada riwayat kelas" />
-        ) : (
-          <Timeline
-            items={riwayat.kelas.map((k, index) => ({
-              key: index,
-              dot: <CheckCircleOutlined style={{ fontSize: '16px' }} />,
-              color: 'blue',
-              children: (
-                <div>
-                  <h4 style={{ margin: 0, marginBottom: 4 }}>
-                    {k.kelas_diniyah || '-'} / {k.kelas_sekolah || '-'}
-                  </h4>
-                  <div style={{ color: '#666', fontSize: '13px', marginBottom: 4 }}>
-                    <CalendarOutlined /> {formatDate(k.tanggal_mulai)} - {k.tanggal_selesai ? formatDate(k.tanggal_selesai) : 'Sekarang'}
+        <div className="history-timeline">
+          {history.length === 0 ? (
+            <p className="empty-text">Belum ada catatan riwayat akademik.</p>
+          ) : (
+            history.map((item, idx) => (
+              <div key={idx} className="timeline-item">
+                <div className="timeline-dot" />
+                <div className="timeline-content">
+                  <div className="timeline-title">{item.tahun_ajaran || 'Tahun Ajaran'}</div>
+                  <div className="timeline-desc">
+                    Kelas Diniyah: {item.kelas_diniyah || '-'} | Kelas Sekolah: {item.kelas_sekolah || '-'} | Status: <CustomTag color={item.status === 'lulus' ? 'green' : 'blue'}>{item.status || 'Aktif'}</CustomTag>
                   </div>
-                  {k.keterangan && <div style={{ fontSize: '13px' }}>{k.keterangan}</div>}
                 </div>
-              )
-            }))}
-          />
-        )
-      )
-    },
-    {
-      key: 'kamar',
-      label: (
-        <span>
-          <HomeOutlined /> Riwayat Asrama
-        </span>
-      ),
-      children: (
-        !riwayat.kamar || riwayat.kamar.length === 0 ? (
-          <Empty description="Tidak ada riwayat kamar" />
-        ) : (
-          <Timeline
-            items={riwayat.kamar.map((k, index) => ({
-              key: index,
-              dot: <HomeOutlined style={{ fontSize: '16px' }} />,
-              color: 'green',
-              children: (
-                <div>
-                  <h4 style={{ margin: 0, marginBottom: 4 }}>
-                    {k.kamar} {k.gedung ? `- ${k.gedung}` : ''} {k.lantai ? `Lt. ${k.lantai}` : ''}
-                  </h4>
-                  <div style={{ color: '#666', fontSize: '13px', marginBottom: 4 }}>
-                    <CalendarOutlined /> {formatDate(k.tanggal_mulai)} - {k.tanggal_selesai ? formatDate(k.tanggal_selesai) : 'Sekarang'}
-                  </div>
-                  {k.keterangan && <div style={{ fontSize: '13px' }}>{k.keterangan}</div>}
-                </div>
-              )
-            }))}
-          />
-        )
+              </div>
+            ))
+          )}
+        </div>
       )
     },
     {
       key: 'prestasi',
-      label: (
-        <span>
-          <TrophyOutlined /> Prestasi
-        </span>
-      ),
+      label: 'Prestasi',
+      icon: <Trophy size={16} />,
+      badge: prestasi.length,
       children: (
-        !riwayat.prestasi || riwayat.prestasi.length === 0 ? (
-          <Empty description="Tidak ada prestasi" />
-        ) : (
-          <Timeline
-            items={riwayat.prestasi.map((p, index) => ({
-              key: index,
-              dot: <TrophyOutlined style={{ fontSize: '16px' }} />,
-              color: 'gold',
-              children: (
+        <div className="prestasi-list">
+          {prestasi.length === 0 ? (
+            <p className="empty-text">Tidak ada catatan prestasi.</p>
+          ) : (
+            prestasi.map((p, idx) => (
+              <div key={idx} className="card-item-row">
+                <Trophy size={20} style={{ color: '#f59e0b', flexShrink: 0 }} />
                 <div>
-                  <h4 style={{ margin: 0, marginBottom: 4 }}>{p.jenis}</h4>
-                  <div style={{ color: '#666', fontSize: '13px', marginBottom: 4 }}>
-                    <CalendarOutlined /> {formatDate(p.tanggal)}
-                  </div>
-                  {p.deskripsi && <div style={{ fontSize: '13px', marginBottom: 4 }}>{p.deskripsi}</div>}
-                  {p.penghargaan && (
-                    <div style={{ fontSize: '13px' }}>
-                      <strong>Penghargaan:</strong> {p.penghargaan}
-                    </div>
-                  )}
+                  <strong>{p.jenis}</strong> ({formatDate(p.tanggal)})
+                  <p>{p.deskripsi}</p>
                 </div>
-              )
-            }))}
-          />
-        )
+              </div>
+            ))
+          )}
+        </div>
       )
     },
     {
       key: 'pelanggaran',
-      label: (
-        <span>
-          <WarningOutlined /> Pelanggaran
-        </span>
-      ),
+      label: 'Pelanggaran',
+      icon: <AlertTriangle size={16} />,
+      badge: pelanggaran.length,
       children: (
-        !riwayat.pelanggaran || riwayat.pelanggaran.length === 0 ? (
-          <Empty description="Tidak ada pelanggaran" />
-        ) : (
-          <Timeline
-            items={riwayat.pelanggaran.map((p, index) => ({
-              key: index,
-              dot: <WarningOutlined style={{ fontSize: '16px' }} />,
-              color: 'red',
-              children: (
+        <div className="pelanggaran-list">
+          {pelanggaran.length === 0 ? (
+            <p className="empty-text">Tidak ada catatan pelanggaran.</p>
+          ) : (
+            pelanggaran.map((p, idx) => (
+              <div key={idx} className="card-item-row warning">
+                <AlertTriangle size={20} style={{ color: '#ef4444', flexShrink: 0 }} />
                 <div>
-                  <h4 style={{ margin: 0, marginBottom: 4 }}>{p.jenis}</h4>
-                  <div style={{ color: '#666', fontSize: '13px', marginBottom: 4 }}>
-                    <CalendarOutlined /> {formatDate(p.tanggal)}
-                  </div>
-                  {p.deskripsi && <div style={{ fontSize: '13px', marginBottom: 4 }}>{p.deskripsi}</div>}
-                  {p.sanksi && (
-                    <div style={{ fontSize: '13px' }}>
-                      <strong>Sanksi:</strong> {p.sanksi}
-                    </div>
-                  )}
+                  <strong>{p.jenis}</strong> ({formatDate(p.tanggal)})
+                  <p>{p.deskripsi}</p>
                 </div>
-              )
-            }))}
-          />
-        )
+              </div>
+            ))
+          )}
+        </div>
       )
     }
   ];
 
   return (
-    <Modal
+    <CustomModal
       open={isOpen}
-      onCancel={onClose}
-      title="Detail Alumni"
-      width={900}
-      footer={null}
-      className="alumni-detail-modal"
+      onClose={onClose}
+      title={santri.nama ? `Detail Alumni - ${santri.nama}` : 'Detail Alumni'}
+      subtitle={`NIS: ${santri.nis || '-'} | Tahun Lulus: ${santri.tahun_lulus || '-'}`}
+      icon={<GraduationCap />}
+      width={780}
+      footer={
+        <div style={{ display: 'flex', justifyContent: 'flex-end', width: '100%' }}>
+          <button type="button" className="btn-custom btn-secondary" onClick={onClose}>
+            Tutup
+          </button>
+        </div>
+      }
     >
-      <Tabs
-        activeKey={activeTab}
-        onChange={setActiveTab}
-        items={tabItems}
-      />
-    </Modal>
+      {loading ? (
+        <LoadingState message="Memuat detail alumni..." />
+      ) : (
+        <CustomTabs items={tabItems} activeKey={activeTab} onChange={setActiveTab} />
+      )}
+    </CustomModal>
   );
 }

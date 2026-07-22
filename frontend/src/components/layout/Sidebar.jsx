@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
-import { Modal } from 'antd';
+import { ConfirmDialog } from '../common/ConfirmDialog';
 import { settingsService } from '../../services/settingsService';
 import {
   LayoutDashboard,
@@ -342,18 +342,11 @@ export function Sidebar({ collapsed, onCollapse }) {
     navigate(key);
   };
 
+  const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
+
   // Handle user logout
   const handleLogout = () => {
-    Modal.confirm({
-      title: 'Konfirmasi Logout',
-      content: 'Apakah Anda yakin ingin logout?',
-      okText: 'Logout',
-      cancelText: 'Batal',
-      okType: 'danger',
-      onOk: async () => {
-        await logout();
-      }
-    });
+    setShowLogoutConfirm(true);
   };
 
   // Filter groups based on search query
@@ -656,6 +649,19 @@ export function Sidebar({ collapsed, onCollapse }) {
           {collapsed ? <ChevronRight size={14} /> : <ChevronLeft size={14} />}
         </button>
       </div>
+
+      <ConfirmDialog
+        isOpen={showLogoutConfirm}
+        onClose={() => setShowLogoutConfirm(false)}
+        onConfirm={async () => {
+          setShowLogoutConfirm(false);
+          await logout();
+        }}
+        title="Konfirmasi Logout"
+        content="Apakah Anda yakin ingin logout dari sistem?"
+        confirmText="Ya, Logout"
+        type="danger"
+      />
     </aside>
   );
 }

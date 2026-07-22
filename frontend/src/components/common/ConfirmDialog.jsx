@@ -1,76 +1,50 @@
-import { Modal } from 'antd';
-import { ExclamationCircleOutlined } from '@ant-design/icons';
+import React from 'react';
+import { CustomModal } from '../ui/CustomModal';
+import { AlertTriangle } from 'lucide-react';
+import './ConfirmDialog.scss';
 
-/**
- * ConfirmDialog - Utility functions for confirmation dialogs
- */
-
-export const ConfirmDialog = {
-  /**
-   * Show delete confirmation
-   */
-  delete: ({ title = 'Hapus Data', content = 'Apakah Anda yakin ingin menghapus data ini?', onOk, onCancel }) => {
-    return Modal.confirm({
-      title,
-      icon: <ExclamationCircleOutlined />,
-      content,
-      okText: 'Hapus',
-      okType: 'danger',
-      cancelText: 'Batal',
-      onOk,
-      onCancel,
-    });
-  },
-
-  /**
-   * Show warning confirmation
-   */
-  warning: ({ title = 'Peringatan', content, onOk, onCancel }) => {
-    return Modal.confirm({
-      title,
-      icon: <ExclamationCircleOutlined />,
-      content,
-      okText: 'Ya',
-      okType: 'primary',
-      cancelText: 'Tidak',
-      onOk,
-      onCancel,
-    });
-  },
-
-  /**
-   * Show info confirmation
-   */
-  info: ({ title = 'Informasi', content, onOk }) => {
-    return Modal.info({
-      title,
-      content,
-      okText: 'OK',
-      onOk,
-    });
-  },
-
-  /**
-   * Show success confirmation
-   */
-  success: ({ title = 'Berhasil', content, onOk }) => {
-    return Modal.success({
-      title,
-      content,
-      okText: 'OK',
-      onOk,
-    });
-  },
-
-  /**
-   * Show error confirmation
-   */
-  error: ({ title = 'Error', content, onOk }) => {
-    return Modal.error({
-      title,
-      content,
-      okText: 'OK',
-      onOk,
-    });
-  },
-};
+export function ConfirmDialog({
+  isOpen,
+  onClose,
+  onConfirm,
+  title = 'Konfirmasi',
+  content,
+  confirmText = 'Ya, Lanjutkan',
+  cancelText = 'Batal',
+  type = 'warning',
+  isLoading = false
+}) {
+  return (
+    <CustomModal
+      open={isOpen}
+      onClose={onClose}
+      title={title}
+      icon={<AlertTriangle />}
+      width={420}
+      footer={
+        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px', width: '100%' }}>
+          <button
+            type="button"
+            className="btn-custom btn-secondary"
+            onClick={onClose}
+            disabled={isLoading}
+          >
+            {cancelText}
+          </button>
+          <button
+            type="button"
+            className={`btn-custom ${type === 'danger' ? 'btn-danger' : 'btn-primary'}`}
+            onClick={onConfirm}
+            disabled={isLoading}
+          >
+            {isLoading ? 'Memproses...' : confirmText}
+          </button>
+        </div>
+      }
+    >
+      <div className="confirm-dialog-content">
+        <p>{content}</p>
+      </div>
+    </CustomModal>
+  );
+}

@@ -1,0 +1,1 @@
+import{i as r}from"./rolldown-runtime-BgQAZz4g.js";import{Ln as s,wn as a}from"./react-vendor-fVUszkiE.js";s();var t=a();function e({children:r,color:s="default",className:a="",style:e}){return(0,t.jsx)("span",{className:`custom-tag tag-${s} ${a}`,style:e,children:r})}export{e as t};

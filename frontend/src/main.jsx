@@ -1,12 +1,7 @@
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
-import { ConfigProvider } from 'antd'
-import antdTheme from './config/theme'
 
-// Ant Design Styles
-import 'antd/dist/reset.css'
-
-// Legacy CSS (akan di-migrate bertahap)
+// Legacy CSS
 import './styles/main.css'
 import './styles/base.css'
 import './styles/layout.css'
@@ -16,9 +11,8 @@ import './styles/features-kelas.css'
 import './styles/features-guru.css'
 import './styles/features-extra.css'
 
-// Custom Styles (Sass) - Di-load TERAKHIR agar bisa meng-override CSS lama
+// Custom Styles (Sass)
 import './styles/global.scss'
-import './styles/antd-theme.scss'
 
 import App from './App.jsx'
 import { ThemeProvider } from './context/ThemeContext'

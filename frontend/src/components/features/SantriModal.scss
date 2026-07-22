@@ -1,25 +1,44 @@
-@import '../../styles/variables';
-@import '../../styles/mixins';
+@import '../../styles/variables.scss';
+@import '../../styles/mixins.scss';
 
-.santri-modal {
-  .form-section-title {
-    font-size: $font-size-lg;
-    font-weight: $font-weight-semibold;
-    color: $text-primary;
-    margin-bottom: $spacing-md;
-    padding-bottom: $spacing-sm;
-    border-bottom: 2px solid $border-medium;
-  }
+.santri-form-container {
+  padding: 4px 0;
 
-  .ant-form-item {
-    margin-bottom: $spacing-md;
-  }
+  .santri-modal-form {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
 
-  .form-section {
-    margin-bottom: $spacing-xl;
+    .form-group-section {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      padding-bottom: 12px;
+      border-bottom: 1px solid var(--lt-border-light, #e2e8f0);
 
-    &:last-child {
-      margin-bottom: 0;
+      &:last-child {
+        border-bottom: none;
+        padding-bottom: 0;
+      }
+
+      .section-title {
+        font-size: 13px;
+        font-weight: 600;
+        color: var(--lt-text-primary, #0f172a);
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        margin: 0 0 4px 0;
+      }
+    }
+
+    .form-grid-2 {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+
+      @media (max-width: 540px) {
+        grid-template-columns: 1fr;
+      }
     }
   }
 }

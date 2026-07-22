@@ -1,0 +1,1 @@
+function i(i){return{aktif:"Aktif",draft:"Draft",tidak_naik:"Tidak Naik",lulus:"Lulus",alumni:"Alumni",pindah:"Pindah",keluar:"Keluar"}[i]||"Aktif"}function n(i){if(!i)return"-";if(i.includes("-")){const n=i.split("-");if(3===n.length)return`${n[2]}/${n[1]}/${n[0]}`}return i}export{i as n,n as t};

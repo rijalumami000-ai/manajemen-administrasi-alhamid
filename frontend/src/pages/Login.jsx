@@ -1,34 +1,46 @@
 import { useState } from 'react';
 import { Navigate, useNavigate } from 'react-router-dom';
-import { Form, Input, Button, Card, Typography, Space, Alert, Select } from 'antd';
-import { UserOutlined, LockOutlined, LoginOutlined } from '@ant-design/icons';
+import { User, Lock, LogIn } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
-import { LoadingState } from '../components/common';
+import { LoadingState } from '../components/common/LoadingState';
+import { FloatingInput } from '../components/ui/FloatingInput';
+import { CustomSelect } from '../components/ui/CustomSelect';
+import { SmartAlert } from '../components/ui/SmartAlert';
 import './Login.scss';
-import { settingsService } from '../services/settingsService';
-
-const { Title, Text } = Typography;
 
 export function Login() {
   const { user, login, loading } = useAuth();
   const navigate = useNavigate();
-  const [form] = Form.useForm();
+  const [role, setRole] = useState('admin');
+  const [username, setUsername] = useState('');
+  const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   if (loading) {
-    return <LoadingState fullscreen tip="Memuat..." />;
+    return <LoadingState message="Memuat..." />;
   }
 
   if (user) {
     return <Navigate to="/" replace />;
   }
 
-  const handleSubmit = async (values) => {
+  const handleSubmit = async (e) => {
+    if (e) e.preventDefault();
+
+    if (!username || !username.trim()) {
+      setError('Username wajib diisi!');
+      return;
+    }
+    if (!password) {
+      setError('Password wajib diisi!');
+      return;
+    }
+
     setError('');
     setIsSubmitting(true);
 
-    const result = await login(values.username, values.password, values.role);
+    const result = await login(username.trim(), password, role);
 
     if (result.success) {
       navigate('/', { replace: true });
@@ -69,93 +81,66 @@ export function Login() {
         <div className="login-right">
           <div className="form-container">
             <div className="login-header-right">
-              <Title level={2} style={{ color: '#fff', marginBottom: 8 }}>Sign in</Title>
-              <Text style={{ color: 'rgba(255,255,255,0.6)' }}>Welcome back! Please enter your details.</Text>
+              <h2 style={{ color: '#fff', margin: '0 0 8px 0', fontSize: '24px' }}>Sign in</h2>
+              <p style={{ color: 'rgba(255,255,255,0.6)', margin: 0, fontSize: '14px' }}>
+                Selamat datang kembali! Silakan masukkan detail login Anda.
+              </p>
             </div>
 
             {error && (
-              <Alert
-                message="Login Gagal"
-                description={error}
-                type="error"
-                showIcon
-                closable
-                onClose={() => setError('')}
-                style={{ marginBottom: 24 }}
-              />
+              <div style={{ marginBottom: '20px' }}>
+                <SmartAlert message={error} type="error" />
+              </div>
             )}
 
-            <Form
-              form={form}
-              name="login"
-              onFinish={handleSubmit}
-              layout="vertical"
-              size="large"
-              autoComplete="off"
-            >
-              <Form.Item
-                name="role"
-                rules={[{ required: true, message: 'Silakan pilih role Anda!' }]}
-              >
-                <select
-                  className="login-select"
-                  disabled={isSubmitting}
-                >
-                  <option value="" disabled hidden>Mau login sebagai apa?</option>
-                  <option value="admin">Admin</option>
-                  <option value="madrasah_diniyah">Madrasah Diniyah</option>
-                  <option value="bendahara">Bendahara</option>
-                </select>
-              </Form.Item>
+            <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+              <CustomSelect
+                label="Login Sebagai"
+                value={role}
+                onChange={setRole}
+                options={[
+                  { label: 'Admin', value: 'admin' },
+                  { label: 'Madrasah Diniyah', value: 'madrasah_diniyah' },
+                  { label: 'Bendahara', value: 'bendahara' }
+                ]}
+                disabled={isSubmitting}
+              />
 
-              <Form.Item
+              <FloatingInput
+                label="Username"
                 name="username"
-                rules={[
-                  { required: true, message: 'Username harus diisi!' },
-                  { min: 3, message: 'Username minimal 3 karakter!' }
-                ]}
-              >
-                <Input
-                  prefix={<UserOutlined style={{ color: 'rgba(255,255,255,0.4)' }} />}
-                  placeholder="Username"
-                  autoFocus
-                  disabled={isSubmitting}
-                />
-              </Form.Item>
+                icon={User}
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
+                required
+                disabled={isSubmitting}
+              />
 
-              <Form.Item
+              <FloatingInput
+                label="Password"
                 name="password"
-                rules={[
-                  { required: true, message: 'Password harus diisi!' },
-                  { min: 4, message: 'Password minimal 4 karakter!' }
-                ]}
+                type="password"
+                icon={Lock}
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                required
+                disabled={isSubmitting}
+              />
+
+              <button
+                type="submit"
+                className="btn-custom btn-primary glow-btn"
+                disabled={isSubmitting}
+                style={{ width: '100%', height: '46px', fontSize: '15px', marginTop: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}
               >
-                <Input.Password
-                  prefix={<LockOutlined style={{ color: 'rgba(255,255,255,0.4)' }} />}
-                  placeholder="Password"
-                  disabled={isSubmitting}
-                />
-              </Form.Item>
+                <LogIn size={18} /> {isSubmitting ? 'Memproses...' : 'Login Ke Sistem'}
+              </button>
+            </form>
 
-              <Form.Item style={{ marginBottom: 0 }}>
-                <Button
-                  type="primary"
-                  htmlType="submit"
-                  icon={<LoginOutlined />}
-                  loading={isSubmitting}
-                  block
-                  size="large"
-                  className="glow-btn"
-                >
-                  {isSubmitting ? 'Memproses...' : 'Login'}
-                </Button>
-              </Form.Item>
-            </Form>
-
-            <div className="login-footer-right">
-              <Text style={{ color: 'rgba(255,255,255,0.4)', fontSize: 12 }}>
+            <div className="login-footer-right" style={{ marginTop: '24px', textAlign: 'center' }}>
+              <span style={{ color: 'rgba(255,255,255,0.4)', fontSize: '12px' }}>
                 &copy; 2026 Alhamid Cintamulya
-              </Text>
+              </span>
             </div>
           </div>
         </div>

@@ -1,64 +1,40 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import {
-  Card,
-  Descriptions,
-  Avatar,
-  Space,
-  Button,
-  Typography,
-  Tag,
-  Divider,
-  message,
-  Upload,
-  Form,
-  Input,
-  Select
-} from 'antd';
-import {
-  UserOutlined,
-  EditOutlined,
-  LockOutlined,
-  MailOutlined,
-  PhoneOutlined,
-  ClockCircleOutlined,
-  CalendarOutlined,
-  PlusOutlined
-} from '@ant-design/icons';
+import { User, Edit2, Lock, Mail, Phone, Clock, Calendar, Save, Check } from 'lucide-react';
 import { profileService } from '../services/profileService';
 import { EditProfileModal } from '../components/features/EditProfileModal';
 import { ChangePasswordModal } from '../components/features/ChangePasswordModal';
 import { PageHeader, LoadingState, ErrorState } from '../components/common';
-import { useAuth } from '../context/AuthContext';
-import './Profile.scss';
-import { settingsService } from '../services/settingsService';
-import { CustomSelect } from '../components/ui/CustomSelect';
+import { CustomTag } from '../components/ui/CustomTag';
 import { FloatingInput } from '../components/ui/FloatingInput';
-
-const { Title, Text } = Typography;
-const { Option } = Select;
+import { CustomSelect } from '../components/ui/CustomSelect';
+import { useAuth } from '../context/AuthContext';
+import { settingsService } from '../services/settingsService';
+import './Profile.scss';
 
 export function Profile() {
   const navigate = useNavigate();
-  const { logout, updateUser, isAdmin } = useAuth();
-
-  // State
+  const { isAdmin } = useAuth();
   const [profile, setProfile] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
 
-  // Modals
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isPasswordModalOpen, setIsPasswordModalOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+
   const [editModalError, setEditModalError] = useState('');
   const [passwordModalError, setPasswordModalError] = useState('');
-  
-  // Settings State
-  const [appNameState, setAppNameState] = useState('Alhamid Cintamulya');
+
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  const [appNameState, setAppNameState] = useState('Sekolah Info');
   const [activeSemesterState, setActiveSemesterState] = useState('Ganjil');
   const [fileList, setFileList] = useState([]);
   const [settingsLoading, setSettingsLoading] = useState(false);
+
+  useEffect(() => {
+    loadProfile();
+  }, []);
 
   useEffect(() => {
     if (isAdmin()) {
@@ -68,97 +44,16 @@ export function Profile() {
 
   const loadSettings = async () => {
     try {
-      setSettingsLoading(true);
-      const settings = await settingsService.fetchSettings();
-      if (settings.app_name) setAppNameState(settings.app_name);
-      if (settings.active_semester) setActiveSemesterState(settings.active_semester);
-      if (settings.app_logo) {
-        setFileList([{
-          uid: '-1',
-          name: 'logo.png',
-          status: 'done',
-          url: settings.app_logo,
-        }]);
+      const data = await settingsService.fetchSettings();
+      if (data.app_name) setAppNameState(data.app_name);
+      if (data.active_semester) setActiveSemesterState(data.active_semester);
+      if (data.app_logo) {
+        setFileList([{ url: data.app_logo, name: 'logo.png' }]);
       }
     } catch (err) {
       console.error('Failed to load settings:', err);
-    } finally {
-      setSettingsLoading(false);
     }
   };
-
-  const handleLogoFileChange = (e) => {
-    const file = e.target.files[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.readAsDataURL(file);
-      reader.onload = () => {
-        const base64 = reader.result;
-        setFileList([{
-          uid: '-1',
-          name: file.name,
-          status: 'done',
-          url: base64,
-          originFileObj: file
-        }]);
-      };
-    }
-  };
-
-  const handleSaveSettings = async (e) => {
-    if (e && e.preventDefault) e.preventDefault();
-    try {
-      setSettingsLoading(true);
-      await settingsService.updateSetting('app_name', appNameState);
-      await settingsService.updateSetting('active_semester', activeSemesterState);
-      
-      if (fileList.length > 0 && fileList[0].originFileObj) {
-        const base64 = await new Promise((resolve, reject) => {
-          const reader = new FileReader();
-          reader.readAsDataURL(fileList[0].originFileObj);
-          reader.onload = () => resolve(reader.result);
-          reader.onerror = (error) => reject(error);
-        });
-        await settingsService.updateSetting('app_logo', base64);
-        message.success('Pengaturan berhasil disimpan! Refresh halaman untuk melihat perubahan.');
-      } else if (fileList.length === 0) {
-        // Remove logo
-        await settingsService.updateSetting('app_logo', null);
-        message.success('Pengaturan berhasil disimpan! Refresh halaman untuk melihat perubahan.');
-      } else {
-        // Logo not changed
-        message.success('Pengaturan berhasil disimpan!');
-      }
-    } catch (err) {
-      console.error('Failed to save settings:', err);
-      message.error('Gagal menyimpan pengaturan');
-    } finally {
-      setSettingsLoading(false);
-    }
-  };
-
-  const handleAvatarFileChange = async (e) => {
-    const file = e.target.files[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.readAsDataURL(file);
-      reader.onload = async () => {
-        const base64 = reader.result;
-        try {
-          await profileService.updateProfile({ photo_url: base64 });
-          message.success('Foto profil berhasil diperbarui!');
-          loadProfile(); // Reload
-        } catch (err) {
-          message.error('Gagal memperbarui foto profil');
-        }
-      };
-    }
-  };
-
-  // Load profile on mount
-  useEffect(() => {
-    loadProfile();
-  }, []);
 
   const loadProfile = async () => {
     try {
@@ -167,46 +62,21 @@ export function Profile() {
       const data = await profileService.fetchProfile();
       setProfile(data);
     } catch (err) {
-      console.error('Failed to load profile:', err);
+      console.error('Gagal memuat profil:', err);
       setError(err.message || 'Gagal memuat profil');
     } finally {
       setLoading(false);
     }
   };
 
-  const getRoleLabel = (role) => {
-    const labels = {
-      admin: 'Administrator',
-      guru: 'Guru',
-      staff: 'Staff'
-    };
-    return labels[role] || role;
-  };
-
-  const getRoleColor = (role) => {
-    const colors = {
-      admin: 'red',
-      guru: 'blue',
-      staff: 'green'
-    };
-    return colors[role] || 'default';
-  };
-
-  const formatDateTime = (dateString) => {
-    if (!dateString) return '-';
-    return new Date(dateString).toLocaleString('id-ID', {
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
-    });
-  };
-
-  // Edit profile
   const handleEditClick = () => {
     setEditModalError('');
     setIsEditModalOpen(true);
+  };
+
+  const handlePasswordClick = () => {
+    setPasswordModalError('');
+    setIsPasswordModalOpen(true);
   };
 
   const handleEditSubmit = async (data) => {
@@ -214,30 +84,14 @@ export function Profile() {
     setEditModalError('');
 
     try {
-      const updatedProfile = await profileService.updateProfile(data);
-
-      // Update local state
-      setProfile(updatedProfile);
-
-      // Update auth context
-      updateUser({
-        full_name: updatedProfile.full_name,
-        email: updatedProfile.email
-      });
-
-      message.success('Profil berhasil diperbarui');
+      await profileService.updateProfile(data);
       setIsEditModalOpen(false);
+      await loadProfile();
     } catch (err) {
       setEditModalError(err.message || 'Gagal memperbarui profil');
     } finally {
       setIsSubmitting(false);
     }
-  };
-
-  // Change password
-  const handlePasswordClick = () => {
-    setPasswordModalError('');
-    setIsPasswordModalOpen(true);
   };
 
   const handlePasswordSubmit = async (data) => {
@@ -246,14 +100,8 @@ export function Profile() {
 
     try {
       await profileService.changePassword(data);
-      message.success('Password berhasil diubah. Silakan login kembali.');
       setIsPasswordModalOpen(false);
-
-      // Logout after 2 seconds
-      setTimeout(() => {
-        logout();
-        navigate('/login');
-      }, 2000);
+      alert('Password berhasil diubah');
     } catch (err) {
       setPasswordModalError(err.message || 'Gagal mengubah password');
     } finally {
@@ -261,67 +109,146 @@ export function Profile() {
     }
   };
 
-  if (loading) {
-    return <LoadingState tip="Memuat profil..." />;
-  }
+  const handleAvatarFileChange = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
 
-  if (error) {
-    return (
-      <ErrorState
-        title="Gagal Memuat Profil"
-        subtitle={error}
-        showRetry
-        onRetry={loadProfile}
-      />
-    );
-  }
+    if (!file.type.startsWith('image/')) {
+      alert('Hanya file gambar yang diperbolehkan!');
+      return;
+    }
 
-  if (!profile) {
-    return (
-      <ErrorState
-        title="Profil Tidak Ditemukan"
-        subtitle="Data profil tidak tersedia"
-        showHome
-      />
-    );
-  }
+    if (file.size > 2 * 1024 * 1024) {
+      alert('Ukuran file maksimal 2MB!');
+      return;
+    }
+
+    try {
+      setLoading(true);
+      const result = await profileService.uploadAvatar(file);
+      setProfile(prev => ({ ...prev, photo_url: result.url }));
+    } catch (err) {
+      alert(err.message || 'Gagal mengunggah foto profil');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleLogoFileChange = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    if (!file.type.startsWith('image/')) {
+      alert('Hanya file gambar yang diperbolehkan!');
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = (uploadEvent) => {
+      setFileList([{ file, url: uploadEvent.target.result }]);
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleSaveSettings = async (e) => {
+    if (e) e.preventDefault();
+    try {
+      setSettingsLoading(true);
+      let logoUrl = fileList.length > 0 ? fileList[0].url : null;
+      if (fileList.length > 0 && fileList[0].file) {
+        const uploadRes = await settingsService.uploadLogo(fileList[0].file);
+        logoUrl = uploadRes.url;
+      }
+
+      await settingsService.updateSettings({
+        app_name: appNameState,
+        active_semester: activeSemesterState,
+        app_logo: logoUrl
+      });
+      alert('Pengaturan sistem berhasil diperbarui!');
+    } catch (err) {
+      alert(err.message || 'Gagal memperbarui pengaturan sistem.');
+    } finally {
+      setSettingsLoading(false);
+    }
+  };
+
+  const getRoleLabel = (role) => {
+    const roleLabels = {
+      admin: 'Administrator',
+      guru: 'Guru',
+      madrasah_diniyah: 'Madrasah Diniyah',
+      bendahara: 'Bendahara',
+      wali_santri: 'Wali Santri'
+    };
+    return roleLabels[role] || role;
+  };
+
+  const getRoleColor = (role) => {
+    const roleColors = {
+      admin: 'red',
+      guru: 'blue',
+      madrasah_diniyah: 'purple',
+      bendahara: 'green',
+      wali_santri: 'orange'
+    };
+    return roleColors[role] || 'default';
+  };
+
+  const formatDateTime = (dateString) => {
+    if (!dateString) return '-';
+    try {
+      const date = new Date(dateString);
+      return date.toLocaleDateString('id-ID', {
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
+      });
+    } catch (err) {
+      return dateString;
+    }
+  };
+
+  if (loading && !profile) return <LoadingState message="Memuat profil..." />;
+  if (error && !profile) return <ErrorState message={error} onRetry={loadProfile} />;
 
   return (
-    <div className="profile-page">
+    <div className="profile-page" style={{ padding: '20px' }}>
       <PageHeader
-        title="Profile Saya"
-        subtitle="Kelola informasi profil dan keamanan akun Anda"
-        breadcrumbs={[{ title: 'Profile' }]}
+        title="👤 Profil Pengguna"
+        subtitle="Kelola informasi akun dan kata sandi Anda"
         extra={
-          <Space>
-            <Button
-              icon={<EditOutlined />}
-              onClick={handleEditClick}
-            >
-              Edit Profile
-            </Button>
-            <Button
-              icon={<LockOutlined />}
-              onClick={handlePasswordClick}
-            >
-              Ubah Password
-            </Button>
-          </Space>
+          <div style={{ display: 'flex', gap: '8px' }}>
+            <button type="button" className="btn-custom btn-primary" onClick={handleEditClick}>
+              <Edit2 size={16} /> Edit Profile
+            </button>
+            <button type="button" className="btn-custom btn-secondary" onClick={handlePasswordClick}>
+              <Lock size={16} /> Ubah Password
+            </button>
+          </div>
         }
       />
 
-      <Card className="profile-card">
-        <div className="profile-header">
+      <div style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '24px', marginTop: '16px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '20px', flexWrap: 'wrap' }}>
           <div style={{ cursor: 'pointer', position: 'relative' }} onClick={() => document.getElementById('avatar-input').click()}>
-            <Avatar
-              size={100}
-              icon={<UserOutlined />}
-              src={profile.photo_url}
-              style={{
-                backgroundColor: '#2196f3',
-                fontSize: '48px'
-              }}
-            />
+            <div style={{
+              width: '90px',
+              height: '90px',
+              borderRadius: '50%',
+              background: '#2196f3',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              color: '#fff',
+              overflow: 'hidden'
+            }}>
+              {profile.photo_url ? (
+                <img src={profile.photo_url} alt="avatar" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+              ) : (
+                <User size={44} />
+              )}
+            </div>
             <input
               id="avatar-input"
               type="file"
@@ -330,160 +257,115 @@ export function Profile() {
               accept="image/*"
             />
           </div>
-          <div className="profile-info">
-            <Space direction="vertical" size={4}>
-              <Title level={3} style={{ margin: 0 }}>
-                {profile.full_name}
-              </Title>
-              <Space>
-                <Tag color={getRoleColor(profile.role)}>
-                  {getRoleLabel(profile.role)}
-                </Tag>
-                <Text type="secondary">@{profile.username}</Text>
-              </Space>
-            </Space>
+
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+            <h2 style={{ margin: 0, fontSize: '22px', color: '#0f172a' }}>{profile.full_name}</h2>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <CustomTag color={getRoleColor(profile.role)}>{getRoleLabel(profile.role)}</CustomTag>
+              <span style={{ color: '#64748b', fontSize: '14px' }}>@{profile.username}</span>
+            </div>
           </div>
         </div>
 
-        <Divider />
+        <div style={{ height: '1px', background: '#e2e8f0', margin: '24px 0' }} />
 
-        <Descriptions
-          title="Informasi Akun"
-          column={{ xs: 1, sm: 1, md: 2 }}
-          labelStyle={{ fontWeight: 600 }}
-        >
-          <Descriptions.Item
-            label={
-              <Space>
-                <UserOutlined />
-                <span>Username</span>
-              </Space>
-            }
-          >
-            {profile.username}
-          </Descriptions.Item>
-
-          <Descriptions.Item
-            label={
-              <Space>
-                <MailOutlined />
-                <span>Email</span>
-              </Space>
-            }
-          >
-            {profile.email || '-'}
-          </Descriptions.Item>
-
-          <Descriptions.Item
-            label={
-              <Space>
-                <PhoneOutlined />
-                <span>No. HP</span>
-              </Space>
-            }
-          >
-            {profile.phone || '-'}
-          </Descriptions.Item>
-
-          <Descriptions.Item
-            label={
-              <Space>
-                <ClockCircleOutlined />
-                <span>Last Login</span>
-              </Space>
-            }
-          >
-            {formatDateTime(profile.last_login)}
-          </Descriptions.Item>
-
-          <Descriptions.Item
-            label={
-              <Space>
-                <CalendarOutlined />
-                <span>Terdaftar Sejak</span>
-              </Space>
-            }
-            span={2}
-          >
-            {formatDateTime(profile.created_at)}
-          </Descriptions.Item>
-        </Descriptions>
-      </Card>
+        <h3 style={{ margin: '0 0 16px 0', fontSize: '16px', color: '#0f172a' }}>Informasi Akun</h3>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '16px', fontSize: '13px' }}>
+          <div style={{ background: '#f8fafc', padding: '12px', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
+            <span style={{ color: '#64748b', display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '4px' }}><User size={14} /> Username</span>
+            <strong>{profile.username}</strong>
+          </div>
+          <div style={{ background: '#f8fafc', padding: '12px', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
+            <span style={{ color: '#64748b', display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '4px' }}><Mail size={14} /> Email</span>
+            <strong>{profile.email || '-'}</strong>
+          </div>
+          <div style={{ background: '#f8fafc', padding: '12px', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
+            <span style={{ color: '#64748b', display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '4px' }}><Phone size={14} /> No. HP</span>
+            <strong>{profile.phone || '-'}</strong>
+          </div>
+          <div style={{ background: '#f8fafc', padding: '12px', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
+            <span style={{ color: '#64748b', display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '4px' }}><Clock size={14} /> Last Login</span>
+            <strong>{formatDateTime(profile.last_login)}</strong>
+          </div>
+          <div style={{ background: '#f8fafc', padding: '12px', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
+            <span style={{ color: '#64748b', display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '4px' }}><Calendar size={14} /> Terdaftar Sejak</span>
+            <strong>{formatDateTime(profile.created_at)}</strong>
+          </div>
+        </div>
+      </div>
 
       {isAdmin() && (
-        <Card className="profile-card" title="Pengaturan Sistem" style={{ marginTop: 16 }}>
-          <form onSubmit={handleSaveSettings} className="settings-form">
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', maxWidth: '500px' }}>
-              <FloatingInput
-                label="Nama Aplikasi"
-                name="app_name"
-                value={appNameState}
-                onChange={(e) => setAppNameState(e.target.value)}
-                required
-              />
+        <div style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '24px', marginTop: '16px' }}>
+          <h3 style={{ margin: '0 0 16px 0', fontSize: '16px', color: '#0f172a' }}>Pengaturan Sistem</h3>
+          <form onSubmit={handleSaveSettings} style={{ display: 'flex', flexDirection: 'column', gap: '16px', maxWidth: '500px' }}>
+            <FloatingInput
+              label="Nama Aplikasi"
+              name="app_name"
+              value={appNameState}
+              onChange={(e) => setAppNameState(e.target.value)}
+              required
+            />
 
-              <CustomSelect
-                label="Semester Aktif"
-                value={activeSemesterState}
-                onChange={(val) => setActiveSemesterState(val)}
-                options={[
-                  { label: 'Semester Ganjil', value: 'Ganjil' },
-                  { label: 'Semester Genap', value: 'Genap' }
-                ]}
-                required
-              />
+            <CustomSelect
+              label="Semester Aktif"
+              value={activeSemesterState}
+              onChange={(val) => setActiveSemesterState(val)}
+              options={[
+                { label: 'Semester Ganjil', value: 'Ganjil' },
+                { label: 'Semester Genap', value: 'Genap' }
+              ]}
+              required
+            />
 
-              <div>
-                <label style={{ display: 'block', marginBottom: '8px', fontWeight: 500, color: 'var(--lt-text-secondary, #475569)', fontSize: '13px' }}>
-                  Logo Aplikasi
-                </label>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
-                  {fileList.length > 0 && fileList[0].url && (
-                    <div style={{ width: 100, height: 100, border: '1px solid #e2e8f0', borderRadius: 8, padding: 4, display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#f8fafc' }}>
-                      <img src={fileList[0].url} alt="logo" style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain' }} />
-                    </div>
-                  )}
+            <div>
+              <label style={{ display: 'block', marginBottom: '8px', fontWeight: 500, color: '#475569', fontSize: '13px' }}>
+                Logo Aplikasi
+              </label>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+                {fileList.length > 0 && fileList[0].url && (
+                  <div style={{ width: 80, height: 80, border: '1px solid #e2e8f0', borderRadius: 8, padding: 4, display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#f8fafc' }}>
+                    <img src={fileList[0].url} alt="logo" style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain' }} />
+                  </div>
+                )}
+                <button
+                  type="button"
+                  className="btn-custom btn-secondary"
+                  onClick={() => document.getElementById('logo-input').click()}
+                >
+                  Pilih Logo
+                </button>
+                <input
+                  id="logo-input"
+                  type="file"
+                  style={{ display: 'none' }}
+                  onChange={handleLogoFileChange}
+                  accept="image/*"
+                />
+                {fileList.length > 0 && (
                   <button
                     type="button"
-                    className="btn-custom btn-secondary"
-                    onClick={() => document.getElementById('logo-input').click()}
+                    className="btn-custom btn-danger"
+                    onClick={() => setFileList([])}
                   >
-                    Pilih Logo
+                    Hapus
                   </button>
-                  <input
-                    id="logo-input"
-                    type="file"
-                    style={{ display: 'none' }}
-                    onChange={handleLogoFileChange}
-                    accept="image/*"
-                  />
-                  {fileList.length > 0 && (
-                    <button
-                      type="button"
-                      className="btn-custom btn-danger"
-                      onClick={() => setFileList([])}
-                    >
-                      Hapus
-                    </button>
-                  )}
-                </div>
-              </div>
-
-              <div>
-                <button
-                  type="submit"
-                  className="btn-custom btn-primary"
-                  disabled={settingsLoading}
-                >
-                  {settingsLoading ? 'Menyimpan...' : 'Simpan Pengaturan'}
-                </button>
+                )}
               </div>
             </div>
+
+            <div>
+              <button
+                type="submit"
+                className="btn-custom btn-primary"
+                disabled={settingsLoading}
+              >
+                {settingsLoading ? 'Menyimpan...' : 'Simpan Pengaturan'}
+              </button>
+            </div>
           </form>
-        </Card>
+        </div>
       )}
 
-      {/* Modals */}
       <EditProfileModal
         isOpen={isEditModalOpen}
         onClose={() => setIsEditModalOpen(false)}

@@ -1,13 +1,11 @@
-import { useEffect } from 'react';
-import { Modal, Form, Input, Select, DatePicker, Alert, Row, Col } from 'antd';
-import { UserOutlined, IdcardOutlined, HomeOutlined, PhoneOutlined } from '@ant-design/icons';
-import dayjs from 'dayjs';
-import customParseFormat from 'dayjs/plugin/customParseFormat';
+import { useState, useEffect } from 'react';
+import { CustomModal } from '../ui/CustomModal';
+import { FloatingInput } from '../ui/FloatingInput';
+import { CustomSelect } from '../ui/CustomSelect';
+import { CustomDatePicker } from '../ui/CustomDatePicker';
+import { SmartAlert } from '../ui/SmartAlert';
+import { User, IdCard, Home, Phone, Briefcase, FileText, Save } from 'lucide-react';
 import './SantriModal.scss';
-
-dayjs.extend(customParseFormat);
-
-const { Option } = Select;
 
 export function SantriModal({
   isOpen,
@@ -19,319 +17,365 @@ export function SantriModal({
   isSubmitting = false,
   error = null
 }) {
-  const [form] = Form.useForm();
+  const [formData, setFormData] = useState({
+    nis: '',
+    nik: '',
+    nama: '',
+    jenis_kelamin: '',
+    tempat_lahir: '',
+    tanggal_lahir: '',
+    kelas_diniyah_id: '',
+    kelas_sekolah_id: '',
+    kamar_id: '',
+    status_tahun_ajaran: 'aktif',
+    catatan_tahun_ajaran: '',
+    alamat: '',
+    nama_ayah: '',
+    pekerjaan_ayah: '',
+    no_hp_ayah: '',
+    nama_ibu: '',
+    pekerjaan_ibu: '',
+    no_hp_ibu: ''
+  });
+  const [formErrors, setFormErrors] = useState({});
 
   useEffect(() => {
     if (isOpen) {
       if (editData) {
-        // Parse date for edit mode
-        const tanggalLahir = editData.tanggal_lahir
-          ? dayjs(editData.tanggal_lahir, ['YYYY-MM-DD', 'DD/MM/YYYY'])
-          : null;
-
-        form.setFieldsValue({
-          ...editData,
-          tanggal_lahir: tanggalLahir,
-          kelas_diniyah_id: editData.kelas_diniyah_id || undefined,
-          kelas_sekolah_id: editData.kelas_sekolah_id || undefined,
-          kamar_id: editData.kamar_id || undefined
+        setFormData({
+          nis: editData.nis || '',
+          nik: editData.nik || '',
+          nama: editData.nama || '',
+          jenis_kelamin: editData.jenis_kelamin || '',
+          tempat_lahir: editData.tempat_lahir || '',
+          tanggal_lahir: editData.tanggal_lahir ? editData.tanggal_lahir.split('T')[0] : '',
+          kelas_diniyah_id: editData.kelas_diniyah_id ? String(editData.kelas_diniyah_id) : '',
+          kelas_sekolah_id: editData.kelas_sekolah_id ? String(editData.kelas_sekolah_id) : '',
+          kamar_id: editData.kamar_id ? String(editData.kamar_id) : '',
+          status_tahun_ajaran: editData.status_tahun_ajaran || 'aktif',
+          catatan_tahun_ajaran: editData.catatan_tahun_ajaran || '',
+          alamat: editData.alamat || '',
+          nama_ayah: editData.nama_ayah || '',
+          pekerjaan_ayah: editData.pekerjaan_ayah || '',
+          no_hp_ayah: editData.no_hp_ayah || '',
+          nama_ibu: editData.nama_ibu || '',
+          pekerjaan_ibu: editData.pekerjaan_ibu || '',
+          no_hp_ibu: editData.no_hp_ibu || ''
         });
       } else {
-        form.resetFields();
-        form.setFieldsValue({
-          status_tahun_ajaran: 'aktif'
+        setFormData({
+          nis: '',
+          nik: '',
+          nama: '',
+          jenis_kelamin: '',
+          tempat_lahir: '',
+          tanggal_lahir: '',
+          kelas_diniyah_id: '',
+          kelas_sekolah_id: '',
+          kamar_id: '',
+          status_tahun_ajaran: 'aktif',
+          catatan_tahun_ajaran: '',
+          alamat: '',
+          nama_ayah: '',
+          pekerjaan_ayah: '',
+          no_hp_ayah: '',
+          nama_ibu: '',
+          pekerjaan_ibu: '',
+          no_hp_ibu: ''
         });
       }
+      setFormErrors({});
     }
-  }, [editData, isOpen, form]);
+  }, [isOpen, editData]);
 
-  const handleSubmit = async () => {
-    try {
-      const values = await form.validateFields();
-
-      // Format date to ISO
-      const submitData = {
-        ...values,
-        tanggal_lahir: values.tanggal_lahir
-          ? values.tanggal_lahir.format('YYYY-MM-DD')
-          : null,
-        kelas_diniyah_id: values.kelas_diniyah_id || null,
-        kelas_sekolah_id: values.kelas_sekolah_id || null,
-        kamar_id: values.kamar_id || null
-      };
-
-      onSubmit(submitData);
-    } catch (err) {
-      console.error('Validation failed:', err);
+  const handleChange = (name, value) => {
+    setFormData(prev => ({ ...prev, [name]: value }));
+    if (formErrors[name]) {
+      setFormErrors(prev => ({ ...prev, [name]: '' }));
     }
   };
 
-  const handleCancel = () => {
-    form.resetFields();
-    onClose();
+  const handleSubmit = (e) => {
+    if (e) e.preventDefault();
+
+    const errors = {};
+    if (!formData.nis || !formData.nis.trim()) errors.nis = 'NIS wajib diisi';
+    if (!formData.nama || !formData.nama.trim()) errors.nama = 'Nama lengkap wajib diisi';
+
+    if (Object.keys(errors).length > 0) {
+      setFormErrors(errors);
+      return;
+    }
+
+    const submissionData = {
+      ...formData,
+      nis: formData.nis.trim(),
+      nama: formData.nama.trim(),
+      nik: formData.nik ? formData.nik.trim() : null,
+      tempat_lahir: formData.tempat_lahir ? formData.tempat_lahir.trim() : null,
+      tanggal_lahir: formData.tanggal_lahir || null,
+      kelas_diniyah_id: formData.kelas_diniyah_id ? Number(formData.kelas_diniyah_id) : null,
+      kelas_sekolah_id: formData.kelas_sekolah_id ? Number(formData.kelas_sekolah_id) : null,
+      kamar_id: formData.kamar_id ? Number(formData.kamar_id) : null,
+      alamat: formData.alamat ? formData.alamat.trim() : null,
+      catatan_tahun_ajaran: formData.catatan_tahun_ajaran ? formData.catatan_tahun_ajaran.trim() : null,
+      nama_ayah: formData.nama_ayah ? formData.nama_ayah.trim() : null,
+      pekerjaan_ayah: formData.pekerjaan_ayah ? formData.pekerjaan_ayah.trim() : null,
+      no_hp_ayah: formData.no_hp_ayah ? formData.no_hp_ayah.trim() : null,
+      nama_ibu: formData.nama_ibu ? formData.nama_ibu.trim() : null,
+      pekerjaan_ibu: formData.pekerjaan_ibu ? formData.pekerjaan_ibu.trim() : null,
+      no_hp_ibu: formData.no_hp_ibu ? formData.no_hp_ibu.trim() : null
+    };
+
+    onSubmit(submissionData);
   };
 
-  const kelasDiniyah = kelasList.filter(k => k.jenis === 'Diniyah');
-  const kelasSekolah = kelasList.filter(k => k.jenis === 'Sekolah');
+  const kelasDiniyahOptions = kelasList
+    .filter(k => k.jenis === 'Diniyah')
+    .map(k => ({ label: k.nama, value: String(k.id) }));
+
+  const kelasSekolahOptions = kelasList
+    .filter(k => k.jenis === 'Sekolah')
+    .map(k => ({ label: k.nama, value: String(k.id) }));
+
+  const kamarOptions = kamarList.map(k => ({
+    label: `${k.nama} (${k.jenis}) - ${k.terisi}/${k.kapasitas}`,
+    value: String(k.id)
+  }));
 
   return (
-    <Modal
+    <CustomModal
       open={isOpen}
-      title={editData ? 'Edit Santri' : 'Tambah Santri'}
-      onCancel={handleCancel}
-      onOk={handleSubmit}
-      confirmLoading={isSubmitting}
-      width={800}
-      okText={editData ? 'Perbarui' : 'Simpan'}
-      cancelText="Batal"
-      className="santri-modal"
-      destroyOnClose
+      onClose={onClose}
+      title={editData ? 'Edit Data Santri' : 'Tambah Santri Baru'}
+      subtitle={editData ? 'Perbarui informasi identitas & akademik santri' : 'Daftarkan santri baru ke dalam sistem'}
+      icon={<User />}
+      width={720}
+      footer={
+        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px', width: '100%' }}>
+          <button type="button" className="btn-custom btn-secondary" onClick={onClose} disabled={isSubmitting}>
+            Batal
+          </button>
+          <button type="button" className="btn-custom btn-primary" onClick={handleSubmit} disabled={isSubmitting}>
+            {isSubmitting ? 'Menyimpan...' : <span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}><Save size={16} /> {editData ? 'Perbarui' : 'Simpan'}</span>}
+          </button>
+        </div>
+      }
     >
-      {error && (
-        <Alert
-          message="Error"
-          description={error}
-          type="error"
-          showIcon
-          closable
-          style={{ marginBottom: 16 }}
-        />
-      )}
+      <div className="santri-form-container">
+        {error && <div style={{ marginBottom: '16px' }}><SmartAlert message={error} type="error" /></div>}
 
-      <Form
-        form={form}
-        layout="vertical"
-        disabled={isSubmitting}
-      >
-        {/* Data Santri Section */}
-        <div className="form-section">
-          <div className="form-section-title">Data Santri</div>
-
-          <Row gutter={16}>
-            <Col xs={24} sm={12}>
-              <Form.Item
+        <form onSubmit={handleSubmit} className="santri-modal-form">
+          {/* Section 1: Data Santri */}
+          <div className="form-group-section">
+            <h4 className="section-title">Data Identitas Santri</h4>
+            <div className="form-grid-2">
+              <FloatingInput
+                label="NIS Santri"
                 name="nis"
-                label="NIS"
-                rules={[{ required: true, message: 'NIS wajib diisi' }]}
-              >
-                <Input prefix={<IdcardOutlined />} placeholder="Masukkan NIS" />
-              </Form.Item>
-            </Col>
+                icon={IdCard}
+                value={formData.nis}
+                onChange={(e) => handleChange('nis', e.target.value)}
+                error={formErrors.nis}
+                required
+                disabled={isSubmitting}
+                placeholder="Masukkan NIS"
+              />
 
-            <Col xs={24} sm={12}>
-              <Form.Item
+              <FloatingInput
+                label="NIK (No. KTP/KK)"
                 name="nik"
-                label="NIK"
-              >
-                <Input prefix={<IdcardOutlined />} placeholder="Masukkan NIK" />
-              </Form.Item>
-            </Col>
-          </Row>
+                icon={IdCard}
+                value={formData.nik}
+                onChange={(e) => handleChange('nik', e.target.value)}
+                disabled={isSubmitting}
+                placeholder="Masukkan NIK"
+              />
+            </div>
 
-          <Row gutter={16}>
-            <Col xs={24} sm={12}>
-              <Form.Item
-                name="nama"
+            <div className="form-grid-2">
+              <FloatingInput
                 label="Nama Lengkap"
-                rules={[{ required: true, message: 'Nama wajib diisi' }]}
-              >
-                <Input prefix={<UserOutlined />} placeholder="Masukkan nama lengkap" />
-              </Form.Item>
-            </Col>
+                name="nama"
+                icon={User}
+                value={formData.nama}
+                onChange={(e) => handleChange('nama', e.target.value)}
+                error={formErrors.nama}
+                required
+                disabled={isSubmitting}
+                placeholder="Masukkan nama lengkap"
+              />
 
-            <Col xs={24} sm={12}>
-              <Form.Item
-                name="jenis_kelamin"
+              <CustomSelect
                 label="Jenis Kelamin"
-              >
-                <Select placeholder="Pilih jenis kelamin">
-                  <Option value="Laki-laki">Laki-laki</Option>
-                  <Option value="Perempuan">Perempuan</Option>
-                </Select>
-              </Form.Item>
-            </Col>
-          </Row>
+                value={formData.jenis_kelamin}
+                onChange={(v) => handleChange('jenis_kelamin', v)}
+                options={[
+                  { label: 'Laki-laki', value: 'Laki-laki' },
+                  { label: 'Perempuan', value: 'Perempuan' }
+                ]}
+                disabled={isSubmitting}
+              />
+            </div>
 
-          <Row gutter={16}>
-            <Col xs={24} sm={12}>
-              <Form.Item
-                name="tempat_lahir"
+            <div className="form-grid-2">
+              <FloatingInput
                 label="Tempat Lahir"
-              >
-                <Input prefix={<HomeOutlined />} placeholder="Masukkan tempat lahir" />
-              </Form.Item>
-            </Col>
+                name="tempat_lahir"
+                icon={Home}
+                value={formData.tempat_lahir}
+                onChange={(e) => handleChange('tempat_lahir', e.target.value)}
+                disabled={isSubmitting}
+                placeholder="Kota lahir"
+              />
 
-            <Col xs={24} sm={12}>
-              <Form.Item
-                name="tanggal_lahir"
+              <CustomDatePicker
                 label="Tanggal Lahir"
-              >
-                <DatePicker
-                  style={{ width: '100%' }}
-                  format="DD/MM/YYYY"
-                  placeholder="Pilih tanggal lahir"
-                />
-              </Form.Item>
-            </Col>
-          </Row>
+                value={formData.tanggal_lahir}
+                onChange={(v) => handleChange('tanggal_lahir', v)}
+                disabled={isSubmitting}
+              />
+            </div>
 
-          <Row gutter={16}>
-            <Col xs={24} sm={12}>
-              <Form.Item
-                name="kelas_diniyah_id"
+            <div className="form-grid-2">
+              <CustomSelect
                 label="Kelas Diniyah"
-              >
-                <Select placeholder="Pilih kelas diniyah" allowClear>
-                  {kelasDiniyah.map(kelas => (
-                    <Option key={kelas.id} value={kelas.id}>
-                      {kelas.nama}
-                    </Option>
-                  ))}
-                </Select>
-              </Form.Item>
-            </Col>
+                value={formData.kelas_diniyah_id}
+                onChange={(v) => handleChange('kelas_diniyah_id', v)}
+                options={kelasDiniyahOptions}
+                placeholder="Pilih kelas Diniyah"
+                disabled={isSubmitting}
+              />
 
-            <Col xs={24} sm={12}>
-              <Form.Item
-                name="kelas_sekolah_id"
+              <CustomSelect
                 label="Kelas Sekolah"
-              >
-                <Select placeholder="Pilih kelas sekolah" allowClear>
-                  {kelasSekolah.map(kelas => (
-                    <Option key={kelas.id} value={kelas.id}>
-                      {kelas.nama}
-                    </Option>
-                  ))}
-                </Select>
-              </Form.Item>
-            </Col>
-          </Row>
+                value={formData.kelas_sekolah_id}
+                onChange={(v) => handleChange('kelas_sekolah_id', v)}
+                options={kelasSekolahOptions}
+                placeholder="Pilih kelas Sekolah"
+                disabled={isSubmitting}
+              />
+            </div>
 
-          <Row gutter={16}>
-            <Col xs={24} sm={12}>
-              <Form.Item
-                name="kamar_id"
+            <div className="form-grid-2">
+              <CustomSelect
                 label="Kamar Asrama"
-              >
-                <Select placeholder="Pilih kamar" allowClear>
-                  {kamarList.map(kamar => (
-                    <Option
-                      key={kamar.id}
-                      value={kamar.id}
-                      disabled={kamar.status === 'Penuh'}
-                    >
-                      {kamar.nama} ({kamar.jenis}) - {kamar.terisi}/{kamar.kapasitas}
-                    </Option>
-                  ))}
-                </Select>
-              </Form.Item>
-            </Col>
+                value={formData.kamar_id}
+                onChange={(v) => handleChange('kamar_id', v)}
+                options={kamarOptions}
+                placeholder="Pilih kamar asrama"
+                disabled={isSubmitting}
+              />
 
-            <Col xs={24} sm={12}>
-              <Form.Item
-                name="status_tahun_ajaran"
-                label="Status Tahun Ajaran"
-              >
-                <Select placeholder="Pilih status">
-                  <Option value="aktif">Aktif</Option>
-                  <Option value="draft">Draft</Option>
-                  <Option value="tidak_naik">Tidak Naik</Option>
-                  <Option value="lulus">Lulus</Option>
-                  <Option value="alumni">Alumni</Option>
-                  <Option value="pindah">Pindah</Option>
-                  <Option value="keluar">Keluar</Option>
-                </Select>
-              </Form.Item>
-            </Col>
-          </Row>
+              <CustomSelect
+                label="Status Periode"
+                value={formData.status_tahun_ajaran}
+                onChange={(v) => handleChange('status_tahun_ajaran', v)}
+                options={[
+                  { label: 'Aktif', value: 'aktif' },
+                  { label: 'Draft', value: 'draft' },
+                  { label: 'Tidak Naik', value: 'tidak_naik' },
+                  { label: 'Lulus', value: 'lulus' },
+                  { label: 'Alumni', value: 'alumni' },
+                  { label: 'Pindah', value: 'pindah' },
+                  { label: 'Keluar', value: 'keluar' }
+                ]}
+                disabled={isSubmitting}
+              />
+            </div>
 
-          <Form.Item
-            name="alamat"
-            label="Alamat"
-          >
-            <Input.TextArea
-              rows={2}
-              placeholder="Masukkan alamat lengkap"
+            <FloatingInput
+              label="Alamat Tempat Tinggal"
+              name="alamat"
+              icon={Home}
+              value={formData.alamat}
+              onChange={(e) => handleChange('alamat', e.target.value)}
+              disabled={isSubmitting}
+              placeholder="Alamat lengkap"
             />
-          </Form.Item>
 
-          <Form.Item
-            name="catatan_tahun_ajaran"
-            label="Catatan Tahun Ajaran"
-          >
-            <Input.TextArea
-              rows={2}
-              placeholder="Masukkan catatan (opsional)"
+            <FloatingInput
+              label="Catatan Periode Akademik"
+              name="catatan_tahun_ajaran"
+              icon={FileText}
+              value={formData.catatan_tahun_ajaran}
+              onChange={(e) => handleChange('catatan_tahun_ajaran', e.target.value)}
+              disabled={isSubmitting}
+              placeholder="Catatan tambahan santri"
             />
-          </Form.Item>
-        </div>
+          </div>
 
-        {/* Data Orang Tua Section */}
-        <div className="form-section">
-          <div className="form-section-title">Data Orang Tua</div>
-
-          <Row gutter={16}>
-            <Col xs={24} sm={12}>
-              <Form.Item
-                name="nama_ayah"
+          {/* Section 2: Data Orang Tua */}
+          <div className="form-group-section">
+            <h4 className="section-title">Data Orang Tua / Wali</h4>
+            <div className="form-grid-2">
+              <FloatingInput
                 label="Nama Ayah"
-              >
-                <Input prefix={<UserOutlined />} placeholder="Masukkan nama ayah" />
-              </Form.Item>
-            </Col>
+                name="nama_ayah"
+                icon={User}
+                value={formData.nama_ayah}
+                onChange={(e) => handleChange('nama_ayah', e.target.value)}
+                disabled={isSubmitting}
+                placeholder="Nama ayah kandung/wali"
+              />
 
-            <Col xs={24} sm={12}>
-              <Form.Item
-                name="pekerjaan_ayah"
+              <FloatingInput
                 label="Pekerjaan Ayah"
-              >
-                <Input placeholder="Masukkan pekerjaan ayah" />
-              </Form.Item>
-            </Col>
-          </Row>
+                name="pekerjaan_ayah"
+                icon={Briefcase}
+                value={formData.pekerjaan_ayah}
+                onChange={(e) => handleChange('pekerjaan_ayah', e.target.value)}
+                disabled={isSubmitting}
+                placeholder="Pekerjaan ayah"
+              />
+            </div>
 
-          <Row gutter={16}>
-            <Col xs={24} sm={12}>
-              <Form.Item
-                name="no_hp_ayah"
+            <div className="form-grid-2">
+              <FloatingInput
                 label="No. HP Ayah"
-              >
-                <Input prefix={<PhoneOutlined />} placeholder="Masukkan no. HP ayah" />
-              </Form.Item>
-            </Col>
+                name="no_hp_ayah"
+                icon={Phone}
+                value={formData.no_hp_ayah}
+                onChange={(e) => handleChange('no_hp_ayah', e.target.value)}
+                disabled={isSubmitting}
+                placeholder="Nomor HP WhatsApp"
+              />
 
-            <Col xs={24} sm={12}>
-              <Form.Item
-                name="nama_ibu"
+              <FloatingInput
                 label="Nama Ibu"
-              >
-                <Input prefix={<UserOutlined />} placeholder="Masukkan nama ibu" />
-              </Form.Item>
-            </Col>
-          </Row>
+                name="nama_ibu"
+                icon={User}
+                value={formData.nama_ibu}
+                onChange={(e) => handleChange('nama_ibu', e.target.value)}
+                disabled={isSubmitting}
+                placeholder="Nama ibu kandung"
+              />
+            </div>
 
-          <Row gutter={16}>
-            <Col xs={24} sm={12}>
-              <Form.Item
-                name="pekerjaan_ibu"
+            <div className="form-grid-2">
+              <FloatingInput
                 label="Pekerjaan Ibu"
-              >
-                <Input placeholder="Masukkan pekerjaan ibu" />
-              </Form.Item>
-            </Col>
+                name="pekerjaan_ibu"
+                icon={Briefcase}
+                value={formData.pekerjaan_ibu}
+                onChange={(e) => handleChange('pekerjaan_ibu', e.target.value)}
+                disabled={isSubmitting}
+                placeholder="Pekerjaan ibu"
+              />
 
-            <Col xs={24} sm={12}>
-              <Form.Item
-                name="no_hp_ibu"
+              <FloatingInput
                 label="No. HP Ibu"
-              >
-                <Input prefix={<PhoneOutlined />} placeholder="Masukkan no. HP ibu" />
-              </Form.Item>
-            </Col>
-          </Row>
-        </div>
-      </Form>
-    </Modal>
+                name="no_hp_ibu"
+                icon={Phone}
+                value={formData.no_hp_ibu}
+                onChange={(e) => handleChange('no_hp_ibu', e.target.value)}
+                disabled={isSubmitting}
+                placeholder="Nomor HP WhatsApp"
+              />
+            </div>
+          </div>
+        </form>
+      </div>
+    </CustomModal>
   );
 }

@@ -1,7 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
-import { Button, Row, Col, message as antMessage, Tabs, Select, Input, Table, Tag, Space, Tooltip } from 'antd';
-import { PlusOutlined, SearchOutlined, ClearOutlined } from '@ant-design/icons';
-import { UserCheck, UserX } from 'lucide-react';
+import { UserCheck, UserX, Plus, RotateCcw, Edit2, Trash2 } from 'lucide-react';
 import { alumniService } from '../services/alumniService';
 import { AlumniStats } from '../components/features/AlumniStats';
 import { AlumniCard } from '../components/features/AlumniCard';
@@ -9,26 +7,23 @@ import { MigrateSantriModal } from '../components/features/MigrateSantriModal';
 import { AlumniEditModal } from '../components/features/AlumniEditModal';
 import { AlumniDetailModal } from '../components/features/AlumniDetailModal';
 import { PageHeader, LoadingState, ErrorState, EmptyState } from '../components/common';
+import { CustomTabs } from '../components/ui/CustomTabs';
+import { CustomTag } from '../components/ui/CustomTag';
+import { SearchInput } from '../components/common/SearchInput';
+import { CustomSelect } from '../components/ui/CustomSelect';
 import { santriService } from '../services/santriService';
 import './Alumni.scss';
 
-const { Option } = Select;
-
 export function Alumni() {
-  // All data
   const [allAlumni, setAllAlumni] = useState([]);
   const [santriList, setSantriList] = useState([]);
   const [tahunAjaranList, setTahunAjaranList] = useState([]);
-
-  // Tabs
   const [activeTab, setActiveTab] = useState('alumni');
 
-  // Filters (shared)
   const [searchKeyword, setSearchKeyword] = useState('');
   const [filterTahunAjaran, setFilterTahunAjaran] = useState('');
   const [filterTahunLulus, setFilterTahunLulus] = useState('');
 
-  // Modals
   const [isMigrateModalOpen, setIsMigrateModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
@@ -38,11 +33,9 @@ export function Alumni() {
   const [migrateModalError, setMigrateModalError] = useState('');
   const [editModalError, setEditModalError] = useState('');
 
-  // Loading & Error
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  // Load initial data
   useEffect(() => {
     loadInitialData();
   }, []);
@@ -73,11 +66,9 @@ export function Alumni() {
       setAllAlumni(data);
     } catch (err) {
       console.error('Gagal memuat data alumni:', err);
-      antMessage.error('Gagal memuat data alumni');
     }
   };
 
-  // Filter helper
   const filterData = (list) => {
     return list.filter(item => {
       const keyword = searchKeyword.toLowerCase();
@@ -85,16 +76,13 @@ export function Alumni() {
       const nis = String(item.nis || '').toLowerCase();
       const matchesSearch = !keyword || nama.includes(keyword) || nis.includes(keyword);
 
-      const matchesTahunLulus = !filterTahunLulus || item.tahun_lulus == filterTahunLulus;
-
-      const matchesTahunAjaran = !filterTahunAjaran ||
-        item.tahun_ajaran_id == filterTahunAjaran;
+      const matchesTahunLulus = !filterTahunLulus || String(item.tahun_lulus) === String(filterTahunLulus);
+      const matchesTahunAjaran = !filterTahunAjaran || String(item.tahun_ajaran_id) === String(filterTahunAjaran);
 
       return matchesSearch && matchesTahunLulus && matchesTahunAjaran;
     });
   };
 
-  // Derived lists per tab
   const alumniDataList = useMemo(() =>
     filterData(allAlumni.filter(a => a.tipe === 'alumni' || !a.tipe)),
     [allAlumni, searchKeyword, filterTahunLulus, filterTahunAjaran]
@@ -105,13 +93,11 @@ export function Alumni() {
     [allAlumni, searchKeyword, filterTahunLulus, filterTahunAjaran]
   );
 
-  // Year options for filter
   const tahunLulusOptions = useMemo(() => {
     const years = [...new Set(allAlumni.map(a => a.tahun_lulus))].filter(Boolean);
     return years.sort((a, b) => b - a);
   }, [allAlumni]);
 
-  // Handlers
   const handleMigrateClick = () => {
     setMigrateModalError('');
     setIsMigrateModalOpen(true);
@@ -121,8 +107,7 @@ export function Alumni() {
     setIsSubmitting(true);
     setMigrateModalError('');
     try {
-      const result = await alumniService.migrateSantri(data);
-      antMessage.success(result.message || 'Data santri berhasil dipindahkan ke alumni');
+      await alumniService.migrateSantri(data);
       setIsMigrateModalOpen(false);
       await loadAlumni();
       const santriData = await alumniService.fetchActiveSantri().catch(() => []);
@@ -145,7 +130,6 @@ export function Alumni() {
     setEditModalError('');
     try {
       await alumniService.updateAlumni(editingAlumni.id, data);
-      antMessage.success('Data berhasil diperbarui');
       setIsEditModalOpen(false);
       await loadAlumni();
     } catch (err) {
@@ -158,25 +142,23 @@ export function Alumni() {
   const handleDeleteClick = async (id, nama) => {
     if (!confirm(`Apakah Anda yakin ingin menghapus data ${nama}?`)) return;
     try {
-      const result = await alumniService.deleteAlumni(id);
-      antMessage.success(result.message || 'Data berhasil dihapus');
+      await alumniService.deleteAlumni(id);
       await loadAlumni();
     } catch (err) {
-      antMessage.error(err.message || 'Gagal menghapus data');
+      alert(err.message || 'Gagal menghapus data');
     }
   };
 
   const handleReactivateClick = async (id, nama) => {
-    if (!confirm(`Apakah Anda yakin ingin mengaktifkan kembali ${nama} ke tahun ajaran berjalan? Data alumni/pindah ini akan dihapus dan dipindahkan kembali ke daftar santri aktif.`)) return;
+    if (!confirm(`Apakah Anda yakin ingin mengaktifkan kembali ${nama} ke tahun ajaran berjalan?`)) return;
     try {
       setLoading(true);
-      const result = await alumniService.reactivateAlumni(id);
-      antMessage.success(result.message || 'Siswa berhasil diaktifkan kembali');
+      await alumniService.reactivateAlumni(id);
       await loadAlumni();
       const santriData = await alumniService.fetchActiveSantri().catch(() => []);
       setSantriList(santriData);
     } catch (err) {
-      antMessage.error(err.message || 'Gagal mengaktifkan kembali siswa');
+      alert(err.message || 'Gagal mengaktifkan kembali siswa');
     } finally {
       setLoading(false);
     }
@@ -196,180 +178,141 @@ export function Alumni() {
   if (loading) return <LoadingState message="Memuat data alumni..." />;
   if (error) return <ErrorState message={error} onRetry={loadInitialData} />;
 
-  // Pindah tab columns
-  const pindahColumns = [
-    {
-      title: 'NIS',
-      dataIndex: 'nis',
-      key: 'nis',
-      width: 100,
-    },
-    {
-      title: 'Nama',
-      dataIndex: 'nama',
-      key: 'nama',
-      render: (nama, record) => (
-        <span
-          style={{ cursor: 'pointer', color: '#1677ff', fontWeight: 500 }}
-          onClick={() => handleDetailClick(record.id)}
-        >
-          {nama}
-        </span>
-      )
-    },
-    {
-      title: 'Kelas Terakhir',
-      dataIndex: 'kelas_terakhir',
-      key: 'kelas_terakhir',
-      render: v => v || '-'
-    },
-    {
-      title: 'Tahun',
-      dataIndex: 'tahun_lulus',
-      key: 'tahun_lulus',
-      width: 80,
-    },
-    {
-      title: 'Tahun Ajaran',
-      key: 'tahun_ajaran',
-      render: (_, record) => {
-        const ta = tahunAjaranList.find(t => t.id === record.tahun_ajaran_id);
-        return ta ? ta.kode : (record.tahun_ajaran_id || '-');
-      },
-      width: 120
-    },
-    {
-      title: 'Status',
-      key: 'tipe',
-      width: 120,
-      render: () => <Tag color="orange">Pindah / Migrasi</Tag>
-    },
-    {
-      title: 'Keterangan',
-      dataIndex: 'keterangan',
-      key: 'keterangan',
-      render: v => v || '-'
-    },
-    {
-      title: 'Aksi',
-      key: 'actions',
-      width: 200,
-      render: (_, record) => (
-        <Space>
-          {record.santri_id && (
-            <Tooltip title="Aktifkan kembali siswa ini ke tahun ajaran berjalan">
-              <Button
-                size="small"
-                type="primary"
-                ghost
-                icon={<UserCheck size={14} style={{ verticalAlign: 'middle' }} />}
-                onClick={() => handleReactivateClick(record.id, record.nama)}
-              >
-                Reaktifkan
-              </Button>
-            </Tooltip>
-          )}
-          <Tooltip title="Edit">
-            <Button size="small" onClick={() => handleEditClick(record)}>Edit</Button>
-          </Tooltip>
-          <Tooltip title="Hapus">
-            <Button size="small" danger onClick={() => handleDeleteClick(record.id, record.nama)}>Hapus</Button>
-          </Tooltip>
-        </Space>
-      )
-    }
-  ];
-
-  // Shared filter bar
   const FilterBar = () => (
-    <div className="alumni-filter-bar" style={{ display: 'flex', gap: 12, flexWrap: 'wrap', marginBottom: 20, alignItems: 'center' }}>
-      <Input
-        placeholder="Cari nama / NIS..."
-        prefix={<SearchOutlined />}
-        value={searchKeyword}
-        onChange={e => setSearchKeyword(e.target.value)}
-        allowClear
-        style={{ width: 220 }}
-      />
-      <Select
-        placeholder="Filter Tahun Ajaran"
-        value={filterTahunAjaran || undefined}
-        onChange={setFilterTahunAjaran}
-        allowClear
-        style={{ width: 170 }}
-      >
-        {tahunAjaranList.map(ta => (
-          <Option key={ta.id} value={ta.id}>{ta.kode}{ta.is_active ? ' (Aktif)' : ''}</Option>
-        ))}
-      </Select>
-      <Select
-        placeholder="Filter Tahun Lulus"
-        value={filterTahunLulus || undefined}
-        onChange={setFilterTahunLulus}
-        allowClear
-        style={{ width: 150 }}
-      >
-        {tahunLulusOptions.map(y => (
-          <Option key={y} value={y}>{y}</Option>
-        ))}
-      </Select>
-      <Button icon={<ClearOutlined />} onClick={handleResetFilters}>Reset</Button>
+    <div className="alumni-filter-bar" style={{ display: 'flex', gap: '12px', flexWrap: 'wrap', marginBottom: '20px', alignItems: 'center' }}>
+      <div style={{ width: '220px' }}>
+        <SearchInput
+          placeholder="Cari nama / NIS..."
+          value={searchKeyword}
+          onChange={setSearchKeyword}
+        />
+      </div>
+
+      <div style={{ width: '180px' }}>
+        <CustomSelect
+          placeholder="Filter Tahun Ajaran"
+          value={filterTahunAjaran}
+          onChange={setFilterTahunAjaran}
+          options={[
+            { label: 'Semua Tahun Ajaran', value: '' },
+            ...tahunAjaranList.map(ta => ({ label: `${ta.kode}${ta.is_active ? ' (Aktif)' : ''}`, value: String(ta.id) }))
+          ]}
+        />
+      </div>
+
+      <div style={{ width: '160px' }}>
+        <CustomSelect
+          placeholder="Filter Tahun Lulus"
+          value={filterTahunLulus}
+          onChange={setFilterTahunLulus}
+          options={[
+            { label: 'Semua Tahun Lulus', value: '' },
+            ...tahunLulusOptions.map(y => ({ label: `Tahun ${y}`, value: String(y) }))
+          ]}
+        />
+      </div>
+
+      <button type="button" className="btn-custom btn-secondary" onClick={handleResetFilters} style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+        <RotateCcw size={16} /> Reset
+      </button>
     </div>
   );
 
   const tabItems = [
     {
       key: 'alumni',
-      label: (
-        <span>
-          <UserCheck size={14} style={{ marginRight: 6, verticalAlign: 'middle' }} />
-          Alumni / Lulusan
-          <Tag color="green" style={{ marginLeft: 8 }}>{alumniDataList.length}</Tag>
-        </span>
-      ),
+      label: 'Alumni / Lulusan',
+      icon: <UserCheck size={16} />,
+      badge: alumniDataList.length,
       children: (
         <>
           <FilterBar />
           {alumniDataList.length === 0 ? (
             <EmptyState description="Tidak ada data alumni yang sesuai" />
           ) : (
-            <Row gutter={[16, 16]}>
+            <div className="alumni-cards-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: '16px' }}>
               {alumniDataList.map(alumni => (
-                <Col key={alumni.id} xs={24} sm={24} md={12} lg={8} xl={6}>
-                  <AlumniCard
-                    alumni={alumni}
-                    onDetail={handleDetailClick}
-                    onEdit={handleEditClick}
-                    onDelete={handleDeleteClick}
-                  />
-                </Col>
+                <AlumniCard
+                  key={alumni.id}
+                  alumni={alumni}
+                  onDetail={handleDetailClick}
+                  onEdit={handleEditClick}
+                  onDelete={handleDeleteClick}
+                />
               ))}
-            </Row>
+            </div>
           )}
         </>
       )
     },
     {
       key: 'pindah',
-      label: (
-        <span>
-          <UserX size={14} style={{ marginRight: 6, verticalAlign: 'middle' }} />
-          Siswa Pindah / Migrasi
-          <Tag color="orange" style={{ marginLeft: 8 }}>{pindahDataList.length}</Tag>
-        </span>
-      ),
+      label: 'Siswa Pindah / Migrasi',
+      icon: <UserX size={16} />,
+      badge: pindahDataList.length,
       children: (
         <>
           <FilterBar />
-          <Table
-            dataSource={pindahDataList}
-            columns={pindahColumns}
-            rowKey="id"
-            size="middle"
-            pagination={{ pageSize: 20, showTotal: (total) => `Total: ${total} siswa` }}
-            locale={{ emptyText: <EmptyState description="Tidak ada data siswa pindah yang sesuai" /> }}
-            scroll={{ x: 800 }}
-          />
+          <div style={{ width: '100%', overflowX: 'auto', background: '#fff', border: '1px solid #e2e8f0', borderRadius: '10px' }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
+              <thead>
+                <tr style={{ background: '#f8fafc', borderBottom: '1px solid #cbd5e1' }}>
+                  <th style={{ padding: '10px 12px', textAlign: 'left' }}>NIS</th>
+                  <th style={{ padding: '10px 12px', textAlign: 'left' }}>Nama</th>
+                  <th style={{ padding: '10px 12px', textAlign: 'left' }}>Kelas Terakhir</th>
+                  <th style={{ padding: '10px 12px', textAlign: 'left' }}>Tahun</th>
+                  <th style={{ padding: '10px 12px', textAlign: 'left' }}>Tahun Ajaran</th>
+                  <th style={{ padding: '10px 12px', textAlign: 'left' }}>Status</th>
+                  <th style={{ padding: '10px 12px', textAlign: 'left' }}>Keterangan</th>
+                  <th style={{ padding: '10px 12px', textAlign: 'center', width: '180px' }}>Aksi</th>
+                </tr>
+              </thead>
+              <tbody>
+                {pindahDataList.length === 0 ? (
+                  <tr><td colSpan={8} style={{ padding: '24px', textAlign: 'center', color: '#94a3b8' }}>Tidak ada data siswa pindah yang sesuai.</td></tr>
+                ) : (
+                  pindahDataList.map((record) => {
+                    const ta = tahunAjaranList.find(t => t.id === record.tahun_ajaran_id);
+                    return (
+                      <tr key={record.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
+                        <td style={{ padding: '10px 12px', fontFamily: 'monospace' }}>{record.nis || '-'}</td>
+                        <td style={{ padding: '10px 12px' }}>
+                          <span style={{ cursor: 'pointer', color: '#2196f3', fontWeight: 600 }} onClick={() => handleDetailClick(record.id)}>
+                            {record.nama}
+                          </span>
+                        </td>
+                        <td style={{ padding: '10px 12px' }}>{record.kelas_terakhir || '-'}</td>
+                        <td style={{ padding: '10px 12px' }}>{record.tahun_lulus || '-'}</td>
+                        <td style={{ padding: '10px 12px' }}>{ta ? ta.kode : (record.tahun_ajaran_id || '-')}</td>
+                        <td style={{ padding: '10px 12px' }}><CustomTag color="orange">Pindah / Migrasi</CustomTag></td>
+                        <td style={{ padding: '10px 12px', color: '#64748b' }}>{record.keterangan || '-'}</td>
+                        <td style={{ padding: '10px 12px', textAlign: 'center' }}>
+                          <div style={{ display: 'flex', justifyContent: 'center', gap: '8px' }}>
+                            {record.santri_id && (
+                              <button
+                                type="button"
+                                className="btn-custom btn-secondary"
+                                style={{ padding: '4px 8px', fontSize: '12px' }}
+                                onClick={() => handleReactivateClick(record.id, record.nama)}
+                              >
+                                Reaktifkan
+                              </button>
+                            )}
+                            <button type="button" onClick={() => handleEditClick(record)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#2196f3' }}>
+                              <Edit2 size={16} />
+                            </button>
+                            <button type="button" onClick={() => handleDeleteClick(record.id, record.nama)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#ef4444' }}>
+                              <Trash2 size={16} />
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })
+                )}
+              </tbody>
+            </table>
+          </div>
         </>
       )
     }
@@ -381,28 +324,22 @@ export function Alumni() {
         title="📚 Data Alumni & Pindah"
         subtitle="Kelola data alumni lulusan dan siswa pindah pesantren"
         extra={
-          <Button
-            type="primary"
-            icon={<PlusOutlined />}
-            onClick={handleMigrateClick}
-          >
-            Tambah dari Santri
-          </Button>
+          <button type="button" className="btn-custom btn-primary" onClick={handleMigrateClick}>
+            <Plus size={16} /> Tambah dari Santri
+          </button>
         }
       />
 
       <AlumniStats alumni={allAlumni.filter(a => a.tipe === 'alumni' || !a.tipe)} />
 
-      <div className="alumni-content">
-        <Tabs
+      <div className="alumni-content" style={{ marginTop: '16px' }}>
+        <CustomTabs
+          items={tabItems}
           activeKey={activeTab}
           onChange={setActiveTab}
-          items={tabItems}
-          className="alumni-tabs"
         />
       </div>
 
-      {/* Modals */}
       <MigrateSantriModal
         isOpen={isMigrateModalOpen}
         onClose={() => setIsMigrateModalOpen(false)}

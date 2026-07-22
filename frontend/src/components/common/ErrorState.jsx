@@ -1,66 +1,38 @@
-import { Result, Button, Space } from 'antd';
-import { ReloadOutlined, HomeOutlined } from '@ant-design/icons';
+import React from 'react';
+import { AlertCircle, RotateCcw, Home } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import './ErrorState.scss';
 
-/**
- * ErrorState Component
- *
- * @param {string} status - Error status: '403', '404', '500', 'error', 'warning'
- * @param {string} title - Error title
- * @param {string} subtitle - Error description
- * @param {boolean} showRetry - Show retry button
- * @param {function} onRetry - Retry button click handler
- * @param {boolean} showHome - Show home button
- */
 export function ErrorState({
-  status = 'error',
-  title = 'Terjadi Kesalahan',
-  subtitle = 'Maaf, terjadi kesalahan. Silakan coba lagi.',
+  title = 'Gagal Memuat Data',
+  subtitle,
+  message,
   showRetry = true,
   onRetry,
   showHome = false
 }) {
   const navigate = useNavigate();
-
-  const handleRetry = () => {
-    if (onRetry) {
-      onRetry();
-    } else {
-      window.location.reload();
-    }
-  };
-
-  const handleHome = () => {
-    navigate('/');
-  };
-
-  const extra = [];
-
-  if (showRetry) {
-    extra.push(
-      <Button type="primary" icon={<ReloadOutlined />} onClick={handleRetry} key="retry">
-        Coba Lagi
-      </Button>
-    );
-  }
-
-  if (showHome) {
-    extra.push(
-      <Button icon={<HomeOutlined />} onClick={handleHome} key="home">
-        Kembali ke Home
-      </Button>
-    );
-  }
+  const desc = message || subtitle || 'Terjadi kesalahan sistem saat memproses data.';
 
   return (
-    <div className="error-state">
-      <Result
-        status={status}
-        title={title}
-        subTitle={subtitle}
-        extra={extra.length > 0 ? <Space>{extra}</Space> : null}
-      />
+    <div className="custom-error-state">
+      <div className="error-icon-wrapper">
+        <AlertCircle size={40} />
+      </div>
+      <h3 className="error-title">{title}</h3>
+      <p className="error-description">{desc}</p>
+      <div className="error-actions">
+        {showRetry && onRetry && (
+          <button type="button" className="btn-custom btn-primary" onClick={onRetry}>
+            <RotateCcw size={16} /> Coba Lagi
+          </button>
+        )}
+        {showHome && (
+          <button type="button" className="btn-custom btn-secondary" onClick={() => navigate('/')}>
+            <Home size={16} /> Ke Beranda
+          </button>
+        )}
+      </div>
     </div>
   );
 }

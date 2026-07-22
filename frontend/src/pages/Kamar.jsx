@@ -1,6 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Button, Row, Col, message as antMessage, Divider } from 'antd';
-import { PlusOutlined, HomeOutlined } from '@ant-design/icons';
+import { Plus, Home } from 'lucide-react';
 import { kamarService } from '../services/kamarService';
 import { KamarCard } from '../components/features/KamarCard';
 import { KamarModal } from '../components/features/KamarModal';
@@ -51,10 +50,9 @@ export function Kamar() {
 
     try {
       await kamarService.deleteKamar(id);
-      antMessage.success('Data kamar berhasil dihapus');
       await loadKamar();
     } catch (err) {
-      antMessage.error(err.message || 'Gagal menghapus kamar');
+      alert(err.message || 'Gagal menghapus kamar');
     }
   };
 
@@ -65,65 +63,47 @@ export function Kamar() {
     try {
       if (editingData) {
         await kamarService.updateKamar(editingData.id, data);
-        antMessage.success('Data kamar berhasil diperbarui');
       } else {
         await kamarService.createKamar(data);
-        antMessage.success('Data kamar berhasil disimpan');
       }
 
       setIsModalOpen(false);
       await loadKamar();
     } catch (err) {
-      setModalError(err.message || 'Gagal menyimpan data');
+      setModalError(err.message || 'Gagal menyimpan data kamar');
     } finally {
       setIsSubmitting(false);
     }
   };
 
-  // Group by jenis
   const kamarPutra = kamarList.filter(k => k.jenis === 'Putra');
   const kamarPutri = kamarList.filter(k => k.jenis === 'Putri');
 
-  const renderKamarGroup = (items, title, icon) => (
+  const renderKamarGroup = (list, title, icon) => (
     <div className="kamar-group">
-      <div className="kamar-group-header">
-        <div className="kamar-group-title">
-          {icon}
-          <h3>{title}</h3>
-          <span className="kamar-count">{items.length} kamar</span>
-        </div>
+      <div className="group-header" style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '16px' }}>
+        {icon}
+        <h3 className="group-title" style={{ margin: 0, fontSize: '18px', fontWeight: 600 }}>{title} ({list.length})</h3>
       </div>
-
-      {items.length > 0 ? (
-        <Row gutter={[16, 16]}>
-          {items.map(kamar => (
-            <Col key={kamar.id} xs={24} sm={12} md={8} lg={6}>
-              <KamarCard
-                kamar={kamar}
-                onEdit={handleEditClick}
-                onDelete={handleDeleteClick}
-              />
-            </Col>
-          ))}
-        </Row>
+      {list.length === 0 ? (
+        <p className="empty-group-text" style={{ color: '#94a3b8', fontSize: '13px' }}>Belum ada {title.toLowerCase()}</p>
       ) : (
-        <EmptyState description={`Belum ada ${title.toLowerCase()}`} />
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: '16px' }}>
+          {list.map(kamar => (
+            <KamarCard
+              key={kamar.id}
+              kamar={kamar}
+              onEdit={handleEditClick}
+              onDelete={handleDeleteClick}
+            />
+          ))}
+        </div>
       )}
     </div>
   );
 
-  if (loading) {
-    return <LoadingState message="Memuat data kamar..." />;
-  }
-
-  if (error) {
-    return (
-      <ErrorState
-        message={error}
-        onRetry={loadKamar}
-      />
-    );
-  }
+  if (loading) return <LoadingState message="Memuat data kamar..." />;
+  if (error) return <ErrorState message={error} onRetry={loadKamar} />;
 
   return (
     <div className="kamar-page">
@@ -131,31 +111,27 @@ export function Kamar() {
         title="🏠 Manajemen Data Kamar Asrama"
         subtitle="Kelola data kamar asrama putra dan putri dengan informasi kapasitas dan status"
         extra={
-          <Button
-            type="primary"
-            icon={<PlusOutlined />}
-            onClick={handleAddClick}
-          >
-            Tambah Kamar
-          </Button>
+          <button type="button" className="btn-custom btn-primary" onClick={handleAddClick}>
+            <Plus size={16} /> Tambah Kamar
+          </button>
         }
       />
 
-      <div className="kamar-content">
+      <div className="kamar-content" style={{ marginTop: '16px' }}>
         {kamarList.length === 0 ? (
           <EmptyState
             description="Belum ada data kamar"
             action={
-              <Button type="primary" icon={<PlusOutlined />} onClick={handleAddClick}>
-                Tambah Kamar Pertama
-              </Button>
+              <button type="button" className="btn-custom btn-primary" onClick={handleAddClick}>
+                <Plus size={16} /> Tambah Kamar Pertama
+              </button>
             }
           />
         ) : (
           <>
-            {renderKamarGroup(kamarPutra, 'Kamar Putra', <HomeOutlined style={{ color: '#2196f3' }} />)}
-            <Divider />
-            {renderKamarGroup(kamarPutri, 'Kamar Putri', <HomeOutlined style={{ color: '#e91e63' }} />)}
+            {renderKamarGroup(kamarPutra, 'Kamar Putra', <Home size={20} style={{ color: '#2196f3' }} />)}
+            <div style={{ height: '1px', background: '#e2e8f0', margin: '24px 0' }} />
+            {renderKamarGroup(kamarPutri, 'Kamar Putri', <Home size={20} style={{ color: '#e91e63' }} />)}
           </>
         )}
       </div>

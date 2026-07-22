@@ -1,124 +1,80 @@
-@import '../../styles/variables.scss';
-@import '../../styles/mixins.scss';
-
-.mobile-menu-drawer {
-  .ant-drawer-content {
-    background: linear-gradient(180deg, #0f121a 0%, #080a0e 100%) !important;
-  }
-  
-  .ant-drawer-header {
-    background: rgba(0, 0, 0, 0.15) !important;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.05) !important;
-    padding: $spacing-md $spacing-lg !important;
-
-    .ant-drawer-close {
-      color: $text-secondary !important;
-      
-      &:hover {
-        color: $text-primary !important;
-      }
-    }
-  }
-
-  .ant-drawer-body {
-    padding: 0 !important;
-    display: flex;
-    flex-direction: column;
-  }
-}
-
-.mobile-menu-content {
-  flex: 1;
+.custom-mobile-menu-body {
   display: flex;
   flex-direction: column;
-  overflow-y: auto;
-  @include custom-scrollbar;
+  gap: 16px;
+  padding-bottom: 24px;
 
-  .mobile-menu {
-    background: transparent !important;
-    border-right: none !important;
-    padding: $spacing-md 0;
+  .nav-group {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
 
-    // Standard Menu Items & Submenu titles
-    .ant-menu-item, .ant-menu-submenu-title {
-      color: $text-secondary !important;
-      margin: 4px 16px !important;
-      width: calc(100% - 32px) !important;
-      border-radius: $radius-md !important;
-      height: 40px !important;
-      line-height: 40px !important;
-      font-size: 13px !important;
+    .nav-group-title {
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: var(--lt-text-muted, #94a3b8);
+      margin: 4px 0 2px 8px;
+    }
+
+    .nav-items-list {
       display: flex;
-      align-items: center;
-      gap: 12px;
-      transition: all $transition-fast !important;
+      flex-direction: column;
+      gap: 2px;
 
-      .ant-menu-item-icon {
-        color: $text-tertiary;
+      .nav-item-btn {
         display: flex;
         align-items: center;
-        margin-right: 0 !important;
-        font-size: 16px !important;
-      }
+        gap: 10px;
+        padding: 9px 12px;
+        border-radius: 8px;
+        background: transparent;
+        border: none;
+        color: var(--lt-text-secondary, #475569);
+        font-size: 13.5px;
+        font-weight: 500;
+        cursor: pointer;
+        text-align: left;
+        width: 100%;
+        transition: all 0.15s ease;
 
-      &:hover {
-        background: rgba(255, 255, 255, 0.03) !important;
-        color: $text-primary !important;
+        .nav-icon {
+          display: flex;
+          align-items: center;
+          color: var(--lt-text-muted, #94a3b8);
+        }
 
-        .ant-menu-item-icon {
-          color: $accent-blue;
+        &:hover {
+          background: var(--lt-bg-hover, #f1f5f9);
+          color: var(--lt-text-primary, #0f172a);
+          .nav-icon { color: #2196f3; }
+        }
+
+        &.active {
+          background: rgba(33, 150, 243, 0.12);
+          color: #2196f3;
+          font-weight: 600;
+
+          .nav-icon {
+            color: #2196f3;
+          }
         }
       }
     }
-
-    // Active State Styling
-    .ant-menu-item-selected {
-      background: linear-gradient(90deg, rgba($accent-blue, 0.12) 0%, rgba($accent-purple, 0.04) 100%) !important;
-      color: #ffffff !important;
-      font-weight: 600 !important;
-      box-shadow: inset 1px 0 0 0 rgba($accent-blue, 0.4);
-
-      .ant-menu-item-icon {
-        color: $accent-blue !important;
-        filter: drop-shadow(0 0 4px rgba($accent-blue, 0.4));
-      }
-    }
-
-    // Group Title Styling
-    .ant-menu-item-group-title {
-      color: $text-tertiary !important;
-      font-size: 10px !important;
-      font-weight: 700 !important;
-      text-transform: uppercase !important;
-      letter-spacing: 1.5px !important;
-      padding-left: 24px !important;
-      margin-top: 16px !important;
-      margin-bottom: 4px !important;
-    }
   }
-}
 
-.mobile-menu-footer {
-  padding: $spacing-lg;
-  border-top: 1px solid rgba(255, 255, 255, 0.05);
-  background: rgba(0, 0, 0, 0.15);
+  .mobile-menu-footer-btn {
+    margin-top: 12px;
+    padding-top: 12px;
+    border-top: 1px solid var(--lt-border-light, #e2e8f0);
 
-  .logout-btn {
-    width: 100%;
-    @include flex-center;
-    gap: 10px;
-    padding: 12px;
-    background: rgba($accent-red, 0.1);
-    color: $accent-red;
-    border: 1px solid rgba($accent-red, 0.2);
-    border-radius: $radius-lg;
-    font-weight: 600;
-    cursor: pointer;
-    transition: all $transition-fast;
-
-    &:hover {
-      background: $accent-red;
-      color: #fff;
+    .w-full {
+      width: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
     }
   }
 }

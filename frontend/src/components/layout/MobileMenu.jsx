@@ -1,5 +1,5 @@
 import React from 'react';
-import { Drawer, Menu } from 'antd';
+import { CustomDrawer } from '../ui/CustomDrawer';
 import {
   LayoutDashboard,
   Users,
@@ -21,7 +21,6 @@ import {
   User,
   LogOut,
   Radio,
-  Wallet,
   BarChart3,
   Zap,
   ShieldAlert,
@@ -35,49 +34,45 @@ import './MobileMenu.scss';
 const MobileMenu = ({ open, onClose, onLogout }) => {
   const navigate = useNavigate();
   const location = useLocation();
-  const { isAdmin, isStaff, isDiniyah, isBendahara } = useAuth();
+  const { isAdmin, isDiniyah, isBendahara } = useAuth();
 
-  const menuItems = [
-    { key: '/', icon: <LayoutDashboard size={18} />, label: 'Dashboard', disabled: isStaff() },
-    { key: '/radio', icon: <Radio size={18} />, label: 'Radio & Musik' },
+  const navGroups = [
     {
-      key: 'grp-pesantren',
-      label: 'Kepesantrenan',
-      type: 'group',
-      children: [
+      title: 'Kepesantrenan',
+      roleFilter: () => isAdmin(),
+      items: [
+        { key: '/', icon: <LayoutDashboard size={18} />, label: 'Dashboard' },
+        { key: '/radio', icon: <Radio size={18} />, label: 'Radio & Musik' },
         { key: '/santri', icon: <Users size={18} />, label: 'Data Santri' },
         { key: '/buku-induk', icon: <BookOpen size={18} />, label: 'Buku Induk' },
         { key: '/kamar', icon: <Home size={18} />, label: 'Data Kamar' },
         { key: '/absensi-sholat', icon: <Camera size={18} />, label: 'Absensi Sholat' },
         { key: '/rekap-absensi-sholat', icon: <ClipboardList size={18} />, label: 'Rekap Absensi' },
         { key: '/pelanggaran-prestasi', icon: <Award size={18} />, label: 'Pelanggaran & Prestasi' },
-      ],
+      ]
     },
     {
-      key: 'grp-diniyah',
-      label: 'Akademik Diniyah',
-      type: 'group',
-      disabled: isStaff(),
-      children: [
-        { key: '/kelas', icon: <School size={18} />, label: 'Data Kelas', disabled: isStaff() },
-        { key: '/guru', icon: <Contact size={18} />, label: 'Data Guru', disabled: isStaff() },
-        { key: '/struktur-organisasi', icon: <Users size={18} />, label: 'Struktur Organisasi', disabled: isStaff() },
-        { key: '/jadwal-pelajaran', icon: <Clock size={18} />, label: 'Jadwal Harian', disabled: isStaff() },
-        { key: '/nilai-pengaturan', icon: <Sliders size={18} />, label: 'Pengaturan & Jadwal', disabled: isStaff() },
-        { key: '/nilai', icon: <Edit size={18} />, label: 'Input Penilaian', disabled: isStaff() },
-        { key: '/scan-nilai', icon: <Scan size={18} />, label: 'Scan Nilai', disabled: isStaff() },
-        { key: '/nilai-rekap', icon: <FileSpreadsheet size={18} />, label: 'Rekap & Rapor', disabled: isStaff() },
-        { key: '/laporan-ujian-khusus', icon: <FileText size={18} />, label: 'Laporan Ujian Khusus', disabled: isStaff() },
-        { key: '/kartu-ujian-semester', icon: <IdCard size={18} />, label: 'Kartu Ujian Semester', disabled: isStaff() },
-        { key: '/lembar-ujian', icon: <FileText size={18} />, label: 'Lembar Ujian', disabled: isStaff() },
-        { key: '/alumni', icon: <GraduationCap size={18} />, label: 'Alumni', disabled: isStaff() },
-      ],
+      title: 'Akademik Diniyah',
+      roleFilter: () => isAdmin() || isDiniyah(),
+      items: [
+        { key: '/kelas', icon: <School size={18} />, label: 'Data Kelas' },
+        { key: '/guru', icon: <Contact size={18} />, label: 'Data Guru' },
+        { key: '/struktur-organisasi', icon: <Users size={18} />, label: 'Struktur Organisasi' },
+        { key: '/jadwal-pelajaran', icon: <Clock size={18} />, label: 'Jadwal Harian' },
+        { key: '/nilai-pengaturan', icon: <Sliders size={18} />, label: 'Pengaturan & Jadwal' },
+        { key: '/nilai', icon: <Edit size={18} />, label: 'Input Penilaian' },
+        { key: '/scan-nilai', icon: <Scan size={18} />, label: 'Scan Nilai' },
+        { key: '/nilai-rekap', icon: <FileSpreadsheet size={18} />, label: 'Rekap & Rapor' },
+        { key: '/laporan-ujian-khusus', icon: <FileText size={18} />, label: 'Laporan Ujian Khusus' },
+        { key: '/kartu-ujian-semester', icon: <IdCard size={18} />, label: 'Kartu Ujian Semester' },
+        { key: '/lembar-ujian', icon: <FileText size={18} />, label: 'Lembar Ujian' },
+        { key: '/alumni', icon: <GraduationCap size={18} />, label: 'Alumni' },
+      ]
     },
     {
-      key: 'grp-keuangan',
-      label: 'Keuangan',
-      type: 'group',
-      children: [
+      title: 'Keuangan',
+      roleFilter: () => isAdmin() || isBendahara(),
+      items: [
         { key: '/keuangan', icon: <LayoutDashboard size={18} />, label: 'Dashboard Keuangan' },
         { key: '/keuangan/tagihan', icon: <FileText size={18} />, label: 'Tagihan Santri' },
         { key: '/keuangan/laporan/spp', icon: <BarChart3 size={18} />, label: 'Laporan SPP' },
@@ -90,82 +85,76 @@ const MobileMenu = ({ open, onClose, onLogout }) => {
         ] : [])
       ]
     },
-    ...(isAdmin() ? [{ 
-      key: '/users', 
-      icon: <ShieldCheck size={18} />, 
-      label: 'User Management',
-      disabled: false
-    }, {
-      key: '/mymustahiq-settings',
-      icon: <Settings size={18} />,
-      label: 'Setelan MyMustahiq',
-      disabled: false
-    }] : []),
-    { key: '/profile', icon: <User size={18} />, label: 'Profile', disabled: !isAdmin() },
+    {
+      title: 'Pengaturan',
+      roleFilter: () => isAdmin(),
+      items: [
+        { key: '/users', icon: <ShieldCheck size={18} />, label: 'User Management' },
+        { key: '/mymustahiq-settings', icon: <Settings size={18} />, label: 'Setelan MyMustahiq' },
+        { key: '/profile', icon: <User size={18} />, label: 'Profile' },
+      ]
+    }
   ];
 
-  // Helper to filter items based on user role
-  const getFilteredItems = (items) => {
-    return items.filter(item => {
-      if (isAdmin()) return true;
-      if (isDiniyah()) return item.key === 'grp-diniyah';
-      if (isBendahara()) return item.key === 'grp-keuangan';
-      return false;
-    });
-  };
-
-  const visibleMenuItems = getFilteredItems(menuItems);
-
-  const handleMenuClick = ({ key }) => {
-    if (key === 'logout') {
-      onLogout();
-    } else {
-      navigate(key);
-    }
+  const handleNav = (path) => {
+    navigate(path);
     onClose();
   };
 
   return (
-    <Drawer
+    <CustomDrawer
+      open={open}
+      onClose={onClose}
+      placement="left"
+      width={280}
       title={
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-          <div style={{ 
-            width: '32px', 
-            height: '32px', 
-            background: 'linear-gradient(135deg, #2F81F7 0%, #8A2BE2 100%)', 
-            borderRadius: '8px',
+          <div style={{
+            width: '28px',
+            height: '28px',
+            background: 'linear-gradient(135deg, #2196f3 0%, #8b5cf6 100%)',
+            borderRadius: '6px',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
             color: '#fff',
             fontWeight: 'bold',
-            boxShadow: '0 0 10px rgba(47, 129, 247, 0.3)'
+            fontSize: '12px'
           }}>SI</div>
-          <span style={{ color: '#fff', fontSize: '16px', fontWeight: 'bold' }}>Sekolah Info</span>
+          <span style={{ fontSize: '15px', fontWeight: 'bold' }}>Sekolah Info</span>
         </div>
       }
-      placement="left"
-      onClose={onClose}
-      open={open}
-      className="mobile-menu-drawer"
-      width={290}
     >
-      <div className="mobile-menu-content">
-        <Menu
-          mode="inline"
-          selectedKeys={[location.pathname]}
-          items={visibleMenuItems}
-          onClick={handleMenuClick}
-          className="mobile-menu"
-        />
+      <div className="custom-mobile-menu-body">
+        {navGroups.filter(g => g.roleFilter()).map((group, gIdx) => (
+          <div key={gIdx} className="nav-group">
+            <h5 className="nav-group-title">{group.title}</h5>
+            <div className="nav-items-list">
+              {group.items.map((item) => {
+                const isActive = location.pathname === item.key;
+                return (
+                  <button
+                    key={item.key}
+                    type="button"
+                    className={`nav-item-btn ${isActive ? 'active' : ''}`}
+                    onClick={() => handleNav(item.key)}
+                  >
+                    <span className="nav-icon">{item.icon}</span>
+                    <span className="nav-label">{item.label}</span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        ))}
 
-        <div className="mobile-menu-footer">
-          <button className="logout-btn" onClick={() => { onLogout(); onClose(); }}>
+        <div className="mobile-menu-footer-btn">
+          <button type="button" className="btn-custom btn-danger w-full" onClick={() => { onLogout(); onClose(); }}>
             <LogOut size={16} /> Logout
           </button>
         </div>
       </div>
-    </Drawer>
+    </CustomDrawer>
   );
 };
 

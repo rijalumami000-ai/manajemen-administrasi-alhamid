@@ -1,5 +1,4 @@
 import { useState, useEffect, useRef } from 'react';
-import { message, Input } from 'antd';
 import { Html5QrcodeScanner } from 'html5-qrcode';
 import { Camera, QrCode, Fingerprint, Lock, ShieldCheck, Activity, RefreshCw } from 'lucide-react';
 import Webcam from 'react-webcam';
@@ -8,6 +7,7 @@ import { absensiSholatService } from '../services/absensiSholatService';
 import { ScanMethodTabs } from '../components/ui/ScanMethodTabs';
 import { LiveActivityFeed } from '../components/ui/LiveActivityFeed';
 import { CustomModal } from '../components/ui/CustomModal';
+import { FloatingInput } from '../components/ui/FloatingInput';
 import { AttendanceSuccessOverlay } from '../components/ui/AttendanceSuccessOverlay';
 import './AbsensiSholatScan.scss';
 
@@ -573,14 +573,15 @@ export function AbsensiSholatScan() {
       >
         <div className="passcode-modal">
           <p>Masukkan kode akses untuk mengganti waktu sholat.</p>
-          <Input.Password
+          <FloatingInput
+            label="Kode Akses"
+            name="passcode"
+            type="password"
+            icon={Lock}
             value={passcode}
             onChange={e => setPasscode(e.target.value)}
-            placeholder="Kode Akses"
-            size="large"
-            style={{ marginBottom: '20px' }}
           />
-          <div className="actions">
+          <div className="actions" style={{ marginTop: '16px', display: 'flex', justifyContent: 'flex-end', gap: '8px' }}>
             <button className="btn-outline" onClick={() => { setIsPasscodeModalVisible(false); setPasscode(''); }}>Batal</button>
             <button className="btn-primary" onClick={() => {
               if (passcode === 'alhamidku123') {
@@ -588,7 +589,7 @@ export function AbsensiSholatScan() {
                 setIsPasscodeModalVisible(false);
                 setPasscode('');
               } else {
-                message.error('Kode akses salah!');
+                alert('Kode akses salah!');
               }
             }}>Verifikasi</button>
           </div>
