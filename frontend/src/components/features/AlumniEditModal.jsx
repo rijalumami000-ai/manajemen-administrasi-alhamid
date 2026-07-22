@@ -4,7 +4,7 @@ import { FloatingInput } from '../ui/FloatingInput';
 import { CustomSelect } from '../ui/CustomSelect';
 import { CustomDatePicker } from '../ui/CustomDatePicker';
 import { SmartAlert } from '../ui/SmartAlert';
-import { User, IdCard, Home, Phone, Mail, Briefcase, GraduationCap, Save } from 'lucide-react';
+import { User, IdCard, Home, Phone, Mail, Briefcase, Building, GraduationCap, Save } from 'lucide-react';
 import './AlumniEditModal.scss';
 
 export function AlumniEditModal({ isOpen, onClose, onSubmit, editData, isSubmitting, error }) {

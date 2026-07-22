@@ -34,6 +34,16 @@ export const santriService = {
     return apiGet('/tahun-ajaran', { noCache: true });
   },
 
+  // Fetch active tahun ajaran
+  async fetchActiveTahunAjaran() {
+    return apiGet('/tahun-ajaran/active', { noCache: true });
+  },
+
+  // Fetch santri by tahun ajaran
+  async fetchSantriByTahunAjaran(tahunAjaranId) {
+    return apiGet(`/tahun-ajaran/${tahunAjaranId}/santri`, { noCache: true });
+  },
+
   // Migrate tahun ajaran
   async migrateTahunAjaran(targetKode, excludedSantriIds = [], promotions = []) {
     return apiPost('/tahun-ajaran/migrate', {
