@@ -18,6 +18,7 @@ export function KelasModal({
   const [formData, setFormData] = useState({
     jenis: '',
     nama: '',
+    tingkat: '',
     mustahiq_id: '',
     muhafadzoh_mapel_id: '',
     qiroatul_mapel_id: ''
@@ -30,6 +31,7 @@ export function KelasModal({
         setFormData({
           jenis: editData.jenis || '',
           nama: editData.nama || '',
+          tingkat: editData.tingkat !== null && editData.tingkat !== undefined ? String(editData.tingkat) : '',
           mustahiq_id: editData.mustahiq_id !== null && editData.mustahiq_id !== undefined ? String(editData.mustahiq_id) : '',
           muhafadzoh_mapel_id: editData.muhafadzoh_mapel_id !== null && editData.muhafadzoh_mapel_id !== undefined ? String(editData.muhafadzoh_mapel_id) : '',
           qiroatul_mapel_id: editData.qiroatul_mapel_id !== null && editData.qiroatul_mapel_id !== undefined ? String(editData.qiroatul_mapel_id) : ''
@@ -38,6 +40,7 @@ export function KelasModal({
         setFormData({
           jenis: '',
           nama: '',
+          tingkat: '',
           mustahiq_id: '',
           muhafadzoh_mapel_id: '',
           qiroatul_mapel_id: ''
@@ -47,8 +50,23 @@ export function KelasModal({
     }
   }, [isOpen, editData]);
 
+  const autoDetectTingkat = (namaVal) => {
+    if (!namaVal) return '';
+    const lower = namaVal.toLowerCase();
+    if (lower.includes('sifir')) return '0';
+    if (lower.includes('sp')) return '1';
+    const match = namaVal.match(/(\d+)/);
+    return match ? String(match[1]) : '1';
+  };
+
   const handleChange = (name, value) => {
-    setFormData(prev => ({ ...prev, [name]: value }));
+    setFormData(prev => {
+      const next = { ...prev, [name]: value };
+      if (name === 'nama' && !editData && (!prev.tingkat || prev.tingkat === '')) {
+        next.tingkat = autoDetectTingkat(value);
+      }
+      return next;
+    });
     if (formErrors[name]) {
       setFormErrors(prev => ({ ...prev, [name]: '' }));
     }
@@ -73,6 +91,7 @@ export function KelasModal({
     const submissionData = {
       jenis: formData.jenis,
       nama: formData.nama.trim(),
+      tingkat: formData.tingkat !== '' && formData.tingkat !== null ? Number(formData.tingkat) : null,
       mustahiq_id: formData.mustahiq_id ? Number(formData.mustahiq_id) : null,
       muhafadzoh_mapel_id: formData.muhafadzoh_mapel_id ? Number(formData.muhafadzoh_mapel_id) : null,
       qiroatul_mapel_id: formData.qiroatul_mapel_id ? Number(formData.qiroatul_mapel_id) : null
@@ -97,6 +116,22 @@ export function KelasModal({
       value: String(mapel.id),
       label: mapel.nama
     }));
+
+  const tingkatOptions = [
+    { label: 'Tingkat 0 (Sifir)', value: '0' },
+    { label: 'Tingkat 1 (SP / Kelas 1)', value: '1' },
+    { label: 'Tingkat 2 (Kelas 2)', value: '2' },
+    { label: 'Tingkat 3 (Kelas 3)', value: '3' },
+    { label: 'Tingkat 4 (Kelas 4)', value: '4' },
+    { label: 'Tingkat 5 (Kelas 5)', value: '5' },
+    { label: 'Tingkat 6 (Kelas 6)', value: '6' },
+    { label: 'Tingkat 7 (Kelas 7 / MTs 1)', value: '7' },
+    { label: 'Tingkat 8 (Kelas 8 / MTs 2)', value: '8' },
+    { label: 'Tingkat 9 (Kelas 9 / MTs 3)', value: '9' },
+    { label: 'Tingkat 10 (Kelas 10 / MA 1)', value: '10' },
+    { label: 'Tingkat 11 (Kelas 11 / MA 2)', value: '11' },
+    { label: 'Tingkat 12 (Kelas 12 / MA 3)', value: '12' }
+  ];
 
   return (
     <CustomModal
@@ -171,6 +206,14 @@ export function KelasModal({
               onChange={(e) => handleChange('nama', e.target.value)}
               error={formErrors.nama}
               required
+              disabled={isSubmitting}
+            />
+
+            <CustomSelect
+              label="Tingkat Kelas (Jenjang Progresi)"
+              value={formData.tingkat}
+              onChange={(v) => handleChange('tingkat', v)}
+              options={tingkatOptions}
               disabled={isSubmitting}
             />
 

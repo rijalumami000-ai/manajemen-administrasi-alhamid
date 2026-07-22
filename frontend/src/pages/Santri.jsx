@@ -117,10 +117,13 @@ export function Santri() {
     try {
       const isActiveYear = !yearId || (activeYear && String(yearId) === String(activeYear?.id));
 
-      const [santriData, alumniData] = await Promise.all([
+      const [santriData, alumniData, kelasData] = await Promise.all([
         santriService.fetchSantri(yearId || null),
-        santriService.fetchAlumni()
+        santriService.fetchAlumni(),
+        santriService.fetchKelas(yearId || null)
       ]);
+
+      setKelasList(kelasData);
 
       let filteredSantri = santriData;
       if (isActiveYear) {
@@ -213,12 +216,16 @@ export function Santri() {
 
   // Get unique filter options
   const diniyahOptions = useMemo(() => {
-    return [...new Set(santriList.map(s => s.nama_diniyah).filter(Boolean))];
-  }, [santriList]);
+    const fromKelas = kelasList.filter(k => k.jenis === 'Diniyah').map(k => k.nama);
+    const fromSantri = santriList.map(s => s.nama_diniyah).filter(Boolean);
+    return [...new Set([...fromKelas, ...fromSantri])].sort((a, b) => a.localeCompare(b, 'id', { numeric: true }));
+  }, [kelasList, santriList]);
 
   const sekolahOptions = useMemo(() => {
-    return [...new Set(santriList.map(s => s.nama_sekolah).filter(Boolean))];
-  }, [santriList]);
+    const fromKelas = kelasList.filter(k => k.jenis === 'Sekolah').map(k => k.nama);
+    const fromSantri = santriList.map(s => s.nama_sekolah).filter(Boolean);
+    return [...new Set([...fromKelas, ...fromSantri])].sort((a, b) => a.localeCompare(b, 'id', { numeric: true }));
+  }, [kelasList, santriList]);
 
   const handleEditClick = (santri) => {
     if (!canEdit) {
@@ -228,9 +235,9 @@ export function Santri() {
     setEditingData(santri);
     setModalError('');
     editForm.setFieldsValue({
-      kelas_diniyah_id: santri.kelas_diniyah_id || undefined,
-      kelas_sekolah_id: santri.kelas_sekolah_id || undefined,
-      kamar_id: santri.kamar_id || undefined,
+      kelas_diniyah_id: santri.kelas_diniyah_id ? String(santri.kelas_diniyah_id) : '',
+      kelas_sekolah_id: santri.kelas_sekolah_id ? String(santri.kelas_sekolah_id) : '',
+      kamar_id: santri.kamar_id ? String(santri.kamar_id) : '',
       status_tahun_ajaran: santri.status_tahun_ajaran || 'aktif',
       catatan_tahun_ajaran: santri.catatan_tahun_ajaran || '',
     });
@@ -912,32 +919,32 @@ export function Santri() {
         {modalError && <Alert message={modalError} type="error" showIcon style={{ marginBottom: 16 }} />}
         <Form form={editForm} layout="vertical" disabled={isSubmitting}
           initialValues={{
-            kelas_diniyah_id: editingData?.kelas_diniyah_id || undefined,
-            kelas_sekolah_id: editingData?.kelas_sekolah_id || undefined,
-            kamar_id: editingData?.kamar_id || undefined,
+            kelas_diniyah_id: editingData?.kelas_diniyah_id ? String(editingData.kelas_diniyah_id) : '',
+            kelas_sekolah_id: editingData?.kelas_sekolah_id ? String(editingData.kelas_sekolah_id) : '',
+            kamar_id: editingData?.kamar_id ? String(editingData.kamar_id) : '',
             status_tahun_ajaran: editingData?.status_tahun_ajaran || 'aktif',
             catatan_tahun_ajaran: editingData?.catatan_tahun_ajaran || '',
           }}
         >
-          <Form.Item name="kelas_diniyah_id" label="Kelas Kurikulum Diniyah">
+          <Form.Item name="kelas_diniyah_id" label="Kelas Kurikulum Diniyah" getValueFromEvent={(e) => e.target.value}>
             <select className="custom-native-select">
               <option value="">Pilih Kelas (Kosong)</option>
-              {kelasList.filter(k => k.jenis === 'Diniyah').map(k => <option key={k.id} value={k.id}>{k.nama}</option>)}
+              {kelasList.filter(k => k.jenis === 'Diniyah').map(k => <option key={k.id} value={String(k.id)}>{k.nama}</option>)}
             </select>
           </Form.Item>
-          <Form.Item name="kelas_sekolah_id" label="Kelas Kurikulum Sekolah">
+          <Form.Item name="kelas_sekolah_id" label="Kelas Kurikulum Sekolah" getValueFromEvent={(e) => e.target.value}>
             <select className="custom-native-select">
               <option value="">Pilih Kelas (Kosong)</option>
-              {kelasList.filter(k => k.jenis === 'Sekolah').map(k => <option key={k.id} value={k.id}>{k.nama}</option>)}
+              {kelasList.filter(k => k.jenis === 'Sekolah').map(k => <option key={k.id} value={String(k.id)}>{k.nama}</option>)}
             </select>
           </Form.Item>
-          <Form.Item name="kamar_id" label="Kamar Asrama Santri">
+          <Form.Item name="kamar_id" label="Kamar Asrama Santri" getValueFromEvent={(e) => e.target.value}>
             <select className="custom-native-select">
               <option value="">Pilih Kamar (Kosong)</option>
-              {kamarList.map(k => <option key={k.id} value={k.id}>{k.nama} ({k.jenis})</option>)}
+              {kamarList.map(k => <option key={k.id} value={String(k.id)}>{k.nama} ({k.jenis})</option>)}
             </select>
           </Form.Item>
-          <Form.Item name="status_tahun_ajaran" label="Status Akademik Periode">
+          <Form.Item name="status_tahun_ajaran" label="Status Akademik Periode" getValueFromEvent={(e) => e.target.value}>
             <select className="custom-native-select">
               <option value="aktif">Aktif</option>
               <option value="pindah">Pindah / Migrasi</option>

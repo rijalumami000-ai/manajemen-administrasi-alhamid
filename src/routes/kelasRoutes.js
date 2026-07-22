@@ -61,26 +61,21 @@ function registerKelasRoutes(app) {
       return res.status(400).json({ error: 'Jenis kelas dan nama kelas wajib diisi.' });
     }
 
-    // Auto-detect tingkat from nama
-    let tingkat = null;
-
-    // Extract tingkat from nama
-    if (nama.toLowerCase().includes('sifir')) {
-      tingkat = 0;
-    } else if (nama.toLowerCase().includes('sp')) {
-      tingkat = 1; // Special Program
-    } else {
-      // Extract number from nama (e.g., "1A" -> 1, "Kelas 2" -> 2, "11-IPA" -> 11)
-      const match = nama.match(/(\d+)/);
-      if (match) {
-        tingkat = parseInt(match[1], 10);
-      }
-    }
-
+    // Determine tingkat: use explicit body param if provided, else auto-detect from nama
+    let tingkat = nullableInt(req.body.tingkat);
     if (tingkat === null) {
-      return res.status(400).json({
-        error: 'Tidak dapat mendeteksi tingkat kelas dari nama. Gunakan format: "1A", "Kelas 2", "Sifir", "SP", dll.'
-      });
+      if (nama.toLowerCase().includes('sifir')) {
+        tingkat = 0;
+      } else if (nama.toLowerCase().includes('sp')) {
+        tingkat = 1;
+      } else {
+        const match = nama.match(/(\d+)/);
+        if (match) {
+          tingkat = parseInt(match[1], 10);
+        } else {
+          tingkat = 1; // Default fallback
+        }
+      }
     }
 
     console.log(`📝 Creating kelas: jenis=${jenis}, nama=${nama}, tingkat=${tingkat}`);
@@ -128,31 +123,24 @@ function registerKelasRoutes(app) {
       return res.status(400).json({ error: 'Jenis kelas dan nama kelas wajib diisi.' });
     }
 
-    // Auto-detect tingkat from nama
-    let tingkat = null;
-
-    // Extract tingkat from nama
-    if (nama.toLowerCase().includes('sifir')) {
-      tingkat = 0;
-    } else if (nama.toLowerCase().includes('sp')) {
-      tingkat = 1; // Special Program
-    } else {
-      // Extract number from nama (e.g., "1A" -> 1, "Kelas 2" -> 2, "11-IPA" -> 11)
-      const match = nama.match(/(\d+)/);
-      if (match) {
-        tingkat = parseInt(match[1], 10);
+    // Determine tingkat: use explicit body param if provided, else auto-detect from nama
+    let tingkat = nullableInt(req.body.tingkat);
+    if (tingkat === null) {
+      if (nama.toLowerCase().includes('sifir')) {
+        tingkat = 0;
+      } else if (nama.toLowerCase().includes('sp')) {
+        tingkat = 1;
+      } else {
+        const match = nama.match(/(\d+)/);
+        if (match) {
+          tingkat = parseInt(match[1], 10);
+        } else {
+          tingkat = 1; // Default fallback
+        }
       }
     }
 
-    if (tingkat === null) {
-      return res.status(400).json({
-        error: 'Tidak dapat mendeteksi tingkat kelas dari nama. Gunakan format: "1A", "Kelas 2", "Sifir", "SP", dll.'
-      });
-    }
-
     console.log(`📝 Updating kelas ${id}: jenis=${jenis}, nama=${nama}, tingkat=${tingkat}`);
-    console.log('📦 IDs:', { mustahiq_id, muhafadzoh_mapel_id, qiroatul_mapel_id, tahun_ajaran_id });
-    console.log('📦 Raw Request body:', req.body);
 
     try {
       await db.query('BEGIN');
@@ -181,13 +169,13 @@ function registerKelasRoutes(app) {
                          qiroatul_mapel_id = EXCLUDED.qiroatul_mapel_id`,
           [id, tahun_ajaran_id, mustahiq_id, muhafadzoh_mapel_id, qiroatul_mapel_id]
         );
-      } else {
-        // Fallback updates on the kelas table directly (legacy behavior)
-        await db.query(
-          'UPDATE kelas SET mustahiq_id = $1, muhafadzoh_mapel_id = $2, qiroatul_mapel_id = $3 WHERE id = $4',
-          [mustahiq_id, muhafadzoh_mapel_id, qiroatul_mapel_id, id]
-        );
       }
+      
+      // Always sync fallback defaults on kelas table
+      await db.query(
+        'UPDATE kelas SET mustahiq_id = $1, muhafadzoh_mapel_id = $2, qiroatul_mapel_id = $3 WHERE id = $4',
+        [mustahiq_id, muhafadzoh_mapel_id, qiroatul_mapel_id, id]
+      );
 
       await db.query('COMMIT');
       console.log(`✅ Kelas updated successfully:`, updatedKelas);
@@ -210,16 +198,40 @@ function registerKelasRoutes(app) {
   app.delete('/api/kelas/:id', async (req, res) => {
     const { id } = req.params;
     try {
+      await db.query('BEGIN');
+
+      // 1. Delete from junction table kelas_tahun_ajaran
+      await db.query('DELETE FROM kelas_tahun_ajaran WHERE kelas_id = $1', [id]);
+
+      // 2. Set NULL on santri tables
+      await db.query('UPDATE santri SET kelas_diniyah_id = NULL WHERE kelas_diniyah_id = $1', [id]);
+      await db.query('UPDATE santri SET kelas_sekolah_id = NULL WHERE kelas_sekolah_id = $1', [id]);
+      await db.query('UPDATE santri_tahun_ajaran SET kelas_diniyah_id = NULL WHERE kelas_diniyah_id = $1', [id]);
+      await db.query('UPDATE santri_tahun_ajaran SET kelas_sekolah_id = NULL WHERE kelas_sekolah_id = $1', [id]);
+      await db.query('UPDATE santri_kelas_history SET kelas_diniyah_id = NULL WHERE kelas_diniyah_id = $1', [id]);
+      await db.query('UPDATE santri_kelas_history SET kelas_sekolah_id = NULL WHERE kelas_sekolah_id = $1', [id]);
+
+      // 3. Set NULL on other related tables if columns exist
+      await db.query('UPDATE peserta_ujian SET kelas_diniyah_id = NULL WHERE kelas_diniyah_id = $1', [id]).catch(() => {});
+      await db.query('UPDATE jadwal_pelajaran_harian SET kelas_id = NULL WHERE kelas_id = $1', [id]).catch(() => {});
+      await db.query('UPDATE setting_kriteria_nilai SET kelas_id = NULL WHERE kelas_id = $1', [id]).catch(() => {});
+      await db.query('UPDATE chat_messages SET kelas_id = NULL WHERE kelas_id = $1', [id]).catch(() => {});
+      await db.query('UPDATE saran_aplikasi SET kelas_id = NULL WHERE kelas_id = $1', [id]).catch(() => {});
+
+      // 4. Delete the main kelas record
       const result = await db.query('DELETE FROM kelas WHERE id = $1 RETURNING id', [id]);
+
       if (!result.rows.length) {
+        await db.query('ROLLBACK');
         return res.status(404).json({ error: 'Data kelas tidak ditemukan.' });
       }
+
+      await db.query('COMMIT');
+      console.log(`✅ Kelas ${id} deleted successfully`);
       res.json({ message: 'Data kelas berhasil dihapus.' });
     } catch (error) {
-      console.error(error);
-      if (error.code === '23503') {
-        return res.status(400).json({ error: 'Kelas tidak dapat dihapus karena sedang digunakan oleh santri.' });
-      }
+      await db.query('ROLLBACK');
+      console.error('❌ Error deleting kelas:', error);
       res.status(500).json({ error: 'Gagal menghapus data kelas.' });
     }
   });

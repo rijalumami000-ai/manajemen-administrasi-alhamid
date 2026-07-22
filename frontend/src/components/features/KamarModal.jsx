@@ -101,6 +101,7 @@ export function KamarModal({
               <Form.Item
                 name="jenis"
                 label="Jenis"
+                getValueFromEvent={(e) => e.target.value}
                 rules={[{ required: true, message: 'Jenis kamar wajib dipilih' }]}
               >
                 <select className="custom-native-select">
@@ -170,7 +171,7 @@ export function KamarModal({
             </Col>
 
             <Col xs={24} sm={8}>
-               <Form.Item name="status" label="Status">
+               <Form.Item name="status" label="Status" getValueFromEvent={(e) => e.target.value}>
                 <select className="custom-native-select">
                   <option value="Tersedia">Tersedia</option>
                   <option value="Penuh">Penuh</option>

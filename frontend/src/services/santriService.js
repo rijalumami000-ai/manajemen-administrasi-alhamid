@@ -49,8 +49,9 @@ export const santriService = {
   },
 
   // Fetch kelas
-  async fetchKelas() {
-    return apiGet('/kelas');
+  async fetchKelas(tahunAjaranId = null) {
+    const query = tahunAjaranId ? `?tahun_ajaran_id=${tahunAjaranId}` : '';
+    return apiGet(`/kelas${query}`, { noCache: true });
   },
 
   // Fetch kamar
