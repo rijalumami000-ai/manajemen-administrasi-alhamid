@@ -1,9 +1,10 @@
-import { useEffect } from 'react';
-import { Modal, Form, Input, InputNumber, Alert, Row, Col } from 'antd';
-import { HomeOutlined, TeamOutlined, ToolOutlined } from '@ant-design/icons';
+import { useState, useEffect } from 'react';
+import { CustomModal } from '../ui/CustomModal';
+import { FloatingInput } from '../ui/FloatingInput';
+import { CustomSelect } from '../ui/CustomSelect';
+import { SmartAlert } from '../ui/SmartAlert';
+import { Home, Save, Building, Layers, Users, Wrench, FileText } from 'lucide-react';
 import './KamarModal.scss';
-
-const { TextArea } = Input;
 
 export function KamarModal({
   isOpen,
@@ -13,187 +14,258 @@ export function KamarModal({
   isSubmitting = false,
   error = null
 }) {
-  const [form] = Form.useForm();
+  const [formData, setFormData] = useState({
+    nama: '',
+    jenis: '',
+    gedung: '',
+    lantai: '1',
+    kapasitas: '',
+    terisi: '0',
+    status: 'Tersedia',
+    fasilitas: '',
+    keterangan: ''
+  });
+  const [formErrors, setFormErrors] = useState({});
 
   useEffect(() => {
-    if (isOpen && editData) {
-      form.setFieldsValue({
-        nama: editData.nama || '',
-        gedung: editData.gedung || '',
-        lantai: editData.lantai || undefined,
-        kapasitas: editData.kapasitas || undefined,
-        terisi: editData.terisi || 0,
-        jenis: editData.jenis || undefined,
-        status: editData.status || 'Tersedia',
-        fasilitas: editData.fasilitas || '',
-        keterangan: editData.keterangan || ''
-      });
-    } else if (isOpen) {
-      form.resetFields();
+    if (isOpen) {
+      if (editData) {
+        setFormData({
+          nama: editData.nama || '',
+          jenis: editData.jenis || '',
+          gedung: editData.gedung || '',
+          lantai: editData.lantai !== null && editData.lantai !== undefined ? String(editData.lantai) : '1',
+          kapasitas: editData.kapasitas !== null && editData.kapasitas !== undefined ? String(editData.kapasitas) : '',
+          terisi: editData.terisi !== null && editData.terisi !== undefined ? String(editData.terisi) : '0',
+          status: editData.status || 'Tersedia',
+          fasilitas: editData.fasilitas || '',
+          keterangan: editData.keterangan || ''
+        });
+      } else {
+        setFormData({
+          nama: '',
+          jenis: '',
+          gedung: '',
+          lantai: '1',
+          kapasitas: '',
+          terisi: '0',
+          status: 'Tersedia',
+          fasilitas: '',
+          keterangan: ''
+        });
+      }
+      setFormErrors({});
     }
-  }, [isOpen, editData, form]);
+  }, [isOpen, editData]);
 
-  const handleSubmit = async () => {
-    try {
-      const values = await form.validateFields();
-      onSubmit(values);
-    } catch (err) {
-      console.error('Validasi gagal:', err);
+  const handleChange = (name, value) => {
+    setFormData(prev => ({ ...prev, [name]: value }));
+    if (formErrors[name]) {
+      setFormErrors(prev => ({ ...prev, [name]: '' }));
     }
   };
 
-  const handleCancel = () => {
-    form.resetFields();
-    onClose();
+  const handleSubmit = (e) => {
+    if (e) e.preventDefault();
+
+    const errors = {};
+    if (!formData.nama || !formData.nama.trim()) {
+      errors.nama = 'Nama kamar wajib diisi';
+    }
+    if (!formData.jenis) {
+      errors.jenis = 'Jenis kamar wajib dipilih';
+    }
+    if (!formData.kapasitas || Number(formData.kapasitas) < 1) {
+      errors.kapasitas = 'Kapasitas minimal 1';
+    }
+
+    if (Object.keys(errors).length > 0) {
+      setFormErrors(errors);
+      return;
+    }
+
+    const submissionData = {
+      nama: formData.nama.trim(),
+      jenis: formData.jenis,
+      gedung: formData.gedung ? formData.gedung.trim() : null,
+      lantai: formData.lantai ? Number(formData.lantai) : 1,
+      kapasitas: Number(formData.kapasitas),
+      terisi: formData.terisi ? Number(formData.terisi) : 0,
+      status: formData.status || 'Tersedia',
+      fasilitas: formData.fasilitas ? formData.fasilitas.trim() : null,
+      keterangan: formData.keterangan ? formData.keterangan.trim() : null
+    };
+
+    onSubmit(submissionData);
   };
 
   return (
-    <Modal
+    <CustomModal
       open={isOpen}
-      title={editData ? 'Edit Kamar' : 'Tambah Kamar'}
-      onCancel={handleCancel}
-      onOk={handleSubmit}
-      confirmLoading={isSubmitting}
-      width={700}
-      okText={editData ? 'Perbarui' : 'Simpan'}
-      cancelText="Batal"
-      className="kamar-modal"
+      onClose={onClose}
+      title={editData ? 'Edit Kamar Asrama' : 'Tambah Kamar Asrama'}
+      subtitle={editData ? 'Perbarui informasi kamar asrama santri' : 'Tambahkan kamar asrama baru ke sistem'}
+      icon={<Home />}
+      width={560}
       destroyOnClose
+      footer={
+        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px', width: '100%' }}>
+          <button
+            type="button"
+            className="btn-custom btn-secondary"
+            onClick={onClose}
+            disabled={isSubmitting}
+          >
+            Batal
+          </button>
+          <button
+            type="submit"
+            className="btn-custom btn-primary"
+            onClick={handleSubmit}
+            disabled={isSubmitting}
+          >
+            {isSubmitting ? (
+              <span className="loading-spinner"></span>
+            ) : (
+              <span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <Save size={16} /> {editData ? 'Perbarui' : 'Simpan'}
+              </span>
+            )}
+          </button>
+        </div>
+      }
     >
-      {error && (
-        <Alert
-          message="Error"
-          description={error}
-          type="error"
-          showIcon
-          closable
-          style={{ marginBottom: 16 }}
-        />
-      )}
+      <div className="kamar-form-container">
+        {error && (
+          <div style={{ marginBottom: '16px' }}>
+            <SmartAlert message={error} type="error" />
+          </div>
+        )}
 
-      <Form
-        form={form}
-        layout="vertical"
-        disabled={isSubmitting}
-        initialValues={{
-          terisi: 0,
-          status: 'Tersedia'
-        }}
-      >
-        <div className="form-section">
-          <div className="form-section-title">Informasi Kamar</div>
-
-          <Row gutter={16}>
-            <Col xs={24} sm={12}>
-              <Form.Item
-                name="nama"
+        <form onSubmit={handleSubmit} className="kamar-form">
+          {/* Section 1: Informasi Kamar */}
+          <div className="form-group-section">
+            <h4 className="section-title">Informasi Kamar</h4>
+            <div className="form-grid-2">
+              <FloatingInput
                 label="Nama Kamar"
-                rules={[{ required: true, message: 'Nama kamar wajib diisi' }]}
-              >
-                <Input
-                  prefix={<HomeOutlined />}
-                  placeholder="Contoh: A1, B2"
-                />
-              </Form.Item>
-            </Col>
+                name="nama"
+                icon={Home}
+                value={formData.nama}
+                onChange={(e) => handleChange('nama', e.target.value)}
+                error={formErrors.nama}
+                required
+                disabled={isSubmitting}
+                placeholder="Contoh: A1, B2"
+              />
 
-            <Col xs={24} sm={12}>
-              <Form.Item
-                name="jenis"
-                label="Jenis"
-                getValueFromEvent={(e) => e.target.value}
-                rules={[{ required: true, message: 'Jenis kamar wajib dipilih' }]}
-              >
-                <select className="custom-native-select">
-                  <option value="" disabled hidden>Pilih jenis kamar</option>
-                  <option value="Putra">Putra</option>
-                  <option value="Putri">Putri</option>
-                </select>
-              </Form.Item>
-            </Col>
-          </Row>
+              <CustomSelect
+                label="Jenis Kamar"
+                value={formData.jenis}
+                onChange={(v) => handleChange('jenis', v)}
+                options={[
+                  { label: 'Putra', value: 'Putra' },
+                  { label: 'Putri', value: 'Putri' }
+                ]}
+                error={formErrors.jenis}
+                required
+                disabled={isSubmitting}
+              />
+            </div>
 
-          <Row gutter={16}>
-            <Col xs={24} sm={12}>
-              <Form.Item name="gedung" label="Gedung">
-                <Input placeholder="Contoh: Gedung A" />
-              </Form.Item>
-            </Col>
+            <div className="form-grid-2">
+              <FloatingInput
+                label="Gedung"
+                name="gedung"
+                icon={Building}
+                value={formData.gedung}
+                onChange={(e) => handleChange('gedung', e.target.value)}
+                disabled={isSubmitting}
+                placeholder="Contoh: Gedung A"
+              />
 
-            <Col xs={24} sm={12}>
-              <Form.Item name="lantai" label="Lantai">
-                <InputNumber
-                  style={{ width: '100%' }}
-                  min={1}
-                  placeholder="1, 2, 3..."
-                />
-              </Form.Item>
-            </Col>
-          </Row>
-        </div>
+              <FloatingInput
+                label="Lantai"
+                name="lantai"
+                type="number"
+                icon={Layers}
+                value={formData.lantai}
+                onChange={(e) => handleChange('lantai', e.target.value)}
+                disabled={isSubmitting}
+                placeholder="1, 2, 3..."
+              />
+            </div>
+          </div>
 
-        <div className="form-section">
-          <div className="form-section-title">Kapasitas & Status</div>
-
-          <Row gutter={16}>
-            <Col xs={24} sm={8}>
-              <Form.Item
+          {/* Section 2: Kapasitas & Status */}
+          <div className="form-group-section">
+            <h4 className="section-title">Kapasitas & Status</h4>
+            <div className="form-grid-3">
+              <FloatingInput
+                label="Kapasitas Tempat"
                 name="kapasitas"
-                label="Kapasitas"
-                rules={[
-                  { required: true, message: 'Kapasitas wajib diisi' },
-                  { type: 'number', min: 1, message: 'Minimal 1' }
-                ]}
-              >
-                <InputNumber
-                  style={{ width: '100%' }}
-                  min={1}
-                  prefix={<TeamOutlined />}
-                  placeholder="Jumlah tempat"
-                />
-              </Form.Item>
-            </Col>
+                type="number"
+                icon={Users}
+                value={formData.kapasitas}
+                onChange={(e) => handleChange('kapasitas', e.target.value)}
+                error={formErrors.kapasitas}
+                required
+                disabled={isSubmitting}
+                placeholder="Jumlah tempat"
+              />
 
-            <Col xs={24} sm={8}>
-              <Form.Item
+              <FloatingInput
+                label="Terisi (Santri)"
                 name="terisi"
-                label="Terisi"
-                rules={[
-                  { type: 'number', min: 0, message: 'Minimal 0' }
+                type="number"
+                icon={Users}
+                value={formData.terisi}
+                onChange={(e) => handleChange('terisi', e.target.value)}
+                disabled={isSubmitting}
+                placeholder="Jumlah santri"
+              />
+
+              <CustomSelect
+                label="Status Kamar"
+                value={formData.status}
+                onChange={(v) => handleChange('status', v)}
+                options={[
+                  { label: 'Tersedia', value: 'Tersedia' },
+                  { label: 'Penuh', value: 'Penuh' },
+                  { label: 'Maintenance', value: 'Maintenance' }
                 ]}
-              >
-                <InputNumber
-                  style={{ width: '100%' }}
-                  min={0}
-                  placeholder="Jumlah santri"
-                />
-              </Form.Item>
-            </Col>
+                disabled={isSubmitting}
+              />
+            </div>
+          </div>
 
-            <Col xs={24} sm={8}>
-               <Form.Item name="status" label="Status" getValueFromEvent={(e) => e.target.value}>
-                <select className="custom-native-select">
-                  <option value="Tersedia">Tersedia</option>
-                  <option value="Penuh">Penuh</option>
-                  <option value="Maintenance">Maintenance</option>
-                </select>
-              </Form.Item>
-            </Col>
-          </Row>
-        </div>
+          {/* Section 3: Detail Tambahan */}
+          <div className="form-group-section">
+            <h4 className="section-title">Detail Tambahan</h4>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+              <FloatingInput
+                label="Fasilitas Kamar"
+                name="fasilitas"
+                icon={Wrench}
+                value={formData.fasilitas}
+                onChange={(e) => handleChange('fasilitas', e.target.value)}
+                disabled={isSubmitting}
+                placeholder="Contoh: AC, Lemari, Kasur"
+              />
 
-        <div className="form-section">
-          <div className="form-section-title">Detail Tambahan</div>
-
-          <Form.Item name="fasilitas" label={<><ToolOutlined /> Fasilitas</>}>
-            <Input placeholder="Contoh: AC, Lemari, Kasur" />
-          </Form.Item>
-
-          <Form.Item name="keterangan" label="Keterangan">
-            <TextArea rows={2} placeholder="Catatan tambahan (opsional)" />
-          </Form.Item>
-        </div>
-      </Form>
-    </Modal>
+              <FloatingInput
+                label="Keterangan Catatan"
+                name="keterangan"
+                icon={FileText}
+                value={formData.keterangan}
+                onChange={(e) => handleChange('keterangan', e.target.value)}
+                disabled={isSubmitting}
+                placeholder="Catatan tambahan (opsional)"
+              />
+            </div>
+          </div>
+        </form>
+      </div>
+    </CustomModal>
   );
 }

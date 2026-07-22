@@ -32,6 +32,8 @@ import { PageHeader, LoadingState, ErrorState } from '../components/common';
 import { useAuth } from '../context/AuthContext';
 import './Profile.scss';
 import { settingsService } from '../services/settingsService';
+import { CustomSelect } from '../components/ui/CustomSelect';
+import { FloatingInput } from '../components/ui/FloatingInput';
 
 const { Title, Text } = Typography;
 const { Option } = Select;
@@ -103,11 +105,12 @@ export function Profile() {
     }
   };
 
-  const handleSaveSettings = async (values) => {
+  const handleSaveSettings = async (e) => {
+    if (e && e.preventDefault) e.preventDefault();
     try {
       setSettingsLoading(true);
-      await settingsService.updateSetting('app_name', values.app_name);
-      await settingsService.updateSetting('active_semester', values.active_semester);
+      await settingsService.updateSetting('app_name', appNameState);
+      await settingsService.updateSetting('active_semester', activeSemesterState);
       
       if (fileList.length > 0 && fileList[0].originFileObj) {
         const base64 = await new Promise((resolve, reject) => {
@@ -409,59 +412,74 @@ export function Profile() {
 
       {isAdmin() && (
         <Card className="profile-card" title="Pengaturan Sistem" style={{ marginTop: 16 }}>
-          <Form 
-            key={`${appNameState}-${activeSemesterState}`}
-            layout="vertical" 
-            onFinish={handleSaveSettings}
-            initialValues={{ app_name: appNameState, active_semester: activeSemesterState }}
-          >
-            <Form.Item 
-              label="Nama Aplikasi" 
-              name="app_name"
-              rules={[{ required: true, message: 'Nama aplikasi wajib diisi!' }]}
-            >
-              <Input placeholder="Masukkan nama aplikasi" />
-            </Form.Item>
-            <Form.Item 
-              label="Semester Aktif" 
-              name="active_semester"
-              rules={[{ required: true, message: 'Semester aktif wajib diisi!' }]}
-            >
-              <Select placeholder="Pilih semester aktif">
-                <Option value="Ganjil">Semester Ganjil</Option>
-                <Option value="Genap">Semester Genap</Option>
-              </Select>
-            </Form.Item>
-            <Form.Item label="Logo Aplikasi">
-              <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
-                {fileList.length > 0 && fileList[0].url && (
-                  <div style={{ width: 100, height: 100, border: '1px solid #d9d9d9', borderRadius: 8, padding: 4, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                    <img src={fileList[0].url} alt="logo" style={{ maxWidth: '100%', maxHeight: '100%' }} />
-                  </div>
-                )}
-                <Button onClick={() => document.getElementById('logo-input').click()}>
-                  Pilih Logo
-                </Button>
-                <input
-                  id="logo-input"
-                  type="file"
-                  style={{ display: 'none' }}
-                  onChange={handleLogoFileChange}
-                  accept="image/*"
-                />
-                {fileList.length > 0 && (
-                  <Button danger onClick={() => setFileList([])}>
-                    Hapus
-                  </Button>
-                )}
+          <form onSubmit={handleSaveSettings} className="settings-form">
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', maxWidth: '500px' }}>
+              <FloatingInput
+                label="Nama Aplikasi"
+                name="app_name"
+                value={appNameState}
+                onChange={(e) => setAppNameState(e.target.value)}
+                required
+              />
+
+              <CustomSelect
+                label="Semester Aktif"
+                value={activeSemesterState}
+                onChange={(val) => setActiveSemesterState(val)}
+                options={[
+                  { label: 'Semester Ganjil', value: 'Ganjil' },
+                  { label: 'Semester Genap', value: 'Genap' }
+                ]}
+                required
+              />
+
+              <div>
+                <label style={{ display: 'block', marginBottom: '8px', fontWeight: 500, color: 'var(--lt-text-secondary, #475569)', fontSize: '13px' }}>
+                  Logo Aplikasi
+                </label>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+                  {fileList.length > 0 && fileList[0].url && (
+                    <div style={{ width: 100, height: 100, border: '1px solid #e2e8f0', borderRadius: 8, padding: 4, display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#f8fafc' }}>
+                      <img src={fileList[0].url} alt="logo" style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain' }} />
+                    </div>
+                  )}
+                  <button
+                    type="button"
+                    className="btn-custom btn-secondary"
+                    onClick={() => document.getElementById('logo-input').click()}
+                  >
+                    Pilih Logo
+                  </button>
+                  <input
+                    id="logo-input"
+                    type="file"
+                    style={{ display: 'none' }}
+                    onChange={handleLogoFileChange}
+                    accept="image/*"
+                  />
+                  {fileList.length > 0 && (
+                    <button
+                      type="button"
+                      className="btn-custom btn-danger"
+                      onClick={() => setFileList([])}
+                    >
+                      Hapus
+                    </button>
+                  )}
+                </div>
               </div>
-            </Form.Item>
-            <Form.Item style={{ marginBottom: 0 }}>
-              <Button type="primary" htmlType="submit" loading={settingsLoading}>
-                Simpan Pengaturan
-              </Button>
-            </Form.Item>
-          </Form>
+
+              <div>
+                <button
+                  type="submit"
+                  className="btn-custom btn-primary"
+                  disabled={settingsLoading}
+                >
+                  {settingsLoading ? 'Menyimpan...' : 'Simpan Pengaturan'}
+                </button>
+              </div>
+            </div>
+          </form>
         </Card>
       )}
 
