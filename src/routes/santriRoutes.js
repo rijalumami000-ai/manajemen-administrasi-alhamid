@@ -54,7 +54,7 @@ function registerSantriRoutes(app) {
         LEFT JOIN kamar k ON COALESCE(sta.kamar_id, s.kamar_id) = k.id
         LEFT JOIN orangtua o ON s.orangtua_id = o.id
         WHERE NOT EXISTS (
-          SELECT 1 FROM alumni a WHERE a.santri_id = s.id
+          SELECT 1 FROM alumni a WHERE a.santri_id = s.id OR a.nis = COALESCE(sta.nis, s.nis)
         )
           AND COALESCE(sta.status, 'aktif') IN ('aktif', 'draft', 'tidak_naik')
         ORDER BY s.nama

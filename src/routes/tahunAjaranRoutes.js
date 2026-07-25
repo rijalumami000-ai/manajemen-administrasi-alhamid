@@ -96,6 +96,10 @@ function registerTahunAjaranRoutes(app) {
         LEFT JOIN kelas ks ON sta.kelas_sekolah_id = ks.id
         LEFT JOIN kamar k ON sta.kamar_id = k.id
         WHERE sta.tahun_ajaran_id = $1
+          AND NOT EXISTS (
+            SELECT 1 FROM alumni a WHERE a.santri_id = s.id OR a.nis = sta.nis
+          )
+          AND COALESCE(sta.status, 'aktif') IN ('aktif', 'draft', 'tidak_naik')
         ORDER BY sta.nama
       `, [id]);
       res.json(result.rows);
