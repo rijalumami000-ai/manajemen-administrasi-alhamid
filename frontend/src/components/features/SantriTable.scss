@@ -170,6 +170,56 @@
     align-items: center;
     gap: 10px;
 
+    .santri-avatar-preview-wrap {
+      position: relative;
+      flex-shrink: 0;
+      cursor: pointer;
+
+      .avatar-lingkar-gelas-popup {
+        position: absolute;
+        top: -45px;
+        left: 42px;
+        z-index: 1000;
+        pointer-events: none;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 6px;
+        animation: popIn 0.18s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+
+        .avatar-lingkar-img, .avatar-lingkar-fallback {
+          width: 120px;
+          height: 120px;
+          border-radius: 50%;
+          object-fit: cover;
+          background: #ffffff;
+          border: 3.5px solid #ffffff;
+          box-shadow: 0 12px 32px rgba(15, 23, 42, 0.35), 0 2px 8px rgba(0, 0, 0, 0.15);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          font-size: 38px;
+          font-weight: 700;
+          overflow: hidden;
+        }
+
+        .avatar-lingkar-name {
+          font-size: 11px;
+          font-weight: 600;
+          color: #ffffff;
+          background: rgba(15, 23, 42, 0.88);
+          backdrop-filter: blur(4px);
+          padding: 3px 10px;
+          border-radius: 20px;
+          white-space: nowrap;
+          box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+          max-width: 170px;
+          overflow: hidden;
+          text-overflow: ellipsis;
+        }
+      }
+    }
+
     .avatar-circle-sm {
       width: 32px;
       height: 32px;
@@ -283,3 +333,15 @@
     align-items: center;
   }
 }
+
+@keyframes popIn {
+  0% {
+    opacity: 0;
+    transform: scale(0.65) translateY(6px);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+

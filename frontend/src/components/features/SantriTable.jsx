@@ -2,7 +2,8 @@ import React, { useState } from 'react';
 import { CustomTag } from '../ui/CustomTag';
 import { EmptyState } from '../common/EmptyState';
 import { formatStatusTahunAjaran } from '../../utils/formatters';
-import { Edit2, AlertCircle, CheckCircle, Lock, Unlock } from 'lucide-react';
+import { calculateProfileCompleteness } from '../../utils/studentUtils';
+import { Edit2, AlertCircle, CheckCircle, Lock, Unlock, User } from 'lucide-react';
 import './SantriTable.scss';
 
 const API_BASE = import.meta.env.VITE_API_URL || '';
@@ -40,17 +41,6 @@ const getInitials = (name) => {
   return (parts[0][0] + parts[1][0]).toUpperCase();
 };
 
-const calculateCompleteness = (record) => {
-  let score = 0;
-  if (record.nama) score += 20;
-  if (record.nis) score += 20;
-  if (record.nama_diniyah) score += 15;
-  if (record.nama_sekolah) score += 15;
-  if (record.nama_kamar) score += 15;
-  if (record.nama_ayah || record.nama_ibu) score += 15;
-  return score;
-};
-
 export function SantriTable({
   data = [],
   onEdit,
@@ -58,6 +48,7 @@ export function SantriTable({
   onUpdateSemesterStatus
 }) {
   const [isSemesterUnlocked, setIsSemesterUnlocked] = useState(false);
+  const [hoveredAvatar, setHoveredAvatar] = useState(null);
 
   if (data.length === 0) {
     return (
@@ -126,7 +117,7 @@ export function SantriTable({
             {data.map((record) => {
               const initials = getInitials(record.nama);
               const avatarStyle = getAvatarStyle(record.nama || '');
-              const completenessScore = calculateCompleteness(record);
+              const completenessScore = calculateProfileCompleteness(record);
               const isWarning = completenessScore < 100;
               const isMale = record.jenis_kelamin === 'Laki-laki';
 
@@ -155,28 +146,52 @@ export function SantriTable({
                   <td><span className="student-nis-txt">{record.nis || '-'}</span></td>
                   <td>
                     <div className="student-interactive-wrapper">
-                      <div className={`avatar-circle-sm ${record.foto_url ? 'has-photo' : ''}`} style={!record.foto_url ? avatarStyle : {}}>
-                        {record.foto_url ? (
-                          <img
-                            src={`${API_BASE}${record.foto_url}`}
-                            alt={record.nama}
-                            onError={(e) => {
-                              e.target.onerror = null;
-                              e.target.style.display = 'none';
-                              if (e.target.nextElementSibling) {
-                                e.target.nextElementSibling.style.display = 'flex';
-                              }
-                              if (e.target.parentElement) {
-                                e.target.parentElement.style.backgroundColor = avatarStyle.backgroundColor;
-                                e.target.parentElement.style.color = avatarStyle.color;
-                              }
-                            }}
-                            className="santri-avatar-img"
-                          />
-                        ) : null}
-                        <span className="avatar-initials" style={{ display: record.foto_url ? 'none' : 'flex' }}>
-                          {initials}
-                        </span>
+                      <div 
+                        className="santri-avatar-preview-wrap"
+                        onMouseEnter={() => setHoveredAvatar(record)}
+                        onMouseLeave={() => setHoveredAvatar(null)}
+                      >
+                        <div className={`avatar-circle-sm ${record.foto_url ? 'has-photo' : ''}`} style={!record.foto_url ? avatarStyle : {}}>
+                          {record.foto_url ? (
+                            <img
+                              src={`${API_BASE}${record.foto_url}`}
+                              alt={record.nama}
+                              onError={(e) => {
+                                e.target.onerror = null;
+                                e.target.style.display = 'none';
+                                if (e.target.nextElementSibling) {
+                                  e.target.nextElementSibling.style.display = 'flex';
+                                }
+                                if (e.target.parentElement) {
+                                  e.target.parentElement.style.backgroundColor = avatarStyle.backgroundColor;
+                                  e.target.parentElement.style.color = avatarStyle.color;
+                                }
+                              }}
+                              className="santri-avatar-img"
+                            />
+                          ) : null}
+                          <span className="avatar-initials" style={{ display: record.foto_url ? 'none' : 'flex' }}>
+                            {initials}
+                          </span>
+                        </div>
+
+                        {/* Hover Pop-up Lingkar Gelas */}
+                        {hoveredAvatar?.id === record.id && (
+                          <div className="avatar-lingkar-gelas-popup">
+                            {record.foto_url ? (
+                              <img
+                                src={`${API_BASE}${record.foto_url}`}
+                                alt={record.nama}
+                                className="avatar-lingkar-img"
+                              />
+                            ) : (
+                              <div className="avatar-lingkar-fallback" style={avatarStyle}>
+                                <span>{initials}</span>
+                              </div>
+                            )}
+                            <span className="avatar-lingkar-name">{record.nama}</span>
+                          </div>
+                        )}
                       </div>
                       <div className="student-name-info">
                         <span className="student-name">{record.nama || '-'}</span>

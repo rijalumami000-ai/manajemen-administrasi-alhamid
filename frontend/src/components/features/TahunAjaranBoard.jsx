@@ -2,7 +2,19 @@ import { useMemo } from 'react';
 import { ArrowRight, TrendingUp } from 'lucide-react';
 import './TahunAjaranBoard.scss';
 
-export function TahunAjaranBoard({ tahunAjaranList, selectedId, onSelect }) {
+export function TahunAjaranBoard({ 
+  tahunAjaranList, 
+  selectedId, 
+  selectedTahunAjaranId, 
+  onSelect, 
+  onSelectTahunAjaran 
+}) {
+  const currentSelectedId = selectedId !== undefined ? selectedId : selectedTahunAjaranId;
+  const handleSelect = (id) => {
+    if (typeof onSelect === 'function') onSelect(id);
+    if (typeof onSelectTahunAjaran === 'function') onSelectTahunAjaran(id);
+  };
+
   // Sort years chronologically
   const sortedYears = useMemo(() => {
     if (!tahunAjaranList) return [];
@@ -96,14 +108,14 @@ export function TahunAjaranBoard({ tahunAjaranList, selectedId, onSelect }) {
       <div className="timeline-container">
         <div className="timeline-track">
           {enrichedYears.map((item, idx) => {
-            const isSelected = Number(item.id) === Number(selectedId);
+            const isSelected = Number(item.id) === Number(currentSelectedId);
             const isItemActive = item.is_active;
             
             return (
               <div key={item.id} className="timeline-node-wrapper">
                 <button
                   type="button"
-                  onClick={() => onSelect(item.id)}
+                  onClick={() => handleSelect(item.id)}
                   className={`timeline-node ${isSelected ? 'selected' : ''} ${isItemActive ? 'active' : ''} ${item.status}`}
                 >
                   <span className="node-dot"></span>
@@ -124,7 +136,7 @@ export function TahunAjaranBoard({ tahunAjaranList, selectedId, onSelect }) {
       {/* Minimalist Year Cards Grid */}
       <div className="tahun-ajaran-cards-compact">
         {enrichedYears.map((item) => {
-          const isSelected = Number(item.id) === Number(selectedId);
+          const isSelected = Number(item.id) === Number(currentSelectedId);
           const isItemActive = item.is_active;
 
           let badgeLabel = 'Arsip';
@@ -142,7 +154,7 @@ export function TahunAjaranBoard({ tahunAjaranList, selectedId, onSelect }) {
               key={item.id}
               type="button"
               className={`tahun-ajaran-card-compact ${isSelected ? 'selected' : ''} ${isItemActive ? 'active-year-card' : ''}`}
-              onClick={() => onSelect(item.id)}
+              onClick={() => handleSelect(item.id)}
             >
               <div className="card-top-row">
                 <span className="year-title">{item.kode}</span>

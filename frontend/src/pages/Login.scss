@@ -208,151 +208,141 @@
   }
 }
 
-// Antd Form Overrides (Dark & Neon)
-.ant-form {
-  .ant-form-item {
-    margin-bottom: 24px;
-  }
+// Custom Select & Floating Input Dark Theme Overrides for Login
+.login-right {
+  .ui-custom-select {
+    margin-bottom: 0;
 
-  .login-select {
-    width: 100%;
-    background: rgba(255, 255, 255, 0.03) !important;
-    border: 1px solid rgba(255, 255, 255, 0.1) !important;
-    border-radius: 12px !important;
-    padding: 12px 16px !important;
-    height: 52px !important;
-    color: white !important;
-    font-size: 15px;
-    outline: none;
-    transition: all 0.3s ease !important;
-    cursor: pointer;
-    appearance: none;
-    -webkit-appearance: none;
-    -moz-appearance: none;
-    box-sizing: border-box;
+    &__wrapper {
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      border-radius: 12px;
+      min-height: 52px;
+      transition: all 0.25s ease;
 
-    // Custom chevron arrow for dark theme using SVG
-    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='rgba(255,255,255,0.4)' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><polyline points='6 9 12 15 18 9'></polyline></svg>");
-    background-repeat: no-repeat;
-    background-position: right 16px center;
-    background-size: 16px;
-
-    // Style placeholder state using :invalid pseudo class
-    &:invalid {
-      color: rgba(255, 255, 255, 0.3) !important;
-    }
-
-    option {
-      background-color: #1e293b !important;
-      color: white !important;
-      padding: 12px !important;
-    }
-
-    &:hover {
-      border-color: rgba(59, 130, 246, 0.5) !important;
-    }
-
-    &:focus {
-      border-color: #3b82f6 !important;
-      box-shadow: 0 0 15px rgba(59, 130, 246, 0.3) !important;
-      background: rgba(255, 255, 255, 0.05) !important;
-    }
-  }
-
-  .ant-select {
-    width: 100%;
-
-    .ant-select-selector {
-      background: rgba(255, 255, 255, 0.03) !important;
-      border: 1px solid rgba(255, 255, 255, 0.1) !important;
-      border-radius: 12px !important;
-      height: 52px !important;
-      padding: 6px 16px !important;
-      transition: all 0.3s ease !important;
-      display: flex;
-      align-items: center;
-
-      .ant-select-selection-search {
-        inset-inline-start: 16px !important;
-      }
-
-      .ant-select-selection-placeholder {
-        color: rgba(255, 255, 255, 0.3) !important;
-        font-size: 15px;
-        line-height: 38px;
-        inset-inline-start: 16px !important;
-        inset-inline-end: 16px !important;
-      }
-
-      .ant-select-selection-item {
-        color: white !important;
-        font-size: 15px;
-        line-height: 38px;
-        inset-inline-start: 0px !important;
-        inset-inline-end: 0px !important;
+      &:hover {
+        border-color: rgba(59, 130, 246, 0.5);
+        background: rgba(255, 255, 255, 0.07);
       }
     }
 
-    &:hover .ant-select-selector {
-      border-color: rgba(59, 130, 246, 0.5) !important;
+    &__icon {
+      color: rgba(255, 255, 255, 0.5);
     }
 
-    &.ant-select-focused .ant-select-selector,
-    &-focused .ant-select-selector {
-      border-color: #3b82f6 !important;
-      box-shadow: 0 0 15px rgba(59, 130, 246, 0.3) !important;
-      background: rgba(255, 255, 255, 0.05) !important;
-    }
-
-    .ant-select-arrow {
-      color: rgba(255, 255, 255, 0.4) !important;
-    }
-  }
-
-  .ant-input-affix-wrapper,
-  .ant-input-password {
-    background: rgba(255, 255, 255, 0.03) !important;
-    border: 1px solid rgba(255, 255, 255, 0.1) !important;
-    border-radius: 12px !important;
-    padding: 12px 16px !important;
-    transition: all 0.3s ease !important;
-
-    .ant-input {
-      background: transparent !important;
-      color: white !important;
+    &__value {
+      color: #ffffff;
       font-size: 15px;
+    }
 
-      &::placeholder {
-        color: rgba(255, 255, 255, 0.3) !important;
+    &__label {
+      color: rgba(255, 255, 255, 0.45);
+      font-size: 14px;
+    }
+
+    &__arrow {
+      color: rgba(255, 255, 255, 0.5);
+    }
+
+    &.active {
+      .ui-custom-select__wrapper {
+        border-color: #3b82f6;
+        box-shadow: 0 0 16px rgba(59, 130, 246, 0.35);
+        background: rgba(255, 255, 255, 0.08);
+      }
+
+      .ui-custom-select__label {
+        color: #60a5fa;
+      }
+
+      .ui-custom-select__icon {
+        color: #60a5fa;
       }
     }
 
-    &:hover {
-      border-color: rgba(59, 130, 246, 0.5) !important;
+    &__dropdown {
+      background: #0f172a;
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      box-shadow: 0 12px 36px rgba(0, 0, 0, 0.6);
+      border-radius: 12px;
+      z-index: 100;
     }
 
-    &:focus,
-    &-focused {
-      border-color: #3b82f6 !important;
-      box-shadow: 0 0 15px rgba(59, 130, 246, 0.3) !important;
-      background: rgba(255, 255, 255, 0.05) !important;
-    }
+    &__option {
+      color: #e2e8f0;
+      font-size: 14px;
+      padding: 10px 14px;
+      border-radius: 8px;
 
-    .ant-input-suffix {
-      .anticon {
-        color: rgba(255, 255, 255, 0.4) !important;
-        
-        &:hover {
-          color: white !important;
-        }
+      &:hover {
+        background: rgba(255, 255, 255, 0.08);
+        color: #60a5fa;
+      }
+
+      &.selected {
+        background: rgba(59, 130, 246, 0.2);
+        color: #60a5fa;
+        font-weight: 600;
       }
     }
   }
 
-  .ant-form-item-explain-error {
-    color: #ef4444;
-    font-size: 13px;
-    margin-top: 4px;
+  .ui-floating-input {
+    margin-bottom: 0;
+
+    &__wrapper {
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      border-radius: 12px;
+      min-height: 52px;
+      transition: all 0.25s ease;
+
+      &:hover {
+        border-color: rgba(59, 130, 246, 0.5);
+        background: rgba(255, 255, 255, 0.07);
+      }
+    }
+
+    &__icon {
+      color: rgba(255, 255, 255, 0.5);
+    }
+
+    &__field {
+      color: #ffffff;
+      font-size: 15px;
+      background: transparent;
+
+      &:-webkit-autofill,
+      &:-webkit-autofill:hover,
+      &:-webkit-autofill:focus {
+        -webkit-text-fill-color: #ffffff;
+        -webkit-box-shadow: 0 0 0px 1000px #0f172a inset;
+        transition: background-color 5000s ease-in-out 0s;
+      }
+    }
+
+    &__label {
+      color: rgba(255, 255, 255, 0.45);
+      font-size: 14px;
+    }
+
+    &.active {
+      .ui-floating-input__wrapper {
+        border-color: #3b82f6;
+        box-shadow: 0 0 16px rgba(59, 130, 246, 0.35);
+        background: rgba(255, 255, 255, 0.08);
+      }
+
+      .ui-floating-input__label {
+        color: #60a5fa;
+      }
+
+      .ui-floating-input__icon {
+        color: #60a5fa;
+      }
+    }
   }
 
   .glow-btn {
@@ -363,17 +353,24 @@
     font-size: 16px !important;
     font-weight: 600 !important;
     letter-spacing: 0.5px;
+    color: #ffffff !important;
     box-shadow: 0 4px 15px rgba(59, 130, 246, 0.3) !important;
     transition: all 0.3s ease !important;
+    cursor: pointer;
 
-    &:hover {
+    &:hover:not(:disabled) {
       transform: translateY(-2px);
       box-shadow: 0 8px 25px rgba(59, 130, 246, 0.5) !important;
-      opacity: 0.9;
+      opacity: 0.95;
     }
 
-    &:active {
+    &:active:not(:disabled) {
       transform: translateY(0);
+    }
+
+    &:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
     }
   }
 }

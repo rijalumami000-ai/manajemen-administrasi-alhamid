@@ -57,6 +57,7 @@ export function BukuInduk() {
   // Modals & Drawers State
   const [detailDrawerOpen, setDetailDrawerOpen] = useState(false);
   const [selectedSantri, setSelectedSantri] = useState(null);
+  const [hoveredAvatar, setHoveredAvatar] = useState(null);
   
   const [editModalOpen, setEditModalOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -300,23 +301,47 @@ export function BukuInduk() {
       width: '30%',
       render: (nama, row) => (
         <div className="datagrid-profile">
-          <div className="datagrid-avatar">
-            {row.foto_url && (
-              <img 
-                src={`${API_BASE}${row.foto_url}`} 
-                alt={nama} 
-                onError={(e) => {
-                  e.target.onerror = null;
-                  e.target.style.display = 'none';
-                  e.target.parentElement.classList.add('fallback-active');
-                }} 
+          <div 
+            className="datagrid-avatar-wrapper"
+            onMouseEnter={() => setHoveredAvatar(row)}
+            onMouseLeave={() => setHoveredAvatar(null)}
+          >
+            <div className="datagrid-avatar">
+              {row.foto_url && (
+                <img 
+                  src={`${API_BASE}${row.foto_url}`} 
+                  alt={nama} 
+                  onError={(e) => {
+                    e.target.onerror = null;
+                    e.target.style.display = 'none';
+                    e.target.parentElement.classList.add('fallback-active');
+                  }} 
+                />
+              )}
+              <User 
+                size={20} 
+                className="fallback-user-icon" 
+                style={{ display: row.foto_url ? 'none' : 'block' }} 
               />
+            </div>
+
+            {/* Pop up besar berukuran lingkar gelas */}
+            {hoveredAvatar?.id === row.id && (
+              <div className="avatar-lingkar-gelas-popup">
+                {row.foto_url ? (
+                  <img 
+                    src={`${API_BASE}${row.foto_url}`} 
+                    alt={nama} 
+                    className="avatar-lingkar-img"
+                  />
+                ) : (
+                  <div className="avatar-lingkar-fallback">
+                    <User size={54} />
+                  </div>
+                )}
+                <span className="avatar-lingkar-name">{nama}</span>
+              </div>
             )}
-            <User 
-              size={20} 
-              className="fallback-user-icon" 
-              style={{ display: row.foto_url ? 'none' : 'block' }} 
-            />
           </div>
           <div className="datagrid-info">
             <span className="datagrid-name">{nama}</span>

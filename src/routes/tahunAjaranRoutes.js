@@ -79,12 +79,31 @@ function registerTahunAjaranRoutes(app) {
           sta.tempat_lahir,
           sta.tanggal_lahir,
           sta.alamat,
-          sta.nama_ayah,
-          sta.nama_ibu,
-          sta.pekerjaan_ayah,
-          sta.pekerjaan_ibu,
-          sta.no_hp_ayah,
-          sta.no_hp_ibu,
+          COALESCE(sta.nama_ayah, o.nama_ayah) AS nama_ayah,
+          COALESCE(sta.nama_ibu, o.nama_ibu) AS nama_ibu,
+          COALESCE(sta.pekerjaan_ayah, o.pekerjaan_ayah) AS pekerjaan_ayah,
+          COALESCE(sta.pekerjaan_ibu, o.pekerjaan_ibu) AS pekerjaan_ibu,
+          COALESCE(sta.no_hp_ayah, o.no_hp_ayah) AS no_hp_ayah,
+          COALESCE(sta.no_hp_ibu, o.no_hp_ibu) AS no_hp_ibu,
+          o.nik_ayah,
+          o.nik_ibu,
+          s.tahun_masuk,
+          s.anak_ke,
+          s.agama,
+          s.status_keluarga,
+          s.status_masuk,
+          s.pesantren_sebelumnya,
+          s.sekolah_asal_nama,
+          s.sekolah_asal_alamat,
+          s.diterima_kelas_madin,
+          s.diterima_tanggal_madin,
+          s.keluar_madin_tanggal,
+          s.keluar_madin_status,
+          s.keluar_pondok_tanggal,
+          s.keluar_pondok_status,
+          s.keluar_sekolah_tingkat,
+          s.keluar_sekolah_tanggal,
+          s.keluar_sekolah_status,
           kd.nama AS nama_diniyah,
           ks.nama AS nama_sekolah,
           k.nama AS nama_kamar,
@@ -93,6 +112,7 @@ function registerTahunAjaranRoutes(app) {
         FROM santri_tahun_ajaran sta
         JOIN tahun_ajaran ta ON sta.tahun_ajaran_id = ta.id
         JOIN santri s ON sta.santri_id = s.id
+        LEFT JOIN orangtua o ON s.orangtua_id = o.id
         LEFT JOIN kelas kd ON sta.kelas_diniyah_id = kd.id
         LEFT JOIN kelas ks ON sta.kelas_sekolah_id = ks.id
         LEFT JOIN kamar k ON sta.kamar_id = k.id

@@ -439,7 +439,9 @@ export function Santri() {
       <TahunAjaranBoard
         tahunAjaranList={tahunAjaranList}
         activeTahunAjaran={activeTahunAjaran}
+        selectedId={selectedTahunAjaranId}
         selectedTahunAjaranId={selectedTahunAjaranId}
+        onSelect={handleTahunAjaranSelect}
         onSelectTahunAjaran={handleTahunAjaranSelect}
       />
 

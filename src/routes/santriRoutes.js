@@ -44,9 +44,27 @@ function registerSantriRoutes(app) {
           COALESCE(sta.nama_ayah, o.nama_ayah) AS nama_ayah,
           COALESCE(sta.nama_ibu, o.nama_ibu) AS nama_ibu,
           COALESCE(sta.pekerjaan_ayah, o.pekerjaan_ayah) AS pekerjaan_ayah,
-          COALESCE(sta.pekerjaan_ibu, o.pekerjaan_ibu) AS pekerjaan_ibu,
           COALESCE(sta.no_hp_ayah, o.no_hp_ayah) AS no_hp_ayah,
-          COALESCE(sta.no_hp_ibu, o.no_hp_ibu) AS no_hp_ibu
+          COALESCE(sta.no_hp_ibu, o.no_hp_ibu) AS no_hp_ibu,
+          o.nik_ayah,
+          o.nik_ibu,
+          s.tahun_masuk,
+          s.anak_ke,
+          s.agama,
+          s.status_keluarga,
+          s.status_masuk,
+          s.pesantren_sebelumnya,
+          s.sekolah_asal_nama,
+          s.sekolah_asal_alamat,
+          s.diterima_kelas_madin,
+          s.diterima_tanggal_madin,
+          s.keluar_madin_tanggal,
+          s.keluar_madin_status,
+          s.keluar_pondok_tanggal,
+          s.keluar_pondok_status,
+          s.keluar_sekolah_tingkat,
+          s.keluar_sekolah_tanggal,
+          s.keluar_sekolah_status
         FROM santri s
         JOIN tahun_ajaran ta ON ta.is_active = TRUE
         LEFT JOIN santri_tahun_ajaran sta ON sta.santri_id = s.id AND sta.tahun_ajaran_id = ta.id
