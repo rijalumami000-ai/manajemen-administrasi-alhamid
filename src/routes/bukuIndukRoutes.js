@@ -3,7 +3,7 @@ const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
 const { syncSantriToActiveTahunAjaran, syncSantriToSpecificTahunAjaran } = require('../services/tahunAjaranService');
-const { nullableInt } = require('../utils/normalizers');
+const { nullableInt, nullableDate } = require('../utils/normalizers');
 const santriExcelService = require('../services/santriExcelService');
 
 // Konfigurasi storage multer untuk foto santri
@@ -92,6 +92,14 @@ function registerBukuIndukRoutes(app) {
           km.nama AS nama_kamar,
           o.nama_ayah, o.nama_ibu, o.no_hp_ayah, o.no_hp_ibu,
           o.pekerjaan_ayah, o.pekerjaan_ibu,
+          o.nik_ayah, o.nik_ibu,
+          s.anak_ke, s.agama, s.status_keluarga,
+          s.status_masuk, s.pesantren_sebelumnya,
+          s.sekolah_asal_nama, s.sekolah_asal_alamat,
+          s.diterima_kelas_madin, s.diterima_tanggal_madin,
+          s.keluar_madin_tanggal, s.keluar_madin_status,
+          s.keluar_pondok_tanggal, s.keluar_pondok_status,
+          s.keluar_sekolah_tingkat, s.keluar_sekolah_tanggal, s.keluar_sekolah_status,
           CASE WHEN sfd.santri_id IS NOT NULL THEN TRUE ELSE FALSE END AS is_face_registered,
           s.qr_code, s.nfc_uid, s.fingerprint_id
         FROM santri s
@@ -135,6 +143,14 @@ function registerBukuIndukRoutes(app) {
       tempat_lahir, tanggal_lahir, alamat, tahun_masuk,
       nama_ayah, nama_ibu, pekerjaan_ayah, pekerjaan_ibu,
       no_hp_ayah, no_hp_ibu,
+      nik_ayah, nik_ibu,
+      anak_ke, agama, status_keluarga,
+      status_masuk, pesantren_sebelumnya,
+      sekolah_asal_nama, sekolah_asal_alamat,
+      diterima_kelas_madin, diterima_tanggal_madin,
+      keluar_madin_tanggal, keluar_madin_status,
+      keluar_pondok_tanggal, keluar_pondok_status,
+      keluar_sekolah_tingkat, keluar_sekolah_tanggal, keluar_sekolah_status,
       // Opsi masukkan ke TA aktif
       masukkan_ke_ta_aktif,
       kelas_diniyah_id, kelas_sekolah_id, kamar_id,
@@ -144,28 +160,57 @@ function registerBukuIndukRoutes(app) {
       return res.status(400).json({ error: 'NIS dan nama santri wajib diisi.' });
     }
 
+    if (status_masuk === 'Pindahan' && (!pesantren_sebelumnya || !pesantren_sebelumnya.trim())) {
+      return res.status(400).json({ error: 'Nama pesantren asal wajib diisi untuk santri pindahan.' });
+    }
+
     try {
       // 1. Insert data orang tua jika ada
       let orangtuaId = null;
-      if (nama_ayah || nama_ibu) {
+      if (nama_ayah || nama_ibu || pekerjaan_ayah || pekerjaan_ibu || no_hp_ayah || no_hp_ibu || nik_ayah || nik_ibu) {
         const orangtuaResult = await db.query(
-          `INSERT INTO orangtua (nama_ayah, nama_ibu, pekerjaan_ayah, pekerjaan_ibu, no_hp_ayah, no_hp_ibu)
-           VALUES ($1, $2, $3, $4, $5, $6)
+          `INSERT INTO orangtua (nama_ayah, nama_ibu, pekerjaan_ayah, pekerjaan_ibu, no_hp_ayah, no_hp_ibu, nik_ayah, nik_ibu)
+           VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
            RETURNING id`,
-          [nama_ayah || null, nama_ibu || null, pekerjaan_ayah || null, pekerjaan_ibu || null, no_hp_ayah || null, no_hp_ibu || null]
+          [nama_ayah || null, nama_ibu || null, pekerjaan_ayah || null, pekerjaan_ibu || null, no_hp_ayah || null, no_hp_ibu || null, nik_ayah || null, nik_ibu || null]
         );
         orangtuaId = orangtuaResult.rows[0].id;
       }
 
       // 2. Insert data santri (master)
       const result = await db.query(
-        `INSERT INTO santri (nis, nik, nama, jenis_kelamin, tempat_lahir, tanggal_lahir, alamat, orangtua_id, tahun_masuk,
-           kelas_diniyah_id, kelas_sekolah_id, kamar_id)
-         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
+        `INSERT INTO santri (
+           nis, nik, nama, jenis_kelamin, tempat_lahir, tanggal_lahir, alamat, orangtua_id, tahun_masuk,
+           kelas_diniyah_id, kelas_sekolah_id, kamar_id,
+           anak_ke, agama, status_keluarga, status_masuk, pesantren_sebelumnya,
+           sekolah_asal_nama, sekolah_asal_alamat,
+           diterima_kelas_madin, diterima_tanggal_madin,
+           keluar_madin_tanggal, keluar_madin_status,
+           keluar_pondok_tanggal, keluar_pondok_status,
+           keluar_sekolah_tingkat, keluar_sekolah_tanggal, keluar_sekolah_status
+         )
+         VALUES (
+           $1, $2, $3, $4, $5, $6, $7, $8, $9,
+           $10, $11, $12,
+           $13, $14, $15, $16, $17,
+           $18, $19,
+           $20, $21,
+           $22, $23,
+           $24, $25,
+           $26, $27, $28
+         )
          RETURNING *`,
-        [nis, nik || null, nama, jenis_kelamin || null, tempat_lahir || null, tanggal_lahir || null,
-         alamat || null, orangtuaId, tahun_masuk || null,
-         nullableInt(kelas_diniyah_id), nullableInt(kelas_sekolah_id), nullableInt(kamar_id)]
+        [
+          nis, nik || null, nama, jenis_kelamin || null, tempat_lahir || null, nullableDate(tanggal_lahir),
+          alamat || null, orangtuaId, tahun_masuk || null,
+          nullableInt(kelas_diniyah_id), nullableInt(kelas_sekolah_id), nullableInt(kamar_id),
+          nullableInt(anak_ke), agama || 'Islam', status_keluarga || 'Kandung', status_masuk || 'Baru', pesantren_sebelumnya || null,
+          sekolah_asal_nama || null, sekolah_asal_alamat || null,
+          diterima_kelas_madin || null, nullableDate(diterima_tanggal_madin),
+          nullableDate(keluar_madin_tanggal), keluar_madin_status || null,
+          nullableDate(keluar_pondok_tanggal), keluar_pondok_status || null,
+          keluar_sekolah_tingkat || null, nullableDate(keluar_sekolah_tanggal), keluar_sekolah_status || null
+        ]
       );
 
       const santriId = result.rows[0].id;
@@ -193,10 +238,22 @@ function registerBukuIndukRoutes(app) {
       tempat_lahir, tanggal_lahir, alamat, tahun_masuk,
       nama_ayah, nama_ibu, pekerjaan_ayah, pekerjaan_ibu,
       no_hp_ayah, no_hp_ibu,
+      nik_ayah, nik_ibu,
+      anak_ke, agama, status_keluarga,
+      status_masuk, pesantren_sebelumnya,
+      sekolah_asal_nama, sekolah_asal_alamat,
+      diterima_kelas_madin, diterima_tanggal_madin,
+      keluar_madin_tanggal, keluar_madin_status,
+      keluar_pondok_tanggal, keluar_pondok_status,
+      keluar_sekolah_tingkat, keluar_sekolah_tanggal, keluar_sekolah_status,
     } = req.body;
 
     if (!nis || !nama) {
       return res.status(400).json({ error: 'NIS dan nama santri wajib diisi.' });
+    }
+
+    if (status_masuk === 'Pindahan' && (!pesantren_sebelumnya || !pesantren_sebelumnya.trim())) {
+      return res.status(400).json({ error: 'Nama pesantren asal wajib diisi untuk santri pindahan.' });
     }
 
     try {
@@ -209,27 +266,43 @@ function registerBukuIndukRoutes(app) {
       let orangtuaId = existing.rows[0].orangtua_id;
       if (orangtuaId) {
         await db.query(
-          `UPDATE orangtua SET nama_ayah = $1, nama_ibu = $2, pekerjaan_ayah = $3, pekerjaan_ibu = $4, no_hp_ayah = $5, no_hp_ibu = $6
-           WHERE id = $7`,
-          [nama_ayah || null, nama_ibu || null, pekerjaan_ayah || null, pekerjaan_ibu || null, no_hp_ayah || null, no_hp_ibu || null, orangtuaId]
+          `UPDATE orangtua SET nama_ayah = $1, nama_ibu = $2, pekerjaan_ayah = $3, pekerjaan_ibu = $4, no_hp_ayah = $5, no_hp_ibu = $6, nik_ayah = $7, nik_ibu = $8
+           WHERE id = $9`,
+          [nama_ayah || null, nama_ibu || null, pekerjaan_ayah || null, pekerjaan_ibu || null, no_hp_ayah || null, no_hp_ibu || null, nik_ayah || null, nik_ibu || null, orangtuaId]
         );
-      } else if (nama_ayah || nama_ibu || pekerjaan_ayah || pekerjaan_ibu || no_hp_ayah || no_hp_ibu) {
+      } else if (nama_ayah || nama_ibu || pekerjaan_ayah || pekerjaan_ibu || no_hp_ayah || no_hp_ibu || nik_ayah || nik_ibu) {
         const orangtuaResult = await db.query(
-          `INSERT INTO orangtua (nama_ayah, nama_ibu, pekerjaan_ayah, pekerjaan_ibu, no_hp_ayah, no_hp_ibu)
-           VALUES ($1, $2, $3, $4, $5, $6)
+          `INSERT INTO orangtua (nama_ayah, nama_ibu, pekerjaan_ayah, pekerjaan_ibu, no_hp_ayah, no_hp_ibu, nik_ayah, nik_ibu)
+           VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
            RETURNING id`,
-          [nama_ayah || null, nama_ibu || null, pekerjaan_ayah || null, pekerjaan_ibu || null, no_hp_ayah || null, no_hp_ibu || null]
+          [nama_ayah || null, nama_ibu || null, pekerjaan_ayah || null, pekerjaan_ibu || null, no_hp_ayah || null, no_hp_ibu || null, nik_ayah || null, nik_ibu || null]
         );
         orangtuaId = orangtuaResult.rows[0].id;
       }
 
       // Update data santri (master)
       const result = await db.query(
-        `UPDATE santri SET nis = $1, nik = $2, nama = $3, jenis_kelamin = $4,
-           tempat_lahir = $5, tanggal_lahir = $6, alamat = $7, orangtua_id = $8, tahun_masuk = $9
-         WHERE id = $10 RETURNING *`,
-        [nis, nik || null, nama, jenis_kelamin || null, tempat_lahir || null, tanggal_lahir || null,
-         alamat || null, orangtuaId, tahun_masuk || null, id]
+        `UPDATE santri SET
+           nis = $1, nik = $2, nama = $3, jenis_kelamin = $4,
+           tempat_lahir = $5, tanggal_lahir = $6, alamat = $7, orangtua_id = $8, tahun_masuk = $9,
+           anak_ke = $10, agama = $11, status_keluarga = $12, status_masuk = $13, pesantren_sebelumnya = $14,
+           sekolah_asal_nama = $15, sekolah_asal_alamat = $16,
+           diterima_kelas_madin = $17, diterima_tanggal_madin = $18,
+           keluar_madin_tanggal = $19, keluar_madin_status = $20,
+           keluar_pondok_tanggal = $21, keluar_pondok_status = $22,
+           keluar_sekolah_tingkat = $23, keluar_sekolah_tanggal = $24, keluar_sekolah_status = $25
+         WHERE id = $26 RETURNING *`,
+        [
+          nis, nik || null, nama, jenis_kelamin || null, tempat_lahir || null, nullableDate(tanggal_lahir),
+          alamat || null, orangtuaId, tahun_masuk || null,
+          nullableInt(anak_ke), agama || 'Islam', status_keluarga || 'Kandung', status_masuk || 'Baru', pesantren_sebelumnya || null,
+          sekolah_asal_nama || null, sekolah_asal_alamat || null,
+          diterima_kelas_madin || null, nullableDate(diterima_tanggal_madin),
+          nullableDate(keluar_madin_tanggal), keluar_madin_status || null,
+          nullableDate(keluar_pondok_tanggal), keluar_pondok_status || null,
+          keluar_sekolah_tingkat || null, nullableDate(keluar_sekolah_tanggal), keluar_sekolah_status || null,
+          id
+        ]
       );
 
       // Sync perubahan identitas ke tahun ajaran aktif (agar snapshot ter-update)

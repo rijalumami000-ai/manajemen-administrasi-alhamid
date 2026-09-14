@@ -50,10 +50,23 @@ function nullableInt(value) {
   return Number.isNaN(parsed) ? null : parsed;
 }
 
+function nullableDate(value) {
+  if (value === null || value === undefined || value === '') {
+    return null;
+  }
+  if (typeof value === 'string') {
+    const trimmed = value.trim();
+    return trimmed || null;
+  }
+  return value;
+}
+
 module.exports = {
   normalizeText,
   normalizeKelasJenis,
   normalizeYearCode,
   normalizeSantriStatus,
   nullableInt,
+  nullableDate,
 };
+

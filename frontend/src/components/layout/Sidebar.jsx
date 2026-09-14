@@ -208,8 +208,6 @@ export function Sidebar({ collapsed, onCollapse }) {
         { key: '/santri', icon: 'Users', label: 'Data Santri' },
         { key: '/buku-induk', icon: 'BookOpen', label: 'Buku Induk' },
         { key: '/kamar', icon: 'Home', label: 'Data Kamar' },
-        { key: '/absensi-sholat', icon: 'Camera', label: 'Absensi Sholat' },
-        { key: '/rekap-absensi-sholat', icon: 'ClipboardList', label: 'Rekap Absensi' },
         { key: '/pelanggaran-prestasi', icon: 'Award', label: 'Pelanggaran & Prestasi' },
       ]
     },

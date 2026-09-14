@@ -27,6 +27,7 @@ const migrations = [
   { name: 'add_notifications_tables',            fn: require('./migrations/add_notifications_tables') },
   { name: 'add_chat_messages_table',             fn: require('./migrations/add_chat_messages_table') },
   { name: 'add_absensi_bulanan_table',           fn: require('./migrations/add_absensi_bulanan_table') },
+  { name: 'add_buku_induk_santri_fields',         fn: require('./migrations/add_buku_induk_santri_fields') },
 ];
 
 async function runAll() {

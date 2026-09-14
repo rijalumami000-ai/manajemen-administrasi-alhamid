@@ -30,9 +30,6 @@ const KartuUjianSemester = lazy(() => import('./pages/KartuUjianSemester').then(
 const VerificationPage = lazy(() => import('./pages/VerificationPage').then(m => ({ default: m.VerificationPage })));
 const Welcome = lazy(() => import('./pages/Welcome').then(m => ({ default: m.Welcome })));
 const QuickLogin = lazy(() => import('./pages/QuickLogin').then(m => ({ default: m.QuickLogin })));
-const AbsensiSholat = lazy(() => import('./pages/AbsensiSholat').then(m => ({ default: m.AbsensiSholat })));
-const AbsensiSholatScan = lazy(() => import('./pages/AbsensiSholatScan').then(m => ({ default: m.AbsensiSholatScan })));
-const RekapAbsensiSholat = lazy(() => import('./pages/RekapAbsensiSholat').then(m => ({ default: m.RekapAbsensiSholat })));
 const LembarUjian = lazy(() => import('./pages/LembarUjian').then(m => ({ default: m.LembarUjian })));
 const UjianMenu = lazy(() => import('./pages/UjianMenu').then(m => ({ default: m.UjianMenu })));
 const ScanNilai = lazy(() => import('./pages/ScanNilai').then(m => ({ default: m.ScanNilai })));
@@ -82,8 +79,6 @@ function App() {
                   element={<QuickLogin />} 
                 />
 
-                <Route path="/absensi-sholat-scan" element={<AbsensiSholatScan />} />
-
                 <Route path="/" element={
                   <ProtectedRoute>
                     <Layout />
@@ -108,8 +103,6 @@ function App() {
                   <Route path="welcome" element={<Welcome />} />
                   <Route path="buku-induk" element={<BukuInduk />} />
                   <Route path="kartu-ujian-semester" element={<KartuUjianSemester />} />
-                  <Route path="absensi-sholat" element={<AbsensiSholat />} />
-                  <Route path="rekap-absensi-sholat" element={<RekapAbsensiSholat />} />
                   <Route path="lembar-ujian" element={<LembarUjian />} />
                   <Route path="ujian" element={<UjianMenu />} />
                   <Route path="scan-nilai" element={<ScanNilai />} />

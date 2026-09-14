@@ -39,6 +39,8 @@ CREATE TABLE IF NOT EXISTS orangtua (
   id SERIAL PRIMARY KEY,
   nama_ayah VARCHAR(150),
   nama_ibu VARCHAR(150),
+  nik_ayah VARCHAR(50),
+  nik_ibu VARCHAR(50),
   pekerjaan_ayah VARCHAR(120),
   pekerjaan_ibu VARCHAR(120),
   no_hp_ayah VARCHAR(60),
@@ -52,6 +54,22 @@ CREATE TABLE IF NOT EXISTS santri (
   nik VARCHAR(50),
   nama VARCHAR(150) NOT NULL,
   jenis_kelamin VARCHAR(20),
+  anak_ke INTEGER,
+  agama VARCHAR(50) DEFAULT 'Islam',
+  status_keluarga VARCHAR(50) DEFAULT 'Kandung',
+  status_masuk VARCHAR(50) DEFAULT 'Baru',
+  pesantren_sebelumnya VARCHAR(200),
+  sekolah_asal_nama VARCHAR(200),
+  sekolah_asal_alamat TEXT,
+  diterima_kelas_madin VARCHAR(100),
+  diterima_tanggal_madin DATE,
+  keluar_madin_tanggal DATE,
+  keluar_madin_status VARCHAR(50),
+  keluar_pondok_tanggal DATE,
+  keluar_pondok_status VARCHAR(50),
+  keluar_sekolah_tingkat VARCHAR(50),
+  keluar_sekolah_tanggal DATE,
+  keluar_sekolah_status VARCHAR(50),
   kelas_diniyah_id INTEGER REFERENCES kelas(id),
   kelas_sekolah_id INTEGER REFERENCES kelas(id),
   kamar_id INTEGER REFERENCES kamar(id),
@@ -329,3 +347,25 @@ CROSS JOIN tahun_ajaran ta
 WHERE ta.is_active = TRUE
   AND (k.mustahiq_id IS NOT NULL OR k.muhafadzoh_mapel_id IS NOT NULL OR k.qiroatul_mapel_id IS NOT NULL)
 ON CONFLICT (kelas_id, tahun_ajaran_id) DO NOTHING;
+
+-- Migration: Add new fields for Buku Induk Santri & Orang Tua
+ALTER TABLE orangtua ADD COLUMN IF NOT EXISTS nik_ayah VARCHAR(50);
+ALTER TABLE orangtua ADD COLUMN IF NOT EXISTS nik_ibu VARCHAR(50);
+
+ALTER TABLE santri ADD COLUMN IF NOT EXISTS anak_ke INTEGER;
+ALTER TABLE santri ADD COLUMN IF NOT EXISTS agama VARCHAR(50) DEFAULT 'Islam';
+ALTER TABLE santri ADD COLUMN IF NOT EXISTS status_keluarga VARCHAR(50) DEFAULT 'Kandung';
+ALTER TABLE santri ADD COLUMN IF NOT EXISTS status_masuk VARCHAR(50) DEFAULT 'Baru';
+ALTER TABLE santri ADD COLUMN IF NOT EXISTS pesantren_sebelumnya VARCHAR(200);
+ALTER TABLE santri ADD COLUMN IF NOT EXISTS sekolah_asal_nama VARCHAR(200);
+ALTER TABLE santri ADD COLUMN IF NOT EXISTS sekolah_asal_alamat TEXT;
+ALTER TABLE santri ADD COLUMN IF NOT EXISTS diterima_kelas_madin VARCHAR(100);
+ALTER TABLE santri ADD COLUMN IF NOT EXISTS diterima_tanggal_madin DATE;
+ALTER TABLE santri ADD COLUMN IF NOT EXISTS keluar_madin_tanggal DATE;
+ALTER TABLE santri ADD COLUMN IF NOT EXISTS keluar_madin_status VARCHAR(50);
+ALTER TABLE santri ADD COLUMN IF NOT EXISTS keluar_pondok_tanggal DATE;
+ALTER TABLE santri ADD COLUMN IF NOT EXISTS keluar_pondok_status VARCHAR(50);
+ALTER TABLE santri ADD COLUMN IF NOT EXISTS keluar_sekolah_tingkat VARCHAR(50);
+ALTER TABLE santri ADD COLUMN IF NOT EXISTS keluar_sekolah_tanggal DATE;
+ALTER TABLE santri ADD COLUMN IF NOT EXISTS keluar_sekolah_status VARCHAR(50);
+

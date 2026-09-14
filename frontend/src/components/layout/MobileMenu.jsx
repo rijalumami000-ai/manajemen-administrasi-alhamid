@@ -46,8 +46,6 @@ const MobileMenu = ({ open, onClose, onLogout }) => {
         { key: '/santri', icon: <Users size={18} />, label: 'Data Santri' },
         { key: '/buku-induk', icon: <BookOpen size={18} />, label: 'Buku Induk' },
         { key: '/kamar', icon: <Home size={18} />, label: 'Data Kamar' },
-        { key: '/absensi-sholat', icon: <Camera size={18} />, label: 'Absensi Sholat' },
-        { key: '/rekap-absensi-sholat', icon: <ClipboardList size={18} />, label: 'Rekap Absensi' },
         { key: '/pelanggaran-prestasi', icon: <Award size={18} />, label: 'Pelanggaran & Prestasi' },
       ]
     },

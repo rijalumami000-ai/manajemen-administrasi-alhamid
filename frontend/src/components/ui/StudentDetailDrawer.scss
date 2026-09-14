@@ -82,6 +82,88 @@
         font-size: $lt-text-sm;
         color: $lt-text-secondary;
       }
+
+      .year-text {
+        font-size: $lt-text-sm;
+        color: $lt-text-tertiary;
+        font-weight: 500;
+      }
+    }
+  }
+}
+
+.status-keaktifan-summary-card {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: $lt-space-3;
+  padding: $lt-space-3 $lt-space-4;
+  background: $lt-bg-muted;
+  border: 1px solid $lt-border-light;
+  border-radius: $lt-radius-md;
+
+  .summary-col {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+
+    .summary-label {
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      font-weight: 600;
+      color: $lt-text-tertiary;
+    }
+
+    .summary-val-highlight {
+      font-size: 13px;
+      font-weight: 700;
+      font-family: $lt-font-mono;
+      color: $lt-text-primary;
+    }
+
+    .summary-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      font-size: 11px;
+      font-weight: 600;
+      padding: 2px 6px;
+      border-radius: 4px;
+      width: fit-content;
+
+      .pill-dot {
+        width: 5px;
+        height: 5px;
+        border-radius: 50%;
+      }
+
+      &.active {
+        background: #ecfdf5;
+        border: 1px solid #a7f3d0;
+        color: #065f46;
+        .pill-dot { background: #10b981; }
+      }
+
+      &.lulus {
+        background: #eff6ff;
+        border: 1px solid #bfdbfe;
+        color: #1e40af;
+        .pill-dot { background: #3b82f6; }
+      }
+
+      &.boyong {
+        background: #fffbeb;
+        border: 1px solid #fde68a;
+        color: #92400e;
+        .pill-dot { background: #f59e0b; }
+      }
+
+      &.out {
+        background: #fef2f2;
+        border: 1px solid #fecaca;
+        color: #991b1b;
+        .pill-dot { background: #ef4444; }
+      }
     }
   }
 }
@@ -94,28 +176,6 @@
     letter-spacing: 0.05em;
     color: $lt-text-tertiary;
     margin: 0 0 $lt-space-4;
-  }
-}
-
-.biometric-grid {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: $lt-space-4;
-
-  .biometric-item {
-    display: flex;
-    flex-direction: column;
-    gap: $lt-space-2;
-    padding: $lt-space-4;
-    background: $lt-bg-muted;
-    border-radius: $lt-radius-lg;
-    border: 1px solid $lt-border-light;
-
-    .biometric-label {
-      font-size: $lt-text-xs;
-      color: $lt-text-secondary;
-      font-weight: 500;
-    }
   }
 }
 

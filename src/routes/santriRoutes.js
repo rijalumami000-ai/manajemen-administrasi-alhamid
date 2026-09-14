@@ -15,6 +15,7 @@ function registerSantriRoutes(app) {
       const result = await db.query(`
         SELECT
           s.id,
+          s.foto_url,
           s.orangtua_id,
           s.created_at,
           sta.id AS santri_tahun_ajaran_id,

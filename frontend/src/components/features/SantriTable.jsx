@@ -1,9 +1,11 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { CustomTag } from '../ui/CustomTag';
 import { EmptyState } from '../common/EmptyState';
 import { formatStatusTahunAjaran } from '../../utils/formatters';
-import { Edit2, AlertCircle, CheckCircle, Lock } from 'lucide-react';
+import { Edit2, AlertCircle, CheckCircle, Lock, Unlock } from 'lucide-react';
 import './SantriTable.scss';
+
+const API_BASE = import.meta.env.VITE_API_URL || '';
 
 const statusColorMap = {
   aktif: 'green',
@@ -55,6 +57,8 @@ export function SantriTable({
   canEdit,
   onUpdateSemesterStatus
 }) {
+  const [isSemesterUnlocked, setIsSemesterUnlocked] = useState(false);
+
   if (data.length === 0) {
     return (
       <EmptyState description="Tidak ada data santri yang sesuai dengan filter pencarian" />
@@ -63,12 +67,51 @@ export function SantriTable({
 
   return (
     <div className="student-table-container">
+      {/* Semester Safety Toolbar */}
+      <div className={`semester-lock-toolbar ${isSemesterUnlocked ? 'unlocked' : 'locked'}`}>
+        <div className="lock-status-info">
+          {isSemesterUnlocked ? (
+            <span className="status-badge unlocked">
+              <Unlock size={14} /> Mode Pengubahan Semester Aktif — Ceklis sekarang dapat diubah
+            </span>
+          ) : (
+            <span className="status-badge locked">
+              <Lock size={14} /> Opsi Semester Terkunci — Mengamankan dari klik tidak sengaja
+            </span>
+          )}
+        </div>
+        {canEdit && (
+          <button 
+            type="button"
+            className={`btn-semester-lock-toggle ${isSemesterUnlocked ? 'btn-lock' : 'btn-unlock'}`}
+            onClick={() => setIsSemesterUnlocked(!isSemesterUnlocked)}
+            title={isSemesterUnlocked ? 'Kunci kembali agar aman dari klik tidak sengaja' : 'Buka kunci untuk mengubah status semester'}
+          >
+            {isSemesterUnlocked ? (
+              <>
+                <Lock size={13} /> Kunci Kembali
+              </>
+            ) : (
+              <>
+                <Unlock size={13} /> Buka Kunci Edit
+              </>
+            )}
+          </button>
+        )}
+      </div>
+
       <div className="table-responsive-wrapper">
         <table className="custom-santri-table">
           <thead>
             <tr>
-              <th style={{ width: '80px', textAlign: 'center' }}>Sem. 1 (Ganjil)</th>
-              <th style={{ width: '80px', textAlign: 'center' }}>Sem. 2 (Genap)</th>
+              <th style={{ width: '85px', textAlign: 'center' }} className={isSemesterUnlocked ? 'th-unlocked' : 'th-locked'}>
+                <span className="th-sem-title">Sem. 1 (Ganjil)</span>
+                {!isSemesterUnlocked && <span className="th-lock-icon" title="Terkunci"><Lock size={11} /></span>}
+              </th>
+              <th style={{ width: '85px', textAlign: 'center' }} className={isSemesterUnlocked ? 'th-unlocked' : 'th-locked'}>
+                <span className="th-sem-title">Sem. 2 (Genap)</span>
+                {!isSemesterUnlocked && <span className="th-lock-icon" title="Terkunci"><Lock size={11} /></span>}
+              </th>
               <th style={{ width: '110px' }}>NIS</th>
               <th>Nama Santri</th>
               <th style={{ width: '60px', textAlign: 'center' }}>JK</th>
@@ -89,29 +132,51 @@ export function SantriTable({
 
               return (
                 <tr key={record.id}>
-                  <td style={{ textAlign: 'center' }}>
+                  <td style={{ textAlign: 'center' }} className={`semester-checkbox-cell ${isSemesterUnlocked ? 'unlocked' : 'locked'}`}>
                     <input
                       type="checkbox"
                       checked={!!record.aktif_ganjil}
                       onChange={(e) => onUpdateSemesterStatus(record.id, { aktif_ganjil: e.target.checked })}
-                      disabled={!canEdit}
-                      className="custom-checkbox"
+                      disabled={!canEdit || !isSemesterUnlocked}
+                      className={`custom-checkbox ${!isSemesterUnlocked ? 'checkbox-locked' : ''}`}
+                      title={!isSemesterUnlocked ? 'Terkunci. Klik "Buka Kunci Edit" di atas untuk mengubah' : 'Ubah status Semester Ganjil'}
                     />
                   </td>
-                  <td style={{ textAlign: 'center' }}>
+                  <td style={{ textAlign: 'center' }} className={`semester-checkbox-cell ${isSemesterUnlocked ? 'unlocked' : 'locked'}`}>
                     <input
                       type="checkbox"
                       checked={!!record.aktif_genap}
                       onChange={(e) => onUpdateSemesterStatus(record.id, { aktif_genap: e.target.checked })}
-                      disabled={!canEdit}
-                      className="custom-checkbox"
+                      disabled={!canEdit || !isSemesterUnlocked}
+                      className={`custom-checkbox ${!isSemesterUnlocked ? 'checkbox-locked' : ''}`}
+                      title={!isSemesterUnlocked ? 'Terkunci. Klik "Buka Kunci Edit" di atas untuk mengubah' : 'Ubah status Semester Genap'}
                     />
                   </td>
                   <td><span className="student-nis-txt">{record.nis || '-'}</span></td>
                   <td>
                     <div className="student-interactive-wrapper">
-                      <div className="avatar-circle-sm" style={avatarStyle}>
-                        {initials}
+                      <div className={`avatar-circle-sm ${record.foto_url ? 'has-photo' : ''}`} style={!record.foto_url ? avatarStyle : {}}>
+                        {record.foto_url ? (
+                          <img
+                            src={`${API_BASE}${record.foto_url}`}
+                            alt={record.nama}
+                            onError={(e) => {
+                              e.target.onerror = null;
+                              e.target.style.display = 'none';
+                              if (e.target.nextElementSibling) {
+                                e.target.nextElementSibling.style.display = 'flex';
+                              }
+                              if (e.target.parentElement) {
+                                e.target.parentElement.style.backgroundColor = avatarStyle.backgroundColor;
+                                e.target.parentElement.style.color = avatarStyle.color;
+                              }
+                            }}
+                            className="santri-avatar-img"
+                          />
+                        ) : null}
+                        <span className="avatar-initials" style={{ display: record.foto_url ? 'none' : 'flex' }}>
+                          {initials}
+                        </span>
                       </div>
                       <div className="student-name-info">
                         <span className="student-name">{record.nama || '-'}</span>

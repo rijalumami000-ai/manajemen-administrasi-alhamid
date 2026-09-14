@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { CustomModal } from './CustomModal';
 import { FloatingInput } from './FloatingInput';
 import { CustomSelect } from './CustomSelect';
-import { UserPlus, User, Save, Building, Phone } from 'lucide-react';
+import { UserPlus, User, Save, Building, Phone, GraduationCap, Award, FileText } from 'lucide-react';
 import './EditStudentModal.scss';
 
 export function EditStudentModal({ 
@@ -22,11 +22,19 @@ export function EditStudentModal({
   useEffect(() => {
     if (open) {
       if (santri) {
-        setFormData({ ...santri });
+        setFormData({
+          ...santri,
+          agama: santri.agama || 'Islam',
+          status_keluarga: santri.status_keluarga || 'Kandung',
+          status_masuk: santri.status_masuk || 'Baru',
+        });
       } else {
         setFormData({
           masukkan_ke_ta_aktif: true,
-          jenis_kelamin: 'Laki-laki'
+          jenis_kelamin: 'Laki-laki',
+          agama: 'Islam',
+          status_keluarga: 'Kandung',
+          status_masuk: 'Baru',
         });
       }
     }
@@ -38,6 +46,10 @@ export function EditStudentModal({
 
   const handleSubmit = (e) => {
     e.preventDefault();
+    if (formData.status_masuk === 'Pindahan' && (!formData.pesantren_sebelumnya || !formData.pesantren_sebelumnya.trim())) {
+      alert('Untuk santri pindahan, Nama Pesantren Asal wajib diisi.');
+      return;
+    }
     onSubmit(formData);
   };
 
@@ -46,12 +58,21 @@ export function EditStudentModal({
     return { label: y.toString(), value: y };
   });
 
+  const formatDateValue = (val) => {
+    if (!val) return '';
+    try {
+      return new Date(val).toISOString().split('T')[0];
+    } catch {
+      return val;
+    }
+  };
+
   return (
     <CustomModal
       open={open}
       onClose={onClose}
       title={santri ? 'Edit Data Santri' : 'Tambah Santri Baru'}
-      subtitle={santri ? 'Perbarui informasi profil dan akademik' : 'Daftarkan santri baru ke sistem'}
+      subtitle={santri ? 'Perbarui informasi profil, administratif, dan akademik' : 'Daftarkan santri baru ke sistem'}
       icon={santri ? <User /> : <UserPlus />}
       size="lg"
       destroyOnClose
@@ -99,16 +120,39 @@ export function EditStudentModal({
               ]}
             />
             <FloatingInput 
+              label="Anak Ke" 
+              type="number"
+              name="anak_ke"
+              value={formData.anak_ke ?? ''} 
+              onChange={(e) => handleChange('anak_ke', e.target.value ? parseInt(e.target.value) : '')} 
+            />
+            <FloatingInput 
+              label="Agama" 
+              name="agama"
+              value={formData.agama || 'Islam'} 
+              onChange={(e) => handleChange('agama', e.target.value)} 
+              readOnly
+            />
+            <CustomSelect 
+              label="Status dalam Keluarga" 
+              value={formData.status_keluarga || 'Kandung'} 
+              onChange={(v) => handleChange('status_keluarga', v)}
+              options={[
+                { label: 'Kandung', value: 'Kandung' },
+                { label: 'Bukan Kandung', value: 'Bukan Kandung' }
+              ]}
+            />
+            <FloatingInput 
               label="Tempat Lahir" 
               name="tempat_lahir"
               value={formData.tempat_lahir} 
               onChange={(e) => handleChange('tempat_lahir', e.target.value)} 
             />
             <FloatingInput 
-              label="Tanggal Lahir" 
+              label="Tanggal Lahir (dd/mm/yyyy)" 
               type="date"
               name="tanggal_lahir"
-              value={formData.tanggal_lahir ? new Date(formData.tanggal_lahir).toISOString().split('T')[0] : ''} 
+              value={formatDateValue(formData.tanggal_lahir)} 
               onChange={(e) => handleChange('tanggal_lahir', e.target.value)} 
             />
             <div className="form-grid-full">
@@ -133,6 +177,12 @@ export function EditStudentModal({
               onChange={(e) => handleChange('nama_ayah', e.target.value)} 
             />
             <FloatingInput 
+              label="NIK Ayah" 
+              name="nik_ayah"
+              value={formData.nik_ayah} 
+              onChange={(e) => handleChange('nik_ayah', e.target.value)} 
+            />
+            <FloatingInput 
               label="Pekerjaan Ayah" 
               name="pekerjaan_ayah"
               value={formData.pekerjaan_ayah} 
@@ -152,6 +202,12 @@ export function EditStudentModal({
               onChange={(e) => handleChange('nama_ibu', e.target.value)} 
             />
             <FloatingInput 
+              label="NIK Ibu" 
+              name="nik_ibu"
+              value={formData.nik_ibu} 
+              onChange={(e) => handleChange('nik_ibu', e.target.value)} 
+            />
+            <FloatingInput 
               label="Pekerjaan Ibu" 
               name="pekerjaan_ibu"
               value={formData.pekerjaan_ibu} 
@@ -164,6 +220,152 @@ export function EditStudentModal({
               value={formData.no_hp_ibu} 
               onChange={(e) => handleChange('no_hp_ibu', e.target.value)} 
             />
+          </div>
+        </div>
+
+        {/* SECTION: INFO ADMINISTRATIF INSTANSI */}
+        <div className="form-section">
+          <h4 className="form-section__title"><FileText size={16} /> Data Info Administratif Instansi</h4>
+          <div className="form-grid">
+            <CustomSelect 
+              label="Status Masuk Pesantren" 
+              value={formData.status_masuk || 'Baru'} 
+              onChange={(v) => handleChange('status_masuk', v)}
+              options={[
+                { label: 'Baru', value: 'Baru' },
+                { label: 'Pindahan', value: 'Pindahan' }
+              ]}
+            />
+            {formData.status_masuk === 'Pindahan' && (
+              <FloatingInput 
+                label="Nama Pesantren Asal *" 
+                name="pesantren_sebelumnya"
+                value={formData.pesantren_sebelumnya} 
+                onChange={(e) => handleChange('pesantren_sebelumnya', e.target.value)} 
+                required={formData.status_masuk === 'Pindahan'}
+              />
+            )}
+            <FloatingInput 
+              label="Nama Sekolah/Madrasah Asal (Sebelum di sini)" 
+              name="sekolah_asal_nama"
+              value={formData.sekolah_asal_nama} 
+              onChange={(e) => handleChange('sekolah_asal_nama', e.target.value)} 
+            />
+            <div className="form-grid-full">
+              <FloatingInput 
+                label="Alamat Sekolah/Madrasah Asal" 
+                name="sekolah_asal_alamat"
+                value={formData.sekolah_asal_alamat} 
+                onChange={(e) => handleChange('sekolah_asal_alamat', e.target.value)} 
+              />
+            </div>
+            <FloatingInput 
+              label="Masuk Madin/Pondok: Diterima di Kelas" 
+              name="diterima_kelas_madin"
+              value={formData.diterima_kelas_madin} 
+              onChange={(e) => handleChange('diterima_kelas_madin', e.target.value)} 
+            />
+            <FloatingInput 
+              label="Masuk Madin/Pondok: Tanggal (dd/mm/yyyy)" 
+              type="date"
+              name="diterima_tanggal_madin"
+              value={formatDateValue(formData.diterima_tanggal_madin)} 
+              onChange={(e) => handleChange('diterima_tanggal_madin', e.target.value)} 
+            />
+          </div>
+        </div>
+
+        {/* SECTION: DATA KELULUSAN / ALUMNI */}
+        <div className="form-section">
+          <h4 className="form-section__title"><Award size={16} /> Data Kelulusan / Alumni</h4>
+          
+          {/* Keluar/Lulus dari Madin */}
+          <div style={{ marginBottom: '14px' }}>
+            <span style={{ fontSize: '12px', fontWeight: 600, color: '#475569', display: 'block', marginBottom: '8px' }}>
+              1. Keluar / Lulus dari Madin
+            </span>
+            <div className="form-grid">
+              <CustomSelect 
+                label="Status Madin" 
+                value={formData.keluar_madin_status} 
+                onChange={(v) => handleChange('keluar_madin_status', v)}
+                options={[
+                  { label: 'Belum Lulus / Keluar', value: '' },
+                  { label: 'Lulus', value: 'Lulus' },
+                  { label: 'Keluar', value: 'Keluar' }
+                ]}
+              />
+              <FloatingInput 
+                label="Tanggal Keluar/Lulus (dd/mm/yyyy)" 
+                type="date"
+                name="keluar_madin_tanggal"
+                value={formatDateValue(formData.keluar_madin_tanggal)} 
+                onChange={(e) => handleChange('keluar_madin_tanggal', e.target.value)} 
+              />
+            </div>
+          </div>
+
+          {/* Keluar/Boyong dari Pondok */}
+          <div style={{ marginBottom: '14px' }}>
+            <span style={{ fontSize: '12px', fontWeight: 600, color: '#475569', display: 'block', marginBottom: '8px' }}>
+              2. Keluar / Boyong dari Pondok
+            </span>
+            <div className="form-grid">
+              <CustomSelect 
+                label="Status Pondok" 
+                value={formData.keluar_pondok_status} 
+                onChange={(v) => handleChange('keluar_pondok_status', v)}
+                options={[
+                  { label: 'Belum Boyong / Keluar', value: '' },
+                  { label: 'Boyong', value: 'Boyong' },
+                  { label: 'Diboyongkan', value: 'Diboyongkan' }
+                ]}
+              />
+              <FloatingInput 
+                label="Tanggal Boyong (dd/mm/yyyy)" 
+                type="date"
+                name="keluar_pondok_tanggal"
+                value={formatDateValue(formData.keluar_pondok_tanggal)} 
+                onChange={(e) => handleChange('keluar_pondok_tanggal', e.target.value)} 
+              />
+            </div>
+          </div>
+
+          {/* Lulus/Keluar dari Sekolah */}
+          <div>
+            <span style={{ fontSize: '12px', fontWeight: 600, color: '#475569', display: 'block', marginBottom: '8px' }}>
+              3. Lulus / Keluar dari Sekolah
+            </span>
+            <div className="form-grid">
+              <CustomSelect 
+                label="Jenjang Sekolah" 
+                value={formData.keluar_sekolah_tingkat} 
+                onChange={(v) => handleChange('keluar_sekolah_tingkat', v)}
+                options={[
+                  { label: 'Pilih Jenjang', value: '' },
+                  { label: 'MTs', value: 'MTs' },
+                  { label: 'Aliyah', value: 'Aliyah' }
+                ]}
+              />
+              <CustomSelect 
+                label="Status Sekolah" 
+                value={formData.keluar_sekolah_status} 
+                onChange={(v) => handleChange('keluar_sekolah_status', v)}
+                options={[
+                  { label: 'Pilih Status', value: '' },
+                  { label: 'Lulus', value: 'Lulus' },
+                  { label: 'Keluar', value: 'Keluar' },
+                  { label: 'Dikeluarkan', value: 'Dikeluarkan' }
+                ]}
+              />
+              <FloatingInput 
+                label="Tanggal Keluar/Lulus (dd/mm/yyyy)" 
+                type="date"
+                name="keluar_sekolah_tanggal"
+                value={formatDateValue(formData.keluar_sekolah_tanggal)} 
+                onChange={(e) => handleChange('keluar_sekolah_tanggal', e.target.value)} 
+              />
+            </div>
           </div>
         </div>
 

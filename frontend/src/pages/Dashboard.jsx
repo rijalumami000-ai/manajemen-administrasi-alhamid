@@ -122,13 +122,7 @@ export function Dashboard() {
       path: '/nilai',
       color: 'blue'
     },
-    {
-      title: 'Absensi Sholat',
-      desc: 'Kelola absensi sholat jamaah santri',
-      icon: <CheckSquare size={20} />,
-      path: '/absensi-sholat',
-      color: 'green'
-    },
+
     {
       title: 'Manajemen Kamar',
       desc: 'Atur kamar asrama & kapasitas santri',

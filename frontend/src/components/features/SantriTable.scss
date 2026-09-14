@@ -5,6 +5,78 @@
   border-radius: 12px;
   overflow: hidden;
 
+  .semester-lock-toolbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 8px 14px;
+    border-bottom: 1px solid var(--lt-border-light, #e2e8f0);
+    transition: all 0.2s ease;
+
+    &.locked {
+      background: #f8fafc;
+      .status-badge.locked {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        font-size: 12px;
+        font-weight: 500;
+        color: #64748b;
+        svg { color: #94a3b8; }
+      }
+    }
+
+    &.unlocked {
+      background: #fefce8;
+      border-color: #fef08a;
+      .status-badge.unlocked {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        font-size: 12px;
+        font-weight: 600;
+        color: #854d0e;
+        svg { color: #ca8a04; }
+      }
+    }
+
+    .btn-semester-lock-toggle {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 4px 10px;
+      border-radius: 6px;
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.15s ease;
+
+      &.btn-unlock {
+        background: #ffffff;
+        border: 1px solid #cbd5e1;
+        color: #475569;
+        box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+
+        &:hover {
+          background: #f1f5f9;
+          border-color: #94a3b8;
+          color: #0f172a;
+        }
+      }
+
+      &.btn-lock {
+        background: #eab308;
+        border: 1px solid #ca8a04;
+        color: #ffffff;
+        box-shadow: 0 1px 3px rgba(234, 179, 8, 0.3);
+
+        &:hover {
+          background: #ca8a04;
+        }
+      }
+    }
+  }
+
   .table-responsive-wrapper {
     overflow-x: auto;
     max-height: 560px;
@@ -27,6 +99,30 @@
       color: var(--lt-text-secondary, #475569);
       z-index: 10;
       white-space: nowrap;
+
+      &.th-locked {
+        background: #f8fafc;
+        color: #64748b;
+        .th-sem-title {
+          font-size: 11px;
+        }
+        .th-lock-icon {
+          margin-left: 4px;
+          color: #94a3b8;
+          display: inline-flex;
+          vertical-align: middle;
+        }
+      }
+
+      &.th-unlocked {
+        background: #fef9c3;
+        color: #854d0e;
+        border-bottom: 2px solid #eab308;
+        .th-sem-title {
+          font-size: 11px;
+          font-weight: 700;
+        }
+      }
     }
 
     td {
@@ -34,6 +130,28 @@
       border-bottom: 1px solid var(--lt-border-light, #f1f5f9);
       color: var(--lt-text-primary, #0f172a);
       vertical-align: middle;
+
+      &.semester-checkbox-cell {
+        transition: background 0.15s ease;
+
+        &.locked {
+          background: rgba(248, 250, 252, 0.5);
+
+          .custom-checkbox.checkbox-locked {
+            cursor: not-allowed;
+            opacity: 0.6;
+          }
+        }
+
+        &.unlocked {
+          background: rgba(254, 249, 195, 0.25);
+
+          .custom-checkbox {
+            cursor: pointer;
+            transform: scale(1.1);
+          }
+        }
+      }
     }
 
     tr:hover {
@@ -61,6 +179,30 @@
       justify-content: center;
       font-size: 12px;
       flex-shrink: 0;
+      overflow: hidden;
+      position: relative;
+      background: var(--lt-bg-subtle, #f8fafc);
+      border: 1px solid var(--lt-border-light, #e2e8f0);
+
+      &.has-photo {
+        background: transparent;
+      }
+
+      .santri-avatar-img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        display: block;
+      }
+
+      .avatar-initials {
+        width: 100%;
+        height: 100%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: 600;
+      }
     }
 
     .student-name-info {
