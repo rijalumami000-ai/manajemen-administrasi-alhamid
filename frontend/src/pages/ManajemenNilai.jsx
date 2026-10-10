@@ -1184,6 +1184,16 @@ export function ManajemenNilai({ mode = 'input' }) {
               selectedKategori={selectedKategori} 
               kelasName={kelas.find(k => k.id === selectedKelasDetail)?.nama}
               kategoriNama={kategori.find(k => k.id === selectedKategori)?.nama}
+              kelasList={kelas}
+              levels={levels}
+              selectedTingkat={selectedTingkat}
+              onSelectTingkat={(t) => {
+                setSelectedTingkat(t);
+                const classesInT = kelas.filter(k => k.tingkat === t);
+                if (classesInT.length > 0) setSelectedKelasDetail(classesInT[0].id);
+              }}
+              onSelectKelasDetail={setSelectedKelasDetail}
+              getTingkatLabel={getTingkatLabel}
             />
           )}
 
@@ -1195,6 +1205,16 @@ export function ManajemenNilai({ mode = 'input' }) {
               selectedKelasDetail={selectedKelasDetail} 
               selectedKategori={selectedKategori} 
               kelasName={kelas.find(k => k.id === selectedKelasDetail)?.nama}
+              kelasList={kelas}
+              levels={levels}
+              selectedTingkat={selectedTingkat}
+              onSelectTingkat={(t) => {
+                setSelectedTingkat(t);
+                const classesInT = kelas.filter(k => k.tingkat === t);
+                if (classesInT.length > 0) setSelectedKelasDetail(classesInT[0].id);
+              }}
+              onSelectKelasDetail={setSelectedKelasDetail}
+              getTingkatLabel={getTingkatLabel}
             />
           )}
 
@@ -1206,6 +1226,16 @@ export function ManajemenNilai({ mode = 'input' }) {
               selectedKelasDetail={selectedKelasDetail} 
               selectedKategori={selectedKategori} 
               kelasName={kelas.find(k => k.id === selectedKelasDetail)?.nama}
+              kelasList={kelas}
+              levels={levels}
+              selectedTingkat={selectedTingkat}
+              onSelectTingkat={(t) => {
+                setSelectedTingkat(t);
+                const classesInT = kelas.filter(k => k.tingkat === t);
+                if (classesInT.length > 0) setSelectedKelasDetail(classesInT[0].id);
+              }}
+              onSelectKelasDetail={setSelectedKelasDetail}
+              getTingkatLabel={getTingkatLabel}
             />
           )}
 
@@ -1217,6 +1247,16 @@ export function ManajemenNilai({ mode = 'input' }) {
               selectedKelasDetail={selectedKelasDetail} 
               selectedKategori={selectedKategori} 
               kelasName={kelas.find(k => k.id === selectedKelasDetail)?.nama}
+              kelasList={kelas}
+              levels={levels}
+              selectedTingkat={selectedTingkat}
+              onSelectTingkat={(t) => {
+                setSelectedTingkat(t);
+                const classesInT = kelas.filter(k => k.tingkat === t);
+                if (classesInT.length > 0) setSelectedKelasDetail(classesInT[0].id);
+              }}
+              onSelectKelasDetail={setSelectedKelasDetail}
+              getTingkatLabel={getTingkatLabel}
             />
           )}
 

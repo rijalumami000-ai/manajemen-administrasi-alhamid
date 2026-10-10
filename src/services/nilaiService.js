@@ -15,6 +15,43 @@ class NilaiService {
   // Mapel Tingkat (Jadwal Pelajaran)
   async getMapelTingkat(tahun_ajaran_id = null, kategori_evaluasi_id = null) {
     try {
+      if (tahun_ajaran_id && kategori_evaluasi_id) {
+        // 1. Ambil daftar tingkat yang sudah pernah dikonfigurasi/disimpan secara eksplisit
+        const key = `mapel_tingkat_configured_${tahun_ajaran_id}_${kategori_evaluasi_id}`;
+        let configuredTingkats = new Set();
+        try {
+          const configRes = await db.query('SELECT value FROM system_settings WHERE key = $1 LIMIT 1', [key]);
+          if (configRes.rows.length > 0 && configRes.rows[0].value) {
+            const list = JSON.parse(configRes.rows[0].value);
+            if (Array.isArray(list)) {
+              configuredTingkats = new Set(list.map(Number));
+            }
+          }
+        } catch (e) {
+          console.warn('Warning getting configured tingkats setting:', e.message);
+        }
+
+        // 2. Query jadwal spesifik tahun ajaran dan semester aktif
+        const specificResult = await db.query(
+          `SELECT * FROM mapel_tingkat 
+           WHERE tahun_ajaran_id = $1 AND kategori_evaluasi_id = $2`,
+          [tahun_ajaran_id, kategori_evaluasi_id]
+        );
+
+        // Setiap tingkat yang memiliki data spesifik otomatis dianggap sudah terkonfigurasi
+        specificResult.rows.forEach(r => configuredTingkats.add(Number(r.tingkat)));
+
+        // 3. Query jadwal default (NULL, NULL) sebagai fallback HANYA untuk tingkat yang BELUM dikonfigurasi
+        const defaultResult = await db.query(
+          `SELECT * FROM mapel_tingkat 
+           WHERE tahun_ajaran_id IS NULL AND kategori_evaluasi_id IS NULL`
+        );
+
+        const fallbackRows = defaultResult.rows.filter(r => !configuredTingkats.has(Number(r.tingkat)));
+
+        return [...specificResult.rows, ...fallbackRows];
+      }
+
       const result = await db.query(
         `SELECT * FROM mapel_tingkat 
          WHERE (tahun_ajaran_id = $1 OR tahun_ajaran_id IS NULL) 
@@ -39,11 +76,39 @@ class NilaiService {
         [tingkat, tahun_ajaran_id, kategori_evaluasi_id]
       );
       
-      for (const mapelId of mapelIds) {
+      const validMapelIds = Array.isArray(mapelIds) ? mapelIds.filter(id => id !== null && id !== undefined) : [];
+      for (const mapelId of validMapelIds) {
         await client.query(
           'INSERT INTO mapel_tingkat (tingkat, mata_pelajaran_id, tahun_ajaran_id, kategori_evaluasi_id) VALUES ($1, $2, $3, $4)', 
           [tingkat, mapelId, tahun_ajaran_id, kategori_evaluasi_id]
         );
+      }
+
+      // Tandai bahwa tingkat ini sudah dikonfigurasi untuk tahun ajaran dan semester ini
+      if (tahun_ajaran_id && kategori_evaluasi_id) {
+        const key = `mapel_tingkat_configured_${tahun_ajaran_id}_${kategori_evaluasi_id}`;
+        try {
+          const existingRes = await client.query('SELECT value FROM system_settings WHERE key = $1 LIMIT 1', [key]);
+          let configuredList = [];
+          if (existingRes.rows.length > 0 && existingRes.rows[0].value) {
+            try {
+              configuredList = JSON.parse(existingRes.rows[0].value);
+            } catch (e) {
+              configuredList = [];
+            }
+          }
+          const numTingkat = Number(tingkat);
+          if (!configuredList.includes(numTingkat)) {
+            configuredList.push(numTingkat);
+          }
+          await client.query(
+            `INSERT INTO system_settings (key, value) VALUES ($1, $2)
+             ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value`,
+            [key, JSON.stringify(configuredList)]
+          );
+        } catch (setErr) {
+          console.warn('Warning updating system_settings for mapel_tingkat_configured:', setErr.message);
+        }
       }
       
       await client.query('COMMIT');
@@ -607,8 +672,16 @@ class NilaiService {
               SELECT 1 FROM mapel_tingkat mt
               WHERE mt.mata_pelajaran_id = m.id
                 AND mt.tingkat = $4
-                AND (mt.tahun_ajaran_id = $2 OR mt.tahun_ajaran_id IS NULL)
-                AND (mt.kategori_evaluasi_id = $3 OR mt.kategori_evaluasi_id IS NULL)
+                AND (
+                  (mt.tahun_ajaran_id = $2 AND mt.kategori_evaluasi_id = $3)
+                  OR (
+                    mt.tahun_ajaran_id IS NULL AND mt.kategori_evaluasi_id IS NULL
+                    AND NOT EXISTS (
+                      SELECT 1 FROM mapel_tingkat mt2
+                      WHERE mt2.tingkat = $4 AND mt2.tahun_ajaran_id = $2 AND mt2.kategori_evaluasi_id = $3
+                    )
+                  )
+                )
             )
           )
       `, [santriId, tahunAjaranId, kategoriId, tingkatParam]);

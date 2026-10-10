@@ -562,9 +562,17 @@ Write-Host "SCAN_SUCCESS"
           FROM mapel_tingkat mt
           JOIN mata_pelajaran mp ON mp.id = mt.mata_pelajaran_id
           WHERE mt.tingkat = $1
-            AND (mt.tahun_ajaran_id = $2 OR mt.tahun_ajaran_id IS NULL)
-            AND (mt.kategori_evaluasi_id = $3 OR mt.kategori_evaluasi_id IS NULL)
             AND mp.jenis = 'Reguler'
+            AND (
+              (mt.tahun_ajaran_id = $2 AND mt.kategori_evaluasi_id = $3)
+              OR (
+                mt.tahun_ajaran_id IS NULL AND mt.kategori_evaluasi_id IS NULL
+                AND NOT EXISTS (
+                  SELECT 1 FROM mapel_tingkat mt2
+                  WHERE mt2.tingkat = $1 AND mt2.tahun_ajaran_id = $2 AND mt2.kategori_evaluasi_id = $3
+                )
+              )
+            )
           ORDER BY mp.nama
         `, [classInfo.tingkat, tahun_ajaran_id, kategori_evaluasi_id]);
 
@@ -636,9 +644,17 @@ Write-Host "SCAN_SUCCESS"
         FROM mapel_tingkat mt
         JOIN mata_pelajaran mp ON mp.id = mt.mata_pelajaran_id
         WHERE mt.tingkat = $1
-          AND (mt.tahun_ajaran_id = $2 OR mt.tahun_ajaran_id IS NULL)
-          AND (mt.kategori_evaluasi_id = $3 OR mt.kategori_evaluasi_id IS NULL)
           AND mp.jenis = 'Reguler'
+          AND (
+            (mt.tahun_ajaran_id = $2 AND mt.kategori_evaluasi_id = $3)
+            OR (
+              mt.tahun_ajaran_id IS NULL AND mt.kategori_evaluasi_id IS NULL
+              AND NOT EXISTS (
+                SELECT 1 FROM mapel_tingkat mt2
+                WHERE mt2.tingkat = $1 AND mt2.tahun_ajaran_id = $2 AND mt2.kategori_evaluasi_id = $3
+              )
+            )
+          )
         ORDER BY mp.nama
       `, [parseInt(tingkat, 10), tahun_ajaran_id, kategori_evaluasi_id]);
 
