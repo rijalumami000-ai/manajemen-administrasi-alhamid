@@ -596,6 +596,140 @@ class NilaiService {
     }
   }
 
+  async getRekapAbsensiBulanan(tahunAjaranId, kategoriId, bulan) {
+    try {
+      if (!tahunAjaranId || !kategoriId || !bulan) {
+        throw new ValidationError('tahun_ajaran_id, kategori_evaluasi_id, dan bulan dibutuhkan');
+      }
+
+      // 1. Fetch info tahun ajaran & kategori evaluasi
+      const taRes = await db.query('SELECT id, kode FROM tahun_ajaran WHERE id = $1', [tahunAjaranId]);
+      const tahunAjaran = taRes.rows[0] || null;
+
+      const katRes = await db.query('SELECT id, nama, jenis FROM kategori_evaluasi WHERE id = $1', [kategoriId]);
+      const kategoriEvaluasi = katRes.rows[0] || null;
+      const katNama = kategoriEvaluasi?.nama || '';
+      const isGanjil = katNama.toLowerCase().includes('ganjil');
+      const isGenap = katNama.toLowerCase().includes('genap');
+
+      // 2. Fetch seluruh kelas Diniyah
+      const kelasRes = await db.query(
+        "SELECT id, nama, tingkat FROM kelas WHERE LOWER(jenis) = 'diniyah' ORDER BY tingkat ASC, nama ASC"
+      );
+      let kelasList = kelasRes.rows;
+
+      // Fungsi pembobot urutan kelas: Sifir -> 1A..1E -> SP -> 2A..2E -> 3A..3D -> 4A..4B -> 5A..5B -> 6
+      const getKelasSortWeight = (nama, tingkat) => {
+        const clean = (nama || '').trim().toUpperCase();
+        if (clean.includes('SIFIR')) return 0;
+        if (clean === 'SP') return 1.99;
+        const match = clean.match(/^(\d+)([A-Z])?/);
+        if (match) {
+          const t = parseInt(match[1], 10);
+          const suffix = match[2] ? match[2].charCodeAt(0) - 64 : 0;
+          return t + (suffix * 0.01);
+        }
+        return (Number(tingkat) || 0) + 0.5;
+      };
+
+      kelasList.sort((a, b) => {
+        const wA = getKelasSortWeight(a.nama, a.tingkat);
+        const wB = getKelasSortWeight(b.nama, b.tingkat);
+        if (wA !== wB) return wA - wB;
+        return a.nama.localeCompare(b.nama);
+      });
+
+      // 3. Fetch seluruh santri aktif di semester ini beserta absensi bulanan untuk bulan yang dipilih
+      let santriQuery = `
+        SELECT 
+          sta.kelas_diniyah_id as kelas_id,
+          k.nama as nama_kelas,
+          k.tingkat as kelas_tingkat,
+          s.id as santri_id,
+          s.nama,
+          s.nis,
+          COALESCE(abs.sakit, 0)::INTEGER as sakit,
+          COALESCE(abs.izin, 0)::INTEGER as izin,
+          COALESCE(abs.alpa, 0)::INTEGER as alpa,
+          (COALESCE(abs.sakit, 0) + COALESCE(abs.izin, 0) + COALESCE(abs.alpa, 0))::INTEGER as total_absen
+        FROM santri_tahun_ajaran sta
+        JOIN santri s ON sta.santri_id = s.id
+        JOIN kelas k ON sta.kelas_diniyah_id = k.id
+        LEFT JOIN absensi_bulanan_santri abs 
+          ON abs.santri_id = s.id 
+         AND abs.tahun_ajaran_id = sta.tahun_ajaran_id 
+         AND abs.kategori_evaluasi_id = $2
+         AND LOWER(abs.bulan) = LOWER($3)
+        WHERE sta.tahun_ajaran_id = $1
+          AND sta.status = 'aktif'
+      `;
+
+      if (isGanjil) {
+        santriQuery += ` AND sta.aktif_ganjil = true`;
+      } else if (isGenap) {
+        santriQuery += ` AND sta.aktif_genap = true`;
+      }
+
+      santriQuery += ` ORDER BY s.nama ASC`;
+
+      const santriRes = await db.query(santriQuery, [tahunAjaranId, kategoriId, bulan]);
+      const allSantri = santriRes.rows;
+
+      // 4. Kelompokkan santri per kelas
+      const santriByKelas = {};
+      allSantri.forEach(s => {
+        if (!santriByKelas[s.kelas_id]) {
+          santriByKelas[s.kelas_id] = [];
+        }
+        santriByKelas[s.kelas_id].push(s);
+      });
+
+      const rekapKelas = kelasList.map(kls => {
+        const santriList = santriByKelas[kls.id] || [];
+        return {
+          kelas_id: kls.id,
+          nama_kelas: kls.nama,
+          tingkat: kls.tingkat,
+          sort_weight: getKelasSortWeight(kls.nama, kls.tingkat),
+          total_santri: santriList.length,
+          santri: santriList
+        };
+      }).filter(kls => kls.santri.length > 0);
+
+      // 5. Filter Santri Terjaring Batasan Absen:
+      // Alfa minimal 1 (>= 1)
+      // Izin minimal 4 (>= 4)
+      // Sakit minimal 6 (>= 6)
+      // Diurutkan dari kelas terendah ke tertinggi (Sifir, 1, SP, 2, 3, 4, 5, 6), lalu nama santri
+      const sortTerjaring = (list) => {
+        return list.slice().sort((a, b) => {
+          const wA = getKelasSortWeight(a.nama_kelas, a.kelas_tingkat);
+          const wB = getKelasSortWeight(b.nama_kelas, b.kelas_tingkat);
+          if (wA !== wB) return wA - wB;
+          return a.nama.localeCompare(b.nama);
+        });
+      };
+
+      const terjaringAlfa = sortTerjaring(allSantri.filter(s => s.alpa >= 1));
+      const terjaringIzin = sortTerjaring(allSantri.filter(s => s.izin >= 4));
+      const terjaringSakit = sortTerjaring(allSantri.filter(s => s.sakit >= 6));
+
+      return {
+        tahun_ajaran: tahunAjaran,
+        kategori_evaluasi: kategoriEvaluasi,
+        bulan: bulan,
+        rekap_kelas: rekapKelas,
+        santri_terjaring: {
+          alfa: terjaringAlfa,
+          izin: terjaringIzin,
+          sakit: terjaringSakit
+        }
+      };
+    } catch (error) {
+      handleDatabaseError(error);
+    }
+  }
+
   async savePeringkatManual(tahunAjaranId, kategoriId, dataList) {
     const client = await db.pool.connect();
     try {

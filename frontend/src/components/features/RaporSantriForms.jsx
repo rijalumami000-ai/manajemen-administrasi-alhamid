@@ -11,7 +11,11 @@ import {
   ChevronRight,
   Layers,
   FileSpreadsheet,
-  Printer
+  Printer,
+  CalendarCheck,
+  Calendar,
+  X,
+  Loader2
 } from 'lucide-react';
 import * as XLSX from 'xlsx';
 import { jsPDF } from 'jspdf';
@@ -53,6 +57,19 @@ export function RaporSantriForms({
   const daftarBulan = isGenap 
     ? ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni']
     : ['Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
+
+  // State untuk Fitur Ekspor Rekap Bulanan Tertentu & Santri Terjaring
+  const [showBulananModal, setShowBulananModal] = useState(false);
+  const [selectedBulanForExport, setSelectedBulanForExport] = useState('');
+  const [exportingBulananPdf, setExportingBulananPdf] = useState(false);
+
+  useEffect(() => {
+    if (daftarBulan && daftarBulan.length > 0) {
+      if (!selectedBulanForExport || !daftarBulan.includes(selectedBulanForExport)) {
+        setSelectedBulanForExport(daftarBulan[0]);
+      }
+    }
+  }, [daftarBulan, selectedBulanForExport]);
 
   useEffect(() => {
     if (tahunAjaran && selectedKelasDetail && selectedKategori) {
@@ -563,6 +580,407 @@ export function RaporSantriForms({
     }
   };
 
+  // Unduh Rekapitulasi Absensi 1 Bulan Tertentu (Semua Kelas & Santri Terjaring)
+  const handleExportBulananPDF = async () => {
+    if (!tahunAjaran?.id || !selectedKategori || !selectedBulanForExport) {
+      toast.warning('Pilih tahun ajaran, semester, dan bulan terlebih dahulu.');
+      return;
+    }
+
+    try {
+      setExportingBulananPdf(true);
+      const res = await nilaiService.fetchRekapAbsensiBulanan({
+        tahun_ajaran_id: tahunAjaran.id,
+        kategori_evaluasi_id: selectedKategori,
+        bulan: selectedBulanForExport
+      });
+
+      if (!res || !res.rekap_kelas || res.rekap_kelas.length === 0) {
+        toast.warning(`Tidak ada data santri aktif pada bulan ${selectedBulanForExport}.`);
+        setExportingBulananPdf(false);
+        return;
+      }
+
+      const doc = new jsPDF({
+        orientation: 'portrait',
+        unit: 'mm',
+        format: 'a4'
+      });
+
+      const pageWidth = doc.internal.pageSize.getWidth(); // 210mm
+      const pageHeight = doc.internal.pageSize.getHeight(); // 297mm
+      const taKode = tahunAjaran?.nama || tahunAjaran?.kode || '-';
+      const semNama = kategoriNama || (isGenap ? 'Semester Genap' : 'Semester Ganjil');
+      const cetakDate = new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' });
+      const bulan = selectedBulanForExport;
+
+      // Helper Cetak Kop Surat Resmi Pondok Pesantren & Madrasah Diniyah Al-Hamid
+      const printKopSurat = (targetDoc) => {
+        targetDoc.setFont('helvetica', 'bold');
+        targetDoc.setFontSize(11);
+        targetDoc.setTextColor(15, 23, 42); // slate-900
+        targetDoc.text('MADRASAH DINIYAH AL-HAMID', pageWidth / 2, 9, { align: 'center' });
+
+        targetDoc.setFontSize(9.5);
+        targetDoc.setTextColor(30, 41, 59); // slate-800
+        targetDoc.text('PONDOK PESANTREN AL-HAMID CINTAMULYA', pageWidth / 2, 13.5, { align: 'center' });
+
+        targetDoc.setFont('helvetica', 'normal');
+        targetDoc.setFontSize(7.5);
+        targetDoc.setTextColor(100, 116, 139); // slate-500
+        targetDoc.text('Jl. S. Parman No 07 Desa Cintamulya, Kec. Candipuro Kab. Lampung Selatan | 081361380022 | alhamidcintamulya.com', pageWidth / 2, 17.2, { align: 'center' });
+
+        // Double line separator kop
+        targetDoc.setDrawColor(30, 41, 59);
+        targetDoc.setLineWidth(0.5);
+        targetDoc.line(10, 19.2, pageWidth - 10, 19.2);
+        targetDoc.setLineWidth(0.15);
+        targetDoc.line(10, 19.8, pageWidth - 10, 19.8);
+      };
+
+      // =========================================================================
+      // HALAMAN AWAL: REKAPITULASI SANTRI TERJARING BATASAN ABSEN (ALFA, IZIN, SAKIT)
+      // =========================================================================
+      printKopSurat(doc);
+
+      // Judul Laporan Terjaring
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(10.5);
+      doc.setTextColor(15, 23, 42);
+      doc.text('REKAPITULASI SANTRI TERJARING BATASAN KETIDAKHADIRAN', pageWidth / 2, 24.2, { align: 'center' });
+
+      doc.setFontSize(9);
+      doc.setTextColor(51, 65, 85);
+      doc.text(`BULAN: ${bulan.toUpperCase()} - TAHUN AJARAN ${taKode}`, pageWidth / 2, 28.5, { align: 'center' });
+
+      // Metadata Bar
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(7.5);
+      doc.setTextColor(71, 85, 105);
+      doc.text(`Semester / Periode : ${semNama}`, 10, 32.5);
+      doc.text(`Tanggal Cetak : ${cetakDate}`, pageWidth - 10, 32.5, { align: 'right' });
+
+      let currentY = 36;
+
+      const terjaringAlfa = res.santri_terjaring?.alfa || [];
+      const terjaringIzin = res.santri_terjaring?.izin || [];
+      const terjaringSakit = res.santri_terjaring?.sakit || [];
+
+      // Helper Banner Bagian Terjaring
+      const drawSectionBanner = (title, count, bgR, bgG, bgB, textR, textG, textB) => {
+        if (currentY > pageHeight - 38) {
+          doc.addPage('a4', 'portrait');
+          printKopSurat(doc);
+          currentY = 24;
+        }
+
+        doc.setFillColor(bgR, bgG, bgB);
+        doc.roundedRect(10, currentY, pageWidth - 20, 6.2, 1, 1, 'F');
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(8.5);
+        doc.setTextColor(textR, textG, textB);
+        doc.text(title, 13, currentY + 4.3);
+        doc.setFont('helvetica', 'normal');
+        doc.setFontSize(7.5);
+        doc.text(`Total: ${count} Santri`, pageWidth - 13, currentY + 4.3, { align: 'right' });
+        currentY += 7.8;
+      };
+
+      // 1. KONTEN TERJARING ALFA (Alfa >= 1)
+      drawSectionBanner(
+        '1. TERJARING ABSENSI ALFA (Minimal 1 Alfa)',
+        terjaringAlfa.length,
+        254, 242, 242, // bg rose-50
+        159, 18, 57     // text rose-700
+      );
+
+      const alfaBody = terjaringAlfa.length > 0
+        ? terjaringAlfa.map((s, idx) => [idx + 1, s.nama_kelas, s.nis || '-', s.nama, `${s.alpa} Hari`])
+        : [[{ content: 'Nihil (Tidak ada santri yang memiliki catatan Alfa pada bulan ini)', colSpan: 5, styles: { halign: 'center', fontStyle: 'italic', textColor: [100, 116, 139] } }]];
+
+      autoTable(doc, {
+        head: [['NO', 'KELAS', 'NIS', 'NAMA SANTRI', 'JUMLAH ALFA']],
+        body: alfaBody,
+        startY: currentY,
+        theme: 'grid',
+        margin: { left: 10, right: 10, bottom: 8, top: 22 },
+        styles: {
+          fontSize: 7.5,
+          minCellHeight: 5.2,
+          cellPadding: { top: 0.6, bottom: 0.6, left: 1, right: 1 },
+          font: 'helvetica',
+          lineColor: [226, 232, 240],
+          lineWidth: 0.15,
+          textColor: [30, 41, 59],
+          valign: 'middle'
+        },
+        headStyles: {
+          fillColor: [190, 18, 60], // rose-700
+          textColor: [255, 255, 255],
+          fontStyle: 'bold',
+          fontSize: 7.5,
+          minCellHeight: 5.2,
+          valign: 'middle',
+          halign: 'center'
+        },
+        columnStyles: {
+          0: { cellWidth: 10, halign: 'center' },
+          1: { cellWidth: 22, halign: 'center', fontStyle: 'bold' },
+          2: { cellWidth: 28, halign: 'center' },
+          3: { cellWidth: 'auto', halign: 'left' },
+          4: { cellWidth: 32, halign: 'center', fontStyle: 'bold', textColor: [190, 18, 60] }
+        },
+        didDrawPage: (data) => {
+          if (data.pageNumber > 1 && doc.internal.getCurrentPageInfo().pageNumber === data.pageNumber) {
+            printKopSurat(doc);
+          }
+        }
+      });
+
+      currentY = doc.lastAutoTable.finalY + 6;
+
+      // 2. KONTEN TERJARING IZIN (Izin >= 4)
+      drawSectionBanner(
+        '2. TERJARING ABSENSI IZIN (Minimal 4 Izin)',
+        terjaringIzin.length,
+        254, 243, 199, // bg amber-100
+        180, 83, 9     // text amber-700
+      );
+
+      const izinBody = terjaringIzin.length > 0
+        ? terjaringIzin.map((s, idx) => [idx + 1, s.nama_kelas, s.nis || '-', s.nama, `${s.izin} Hari`])
+        : [[{ content: 'Nihil (Tidak ada santri yang mencapai batas izin pada bulan ini)', colSpan: 5, styles: { halign: 'center', fontStyle: 'italic', textColor: [100, 116, 139] } }]];
+
+      autoTable(doc, {
+        head: [['NO', 'KELAS', 'NIS', 'NAMA SANTRI', 'JUMLAH IZIN']],
+        body: izinBody,
+        startY: currentY,
+        theme: 'grid',
+        margin: { left: 10, right: 10, bottom: 8, top: 22 },
+        styles: {
+          fontSize: 7.5,
+          minCellHeight: 5.2,
+          cellPadding: { top: 0.6, bottom: 0.6, left: 1, right: 1 },
+          font: 'helvetica',
+          lineColor: [226, 232, 240],
+          lineWidth: 0.15,
+          textColor: [30, 41, 59],
+          valign: 'middle'
+        },
+        headStyles: {
+          fillColor: [180, 83, 9], // amber-700
+          textColor: [255, 255, 255],
+          fontStyle: 'bold',
+          fontSize: 7.5,
+          minCellHeight: 5.2,
+          valign: 'middle',
+          halign: 'center'
+        },
+        columnStyles: {
+          0: { cellWidth: 10, halign: 'center' },
+          1: { cellWidth: 22, halign: 'center', fontStyle: 'bold' },
+          2: { cellWidth: 28, halign: 'center' },
+          3: { cellWidth: 'auto', halign: 'left' },
+          4: { cellWidth: 32, halign: 'center', fontStyle: 'bold', textColor: [180, 83, 9] }
+        },
+        didDrawPage: (data) => {
+          if (data.pageNumber > 1 && doc.internal.getCurrentPageInfo().pageNumber === data.pageNumber) {
+            printKopSurat(doc);
+          }
+        }
+      });
+
+      currentY = doc.lastAutoTable.finalY + 6;
+
+      // 3. KONTEN TERJARING SAKIT (Sakit >= 6)
+      drawSectionBanner(
+        '3. TERJARING ABSENSI SAKIT (Minimal 6 Sakit)',
+        terjaringSakit.length,
+        239, 246, 255, // bg blue-50
+        29, 78, 216    // text blue-700
+      );
+
+      const sakitBody = terjaringSakit.length > 0
+        ? terjaringSakit.map((s, idx) => [idx + 1, s.nama_kelas, s.nis || '-', s.nama, `${s.sakit} Hari`])
+        : [[{ content: 'Nihil (Tidak ada santri yang mencapai batas sakit pada bulan ini)', colSpan: 5, styles: { halign: 'center', fontStyle: 'italic', textColor: [100, 116, 139] } }]];
+
+      autoTable(doc, {
+        head: [['NO', 'KELAS', 'NIS', 'NAMA SANTRI', 'JUMLAH SAKIT']],
+        body: sakitBody,
+        startY: currentY,
+        theme: 'grid',
+        margin: { left: 10, right: 10, bottom: 8, top: 22 },
+        styles: {
+          fontSize: 7.5,
+          minCellHeight: 5.2,
+          cellPadding: { top: 0.6, bottom: 0.6, left: 1, right: 1 },
+          font: 'helvetica',
+          lineColor: [226, 232, 240],
+          lineWidth: 0.15,
+          textColor: [30, 41, 59],
+          valign: 'middle'
+        },
+        headStyles: {
+          fillColor: [29, 78, 216], // blue-700
+          textColor: [255, 255, 255],
+          fontStyle: 'bold',
+          fontSize: 7.5,
+          minCellHeight: 5.2,
+          valign: 'middle',
+          halign: 'center'
+        },
+        columnStyles: {
+          0: { cellWidth: 10, halign: 'center' },
+          1: { cellWidth: 22, halign: 'center', fontStyle: 'bold' },
+          2: { cellWidth: 28, halign: 'center' },
+          3: { cellWidth: 'auto', halign: 'left' },
+          4: { cellWidth: 32, halign: 'center', fontStyle: 'bold', textColor: [29, 78, 216] }
+        },
+        didDrawPage: (data) => {
+          if (data.pageNumber > 1 && doc.internal.getCurrentPageInfo().pageNumber === data.pageNumber) {
+            printKopSurat(doc);
+          }
+        }
+      });
+
+      // =========================================================================
+      // HALAMAN-HALAMAN KELAS: SETIAP KELAS DISAJIKAN 1 KELAS 1 LEMBAR PORTRAIT
+      // URUTAN: SIFIR, 1, SP, 2, 3, 4, 5, 6
+      // =========================================================================
+      const rekapKelas = res.rekap_kelas || [];
+
+      rekapKelas.forEach((kls) => {
+        doc.addPage('a4', 'portrait');
+        printKopSurat(doc);
+
+        const cleanKelas = (kls.nama_kelas || '').trim();
+
+        // Judul Kelas
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(10.5);
+        doc.setTextColor(15, 23, 42);
+        doc.text(`REKAPITULASI ABSENSI BULAN ${bulan.toUpperCase()} KELAS ${cleanKelas.toUpperCase()}`, pageWidth / 2, 24.2, { align: 'center' });
+
+        // Metadata Bar
+        doc.setFont('helvetica', 'normal');
+        doc.setFontSize(7.5);
+        doc.setTextColor(51, 65, 85);
+        doc.text(`Kelas / Tingkat   : ${cleanKelas}`, 10, 28.5);
+        doc.text(`Tahun Ajaran    : ${taKode}`, 10, 32.0);
+
+        doc.text(`Semester / Periode : ${semNama}`, pageWidth - 10, 28.5, { align: 'right' });
+        doc.text(`Bulan / Tanggal     : ${bulan} | ${cetakDate}`, pageWidth - 10, 32.0, { align: 'right' });
+
+        // Body Rows (Nilai 0 dikosongkan agar tampilan bersih dan fokus)
+        const bodyRows = kls.santri.map((s, idx) => [
+          idx + 1,
+          s.nis || '-',
+          (s.nama || '').trim(),
+          s.sakit > 0 ? s.sakit : '',
+          s.izin > 0 ? s.izin : '',
+          s.alpa > 0 ? s.alpa : '',
+          s.total_absen > 0 ? s.total_absen : ''
+        ]);
+
+        // Perhitungan dinamis tinggi baris & padding agar tabel terbentang pas dalam 1 lembar portrait
+        const studentCount = Math.max(1, kls.santri.length);
+        const availableBodyHeight = 244; // mm ruang vertikal body yang tersedia (Y=35 s.d Y=285)
+        const calculatedRowHeight = availableBodyHeight / studentCount;
+        const targetRowHeight = Math.min(7.5, Math.max(4.8, calculatedRowHeight));
+
+        let dynamicFontSize = 7.5;
+        if (targetRowHeight >= 7.0) {
+          dynamicFontSize = 8.5;
+        } else if (targetRowHeight >= 6.0) {
+          dynamicFontSize = 8.0;
+        } else if (targetRowHeight >= 5.2) {
+          dynamicFontSize = 7.5;
+        } else {
+          dynamicFontSize = 6.8;
+        }
+
+        autoTable(doc, {
+          head: [[
+            { content: 'NO', styles: { halign: 'center', valign: 'middle' } },
+            { content: 'NIS', styles: { halign: 'center', valign: 'middle' } },
+            { content: 'NAMA SANTRI', styles: { halign: 'left', valign: 'middle' } },
+            { content: 'S', styles: { halign: 'center', valign: 'middle' } },
+            { content: 'I', styles: { halign: 'center', valign: 'middle' } },
+            { content: 'A', styles: { halign: 'center', valign: 'middle' } },
+            { content: 'TOTAL KETIDAKHADIRAN', styles: { halign: 'center', valign: 'middle' } }
+          ]],
+          body: bodyRows,
+          startY: 34.5,
+          theme: 'grid',
+          margin: { left: 10, right: 10, bottom: 6, top: 6 },
+          styles: {
+            fontSize: dynamicFontSize,
+            minCellHeight: targetRowHeight,
+            cellPadding: { top: 0.5, bottom: 0.5, left: 1.0, right: 1.0 },
+            font: 'helvetica',
+            lineColor: [203, 213, 225],
+            lineWidth: 0.15,
+            textColor: [30, 41, 59],
+            valign: 'middle'
+          },
+          headStyles: {
+            fillColor: [30, 41, 59],
+            textColor: [255, 255, 255],
+            fontStyle: 'bold',
+            fontSize: dynamicFontSize,
+            minCellHeight: 6.0,
+            valign: 'middle',
+            halign: 'center'
+          },
+          columnStyles: {
+            0: { cellWidth: 10, halign: 'center' },
+            1: { cellWidth: 26, halign: 'center' },
+            2: { cellWidth: 'auto', halign: 'left' },
+            3: { cellWidth: 14, halign: 'center' },
+            4: { cellWidth: 14, halign: 'center' },
+            5: { cellWidth: 14, halign: 'center' },
+            6: { cellWidth: 38, halign: 'center', fontStyle: 'bold' }
+          },
+          didParseCell: (cellData) => {
+            if (cellData.section === 'body') {
+              const colIdx = cellData.column.index;
+              const val = cellData.cell.raw;
+              if (val && val !== '') {
+                if (colIdx === 3) {
+                  cellData.cell.styles.textColor = [15, 118, 110]; // Sakit (Teal)
+                } else if (colIdx === 4) {
+                  cellData.cell.styles.textColor = [217, 119, 6]; // Izin (Amber)
+                } else if (colIdx === 5) {
+                  cellData.cell.styles.textColor = [220, 38, 38]; // Alfa (Rose)
+                  cellData.cell.styles.fontStyle = 'bold';
+                } else if (colIdx === 6) {
+                  cellData.cell.styles.textColor = [15, 23, 42]; // Total
+                }
+              }
+            }
+          },
+          didDrawPage: () => {
+            doc.setFont('helvetica', 'normal');
+            doc.setFontSize(6.5);
+            doc.setTextColor(148, 163, 184);
+            doc.text('Sistem Informasi Pesantren Al-Hamid Cintamulya', 10, pageHeight - 4);
+          }
+        });
+      });
+
+      const cleanTaName = (taKode || 'TA').replace(/[^a-zA-Z0-9_-]/g, '_');
+      const filename = `Rekap_Absensi_Bulan_${bulan}_${cleanTaName}.pdf`;
+      doc.save(filename);
+      toast.success(`Berhasil mengunduh berkas: ${filename}`);
+      setShowBulananModal(false);
+    } catch (err) {
+      console.error('Error generating Rekap Bulanan PDF:', err);
+      toast.error('Gagal membuat PDF rekap bulanan: ' + err.message);
+    } finally {
+      setExportingBulananPdf(false);
+    }
+  };
+
   // Unduh Template Format Excel Absensi (Khusus untuk Re-impor)
   const handleExportTemplate = () => {
     if (!data.length) {
@@ -838,6 +1256,15 @@ export function RaporSantriForms({
               >
                 <Printer size={14} className="text-rose-600" />
                 <span>Unduh PDF</span>
+              </button>
+              <button
+                type="button"
+                className="btn-custom btn-secondary btn-auto"
+                onClick={() => setShowBulananModal(true)}
+                title="Ekspor rekap 1 bulan tertentu untuk semua kelas & santri terjaring batasan absen (Alfa, Izin, Sakit)"
+              >
+                <CalendarCheck size={14} className="text-indigo-600" />
+                <span>Rekap Per Bulan</span>
               </button>
               <button
                 type="button"
@@ -1183,6 +1610,98 @@ export function RaporSantriForms({
             </div>
           </>
         )}
+      {/* 3. Modal Dialog Pemilihan Bulan untuk Ekspor Rekap Bulanan Tertentu & Santri Terjaring */}
+      {showBulananModal && (
+        <div className="rapor-modal-overlay" onClick={() => !exportingBulananPdf && setShowBulananModal(false)}>
+          <div className="rapor-modal-content" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <div className="modal-title-wrap">
+                <CalendarCheck size={18} className="text-indigo-600" />
+                <h4>Ekspor Rekap Absensi Bulanan & Terjaring</h4>
+              </div>
+              <button 
+                type="button" 
+                className="modal-close-btn"
+                onClick={() => !exportingBulananPdf && setShowBulananModal(false)}
+                disabled={exportingBulananPdf}
+                title="Tutup dialog"
+              >
+                <X size={16} />
+              </button>
+            </div>
+
+            <div className="modal-body">
+              <p className="modal-description">
+                Pilih satu bulan tertentu untuk diekspor ke dalam satu berkas PDF resmi (Portrait A4).
+              </p>
+
+              <div className="modal-features-summary">
+                <div className="feature-item">
+                  <span className="feature-badge badge-warning">Halaman Awal</span>
+                  <div className="feature-text">
+                    <strong>Santri Terjaring Batasan Absen</strong>
+                    <p>Merekap otomatis santri dengan batasan: 🚨 Alfa &ge; 1, ⚠️ Izin &ge; 4, dan 🏥 Sakit &ge; 6 (konten terpisah, diurutkan dari Sifir s.d 6).</p>
+                  </div>
+                </div>
+                <div className="feature-item">
+                  <span className="feature-badge badge-info">Halaman Selanjutnya</span>
+                  <div className="feature-text">
+                    <strong>Rekap Absensi Semua Kelas</strong>
+                    <p>Setiap kelas disajikan rapi 1 lembar portrait (Kolom: Nama, S, I, A, dan Total Ketidakhadiran) dari kelas terendah ke tertinggi.</p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="month-picker-section">
+                <label className="picker-label">Pilih Bulan Absensi:</label>
+                <div className="month-grid">
+                  {daftarBulan.map(b => (
+                    <button
+                      key={b}
+                      type="button"
+                      className={`month-pill-btn ${selectedBulanForExport === b ? 'active' : ''}`}
+                      onClick={() => setSelectedBulanForExport(b)}
+                      disabled={exportingBulananPdf}
+                    >
+                      <Calendar size={13} />
+                      <span>{b}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            <div className="modal-footer">
+              <button
+                type="button"
+                className="btn-custom btn-secondary"
+                onClick={() => setShowBulananModal(false)}
+                disabled={exportingBulananPdf}
+              >
+                Batal
+              </button>
+              <button
+                type="button"
+                className="btn-custom btn-primary"
+                onClick={handleExportBulananPDF}
+                disabled={exportingBulananPdf || !selectedBulanForExport}
+              >
+                {exportingBulananPdf ? (
+                  <>
+                    <Loader2 size={14} className="animate-spin" />
+                    <span>Menyiapkan PDF...</span>
+                  </>
+                ) : (
+                  <>
+                    <Printer size={14} />
+                    <span>Download PDF Rekap Bulan {selectedBulanForExport}</span>
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
       </div>
     </div>
   );

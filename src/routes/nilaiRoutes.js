@@ -131,6 +131,20 @@ function registerNilaiRoutes(app) {
     }
   });
 
+  // Rekap Absensi Bulanan (Semua Kelas & Santri Terjaring)
+  router.get('/rekap-absensi-bulanan', async (req, res, next) => {
+    try {
+      const { tahun_ajaran_id, kategori_evaluasi_id, bulan } = req.query;
+      if (!tahun_ajaran_id || !kategori_evaluasi_id || !bulan) {
+        return res.status(400).json({ error: 'tahun_ajaran_id, kategori_evaluasi_id, dan bulan dibutuhkan' });
+      }
+      const data = await NilaiService.getRekapAbsensiBulanan(tahun_ajaran_id, kategori_evaluasi_id, bulan);
+      res.json(data);
+    } catch (error) {
+      next(error);
+    }
+  });
+
   router.post('/rapor/bulk', async (req, res, next) => {
     try {
       const { tahun_ajaran_id, kategori_evaluasi_id, data } = req.body;

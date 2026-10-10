@@ -54,6 +54,11 @@ export const nilaiService = {
     return apiGet(`/nilai/rapor${params ? '?' + params : ''}`);
   },
 
+  fetchRekapAbsensiBulanan: async (filters) => {
+    const params = new URLSearchParams(filters).toString();
+    return apiGet(`/nilai/rekap-absensi-bulanan${params ? '?' + params : ''}`);
+  },
+
   savePeringkatManual: async (data) => {
     return apiPost('/nilai/peringkat-manual', data);
   },
