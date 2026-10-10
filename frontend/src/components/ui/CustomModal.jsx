@@ -4,6 +4,7 @@ import './CustomModal.scss';
 
 export function CustomModal({
   open,
+  isOpen,
   onClose,
   title,
   subtitle,
@@ -15,6 +16,7 @@ export function CustomModal({
   destroyOnClose = false,
   className = '',
 }) {
+  const isActuallyOpen = Boolean(open ?? isOpen);
   const overlayRef = useRef(null);
   const contentRef = useRef(null);
 
@@ -23,7 +25,7 @@ export function CustomModal({
   }, [onClose]);
 
   useEffect(() => {
-    if (open) {
+    if (isActuallyOpen) {
       document.addEventListener('keydown', handleEsc);
       document.body.style.overflow = 'hidden';
     }
@@ -31,25 +33,25 @@ export function CustomModal({
       document.removeEventListener('keydown', handleEsc);
       document.body.style.overflow = '';
     };
-  }, [open, handleEsc]);
+  }, [isActuallyOpen, handleEsc]);
 
   const handleOverlayClick = (e) => {
     if (e.target === overlayRef.current) onClose?.();
   };
 
-  if (!open && destroyOnClose) return null;
+  if (!isActuallyOpen && destroyOnClose) return null;
 
   const sizeWidth = size === 'lg' ? 720 : size === 'sm' ? 420 : width;
 
   return (
     <div
       ref={overlayRef}
-      className={`ui-modal-overlay ${open ? 'visible' : ''} ${className}`}
+      className={`ui-modal-overlay ${isActuallyOpen ? 'visible' : ''} ${className}`}
       onClick={handleOverlayClick}
     >
       <div
         ref={contentRef}
-        className={`ui-modal-container ${open ? 'enter' : 'exit'}`}
+        className={`ui-modal-container ${isActuallyOpen ? 'enter' : 'exit'}`}
         style={{ maxWidth: sizeWidth }}
       >
         {/* Header */}

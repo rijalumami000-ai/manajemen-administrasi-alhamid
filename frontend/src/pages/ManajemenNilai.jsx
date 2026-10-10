@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { 
   Save, 
   RefreshCw, 
@@ -103,6 +103,45 @@ export function ManajemenNilai({ mode = 'input' }) {
   const [isManualRankModalOpen, setIsManualRankModalOpen] = useState(false);
   const [manualRankData, setManualRankData] = useState([]);
   const [manualRankSaveLoading, setManualRankSaveLoading] = useState(false);
+  
+  // Refs & states for synchronized horizontal scroll in Rekap Nilai
+  const rekapTopScrollRef = useRef(null);
+  const rekapTableScrollRef = useRef(null);
+  const rekapTableRef = useRef(null);
+  const isRekapSyncingScroll = useRef(false);
+  const [rekapTableWidth, setRekapTableWidth] = useState(1200);
+
+  const handleRekapTopScroll = () => {
+    if (isRekapSyncingScroll.current) return;
+    isRekapSyncingScroll.current = true;
+    if (rekapTableScrollRef.current && rekapTopScrollRef.current) {
+      rekapTableScrollRef.current.scrollLeft = rekapTopScrollRef.current.scrollLeft;
+    }
+    requestAnimationFrame(() => { isRekapSyncingScroll.current = false; });
+  };
+
+  const handleRekapTableScroll = () => {
+    if (isRekapSyncingScroll.current) return;
+    isRekapSyncingScroll.current = true;
+    if (rekapTopScrollRef.current && rekapTableScrollRef.current) {
+      rekapTopScrollRef.current.scrollLeft = rekapTableScrollRef.current.scrollLeft;
+    }
+    requestAnimationFrame(() => { isRekapSyncingScroll.current = false; });
+  };
+
+  useEffect(() => {
+    if (rekapTableRef.current) {
+      const observer = new ResizeObserver(entries => {
+        for (let entry of entries) {
+          if (entry.target) {
+            setRekapTableWidth(entry.target.scrollWidth || entry.contentRect.width);
+          }
+        }
+      });
+      observer.observe(rekapTableRef.current);
+      return () => observer.disconnect();
+    }
+  }, [rekapData, mataPelajaran, selectedTingkat]);
   
   // State Kriteria
   const [kriteriaConfig, setKriteriaConfig] = useState(null);
@@ -598,14 +637,20 @@ export function ManajemenNilai({ mode = 'input' }) {
   }, [kelas]);
 
   const handleTaftisyManualRankTrigger = () => {
-    setManualRankData(rekapData.map(r => ({
+    if (!rekapData || rekapData.length === 0) {
+      toast.warning('Pilih kelas terlebih dahulu atau data rekap masih kosong.');
+      return;
+    }
+    setManualRankData(rekapData.map((r, idx) => ({
       santri_id: r.santri_id,
       nama: r.nama,
       nis: r.nis,
       total_nilai: r.total_nilai,
       rata_rata: r.rata_rata,
-      peringkat_sistem: r.peringkat_sistem,
-      peringkat_manual: r.peringkat_manual || ''
+      peringkat_sistem: r.peringkat_sistem || (idx + 1),
+      peringkat_manual: (r.peringkat_manual !== undefined && r.peringkat_manual !== null && r.peringkat_manual !== '')
+        ? r.peringkat_manual 
+        : (r.peringkat || (idx + 1))
     })));
     setIsManualRankModalOpen(true);
   };
@@ -613,21 +658,34 @@ export function ManajemenNilai({ mode = 'input' }) {
   const handleManualRankSave = async () => {
     try {
       setManualRankSaveLoading(true);
-      const payload = manualRankData
-        .filter(d => d.peringkat_manual !== undefined && d.peringkat_manual !== null && d.peringkat_manual !== '')
-        .map(d => ({
-          santri_id: d.santri_id,
-          peringkat_manual: Number(d.peringkat_manual)
-        }));
-      await nilaiService.saveManualRankBulk(tahunAjaran.id, selectedKelasDetail, selectedKategori, payload);
-      toast.success('Peringkat manual berhasil disinkronisasi!');
+      const payload = manualRankData.map(d => ({
+        santri_id: d.santri_id,
+        peringkat_manual: (d.peringkat_manual !== '' && d.peringkat_manual !== null && d.peringkat_manual !== undefined)
+          ? Number(d.peringkat_manual)
+          : null
+      }));
+      await nilaiService.savePeringkatManual({
+        tahun_ajaran_id: tahunAjaran.id,
+        kategori_evaluasi_id: selectedKategori,
+        data: payload
+      });
+      toast.success('Peringkat berhasil disesuaikan!');
       setIsManualRankModalOpen(false);
       loadRekapData();
     } catch (err) {
-      toast.error('Gagal menyimpan peringkat manual');
+      console.error(err);
+      toast.error('Gagal menyimpan peringkat manual: ' + (err.message || ''));
     } finally {
       setManualRankSaveLoading(false);
     }
+  };
+
+  const handleResetRankToSystem = () => {
+    setManualRankData(prev => prev.map((item, idx) => ({
+      ...item,
+      peringkat_manual: idx + 1
+    })));
+    toast.info('Peringkat dikembalikan ke urutan otomatis sistem.');
   };
 
   const handleTaftisyPdfExport = () => {
@@ -1350,34 +1408,78 @@ export function ManajemenNilai({ mode = 'input' }) {
                         <span>Memuat data rekap santri...</span>
                       </div>
                     ) : (
-                      <div className="table-responsive-nilai">
-                        <table className="custom-data-table">
-                          <thead>
-                            <tr>
-                              <th style={{ width: '100px' }}>NIS</th>
-                              <th style={{ minWidth: '180px' }}>Nama Santri</th>
-                              {/* Dynamic Subjects columns list */}
-                              {mataPelajaran
-                                .filter(m => ['Reguler', 'Muhafadzoh', 'Qiroah', 'Taftisy'].includes(m.jenis))
-                                .filter(m => {
-                                  if (m.jenis === 'Reguler') {
-                                    const allowedMapelIds = mapelTingkat.filter(mt => mt.tingkat === selectedTingkat).map(mt => mt.mata_pelajaran_id);
-                                    return allowedMapelIds.includes(m.id);
-                                  }
-                                  return !m.nama?.toLowerCase().includes('mini');
-                                })
-                                .map(m => <th key={m.id} style={{ textAlign: 'center' }}>{m.nama}</th>)}
-                              <th style={{ textAlign: 'center' }}>Total</th>
-                              <th style={{ textAlign: 'center' }}>Rata-rata</th>
-                              <th style={{ textAlign: 'center', width: '80px' }}>Peringkat</th>
-                              <th style={{ textAlign: 'center', width: '120px' }}>Aksi</th>
-                            </tr>
-                          </thead>
-                          <tbody>
-                            {rekapData.map((row) => (
-                              <tr key={row.santri_id}>
-                                <td className="student-nis-cell">{row.nis || '-'}</td>
-                                <td className="student-name-cell">{row.nama}</td>
+                      <>
+                        {/* Top Scrollbar Synchronized with Table */}
+                        <div 
+                          className="rekap-top-scroll-track" 
+                          ref={rekapTopScrollRef} 
+                          onScroll={handleRekapTopScroll}
+                          style={{
+                            overflowX: 'auto',
+                            overflowY: 'hidden',
+                            height: '12px',
+                            marginBottom: '6px'
+                          }}
+                        >
+                          <div style={{ width: `${rekapTableWidth}px`, height: '1px' }} />
+                        </div>
+
+                        <div 
+                          className="table-responsive-nilai"
+                          ref={rekapTableScrollRef}
+                          onScroll={handleRekapTableScroll}
+                        >
+                          <table className="custom-data-table" ref={rekapTableRef}>
+                            <thead>
+                              <tr>
+                                <th 
+                                  className="sticky-col-nama-header"
+                                  style={{ 
+                                    minWidth: '220px', 
+                                    whiteSpace: 'nowrap',
+                                    position: 'sticky',
+                                    left: 0,
+                                    zIndex: 10,
+                                    background: '#f8fafc',
+                                    boxShadow: '2px 0 6px rgba(0,0,0,0.06)'
+                                  }}
+                                >
+                                  Nama Santri
+                                </th>
+                                {/* Dynamic Subjects columns list */}
+                                {mataPelajaran
+                                  .filter(m => ['Reguler', 'Muhafadzoh', 'Qiroah', 'Taftisy'].includes(m.jenis))
+                                  .filter(m => {
+                                    if (m.jenis === 'Reguler') {
+                                      const allowedMapelIds = mapelTingkat.filter(mt => mt.tingkat === selectedTingkat).map(mt => mt.mata_pelajaran_id);
+                                      return allowedMapelIds.includes(m.id);
+                                    }
+                                    return !m.nama?.toLowerCase().includes('mini');
+                                  })
+                                  .map(m => <th key={m.id} style={{ textAlign: 'center' }}>{m.nama}</th>)}
+                                <th style={{ textAlign: 'center' }}>Total</th>
+                                <th style={{ textAlign: 'center' }}>Rata-rata</th>
+                                <th style={{ textAlign: 'center', width: '80px' }}>Peringkat</th>
+                                <th style={{ textAlign: 'center', width: '120px' }}>Aksi</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {rekapData.map((row) => (
+                                <tr key={row.santri_id}>
+                                  <td 
+                                    className="student-name-cell sticky-col-nama-cell"
+                                    style={{ 
+                                      whiteSpace: 'nowrap',
+                                      position: 'sticky',
+                                      left: 0,
+                                      zIndex: 5,
+                                      background: '#ffffff',
+                                      fontWeight: 600,
+                                      boxShadow: '2px 0 6px rgba(0,0,0,0.06)'
+                                    }}
+                                  >
+                                    {row.nama}
+                                  </td>
                                 {/* Render grades for each subject */}
                                 {mataPelajaran
                                   .filter(m => ['Reguler', 'Muhafadzoh', 'Qiroah', 'Taftisy'].includes(m.jenis))
@@ -1439,7 +1541,8 @@ export function ManajemenNilai({ mode = 'input' }) {
                           </tbody>
                         </table>
                       </div>
-                    )}
+                    </>
+                  )}
                   </div>
                 </div>
               ) : (
@@ -1701,22 +1804,32 @@ export function ManajemenNilai({ mode = 'input' }) {
             ))}
           </div>
 
-          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginTop: '20px' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '20px', flexWrap: 'wrap', gap: '10px' }}>
             <button 
               type="button" 
               className="btn-custom btn-secondary" 
-              onClick={() => setIsManualRankModalOpen(false)}
+              onClick={handleResetRankToSystem}
+              title="Reset semua urutan kembali ke peringkat perhitungan sistem"
             >
-              Batal
+              Reset ke Sistem
             </button>
-            <button 
-              type="button" 
-              className="btn-custom btn-primary" 
-              onClick={handleManualRankSave}
-              disabled={manualRankSaveLoading}
-            >
-              {manualRankSaveLoading ? <span className="loading-spinner"></span> : <span>Simpan Peringkat</span>}
-            </button>
+            <div style={{ display: 'flex', gap: '10px' }}>
+              <button 
+                type="button" 
+                className="btn-custom btn-secondary" 
+                onClick={() => setIsManualRankModalOpen(false)}
+              >
+                Batal
+              </button>
+              <button 
+                type="button" 
+                className="btn-custom btn-primary" 
+                onClick={handleManualRankSave}
+                disabled={manualRankSaveLoading}
+              >
+                {manualRankSaveLoading ? <span className="loading-spinner"></span> : <span>Simpan Peringkat</span>}
+              </button>
+            </div>
           </div>
         </div>
       </CustomModal>

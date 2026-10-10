@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
-import { Printer } from 'lucide-react';
+import { Printer, ChevronLeft, ChevronRight } from 'lucide-react';
 import { nilaiService } from '../services/nilaiService';
 import { terbilangIndonesia, terbilangArab, predikatToArab, getPredikat, toArabicNumerals } from '../utils/terbilang';
 import { LoadingState } from '../components/common/LoadingState';
@@ -90,7 +90,13 @@ export function RaporPrint() {
   if (error) return <div style={{ padding: '50px' }}><SmartAlert type="error" message={error} /></div>;
   if (!data) return <div style={{ padding: '50px' }}><SmartAlert type="warning" message="Data rapor tidak ditemukan" /></div>;
 
-  const { santri, kelas, tahun_ajaran, semester, nilai, tambahan, statistik } = data;
+  const santri = data?.santri || {};
+  const kelas = data?.kelas || {};
+  const tahun_ajaran = data?.tahun_ajaran || '-';
+  const semester = data?.semester || '-';
+  const nilai = Array.isArray(data?.nilai) ? data.nilai : [];
+  const tambahan = data?.tambahan || {};
+  const statistik = data?.statistik || { peringkat: '-', total: 0, rata_rata: 0, jumlah_santri: 0 };
 
   const regulerMapels = nilai.filter(n => n.mapel_jenis === 'Reguler');
   const muhafadzohAkbar = nilai.find(n => n.mapel_jenis === 'Muhafadzoh' && n.mapel_nama?.includes('Akbar'));
@@ -173,15 +179,34 @@ export function RaporPrint() {
 
   return (
     <div className="rapor-print-container">
-      <div className="print-controls">
-        <Button type="primary" icon={<PrinterOutlined />} onClick={handlePrint}>
-          Cetak Rapor
-        </Button>
+      <div className="print-controls no-print">
+        <button type="button" className="btn-print-action primary" onClick={handlePrint}>
+          <Printer size={16} />
+          <span>Cetak Rapor</span>
+        </button>
         {santri_id === 'all' && santriList.length > 0 && (
           <div className="slider-nav">
-            <Button size="small" onClick={handlePrev} disabled={currentIndex === 0}>Sebelumnya</Button>
-            <Typography.Text strong>Santri ke-{currentIndex + 1} dari {santriList.length}</Typography.Text>
-            <Button size="small" onClick={handleNext} disabled={currentIndex === santriList.length - 1}>Selanjutnya</Button>
+            <button 
+              type="button" 
+              className="btn-print-nav" 
+              onClick={handlePrev} 
+              disabled={currentIndex === 0}
+            >
+              <ChevronLeft size={14} />
+              <span>Sebelumnya</span>
+            </button>
+            <span className="slider-counter">
+              Santri ke-<strong>{currentIndex + 1}</strong> dari <strong>{santriList.length}</strong>
+            </span>
+            <button 
+              type="button" 
+              className="btn-print-nav" 
+              onClick={handleNext} 
+              disabled={currentIndex === santriList.length - 1}
+            >
+              <span>Selanjutnya</span>
+              <ChevronRight size={14} />
+            </button>
           </div>
         )}
       </div>
