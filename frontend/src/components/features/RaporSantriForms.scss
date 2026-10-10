@@ -579,14 +579,28 @@
 
           &.total-cell {
             background: #f8fafc;
-            font-weight: bold;
-            html[data-theme="dark"] & {
-              background: rgba(15, 23, 42, 0.4);
+            font-weight: 700;
+            min-width: 38px;
+
+            &.is-empty {
+              color: transparent;
             }
 
-            &.text-s { color: #b25900; }
-            &.text-i { color: #047857; }
-            &.text-a { color: #b91c1c; }
+            &.has-val {
+              &.text-s { color: #0f766e; background: #f0fdfa; }
+              &.text-i { color: #b45309; background: #fffbeb; }
+              &.text-a { color: #b91c1c; background: #fef2f2; }
+            }
+
+            html[data-theme="dark"] & {
+              background: rgba(15, 23, 42, 0.4);
+
+              &.has-val {
+                &.text-s { color: #2dd4bf; background: rgba(15, 118, 110, 0.2); }
+                &.text-i { color: #fcd34d; background: rgba(217, 119, 6, 0.2); }
+                &.text-a { color: #f87171; background: rgba(185, 28, 28, 0.25); }
+              }
+            }
           }
         }
 
@@ -609,31 +623,98 @@
     }
   }
 
-  // Inputs in cell Rapor
+  // Inputs in cell Rapor (Empty = Clean blank, Has Value = Highlighted)
   .number-cell-input {
-    width: 48px;
-    border: 1px solid rgba(226, 232, 240, 0.9);
+    width: 44px;
+    height: 32px;
+    border: 1px solid rgba(226, 232, 240, 0.8);
     border-radius: 6px;
-    padding: 6px 4px;
+    padding: 4px;
     font-size: 13px;
     text-align: center;
     color: #1e293b;
-    background: #ffffff;
-    transition: all 0.2s;
+    background: transparent;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
     outline: none;
+    -moz-appearance: textfield;
 
-    &:hover { border-color: #cbd5e1; }
+    &::-webkit-inner-spin-button,
+    &::-webkit-outer-spin-button {
+      -webkit-appearance: none;
+      margin: 0;
+    }
+
+    &.is-empty {
+      background: rgba(255, 255, 255, 0.4);
+      border-color: rgba(226, 232, 240, 0.6);
+      &:hover {
+        background: #ffffff;
+        border-color: #cbd5e1;
+      }
+    }
+
+    &.has-value {
+      font-weight: 800;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+
+      &.val-s {
+        color: #0f766e;
+        background: #f0fdfa;
+        border-color: #99f6e4;
+      }
+      &.val-i {
+        color: #b45309;
+        background: #fffbeb;
+        border-color: #fde68a;
+      }
+      &.val-a {
+        color: #b91c1c;
+        background: #fef2f2;
+        border-color: #fca5a5;
+      }
+    }
+
     &:focus {
-      border-color: #3b82f6;
-      box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.15);
+      border-color: #3b82f6 !important;
+      background: #ffffff !important;
+      box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.18) !important;
     }
 
     html[data-theme="dark"] & {
-      border-color: rgba(255,255,255,0.08);
-      background: rgba(30, 41, 59, 0.4);
+      border-color: rgba(255, 255, 255, 0.08);
       color: #f8fafc;
-      &:hover { border-color: rgba(255,255,255,0.15); }
-      &:focus { border-color: #3b82f6; }
+
+      &.is-empty {
+        background: rgba(30, 41, 59, 0.15);
+        border-color: rgba(255, 255, 255, 0.05);
+        &:hover {
+          background: rgba(30, 41, 59, 0.35);
+          border-color: rgba(255, 255, 255, 0.12);
+        }
+      }
+
+      &.has-value {
+        &.val-s {
+          color: #2dd4bf;
+          background: rgba(15, 118, 110, 0.25);
+          border-color: rgba(45, 212, 191, 0.4);
+        }
+        &.val-i {
+          color: #fcd34d;
+          background: rgba(217, 119, 6, 0.25);
+          border-color: rgba(251, 191, 36, 0.4);
+        }
+        &.val-a {
+          color: #f87171;
+          background: rgba(185, 28, 28, 0.25);
+          border-color: rgba(248, 113, 113, 0.4);
+        }
+      }
+
+      &:focus {
+        border-color: #3b82f6 !important;
+        background: rgba(30, 41, 59, 0.6) !important;
+      }
     }
   }
 

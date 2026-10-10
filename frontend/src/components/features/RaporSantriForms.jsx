@@ -9,9 +9,13 @@ import {
   Upload,
   ChevronLeft,
   ChevronRight,
-  Layers
+  Layers,
+  FileSpreadsheet,
+  Printer
 } from 'lucide-react';
 import * as XLSX from 'xlsx';
+import { jsPDF } from 'jspdf';
+import autoTable from 'jspdf-autotable';
 import { nilaiService } from '../../services/nilaiService';
 import { useToast } from '../common';
 import { CustomSelect } from '../ui/CustomSelect';
@@ -175,13 +179,14 @@ export function RaporSantriForms({
   };
 
   const handleDetailValueChange = (santriId, bulan, field, value) => {
+    const parsedVal = (value === '' || isNaN(Number(value))) ? 0 : Math.max(0, parseInt(value, 10));
     setData(prev => prev.map(item => {
       if (item.santri_id === santriId) {
         const updatedDetail = {
           ...item.detail_absensi,
           [bulan]: {
             ...(item.detail_absensi[bulan] || { sakit: 0, izin: 0, alpa: 0 }),
-            [field]: value === '' ? 0 : Number(value)
+            [field]: parsedVal
           }
         };
 
@@ -191,9 +196,9 @@ export function RaporSantriForms({
         
         daftarBulan.forEach(b => {
           const det = updatedDetail[b] || { sakit: 0, izin: 0, alpa: 0 };
-          totalSakit += det.sakit || 0;
-          totalIzin += det.izin || 0;
-          totalAlpa += det.alpa || 0;
+          totalSakit += Number(det.sakit) || 0;
+          totalIzin += Number(det.izin) || 0;
+          totalAlpa += Number(det.alpa) || 0;
         });
 
         return {
@@ -208,7 +213,390 @@ export function RaporSantriForms({
     }));
   };
 
-  // Unduh Template Format Excel Absensi
+  // Unduh Rekapitulasi Absensi Lengkap (Excel)
+  const handleExportExcel = () => {
+    if (!data.length) {
+      toast.warning('Pilih kelas terlebih dahulu atau data santri kosong.');
+      return;
+    }
+
+    try {
+      const cleanKelas = (kelasName || 'Kelas').trim();
+      const taKode = tahunAjaran?.nama || tahunAjaran?.kode || '-';
+      const semNama = kategoriNama || (isGenap ? 'Semester Genap' : 'Semester Ganjil');
+      const cetakDate = new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' });
+
+      // Title rows
+      const titleRow1 = [`REKAPITULASI ABSENSI BULANAN KELAS ${cleanKelas.toUpperCase()}`];
+      const titleRow2 = [`Tahun Ajaran: ${taKode}   |   Semester: ${semNama}   |   Dicetak: ${cetakDate}`];
+      const emptyRow = [];
+
+      // Header 1: Month merged titles
+      const headerRow1 = ['No', 'NIS', 'Nama Santri'];
+      daftarBulan.forEach(b => {
+        headerRow1.push(b.toUpperCase(), '', '');
+      });
+      headerRow1.push('TOTAL AKUMULASI', '', '');
+
+      // Header 2: Sub columns S, I, A
+      const headerRow2 = ['', '', ''];
+      daftarBulan.forEach(() => {
+        headerRow2.push('S', 'I', 'A');
+      });
+      headerRow2.push('S', 'I', 'A');
+
+      // Col totals calculation
+      const colTotals = {
+        months: {},
+        totalS: 0,
+        totalI: 0,
+        totalA: 0
+      };
+      daftarBulan.forEach(b => {
+        colTotals.months[b] = { s: 0, i: 0, a: 0 };
+      });
+
+      // Data Rows
+      const dataRows = data.map((item, idx) => {
+        const row = [idx + 1, item.nis || '', item.nama || ''];
+        daftarBulan.forEach(b => {
+          const d = item.detail_absensi?.[b] || { sakit: 0, izin: 0, alpa: 0 };
+          const s = d.sakit > 0 ? d.sakit : '';
+          const i = d.izin > 0 ? d.izin : '';
+          const a = d.alpa > 0 ? d.alpa : '';
+
+          if (d.sakit > 0) colTotals.months[b].s += d.sakit;
+          if (d.izin > 0) colTotals.months[b].i += d.izin;
+          if (d.alpa > 0) colTotals.months[b].a += d.alpa;
+
+          row.push(s, i, a);
+        });
+
+        const totS = item.sakit > 0 ? item.sakit : '';
+        const totI = item.izin > 0 ? item.izin : '';
+        const totA = item.alpa > 0 ? item.alpa : '';
+
+        if (item.sakit > 0) colTotals.totalS += item.sakit;
+        if (item.izin > 0) colTotals.totalI += item.izin;
+        if (item.alpa > 0) colTotals.totalA += item.alpa;
+
+        row.push(totS, totI, totA);
+        return row;
+      });
+
+      // Summary Footer Row
+      const footRow = ['JUMLAH TOTAL KELAS', '', ''];
+      daftarBulan.forEach(b => {
+        footRow.push(
+          colTotals.months[b].s > 0 ? colTotals.months[b].s : '',
+          colTotals.months[b].i > 0 ? colTotals.months[b].i : '',
+          colTotals.months[b].a > 0 ? colTotals.months[b].a : ''
+        );
+      });
+      footRow.push(
+        colTotals.totalS > 0 ? colTotals.totalS : '',
+        colTotals.totalI > 0 ? colTotals.totalI : '',
+        colTotals.totalA > 0 ? colTotals.totalA : ''
+      );
+
+      const allRows = [titleRow1, titleRow2, emptyRow, headerRow1, headerRow2, ...dataRows, footRow];
+      const worksheet = XLSX.utils.aoa_to_sheet(allRows);
+
+      // Total columns count = 3 (No, NIS, Nama) + 6 * 3 + 3 = 24 (index 0 to 23)
+      const lastColIndex = 23;
+
+      // Merges
+      worksheet['!merges'] = [
+        // Title 1
+        { s: { r: 0, c: 0 }, e: { r: 0, c: lastColIndex } },
+        // Title 2
+        { s: { r: 1, c: 0 }, e: { r: 1, c: lastColIndex } },
+        // No
+        { s: { r: 3, c: 0 }, e: { r: 4, c: 0 } },
+        // NIS
+        { s: { r: 3, c: 1 }, e: { r: 4, c: 1 } },
+        // Nama
+        { s: { r: 3, c: 2 }, e: { r: 4, c: 2 } },
+        // Month headers
+        ...daftarBulan.map((_, i) => ({
+          s: { r: 3, c: 3 + i * 3 },
+          e: { r: 3, c: 5 + i * 3 }
+        })),
+        // Total Akumulasi header
+        { s: { r: 3, c: 3 + daftarBulan.length * 3 }, e: { r: 3, c: 5 + daftarBulan.length * 3 } },
+        // Footer JUMLAH TOTAL KELAS
+        { s: { r: allRows.length - 1, c: 0 }, e: { r: allRows.length - 1, c: 2 } }
+      ];
+
+      // Column widths
+      worksheet['!cols'] = [
+        { wch: 6 },  // No
+        { wch: 14 }, // NIS
+        { wch: 34 }, // Nama
+        ...daftarBulan.flatMap(() => [{ wch: 6 }, { wch: 6 }, { wch: 6 }]),
+        { wch: 7 }, { wch: 7 }, { wch: 7 }
+      ];
+
+      const workbook = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(workbook, worksheet, 'Rekap Absensi');
+
+      const fileCleanName = cleanKelas.replace(/[^a-zA-Z0-9_-]/g, '_');
+      const filename = `Rekap_Absensi_${fileCleanName}_${tahunAjaran?.kode || ''}.xlsx`;
+      XLSX.writeFile(workbook, filename);
+      toast.success(`Rekapitulasi Excel berhasil diunduh: ${filename}`);
+    } catch (err) {
+      console.error(err);
+      toast.error('Gagal mengunduh Excel: ' + err.message);
+    }
+  };
+
+  // Unduh Rekapitulasi Absensi Lengkap (PDF)
+  const handleExportPDF = () => {
+    if (!data.length) {
+      toast.warning('Pilih kelas terlebih dahulu atau data santri kosong.');
+      return;
+    }
+
+    try {
+      const doc = new jsPDF({
+        orientation: 'landscape',
+        unit: 'mm',
+        format: 'a4'
+      });
+
+      const pageWidth = doc.internal.pageSize.getWidth(); // 297mm
+      const pageHeight = doc.internal.pageSize.getHeight(); // 210mm
+      const cleanKelas = (kelasName || 'Kelas').trim();
+      const taText = tahunAjaran?.nama || tahunAjaran?.kode || '-';
+      const semText = kategoriNama || (isGenap ? 'Semester Genap' : 'Semester Ganjil');
+      const cetakDate = new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' });
+
+      // 1. Kop Madrasah & Pondok Pesantren
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(13);
+      doc.setTextColor(15, 23, 42); // slate-900
+      doc.text('MADRASAH DINIYAH AL-HAMID', pageWidth / 2, 13, { align: 'center' });
+
+      doc.setFontSize(10.5);
+      doc.setTextColor(30, 41, 59); // slate-800
+      doc.text('PONDOK PESANTREN AL-HAMID CILANGKAP JAKARTA', pageWidth / 2, 18, { align: 'center' });
+
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(8);
+      doc.setTextColor(100, 116, 139); // slate-500
+      doc.text('Jl. Cilangkap Baru No. 1, Cipayung, Jakarta Timur 13870 | Telp: (021) 8448557 | Website: alhamidcintamulya.my.id', pageWidth / 2, 22.5, { align: 'center' });
+
+      // Double line separator
+      doc.setDrawColor(30, 41, 59);
+      doc.setLineWidth(0.6);
+      doc.line(14, 25, pageWidth - 14, 25);
+      doc.setLineWidth(0.2);
+      doc.line(14, 26, pageWidth - 14, 26);
+
+      // 2. Judul Laporan (Per user request: "Rekapitulasi Absensi Bulanan Kelas X")
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(11.5);
+      doc.setTextColor(15, 23, 42);
+      doc.text(`REKAPITULASI ABSENSI BULANAN KELAS ${cleanKelas.toUpperCase()}`, pageWidth / 2, 32, { align: 'center' });
+
+      // 3. Metadata Bar
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(8.5);
+      doc.setTextColor(51, 65, 85);
+
+      doc.text(`Kelas / Tingkat   : ${cleanKelas}`, 14, 38);
+      doc.text(`Tahun Ajaran    : ${taText}`, 14, 42.5);
+
+      doc.text(`Semester / Periode : ${semText}`, pageWidth - 14, 38, { align: 'right' });
+      doc.text(`Tanggal Cetak         : ${cetakDate}`, pageWidth - 14, 42.5, { align: 'right' });
+
+      // 4. Construct Table Data
+      const headRow1 = [
+        { content: 'NO', rowSpan: 2, styles: { halign: 'center', valign: 'middle' } },
+        { content: 'NIS', rowSpan: 2, styles: { halign: 'center', valign: 'middle' } },
+        { content: 'NAMA SANTRI', rowSpan: 2, styles: { halign: 'left', valign: 'middle' } },
+        ...daftarBulan.map(b => ({
+          content: b.toUpperCase(),
+          colSpan: 3,
+          styles: { halign: 'center', valign: 'middle' }
+        })),
+        { content: 'TOTAL AKUMULASI', colSpan: 3, styles: { halign: 'center', valign: 'middle' } }
+      ];
+
+      const headRow2 = [
+        ...daftarBulan.flatMap(() => [
+          { content: 'S', styles: { halign: 'center' } },
+          { content: 'I', styles: { halign: 'center' } },
+          { content: 'A', styles: { halign: 'center' } }
+        ]),
+        { content: 'S', styles: { halign: 'center' } },
+        { content: 'I', styles: { halign: 'center' } },
+        { content: 'A', styles: { halign: 'center' } }
+      ];
+
+      const colTotals = {
+        months: {},
+        totalS: 0,
+        totalI: 0,
+        totalA: 0
+      };
+      daftarBulan.forEach(b => {
+        colTotals.months[b] = { s: 0, i: 0, a: 0 };
+      });
+
+      const bodyRows = data.map((item, idx) => {
+        const row = [
+          idx + 1,
+          item.nis || '-',
+          (item.nama || '').trim()
+        ];
+
+        daftarBulan.forEach(b => {
+          const d = item.detail_absensi?.[b] || { sakit: 0, izin: 0, alpa: 0 };
+          const s = d.sakit > 0 ? d.sakit : '';
+          const i = d.izin > 0 ? d.izin : '';
+          const a = d.alpa > 0 ? d.alpa : '';
+
+          if (d.sakit > 0) colTotals.months[b].s += d.sakit;
+          if (d.izin > 0) colTotals.months[b].i += d.izin;
+          if (d.alpa > 0) colTotals.months[b].a += d.alpa;
+
+          row.push(s, i, a);
+        });
+
+        const totS = item.sakit > 0 ? item.sakit : '';
+        const totI = item.izin > 0 ? item.izin : '';
+        const totA = item.alpa > 0 ? item.alpa : '';
+
+        if (item.sakit > 0) colTotals.totalS += item.sakit;
+        if (item.izin > 0) colTotals.totalI += item.izin;
+        if (item.alpa > 0) colTotals.totalA += item.alpa;
+
+        row.push(totS, totI, totA);
+        return row;
+      });
+
+      const footRow = [
+        { content: 'JUMLAH TOTAL KELAS', colSpan: 3, styles: { halign: 'center', fontStyle: 'bold' } },
+        ...daftarBulan.flatMap(b => [
+          { content: colTotals.months[b].s > 0 ? String(colTotals.months[b].s) : '-', styles: { halign: 'center', fontStyle: 'bold' } },
+          { content: colTotals.months[b].i > 0 ? String(colTotals.months[b].i) : '-', styles: { halign: 'center', fontStyle: 'bold' } },
+          { content: colTotals.months[b].a > 0 ? String(colTotals.months[b].a) : '-', styles: { halign: 'center', fontStyle: 'bold' } }
+        ]),
+        { content: colTotals.totalS > 0 ? String(colTotals.totalS) : '-', styles: { halign: 'center', fontStyle: 'bold' } },
+        { content: colTotals.totalI > 0 ? String(colTotals.totalI) : '-', styles: { halign: 'center', fontStyle: 'bold' } },
+        { content: colTotals.totalA > 0 ? String(colTotals.totalA) : '-', styles: { halign: 'center', fontStyle: 'bold' } }
+      ];
+
+      // AutoTable
+      autoTable(doc, {
+        head: [headRow1, headRow2],
+        body: bodyRows,
+        foot: [footRow],
+        startY: 46,
+        theme: 'grid',
+        margin: { left: 14, right: 14, bottom: 25 },
+        styles: {
+          fontSize: 7.5,
+          cellPadding: 1.5,
+          font: 'helvetica',
+          lineColor: [203, 213, 225],
+          lineWidth: 0.15,
+          textColor: [30, 41, 59]
+        },
+        headStyles: {
+          fillColor: [30, 41, 59],
+          textColor: [255, 255, 255],
+          fontStyle: 'bold',
+          lineWidth: 0.2,
+          lineColor: [100, 116, 139]
+        },
+        footStyles: {
+          fillColor: [241, 245, 249],
+          textColor: [15, 23, 42],
+          fontStyle: 'bold',
+          lineWidth: 0.2,
+          lineColor: [203, 213, 225]
+        },
+        alternateRowStyles: {
+          fillColor: [250, 250, 250]
+        },
+        columnStyles: {
+          0: { cellWidth: 8, halign: 'center' },
+          1: { cellWidth: 18, halign: 'center' },
+          2: { cellWidth: 55, halign: 'left', fontStyle: 'bold' },
+          ...Object.fromEntries(
+            Array.from({ length: 18 }, (_, i) => [i + 3, { cellWidth: 8.8, halign: 'center' }])
+          ),
+          21: { cellWidth: 9.3, halign: 'center', fontStyle: 'bold', fillColor: [248, 250, 252] },
+          22: { cellWidth: 9.3, halign: 'center', fontStyle: 'bold', fillColor: [248, 250, 252] },
+          23: { cellWidth: 9.3, halign: 'center', fontStyle: 'bold', fillColor: [248, 250, 252] }
+        },
+        didDrawCell: (cellData) => {
+          // Sub-header styling S (teal), I (amber), A (red)
+          if (cellData.section === 'head' && cellData.row.index === 1) {
+            const colIdx = cellData.column.index;
+            if (colIdx >= 3) {
+              const rem = (colIdx - 3) % 3;
+              cellData.cell.styles.fillColor = [241, 245, 249];
+              if (rem === 0) cellData.cell.styles.textColor = [15, 118, 110];
+              else if (rem === 1) cellData.cell.styles.textColor = [217, 119, 6];
+              else if (rem === 2) cellData.cell.styles.textColor = [220, 38, 38];
+            }
+          }
+          // Highlight Alfa in body rows
+          if (cellData.section === 'body' && cellData.column.index >= 3) {
+            const rem = (cellData.column.index - 3) % 3;
+            const val = cellData.cell.raw;
+            if (rem === 2 && val && val !== '') {
+              cellData.cell.styles.textColor = [220, 38, 38];
+              cellData.cell.styles.fontStyle = 'bold';
+            }
+          }
+        },
+        didDrawPage: () => {
+          const pageStr = `Halaman ${doc.internal.getNumberOfPages()}`;
+          doc.setFont('helvetica', 'normal');
+          doc.setFontSize(7.5);
+          doc.setTextColor(148, 163, 184);
+          doc.text(pageStr, pageWidth - 14, pageHeight - 7, { align: 'right' });
+          doc.text('Sistem Informasi Pesantren Al-Hamid', 14, pageHeight - 7);
+        }
+      });
+
+      // 5. Signature Section
+      const finalY = doc.lastAutoTable ? doc.lastAutoTable.finalY : 140;
+      let signY = finalY + 8;
+      if (signY + 28 > pageHeight - 12) {
+        doc.addPage();
+        signY = 20;
+      }
+
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(8.5);
+      doc.setTextColor(15, 23, 42);
+
+      const rightX = pageWidth - 55;
+      doc.text(`Jakarta, ${cetakDate}`, rightX, signY, { align: 'center' });
+      doc.text(`Wali Kelas ${cleanKelas},`, rightX, signY + 5, { align: 'center' });
+      doc.text('( .................................................... )', rightX, signY + 23, { align: 'center' });
+
+      const leftX = 55;
+      doc.text('Mengetahui,', leftX, signY + 5, { align: 'center' });
+      doc.text('Kepala Madrasah Diniyah,', leftX, signY + 10, { align: 'center' });
+      doc.text('( .................................................... )', leftX, signY + 23, { align: 'center' });
+
+      const fileCleanName = cleanKelas.replace(/[^a-zA-Z0-9_-]/g, '_');
+      const filename = `Rekap_Absensi_${fileCleanName}_${tahunAjaran?.kode || ''}.pdf`;
+      doc.save(filename);
+      toast.success(`Rekapitulasi PDF berhasil diunduh: ${filename}`);
+    } catch (err) {
+      console.error('Error generating PDF:', err);
+      toast.error('Gagal membuat dokumen PDF: ' + err.message);
+    }
+  };
+
+  // Unduh Template Format Excel Absensi (Khusus untuk Re-impor)
   const handleExportTemplate = () => {
     if (!data.length) {
       toast.warning('Pilih kelas terlebih dahulu atau data santri kosong.');
@@ -227,9 +615,9 @@ export function RaporSantriForms({
         const row = [idx + 1, item.nis || '', item.nama || ''];
         daftarBulan.forEach(b => {
           const d = item.detail_absensi?.[b] || { sakit: 0, izin: 0, alpa: 0 };
-          row.push(d.sakit ?? 0);
-          row.push(d.izin ?? 0);
-          row.push(d.alpa ?? 0);
+          row.push(d.sakit > 0 ? d.sakit : '');
+          row.push(d.izin > 0 ? d.izin : '');
+          row.push(d.alpa > 0 ? d.alpa : '');
         });
         return row;
       });
@@ -248,7 +636,7 @@ export function RaporSantriForms({
       const cleanKelas = (kelasName || 'Kelas').replace(/[^a-zA-Z0-9_-]/g, '_');
       const filename = `Format_Absensi_${cleanKelas}_${tahunAjaran?.kode || ''}.xlsx`;
       XLSX.writeFile(workbook, filename);
-      toast.success(`Template Excel berhasil diunduh: ${filename}`);
+      toast.success(`Format Impor Excel berhasil diunduh: ${filename}`);
     } catch (err) {
       console.error(err);
       toast.error('Gagal mengunduh template Excel: ' + err.message);
@@ -454,7 +842,7 @@ export function RaporSantriForms({
           <h3 className="header-title">{titles[type]} - {kelasName || 'Pilih Kelas'}</h3>
         </div>
         <div className="header-actions">
-          {/* Excel Import & Download for Absensi */}
+          {/* Excel & PDF Actions for Absensi */}
           {type === 'absensi' && (
             <>
               <input 
@@ -467,12 +855,32 @@ export function RaporSantriForms({
               <button
                 type="button"
                 className="btn-custom btn-secondary btn-auto"
+                onClick={handleExportExcel}
+                disabled={!data.length}
+                title="Unduh rekapitulasi absensi bulanan lengkap dalam format Excel (.xlsx)"
+              >
+                <FileSpreadsheet size={14} className="text-emerald-600" />
+                <span>Unduh Excel</span>
+              </button>
+              <button
+                type="button"
+                className="btn-custom btn-secondary btn-auto"
+                onClick={handleExportPDF}
+                disabled={!data.length}
+                title="Unduh rekapitulasi absensi bulanan resmi & rapi dalam format PDF (.pdf)"
+              >
+                <Printer size={14} className="text-rose-600" />
+                <span>Unduh PDF</span>
+              </button>
+              <button
+                type="button"
+                className="btn-custom btn-secondary btn-auto"
                 onClick={handleExportTemplate}
                 disabled={!data.length}
-                title="Unduh format file Excel berisi daftar nama santri kelas ini"
+                title="Unduh format spreadsheet khusus untuk impor data santri kelas ini"
               >
                 <Download size={14} />
-                <span>Unduh Format Excel</span>
+                <span>Format Impor</span>
               </button>
               <button
                 type="button"
@@ -670,42 +1078,56 @@ export function RaporSantriForms({
                             {record.nama}
                           </td>
                           {daftarBulan.filter(b => visibleMonths.includes(b)).flatMap(bulan => {
-                            const valS = record.detail_absensi?.[bulan]?.sakit ?? 0;
-                            const valI = record.detail_absensi?.[bulan]?.izin ?? 0;
-                            const valA = record.detail_absensi?.[bulan]?.alpa ?? 0;
+                            const rawS = record.detail_absensi?.[bulan]?.sakit ?? 0;
+                            const rawI = record.detail_absensi?.[bulan]?.izin ?? 0;
+                            const rawA = record.detail_absensi?.[bulan]?.alpa ?? 0;
+
+                            const numS = Number(rawS) || 0;
+                            const numI = Number(rawI) || 0;
+                            const numA = Number(rawA) || 0;
+
                             return [
                               <td key={`${record.santri_id}-${bulan}-s`} className="input-cell text-center">
                                 <input 
                                   type="number" 
-                                  className="number-cell-input" 
+                                  className={`number-cell-input ${numS > 0 ? 'has-value val-s' : 'is-empty'}`} 
                                   min={0} 
-                                  value={valS} 
+                                  value={numS > 0 ? numS : ''} 
+                                  placeholder=""
                                   onChange={(e) => handleDetailValueChange(record.santri_id, bulan, 'sakit', e.target.value)}
                                 />
                               </td>,
                               <td key={`${record.santri_id}-${bulan}-i`} className="input-cell text-center">
                                 <input 
                                   type="number" 
-                                  className="number-cell-input" 
+                                  className={`number-cell-input ${numI > 0 ? 'has-value val-i' : 'is-empty'}`} 
                                   min={0} 
-                                  value={valI} 
+                                  value={numI > 0 ? numI : ''} 
+                                  placeholder=""
                                   onChange={(e) => handleDetailValueChange(record.santri_id, bulan, 'izin', e.target.value)}
                                 />
                               </td>,
                               <td key={`${record.santri_id}-${bulan}-a`} className="input-cell text-center">
                                 <input 
                                   type="number" 
-                                  className="number-cell-input" 
+                                  className={`number-cell-input ${numA > 0 ? 'has-value val-a' : 'is-empty'}`} 
                                   min={0} 
-                                  value={valA} 
+                                  value={numA > 0 ? numA : ''} 
+                                  placeholder=""
                                   onChange={(e) => handleDetailValueChange(record.santri_id, bulan, 'alpa', e.target.value)}
                                 />
                               </td>
                             ];
                           })}
-                          <td className="total-cell text-center font-bold text-s">{record.sakit}</td>
-                          <td className="total-cell text-center font-bold text-i">{record.izin}</td>
-                          <td className="total-cell text-center font-bold text-a">{record.alpa}</td>
+                          <td className={`total-cell text-center font-bold text-s ${record.sakit > 0 ? 'has-val' : 'is-empty'}`}>
+                            {record.sakit > 0 ? record.sakit : ''}
+                          </td>
+                          <td className={`total-cell text-center font-bold text-i ${record.izin > 0 ? 'has-val' : 'is-empty'}`}>
+                            {record.izin > 0 ? record.izin : ''}
+                          </td>
+                          <td className={`total-cell text-center font-bold text-a ${record.alpa > 0 ? 'has-val' : 'is-empty'}`}>
+                            {record.alpa > 0 ? record.alpa : ''}
+                          </td>
                         </tr>
                       ))}
                     </tbody>
