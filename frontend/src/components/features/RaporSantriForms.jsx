@@ -378,40 +378,40 @@ export function RaporSantriForms({
       doc.setFont('helvetica', 'bold');
       doc.setFontSize(11);
       doc.setTextColor(15, 23, 42); // slate-900
-      doc.text('MADRASAH DINIYAH AL-HAMID', pageWidth / 2, 9.5, { align: 'center' });
+      doc.text('MADRASAH DINIYAH AL-HAMID', pageWidth / 2, 8.5, { align: 'center' });
 
       doc.setFontSize(9.5);
       doc.setTextColor(30, 41, 59); // slate-800
-      doc.text('PONDOK PESANTREN AL-HAMID CINTAMULYA', pageWidth / 2, 14, { align: 'center' });
+      doc.text('PONDOK PESANTREN AL-HAMID CINTAMULYA', pageWidth / 2, 12.8, { align: 'center' });
 
       doc.setFont('helvetica', 'normal');
       doc.setFontSize(7.5);
       doc.setTextColor(100, 116, 139); // slate-500
-      doc.text('Jl. S. Parman No 07 Desa Cintamulya, Kec. Candipuro Kab. Lampung Selatan | 081361380022 | alhamidcintamulya.com', pageWidth / 2, 18, { align: 'center' });
+      doc.text('Jl. S. Parman No 07 Desa Cintamulya, Kec. Candipuro Kab. Lampung Selatan | 081361380022 | alhamidcintamulya.com', pageWidth / 2, 16.5, { align: 'center' });
 
       // Double line separator kop
       doc.setDrawColor(30, 41, 59);
       doc.setLineWidth(0.5);
-      doc.line(10, 20.2, pageWidth - 10, 20.2);
+      doc.line(10, 18.5, pageWidth - 10, 18.5);
       doc.setLineWidth(0.15);
-      doc.line(10, 20.9, pageWidth - 10, 20.9);
+      doc.line(10, 19.1, pageWidth - 10, 19.1);
 
       // 2. Judul Laporan
       doc.setFont('helvetica', 'bold');
       doc.setFontSize(10.5);
       doc.setTextColor(15, 23, 42);
-      doc.text(`REKAPITULASI ABSENSI BULANAN KELAS ${cleanKelas.toUpperCase()}`, pageWidth / 2, 25.5, { align: 'center' });
+      doc.text(`REKAPITULASI ABSENSI BULANAN KELAS ${cleanKelas.toUpperCase()}`, pageWidth / 2, 23.5, { align: 'center' });
 
       // 3. Metadata Bar (Ringkas & Proporsional)
       doc.setFont('helvetica', 'normal');
       doc.setFontSize(7.5);
       doc.setTextColor(51, 65, 85);
 
-      doc.text(`Kelas / Tingkat   : ${cleanKelas}`, 10, 29.5);
-      doc.text(`Tahun Ajaran    : ${taText}`, 10, 33);
+      doc.text(`Kelas / Tingkat   : ${cleanKelas}`, 10, 27.2);
+      doc.text(`Tahun Ajaran    : ${taText}`, 10, 30.5);
 
-      doc.text(`Semester / Periode : ${semText}`, pageWidth - 10, 29.5, { align: 'right' });
-      doc.text(`Tanggal Cetak         : ${cetakDate}`, pageWidth - 10, 33, { align: 'right' });
+      doc.text(`Semester / Periode : ${semText}`, pageWidth - 10, 27.2, { align: 'right' });
+      doc.text(`Tanggal Cetak         : ${cetakDate}`, pageWidth - 10, 30.5, { align: 'right' });
 
       // 4. Construct Table Data
       const headRow1 = [
@@ -459,32 +459,28 @@ export function RaporSantriForms({
         return row;
       });
 
-      // Perhitungan dinamis tinggi baris & padding agar tabel terbentang pas memenuhi 1 halaman
-      // Patokan: tabel mulai di Y=35.5 dan selesai di Y=197.5 (tersisa ~12.5mm margin bawah)
-      const targetBottom = 197.5;
-      const tableStartY = 35.5;
-      const approxHeaderHeight = 8.4;
-      const availableBodyHeight = targetBottom - (tableStartY + approxHeaderHeight); // ~153.6 mm
+      // Perhitungan dinamis tinggi baris & padding agar tabel terbentang pas pada halaman 1
+      // Patokan: tabel mulai di Y=33 dan selesai sekitar Y=188 (tersisa jarak aman ke batas bawah 210mm)
+      const tableStartY = 33;
+      const approxHeaderHeight = 7.6; // 2 baris header @ 3.8mm
+      const safeAvailableBodyHeight = 148; // mm untuk seluruh baris santri
 
       const totalStudents = Math.max(1, data.length);
-      const calculatedHeight = availableBodyHeight / totalStudents;
-      // Batasi tinggi baris antara 4.2mm (jika murid banyak s.d 35) dan 7.0mm (jika murid sedikit agar tetap estetis)
-      const targetRowHeight = Math.min(7.0, Math.max(4.2, calculatedHeight));
+      const calculatedHeight = safeAvailableBodyHeight / totalStudents;
+      // Batasi tinggi baris antara 4.0mm (jika santri banyak s.d 35) dan 6.5mm (jika santri sedikit agar tetap estetis)
+      const targetRowHeight = Math.min(6.5, Math.max(4.0, calculatedHeight));
 
       // Font size proporsional terhadap tinggi baris
       let dynamicFontSize = 7.5;
-      if (targetRowHeight >= 6.2) {
+      if (targetRowHeight >= 6.0) {
         dynamicFontSize = 8.0;
-      } else if (targetRowHeight >= 5.2) {
-        dynamicFontSize = 7.5;
-      } else if (targetRowHeight >= 4.6) {
-        dynamicFontSize = 7.0;
+      } else if (targetRowHeight >= 5.0) {
+        dynamicFontSize = 7.4;
+      } else if (targetRowHeight >= 4.4) {
+        dynamicFontSize = 6.8;
       } else {
-        dynamicFontSize = 6.4;
+        dynamicFontSize = 6.2;
       }
-
-      // Vertical padding proporsional agar teks tepat di tengah dan lega
-      const vPad = Math.max(0.6, (targetRowHeight - (dynamicFontSize * 0.3527 * 1.25)) / 2);
 
       // AutoTable
       autoTable(doc, {
@@ -492,13 +488,11 @@ export function RaporSantriForms({
         body: bodyRows,
         startY: tableStartY,
         theme: 'grid',
-        pageBreak: 'avoid',
-        rowPageBreak: 'avoid',
         margin: { left: 10, right: 10, bottom: 6, top: 6 },
         styles: {
           fontSize: dynamicFontSize,
           minCellHeight: targetRowHeight,
-          cellPadding: { top: vPad, bottom: vPad, left: 0.8, right: 0.8 },
+          cellPadding: { top: 0.6, bottom: 0.6, left: 0.8, right: 0.8 },
           font: 'helvetica',
           lineColor: [203, 213, 225],
           lineWidth: 0.15,
@@ -512,7 +506,7 @@ export function RaporSantriForms({
           lineWidth: 0.15,
           lineColor: [100, 116, 139],
           fontSize: dynamicFontSize,
-          minCellHeight: 4.2,
+          minCellHeight: 3.8,
           valign: 'middle'
         },
         alternateRowStyles: {
