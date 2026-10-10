@@ -459,32 +459,46 @@ export function RaporSantriForms({
         return row;
       });
 
-      // Optimasi proporsional agar 100% muat 1 lembar (bahkan sampai 30-35 siswa)
-      const totalStudents = data.length;
-      let dynamicFontSize = 7.2;
-      let dynamicCellPadding = 1.1;
+      // Perhitungan dinamis tinggi baris & padding agar tabel terbentang pas memenuhi 1 halaman
+      // Patokan: tabel mulai di Y=35.5 dan selesai di Y=197.5 (tersisa ~12.5mm margin bawah)
+      const targetBottom = 197.5;
+      const tableStartY = 35.5;
+      const approxHeaderHeight = 8.4;
+      const availableBodyHeight = targetBottom - (tableStartY + approxHeaderHeight); // ~153.6 mm
 
-      if (totalStudents > 20 && totalStudents <= 26) {
+      const totalStudents = Math.max(1, data.length);
+      const calculatedHeight = availableBodyHeight / totalStudents;
+      // Batasi tinggi baris antara 4.2mm (jika murid banyak s.d 35) dan 7.0mm (jika murid sedikit agar tetap estetis)
+      const targetRowHeight = Math.min(7.0, Math.max(4.2, calculatedHeight));
+
+      // Font size proporsional terhadap tinggi baris
+      let dynamicFontSize = 7.5;
+      if (targetRowHeight >= 6.2) {
+        dynamicFontSize = 8.0;
+      } else if (targetRowHeight >= 5.2) {
+        dynamicFontSize = 7.5;
+      } else if (targetRowHeight >= 4.6) {
         dynamicFontSize = 7.0;
-        dynamicCellPadding = 0.9;
-      } else if (totalStudents > 26 && totalStudents <= 32) {
-        dynamicFontSize = 6.6;
-        dynamicCellPadding = 0.7;
-      } else if (totalStudents > 32) {
-        dynamicFontSize = 6.2;
-        dynamicCellPadding = 0.5;
+      } else {
+        dynamicFontSize = 6.4;
       }
+
+      // Vertical padding proporsional agar teks tepat di tengah dan lega
+      const vPad = Math.max(0.6, (targetRowHeight - (dynamicFontSize * 0.3527 * 1.25)) / 2);
 
       // AutoTable
       autoTable(doc, {
         head: [headRow1, headRow2],
         body: bodyRows,
-        startY: 35.5,
+        startY: tableStartY,
         theme: 'grid',
+        pageBreak: 'avoid',
+        rowPageBreak: 'avoid',
         margin: { left: 10, right: 10, bottom: 6, top: 6 },
         styles: {
           fontSize: dynamicFontSize,
-          cellPadding: dynamicCellPadding,
+          minCellHeight: targetRowHeight,
+          cellPadding: { top: vPad, bottom: vPad, left: 0.8, right: 0.8 },
           font: 'helvetica',
           lineColor: [203, 213, 225],
           lineWidth: 0.15,
@@ -497,7 +511,9 @@ export function RaporSantriForms({
           fontStyle: 'bold',
           lineWidth: 0.15,
           lineColor: [100, 116, 139],
-          fontSize: dynamicFontSize
+          fontSize: dynamicFontSize,
+          minCellHeight: 4.2,
+          valign: 'middle'
         },
         alternateRowStyles: {
           fillColor: [250, 250, 250]
