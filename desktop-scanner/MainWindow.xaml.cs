@@ -71,7 +71,7 @@ namespace AlHamidScanner
                 CmbMapel.ItemsSource = _mapelList;
                 if (_mapelList.Count > 0) CmbMapel.SelectedIndex = 0;
 
-                TxtVpsStatus.Text = "VPS Terhubung (" + _taList.Count + " TA)";
+                TxtVpsStatus.Text = "VPS Terhubung (Online)";
                 VpsStatusBadge.Background = new SolidColorBrush(Color.FromRgb(6, 78, 59)); // Emerald dark
                 TxtStatusLog.Text = "Siap. Silakan buka file scan lembar nilai santri.";
             }
@@ -208,11 +208,8 @@ namespace AlHamidScanner
                     TxtQrStatus.Foreground = new SolidColorBrush(Color.FromRgb(217, 119, 6));
                 }
 
-                // If student scores list is still empty, fetch students
-                if (_studentScores.Count == 0 && CmbKelas.SelectedItem is Kelas k && CmbTahunAjaran.SelectedItem is TahunAjaran ta)
-                {
-                    await RefreshStudentListAsync();
-                }
+                // Ensure student list for the selected class is fetched from VPS
+                await RefreshStudentListAsync();
 
                 // 2. Map detected scores to the students in order
                 for (int i = 0; i < omrResult.Scores.Count; i++)
@@ -340,42 +337,6 @@ namespace AlHamidScanner
             {
                 MessageBox.Show(msg, "Gagal Menyimpan Nilai", MessageBoxButton.OK, MessageBoxImage.Error);
             }
-        }
-
-        private void BtnSettings_Click(object sender, RoutedEventArgs e)
-        {
-            var win = new Window
-            {
-                Title = "Pengaturan Server API VPS",
-                Width = 480,
-                Height = 260,
-                WindowStartupLocation = WindowStartupLocation.CenterOwner,
-                Owner = this,
-                ResizeMode = ResizeMode.NoResize,
-                Background = new SolidColorBrush(Color.FromRgb(248, 250, 252))
-            };
-
-            var sp = new StackPanel { Margin = new Thickness(20) };
-            sp.Children.Add(new TextBlock { Text = "Alamat Server VPS (Base URL):", FontWeight = FontWeights.Bold, Margin = new Thickness(0, 0, 0, 6) });
-            var txtUrl = new TextBox { Text = _apiClient.BaseUrl, Height = 32, VerticalContentAlignment = VerticalAlignment.Center, Padding = new Thickness(6, 0, 6, 0), Margin = new Thickness(0, 0, 0, 14) };
-            sp.Children.Add(txtUrl);
-
-            sp.Children.Add(new TextBlock { Text = "Token Autentikasi / Bearer Token (Opsional):", FontWeight = FontWeights.Bold, Margin = new Thickness(0, 0, 0, 6) });
-            var txtToken = new TextBox { Text = _apiClient.AuthToken, Height = 32, VerticalContentAlignment = VerticalAlignment.Center, Padding = new Thickness(6, 0, 6, 0), Margin = new Thickness(0, 0, 0, 18) };
-            sp.Children.Add(txtToken);
-
-            var btnSave = new Button { Content = "Simpan Pengaturan", Height = 34, Background = new SolidColorBrush(Color.FromRgb(79, 70, 229)), Foreground = Brushes.White, FontWeight = FontWeights.Bold };
-            btnSave.Click += async (_, _) =>
-            {
-                _apiClient.BaseUrl = txtUrl.Text.Trim();
-                _apiClient.AuthToken = txtToken.Text.Trim();
-                win.Close();
-                await LoadMasterDataAsync();
-            };
-            sp.Children.Add(btnSave);
-
-            win.Content = sp;
-            win.ShowDialog();
         }
     }
 }

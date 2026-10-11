@@ -31,7 +31,7 @@ namespace AlHamidScanner.Services
         private readonly HttpClient _http;
         private static readonly JsonSerializerOptions JsonOpts = new() { PropertyNameCaseInsensitive = true };
 
-        public string BaseUrl { get; set; } = "https://sekolah.alhamidcintamulya.com";
+        public string BaseUrl { get; set; } = "https://alhamidcintamulya.my.id";
         public string AuthToken { get; set; } = string.Empty;
 
         public ApiClient()

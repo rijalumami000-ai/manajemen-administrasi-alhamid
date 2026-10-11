@@ -1,3 +1,5 @@
+using System.Text.Json.Serialization;
+
 namespace AlHamidScanner.Models
 {
     public class TahunAjaran
@@ -55,9 +57,28 @@ namespace AlHamidScanner.Models
 
     public class QrMetadata
     {
-        public int? t { get; set; } // Tahun Ajaran ID
-        public int? k { get; set; } // Kelas ID
-        public int? m { get; set; } // Mapel ID
-        public int? cat { get; set; } // Kategori ID
+        [JsonPropertyName("t")]
+        public object? t_raw { get; set; }
+
+        [JsonPropertyName("k")]
+        public object? k_raw { get; set; }
+
+        [JsonPropertyName("m")]
+        public object? m_raw { get; set; }
+
+        [JsonPropertyName("cat")]
+        public object? cat_raw { get; set; }
+
+        [JsonIgnore]
+        public int? t => int.TryParse(t_raw?.ToString(), out int val) ? val : null;
+
+        [JsonIgnore]
+        public int? k => int.TryParse(k_raw?.ToString(), out int val) ? val : null;
+
+        [JsonIgnore]
+        public int? m => int.TryParse(m_raw?.ToString(), out int val) ? val : null;
+
+        [JsonIgnore]
+        public int? cat => int.TryParse(cat_raw?.ToString(), out int val) ? val : null;
     }
 }

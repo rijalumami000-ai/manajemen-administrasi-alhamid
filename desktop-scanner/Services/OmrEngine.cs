@@ -251,8 +251,8 @@ namespace AlHamidScanner.Services
         {
             try
             {
-                // Crop top-right header region where QR code resides
-                int qrRoiX = (int)(src.Width * 0.70);
+                // Crop top-right header region where QR code resides (x: 65%..100%, y: 0..25%)
+                int qrRoiX = (int)(src.Width * 0.65);
                 int qrRoiY = 0;
                 int qrRoiW = src.Width - qrRoiX;
                 int qrRoiH = (int)(src.Height * 0.25);
@@ -261,17 +261,32 @@ namespace AlHamidScanner.Services
                 using var qrGray = new Mat();
                 Cv2.CvtColor(qrRoi, qrGray, ColorConversionCodes.BGR2GRAY);
 
-                // 1. Try OpenCV QRCodeDetector
+                // Resize 3x with bicubic interpolation to sharpen blurred modules
+                using var resized = new Mat();
+                Cv2.Resize(qrGray, resized, new OpenCvSharp.Size(qrGray.Width * 3, qrGray.Height * 3), 0, 0, InterpolationFlags.Cubic);
+
+                // Otsu binarization
+                using var binImg = new Mat();
+                Cv2.Threshold(resized, binImg, 0, 255, ThresholdTypes.Binary | ThresholdTypes.Otsu);
+
+                // 1. Try OpenCV QRCodeDetector on enhanced binary
                 using var qr = new QRCodeDetector();
-                string decoded = qr.DetectAndDecode(qrGray, out Point2f[] _);
+                string decoded = qr.DetectAndDecode(binImg, out Point2f[] _);
                 if (!string.IsNullOrWhiteSpace(decoded))
                 {
                     return JsonSerializer.Deserialize<QrMetadata>(decoded);
                 }
 
-                // 2. Fallback to ZXing.Net
-                byte[] rawBytes = new byte[qrGray.Width * qrGray.Height];
-                System.Runtime.InteropServices.Marshal.Copy(qrGray.Data, rawBytes, 0, rawBytes.Length);
+                // Try on resized gray
+                decoded = qr.DetectAndDecode(resized, out Point2f[] _);
+                if (!string.IsNullOrWhiteSpace(decoded))
+                {
+                    return JsonSerializer.Deserialize<QrMetadata>(decoded);
+                }
+
+                // 2. Fallback to ZXing.Net on binImg
+                byte[] rawBytes = new byte[binImg.Width * binImg.Height];
+                System.Runtime.InteropServices.Marshal.Copy(binImg.Data, rawBytes, 0, rawBytes.Length);
 
                 var reader = new BarcodeReaderGeneric
                 {
@@ -283,7 +298,7 @@ namespace AlHamidScanner.Services
                     }
                 };
 
-                var lumSource = new PlanarYUVLuminanceSource(rawBytes, qrGray.Width, qrGray.Height, 0, 0, qrGray.Width, qrGray.Height, false);
+                var lumSource = new PlanarYUVLuminanceSource(rawBytes, binImg.Width, binImg.Height, 0, 0, binImg.Width, binImg.Height, false);
                 var zResult = reader.Decode(lumSource);
                 if (zResult != null && !string.IsNullOrWhiteSpace(zResult.Text))
                 {
