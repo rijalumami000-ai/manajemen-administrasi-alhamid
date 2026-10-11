@@ -1,27 +1,276 @@
 .scan-nilai-page {
   padding: 24px;
-  background: #f0f2f5;
+  background: #f8fafc;
   min-height: calc(100vh - 64px);
 
   .page-header {
     display: flex;
     align-items: center;
+    gap: 16px;
     margin-bottom: 24px;
     
     .page-icon {
-      font-size: 32px;
-      color: #0052FF;
-      margin-right: 16px;
-      background: white;
-      padding: 12px;
-      border-radius: 8px;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+      width: 48px;
+      height: 48px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: linear-gradient(135deg, #4f46e5, #3b82f6);
+      color: white;
+      border-radius: 12px;
+      box-shadow: 0 4px 12px rgba(79, 70, 229, 0.25);
+    }
+
+    h2 {
+      margin: 0;
+      font-size: 22px;
+      font-weight: 700;
+      color: #0f172a;
+    }
+
+    p {
+      margin: 4px 0 0 0;
+      font-size: 13.5px;
+      color: #64748b;
     }
   }
 
   .main-card {
-    border-radius: 8px;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+    background: #ffffff;
+    border: 1px solid #e2e8f0;
+    border-radius: 14px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.04);
+    padding: 24px;
+  }
+
+  /* Scan Methods Grid */
+  .scan-methods-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 16px;
+    margin-bottom: 20px;
+
+    .method-card {
+      border: 2px dashed #cbd5e1;
+      border-radius: 12px;
+      padding: 20px;
+      text-align: center;
+      background: #f8fafc;
+      transition: all 0.2s ease;
+      cursor: pointer;
+
+      &:hover {
+        border-color: #4f46e5;
+        background: #f5f3ff;
+        transform: translateY(-2px);
+      }
+
+      &.active {
+        border-color: #4f46e5;
+        border-style: solid;
+        background: #eef2ff;
+      }
+
+      .method-icon {
+        width: 44px;
+        height: 44px;
+        border-radius: 10px;
+        background: #e0e7ff;
+        color: #4338ca;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin: 0 auto 12px auto;
+      }
+
+      h4 {
+        margin: 0 0 6px 0;
+        font-size: 15px;
+        font-weight: 700;
+        color: #1e293b;
+      }
+
+      p {
+        margin: 0;
+        font-size: 12px;
+        color: #64748b;
+        line-height: 1.4;
+      }
+    }
+  }
+
+  /* Upload Dropzone */
+  .upload-dropzone {
+    border: 2px dashed #94a3b8;
+    border-radius: 12px;
+    padding: 36px 20px;
+    text-align: center;
+    background: #f8fafc;
+    cursor: pointer;
+    transition: all 0.2s;
+
+    &:hover, &.dragging {
+      border-color: #4f46e5;
+      background: #f5f3ff;
+    }
+
+    .dropzone-icon {
+      color: #6366f1;
+      margin-bottom: 12px;
+    }
+
+    .dropzone-title {
+      font-size: 15px;
+      font-weight: 600;
+      color: #1e293b;
+      margin-bottom: 4px;
+    }
+
+    .dropzone-desc {
+      font-size: 12.5px;
+      color: #64748b;
+    }
+  }
+
+  /* Camera Container */
+  .camera-container {
+    background: #000;
+    border-radius: 12px;
+    overflow: hidden;
+    position: relative;
+    max-width: 600px;
+    margin: 0 auto;
+
+    video {
+      width: 100%;
+      height: auto;
+      display: block;
+    }
+
+    .camera-overlay {
+      position: absolute;
+      inset: 20px;
+      border: 2px dashed rgba(255, 255, 255, 0.7);
+      border-radius: 8px;
+      pointer-events: none;
+      box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.35);
+    }
+  }
+
+  /* Stat Summary Bar */
+  .scan-stat-summary {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 12px;
+    margin: 20px 0;
+
+    .stat-chip {
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      border-radius: 10px;
+      padding: 12px 16px;
+      display: flex;
+      flex-direction: column;
+
+      .stat-title {
+        font-size: 11.5px;
+        text-transform: uppercase;
+        font-weight: 700;
+        color: #64748b;
+        letter-spacing: 0.5px;
+      }
+
+      .stat-val {
+        font-size: 20px;
+        font-weight: 800;
+        color: #0f172a;
+        margin-top: 4px;
+
+        &.primary { color: #4f46e5; }
+        &.success { color: #16a34a; }
+        &.warning { color: #d97706; }
+      }
+    }
+  }
+
+  /* Table Results */
+  .scan-results-table-wrap {
+    overflow-x: auto;
+    border: 1px solid #e2e8f0;
+    border-radius: 10px;
+    background: #ffffff;
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13.5px;
+
+      th {
+        background: #f8fafc;
+        padding: 10px 14px;
+        text-align: left;
+        font-weight: 600;
+        color: #475569;
+        border-bottom: 1px solid #e2e8f0;
+      }
+
+      td {
+        padding: 10px 14px;
+        border-bottom: 1px solid #f1f5f9;
+        vertical-align: middle;
+      }
+
+      tr:hover {
+        background: #f8fafc;
+      }
+
+      .score-input {
+        width: 80px;
+        padding: 6px 10px;
+        border-radius: 6px;
+        border: 1px solid #cbd5e1;
+        font-weight: 700;
+        font-size: 14px;
+        text-align: center;
+
+        &:focus {
+          border-color: #4f46e5;
+          outline: none;
+          box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.15);
+        }
+      }
+
+      .kehadiran-select {
+        padding: 6px 10px;
+        border-radius: 6px;
+        border: 1px solid #cbd5e1;
+        font-size: 13px;
+        background: #fff;
+      }
+
+      .badge-predikat {
+        display: inline-block;
+        padding: 3px 8px;
+        border-radius: 6px;
+        font-size: 11.5px;
+        font-weight: 700;
+
+        &.mumtaz { background: #dcfce7; color: #15803d; }
+        &.jayyid { background: #e0f2fe; color: #0369a1; }
+        &.mutawassith { background: #fef3c7; color: #b45309; }
+        &.rodi { background: #fee2e2; color: #b91c1c; }
+      }
+    }
+  }
+
+  /* Sheet Screen Preview */
+  .screen-sheet-preview-card {
+    background: #ffffff;
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+    padding: 20px;
+    margin-top: 20px;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.03);
   }
 }
 
@@ -42,8 +291,7 @@
     padding: 0;
   }
   
-  /* Hide sidebar, header, and other layout elements globally */
-  .app-sidebar, .app-header, .sidebar, .header {
+  .app-sidebar, .app-header, .sidebar, .header, .no-print {
     display: none !important;
   }
   
@@ -53,9 +301,6 @@
     width: 100% !important;
   }
   
-  .no-print {
-    display: none !important;
-  }
   .scan-nilai-page {
     padding: 0 !important;
     min-height: 0 !important;
@@ -63,11 +308,11 @@
   }
 
   .print-only {
-    display: block; /* Chrome print has bugs with flex containers, use block */
+    display: block !important;
     width: 100%;
-    max-width: 195mm; /* Safe printable area, guarantees centering */
+    max-width: 195mm;
     margin: 0 auto;
-    padding: 10mm 0 20mm 0; /* Memberikan ruang sedikit di atas agar tidak menabrak kotak hitam (marker) */
+    padding: 8mm 0 15mm 0;
     box-sizing: border-box;
     position: relative;
     background: white;
@@ -83,22 +328,21 @@
     -webkit-print-color-adjust: exact;
     print-color-adjust: exact;
   }
-  .marker-tl { top: 10mm; left: 0; }
-  .marker-tr { top: 10mm; right: 0; }
-  .marker-bl { bottom: 10mm; left: 0; }
-  .marker-br { bottom: 10mm; right: 0; }
+  .marker-tl { top: 8mm; left: 0; }
+  .marker-tr { top: 8mm; right: 0; }
+  .marker-bl { bottom: 12mm; left: 0; }
+  .marker-br { bottom: 12mm; right: 0; }
 
-  /* ---------- HEADER CETAK ---------- */
+  /* HEADER CETAK */
   .print-header {
     text-align: center;
-    margin-bottom: 5px; /* Rapatkan */
+    margin-bottom: 6px;
   }
 
   .print-title {
     text-align: center;
-    flex-grow: 1;
     h1 { font-size: 15px; font-weight: bold; margin: 0; text-transform: uppercase; }
-    h2 { font-size: 11px; margin: 2px 0 0 0; font-weight: normal; }
+    h2 { font-size: 11.5px; margin: 2px 0 0 0; font-weight: normal; }
   }
 
   .print-info-grid {
@@ -106,9 +350,9 @@
     justify-content: space-between;
     align-items: center;
     border: 2px solid #000;
-    padding: 5px 10px;
+    padding: 6px 12px;
     width: 100%;
-    margin-bottom: 5px; /* Rapatkan */
+    margin-bottom: 6px;
     font-size: 11px;
     box-sizing: border-box;
   }
@@ -127,7 +371,7 @@
   }
 
   .info-label {
-    width: 90px;
+    width: 95px;
   }
   
   .info-colon {
@@ -140,7 +384,7 @@
   }
   
   .qr-col {
-    width: 90px;
+    width: 80px;
     text-align: right;
   }
 
@@ -150,31 +394,30 @@
     border-collapse: collapse;
     border: 2px solid #000;
     margin: 0 auto;
-    page-break-inside: avoid; /* Force to fit on one page if possible */
-    table-layout: fixed; /* SANGAT KRUSIAL: Cegah browser mengubah lebar kolom agar koordinat AI akurat */
+    page-break-inside: avoid;
+    table-layout: fixed;
   }
 
   .omr-table th, .omr-table td {
-    border: 1.5px solid #000; /* Garis lebih tipis */
-    padding: 3px; /* Sedikit dirapatkan */
+    border: 1.5px solid #000;
+    padding: 3.5px 3px;
     font-size: 11px;
-    overflow: hidden; /* Hindari konten meluber */
+    overflow: hidden;
   }
   
   .omr-table th {
     text-align: center;
-    background-color: #eee;
+    background-color: #f1f5f9;
     -webkit-print-color-adjust: exact;
     print-color-adjust: exact;
   }
 
-  /* Define exact widths for cells so we can guess coordinates */
-  .col-no { width: 4%; text-align: center; }
-  .col-nama { width: 28%; } /* Sedikit dilebarkan untuk nama panjang */
+  .col-no { width: 4.5%; text-align: center; }
+  .col-nama { width: 27%; }
   .col-nilai { width: 38%; text-align: center; } 
   .col-kehadiran-group { text-align: center; }
-  .col-kehadiran { width: 6%; text-align: center; }
-  .col-ttd { width: 18%; position: relative; vertical-align: top; } /* Dirapatkan */
+  .col-kehadiran { width: 6.5%; text-align: center; }
+  .col-ttd { width: 17.5%; position: relative; vertical-align: top; }
 
   .ttd-left {
     position: absolute;
@@ -185,8 +428,8 @@
   
   .ttd-right {
     position: absolute;
-    top: 50%; /* Middle of the 2-row span */
-    left: 50%; /* Middle horizontally */
+    top: 50%;
+    left: 50%;
     font-size: 10px;
   }
 
@@ -198,12 +441,13 @@
     width: 100%;
     height: 22px;
     padding: 0 4px;
+    box-sizing: border-box;
   }
   
   .omr-bubble {
     width: 15px;
     height: 15px;
-    border: 1px solid #000; /* Garis bulatan lebih tipis */
+    border: 1px solid #000;
     border-radius: 50%;
     display: flex;
     justify-content: center;
@@ -221,10 +465,10 @@
   }
 
   .print-panduan {
-    margin-top: 4px;
-    padding: 3px;
-    border: 1px dashed #666;
-    font-size: 9px; /* Reduced font size */
+    margin-top: 6px;
+    padding: 4px;
+    border: 1px dashed #475569;
+    font-size: 9.5px;
     text-align: center;
   }
 }

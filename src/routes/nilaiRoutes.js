@@ -5,7 +5,16 @@ function registerNilaiRoutes(app) {
   const router = express.Router();
 
   // Kategori Evaluasi
-  router.get('/kategori', async (req, res, next) => {
+  router.get(['/kategori', '/kategori-nilai'], async (req, res, next) => {
+    try {
+      const data = await NilaiService.getKategoriEvaluasi();
+      res.json(data);
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  app.get('/api/kategori-nilai', async (req, res, next) => {
     try {
       const data = await NilaiService.getKategoriEvaluasi();
       res.json(data);
@@ -86,10 +95,18 @@ function registerNilaiRoutes(app) {
     }
   });
 
-  router.post('/santri/bulk', async (req, res, next) => {
+  router.post(['/santri/bulk', '/bulk-save'], async (req, res, next) => {
     try {
-      const { tahun_ajaran_id, mata_pelajaran_id, kategori_evaluasi_id, data } = req.body;
-      const result = await NilaiService.saveNilaiBulk(tahun_ajaran_id, mata_pelajaran_id, kategori_evaluasi_id, data);
+      const { tahun_ajaran_id, mata_pelajaran_id, mapel_id, kategori_evaluasi_id, kategori_id, data, nilai_list } = req.body;
+      const targetMapelId = mata_pelajaran_id || mapel_id;
+      const targetKatId = kategori_evaluasi_id || kategori_id;
+      const list = data || (nilai_list ? nilai_list.map(n => ({
+        santri_id: n.santri_id,
+        nilai_angka: n.nilai !== undefined ? n.nilai : n.nilai_angka,
+        predikat: n.predikat || null,
+        capaian: n.capaian || null
+      })) : []);
+      const result = await NilaiService.saveNilaiBulk(tahun_ajaran_id, targetMapelId, targetKatId, list);
       res.json(result);
     } catch (error) {
       next(error);
@@ -182,10 +199,16 @@ function registerNilaiRoutes(app) {
   });
 
   // Direct USB Scanner Integration via WIA / PowerShell
-  router.post('/scanner/scan', async (req, res, next) => {
+  const handleDirectScanner = async (req, res, next) => {
     const { exec } = require('child_process');
     const path = require('path');
     const fs = require('fs');
+
+    if (process.platform !== 'win32') {
+      return res.status(400).json({ 
+        error: "Pemindaian langsung via USB memerlukan koneksi USB scanner lokal di komputer host Windows. Silakan gunakan fitur 'Upload File Hasil Scan' atau Kamera untuk memproses dokumen." 
+      });
+    }
 
     try {
       const tempDir = path.join(__dirname, '../../tmp');
@@ -234,7 +257,7 @@ Write-Host "SCAN_SUCCESS"
         }
         
         if (stdout.includes("ERROR_NO_SCANNER")) {
-          return res.status(404).json({ error: "Scanner USB tidak ditemukan. Pastikan kabel USB scanner Epson terhubung dan menyala." });
+          return res.status(404).json({ error: "Scanner USB tidak ditemukan. Pastikan kabel USB scanner terhubung dan menyala." });
         }
 
         if (fs.existsSync(tempImgPath)) {
@@ -245,7 +268,7 @@ Write-Host "SCAN_SUCCESS"
           // Cleanup image file
           try { fs.unlinkSync(tempImgPath); } catch (_) {}
 
-          res.json({ success: true, image: dataUrl });
+          res.json({ success: true, image: dataUrl, imagePath: null });
         } else {
           res.status(500).json({ error: "Gagal menghasilkan file gambar dari scanner." });
         }
@@ -254,7 +277,10 @@ Write-Host "SCAN_SUCCESS"
     } catch (error) {
       next(error);
     }
-  });
+  };
+
+  router.post('/scanner/scan', handleDirectScanner);
+  app.post('/api/scan/epson', handleDirectScanner);
 
   // Process image using Python OMR Engine
   router.post('/scanner/process', express.json({limit: '50mb'}), async (req, res, next) => {

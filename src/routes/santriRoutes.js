@@ -12,6 +12,23 @@ function registerSantriRoutes(app) {
   // ===== SANTRI API =====
   app.get('/api/santri', async (req, res) => {
     try {
+      const { kelas_id, tahun_ajaran_id } = req.query;
+      const params = [];
+      let taJoin = 'JOIN tahun_ajaran ta ON ta.is_active = TRUE';
+      let staJoin = 'LEFT JOIN santri_tahun_ajaran sta ON sta.santri_id = s.id AND sta.tahun_ajaran_id = ta.id';
+
+      if (tahun_ajaran_id) {
+        params.push(tahun_ajaran_id);
+        taJoin = `JOIN tahun_ajaran ta ON ta.id = $${params.length}`;
+        staJoin = `LEFT JOIN santri_tahun_ajaran sta ON sta.santri_id = s.id AND sta.tahun_ajaran_id = $${params.length}`;
+      }
+
+      let kelasWhere = '';
+      if (kelas_id) {
+        params.push(kelas_id);
+        kelasWhere = `AND (COALESCE(sta.kelas_diniyah_id, s.kelas_diniyah_id) = $${params.length} OR COALESCE(sta.kelas_sekolah_id, s.kelas_sekolah_id) = $${params.length})`;
+      }
+
       const result = await db.query(`
         SELECT
           s.id,
@@ -66,8 +83,8 @@ function registerSantriRoutes(app) {
           s.keluar_sekolah_tanggal,
           s.keluar_sekolah_status
         FROM santri s
-        JOIN tahun_ajaran ta ON ta.is_active = TRUE
-        LEFT JOIN santri_tahun_ajaran sta ON sta.santri_id = s.id AND sta.tahun_ajaran_id = ta.id
+        ${taJoin}
+        ${staJoin}
         LEFT JOIN kelas kd ON COALESCE(sta.kelas_diniyah_id, s.kelas_diniyah_id) = kd.id
         LEFT JOIN kelas ks ON COALESCE(sta.kelas_sekolah_id, s.kelas_sekolah_id) = ks.id
         LEFT JOIN kamar k ON COALESCE(sta.kamar_id, s.kamar_id) = k.id
@@ -76,8 +93,9 @@ function registerSantriRoutes(app) {
           SELECT 1 FROM alumni a WHERE a.santri_id = s.id OR a.nis = COALESCE(sta.nis, s.nis)
         )
           AND COALESCE(sta.status, 'aktif') IN ('aktif', 'draft', 'tidak_naik')
+          ${kelasWhere}
         ORDER BY s.nama
-      `);
+      `, params);
       res.json(result.rows);
     } catch (error) {
       console.error(error);

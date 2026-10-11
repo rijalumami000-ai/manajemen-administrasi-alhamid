@@ -4,7 +4,7 @@ const { normalizeText } = require('../utils/normalizers');
 
 function registerMataPelajaranRoutes(app) {
   // ===== MATA PELAJARAN API =====
-  app.get('/api/mata-pelajaran', async (req, res) => {
+  app.get(['/api/mata-pelajaran', '/api/mapel'], async (req, res) => {
     try {
       const result = await db.query('SELECT * FROM mata_pelajaran ORDER BY nama');
       res.json(result.rows);
