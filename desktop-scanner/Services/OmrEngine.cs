@@ -53,7 +53,8 @@ namespace AlHamidScanner.Services
             Cv2.Threshold(gray, binary, 165, 255, ThresholdTypes.BinaryInv);
 
             // 3. Morphological extraction for pure vertical column lines (removes bubbles and text)
-            using var kernelV = Cv2.GetStructuringElement(MorphShapes.Rect, new OpenCvSharp.Size(1, 40));
+            int kernelVHeight = Math.Max(25, (int)(height * 0.035));
+            using var kernelV = Cv2.GetStructuringElement(MorphShapes.Rect, new OpenCvSharp.Size(1, kernelVHeight));
             using var verticalLines = new Mat();
             Cv2.MorphologyEx(binary, verticalLines, MorphTypes.Open, kernelV);
 
@@ -76,40 +77,66 @@ namespace AlHamidScanner.Services
                 }
                 else if (currV.Count > 0)
                 {
-                    vLines.Add((int)currV.Average());
+                    int avgX = (int)currV.Average();
+                    // Ignore scanner glass edges near extreme borders
+                    if (avgX >= (int)(width * 0.02) && avgX <= (int)(width * 0.98))
+                    {
+                        vLines.Add(avgX);
+                    }
                     currV.Clear();
                 }
             }
             if (currV.Count > 0)
-                vLines.Add((int)currV.Average());
-
-            int tableLeft = (int)(width * 0.04);
-            int tableRight = (int)(width * 0.94);
-            int xNilaiLeft = (int)(width * 0.33);
-            int xNilaiRight = (int)(width * 0.67);
-
-            if (vLines.Count >= 6)
             {
-                tableLeft = vLines[0];
-                tableRight = vLines[^1];
-                xNilaiLeft = vLines[2];
-                xNilaiRight = vLines[3];
+                int avgX = (int)currV.Average();
+                if (avgX >= (int)(width * 0.02) && avgX <= (int)(width * 0.98))
+                    vLines.Add(avgX);
             }
-            else if (vLines.Count >= 4)
-            {
-                tableLeft = vLines[0];
-                tableRight = vLines[^1];
-                int tw = tableRight - tableLeft;
-                xNilaiLeft = tableLeft + (int)(tw * 0.32);
-                xNilaiRight = tableLeft + (int)(tw * 0.70);
-            }
+
+            // Fallback table geometry based on standard F4/A4 sheet layout
+            int tableLeft = (int)(width * 0.040);
+            int tableRight = (int)(width * 0.942);
+
+            // Refine table outer boundaries from detected lines
+            var leftCandidates = vLines.Where(x => x >= (int)(width * 0.025) && x <= (int)(width * 0.085)).ToList();
+            if (leftCandidates.Count > 0)
+                tableLeft = leftCandidates.OrderBy(x => Math.Abs(x - (int)(width * 0.040))).First();
+
+            var rightCandidates = vLines.Where(x => x >= (int)(width * 0.880) && x <= (int)(width * 0.970)).ToList();
+            if (rightCandidates.Count > 0)
+                tableRight = rightCandidates.OrderBy(x => Math.Abs(x - (int)(width * 0.942))).Last();
+
+            int tableW = Math.Max(100, tableRight - tableLeft);
+
+            // STRICT GEOMETRIC BOUNDS FOR NILAI COLUMN:
+            // nama column is 0..0.318 of tableW; Nilai column is 0.318..0.697 of tableW.
+            // Under NO circumstance can xNilaiLeft drift leftward into the Nama column!
+            double targetLeftRatio = 0.318;
+            double targetRightRatio = 0.697;
+            int expectedNilaiLeft = tableLeft + (int)(tableW * targetLeftRatio);
+            int expectedNilaiRight = tableLeft + (int)(tableW * targetRightRatio);
+
+            int xNilaiLeft = expectedNilaiLeft;
+            int xNilaiRight = expectedNilaiRight;
+
+            // Search for vertical divider between Nama and Nilai (within +/- 3.5% of tableW)
+            var candLeft = vLines.Where(x => Math.Abs(x - expectedNilaiLeft) <= (int)(tableW * 0.035))
+                                 .OrderBy(x => Math.Abs(x - expectedNilaiLeft)).ToList();
+            if (candLeft.Count > 0)
+                xNilaiLeft = candLeft[0];
+
+            // Search for vertical divider between Nilai and Hadir (within +/- 3.5% of tableW)
+            var candRight = vLines.Where(x => Math.Abs(x - expectedNilaiRight) <= (int)(tableW * 0.035))
+                                  .OrderBy(x => Math.Abs(x - expectedNilaiRight)).ToList();
+            if (candRight.Count > 0)
+                xNilaiRight = candRight[0];
 
             // 4. Morphological extraction for pure horizontal row lines
-            using var kernelH = Cv2.GetStructuringElement(MorphShapes.Rect, new OpenCvSharp.Size(45, 1));
+            int kernelHWidth = Math.Max(30, (int)(width * 0.045));
+            using var kernelH = Cv2.GetStructuringElement(MorphShapes.Rect, new OpenCvSharp.Size(kernelHWidth, 1));
             using var horizontalLines = new Mat();
             Cv2.MorphologyEx(binary, horizontalLines, MorphTypes.Open, kernelH);
 
-            int tableW = Math.Max(1, tableRight - tableLeft);
             int regionTop = (int)(height * 0.18);
             int regionH = (int)(height * 0.80);
             using var tableRegion = new Mat(horizontalLines, new Rect(tableLeft, regionTop, tableW, regionH));
@@ -134,32 +161,43 @@ namespace AlHamidScanner.Services
             if (currH.Count > 0)
                 hLines.Add((int)currH.Average());
 
-            // Calculate median row step
+            // Calculate median row step dynamically adapted to image resolution
+            int minStep = Math.Max(15, (int)(height * 0.016));
+            int maxStep = Math.Max(40, (int)(height * 0.045));
             var steps = new List<int>();
             for (int i = 0; i < hLines.Count - 1; i++)
             {
                 int diff = hLines[i + 1] - hLines[i];
-                if (diff >= 18 && diff <= 45)
+                if (diff >= minStep && diff <= maxStep)
                     steps.Add(diff);
             }
             steps.Sort();
-            double medianRowHeight = steps.Count > 0 ? steps[steps.Count / 2] : 26.0;
+            double defaultRowHeight = height * 0.0268;
+            double medianRowHeight = steps.Count > 0 ? steps[steps.Count / 2] : defaultRowHeight;
 
             int targetRows = Math.Min(studentCount, 30);
-            int yTableEnd = hLines.Count > 0 ? hLines[^1] : (int)(height * 0.96);
+            int yTableEnd = (int)(height * 0.963);
+            var endCandidates = hLines.Where(y => y >= (int)(height * 0.91) && y <= (int)(height * 0.98)).ToList();
+            if (endCandidates.Count > 0)
+                yTableEnd = endCandidates.Last();
+
             int yTableStart = yTableEnd - (int)(targetRows * medianRowHeight);
             double rowH = (double)(yTableEnd - yTableStart) / targetRows;
+
+            // Dynamic bubble metrics radius
+            int cellW = Math.Max(50, xNilaiRight - xNilaiLeft);
+            int bubbleRadius = Math.Max(5, (int)(cellW * 0.026));
+            int drawRadius = Math.Max(8, (int)(cellW * 0.038));
 
             // 5. Annotated Mat for visual display
             using var annotated = src.Clone();
 
             // Draw table boundaries in cyan
             Cv2.Rectangle(annotated, new Rect(tableLeft, yTableStart, tableW, yTableEnd - yTableStart), new Scalar(255, 200, 0), 1);
-            Cv2.Line(annotated, new Point(xNilaiLeft, yTableStart), new Point(xNilaiLeft, yTableEnd), new Scalar(255, 100, 0), 1);
-            Cv2.Line(annotated, new Point(xNilaiRight, yTableStart), new Point(xNilaiRight, yTableEnd), new Scalar(255, 100, 0), 1);
+            Cv2.Line(annotated, new Point(xNilaiLeft, yTableStart), new Point(xNilaiLeft, yTableEnd), new Scalar(255, 100, 0), 2);
+            Cv2.Line(annotated, new Point(xNilaiRight, yTableStart), new Point(xNilaiRight, yTableEnd), new Scalar(255, 100, 0), 2);
 
-            int cellW = xNilaiRight - xNilaiLeft;
-            result.DebugInfo = $"vLines: [{string.Join(", ", vLines)}], hLinesCount: {hLines.Count}, yStart: {yTableStart}, yEnd: {yTableEnd}, rowH: {rowH:F2}, cellW: {cellW}, xNilai: [{xNilaiLeft}, {xNilaiRight}]";
+            result.DebugInfo = $"vLines: [{string.Join(", ", vLines)}], hLines: {hLines.Count}, yStart: {yTableStart}, yEnd: {yTableEnd}, rowH: {rowH:F2}, cellW: {cellW}, xNilai: [{xNilaiLeft}, {xNilaiRight}]";
 
             for (int i = 0; i < targetRows; i++)
             {
@@ -167,7 +205,7 @@ namespace AlHamidScanner.Services
 
                 // Sample 5 bubble
                 int bx5 = xNilaiLeft + (int)(cellW * 0.954);
-                var m5 = GetBubbleMetrics(gray, binary, bx5, cy, 6);
+                var m5 = GetBubbleMetrics(gray, binary, bx5, cy, bubbleRadius);
                 bool hasFive = m5.DarkRatio >= 0.24 || m5.MeanGray <= 202;
 
                 // Sample 11 tens bubbles
@@ -175,7 +213,7 @@ namespace AlHamidScanner.Services
                 for (int bIdx = 0; bIdx < TensValues.Length; bIdx++)
                 {
                     int bx = xNilaiLeft + (int)(cellW * (0.050 + bIdx * ((0.833 - 0.050) / 10.0)));
-                    var m = GetBubbleMetrics(gray, binary, bx, cy, 6);
+                    var m = GetBubbleMetrics(gray, binary, bx, cy, bubbleRadius);
                     tensMetrics.Add((TensValues[bIdx], bx, m.DarkRatio, m.MeanGray));
                 }
 
@@ -201,14 +239,14 @@ namespace AlHamidScanner.Services
                 result.Scores.Add(score);
 
                 // Visual Annotations on Preview Image
-                // Highlight detected bubbles with bright green circle
+                // Highlight detected bubbles with bright green circle DIRECTLY in the Nilai column
                 if (hasTen)
                 {
-                    Cv2.Circle(annotated, new Point(bestTen.bx, cy), 9, new Scalar(0, 230, 0), 2);
+                    Cv2.Circle(annotated, new Point(bestTen.bx, cy), drawRadius, new Scalar(0, 230, 0), 2);
                 }
                 if (hasFive && (bestTen.val != 100 || !hasTen))
                 {
-                    Cv2.Circle(annotated, new Point(bx5, cy), 9, new Scalar(0, 230, 0), 2);
+                    Cv2.Circle(annotated, new Point(bx5, cy), drawRadius, new Scalar(0, 230, 0), 2);
                 }
 
                 // Draw row divider in subtle gray
@@ -219,7 +257,8 @@ namespace AlHamidScanner.Services
                 if (score.HasValue)
                 {
                     string txt = score.Value.ToString();
-                    Cv2.PutText(annotated, txt, new Point(tableRight - 45, cy + 4), HersheyFonts.HersheySimplex, 0.45, new Scalar(0, 160, 0), 2);
+                    double fontScale = Math.Max(0.40, height / 2200.0);
+                    Cv2.PutText(annotated, txt, new Point(tableRight - (int)(tableW * 0.065), cy + 4), HersheyFonts.HersheySimplex, fontScale, new Scalar(0, 160, 0), 2);
                 }
             }
 

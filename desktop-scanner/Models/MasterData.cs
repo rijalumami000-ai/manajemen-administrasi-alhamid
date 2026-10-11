@@ -14,26 +14,69 @@ namespace AlHamidScanner.Models
 
     public class Kelas
     {
+        [JsonPropertyName("id")]
         public int Id { get; set; }
+
+        [JsonPropertyName("nama")]
         public string Nama { get; set; } = string.Empty;
-        public string? Tingkat { get; set; }
+
+        [JsonPropertyName("tingkat")]
+        public object? Tingkat { get; set; }
+
+        [JsonIgnore]
+        public int TingkatInt => int.TryParse(Tingkat?.ToString(), out int val) ? val : 0;
+
+        [JsonPropertyName("jenis")]
+        public string? Jenis { get; set; }
 
         public override string ToString() => Nama;
     }
 
     public class MataPelajaran
     {
+        [JsonPropertyName("id")]
         public int Id { get; set; }
+
+        [JsonPropertyName("nama")]
         public string Nama { get; set; } = string.Empty;
+
+        [JsonPropertyName("kode")]
         public string? Kode { get; set; }
+
+        [JsonPropertyName("jenis")]
+        public string? Jenis { get; set; }
 
         public override string ToString() => Nama;
     }
 
+    public class MapelTingkat
+    {
+        [JsonPropertyName("tingkat")]
+        public object? Tingkat { get; set; }
+
+        [JsonIgnore]
+        public int TingkatInt => int.TryParse(Tingkat?.ToString(), out int val) ? val : 0;
+
+        [JsonPropertyName("mata_pelajaran_id")]
+        public int MataPelajaranId { get; set; }
+
+        [JsonPropertyName("tahun_ajaran_id")]
+        public int? TahunAjaranId { get; set; }
+
+        [JsonPropertyName("kategori_evaluasi_id")]
+        public int? KategoriEvaluasiId { get; set; }
+    }
+
     public class KategoriEvaluasi
     {
+        [JsonPropertyName("id")]
         public int Id { get; set; }
+
+        [JsonPropertyName("nama")]
         public string Nama { get; set; } = string.Empty;
+
+        [JsonPropertyName("jenis")]
+        public string? Jenis { get; set; }
 
         public override string ToString() => Nama;
     }

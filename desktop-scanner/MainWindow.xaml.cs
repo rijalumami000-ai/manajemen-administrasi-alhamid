@@ -21,7 +21,8 @@ namespace AlHamidScanner
         private List<TahunAjaran> _taList = new();
         private List<Kelas> _kelasList = new();
         private List<KategoriEvaluasi> _katList = new();
-        private List<MataPelajaran> _mapelList = new();
+        private List<MataPelajaran> _allMapelList = new();
+        private List<MataPelajaran> _activeMapelList = new();
 
         private ObservableCollection<StudentScoreItem> _studentScores = new();
         private string? _currentImagePath;
@@ -53,27 +54,27 @@ namespace AlHamidScanner
                 _taList = await taTask;
                 _kelasList = await kelasTask;
                 _katList = await katTask;
-                _mapelList = await mapelTask;
+                _allMapelList = await mapelTask;
 
                 CmbTahunAjaran.ItemsSource = _taList;
                 if (_taList.Count > 0)
                 {
                     var active = _taList.FirstOrDefault(t => t.IsActive) ?? _taList[0];
-                    CmbTahunAjaran.SelectedItem = active;
+                    CmbTahunAjaran.SelectedValue = active.Id;
                 }
 
                 CmbKelas.ItemsSource = _kelasList;
-                if (_kelasList.Count > 0) CmbKelas.SelectedIndex = 0;
+                if (_kelasList.Count > 0) CmbKelas.SelectedValue = _kelasList[0].Id;
 
                 CmbKategori.ItemsSource = _katList;
-                if (_katList.Count > 0) CmbKategori.SelectedIndex = 0;
+                if (_katList.Count > 0) CmbKategori.SelectedValue = _katList[0].Id;
 
-                CmbMapel.ItemsSource = _mapelList;
-                if (_mapelList.Count > 0) CmbMapel.SelectedIndex = 0;
+                await UpdateActiveMapelListAsync();
+                await RefreshStudentListAsync();
 
                 TxtVpsStatus.Text = "VPS Terhubung (Online)";
                 VpsStatusBadge.Background = new SolidColorBrush(Color.FromRgb(6, 78, 59)); // Emerald dark
-                TxtStatusLog.Text = "Siap. Silakan buka file scan lembar nilai santri.";
+                TxtStatusLog.Text = "Siap. Silakan buka berkas lembar nilai santri.";
             }
             catch (Exception ex)
             {
@@ -83,14 +84,70 @@ namespace AlHamidScanner
             }
         }
 
+        private async void CmbTahunAjaran_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            await UpdateActiveMapelListAsync();
+            await RefreshStudentListAsync();
+        }
+
         private async void CmbKelas_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
+            await UpdateActiveMapelListAsync();
             await RefreshStudentListAsync();
+        }
+
+        private async void CmbKategori_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            await UpdateActiveMapelListAsync();
         }
 
         private void FilterSelection_Changed(object sender, SelectionChangedEventArgs e)
         {
-            // Dropdown selection changed
+            // Mata Pelajaran selection changed
+        }
+
+        private async Task UpdateActiveMapelListAsync(int? selectMapelId = null)
+        {
+            if (CmbTahunAjaran.SelectedValue is not int taId ||
+                CmbKategori.SelectedValue is not int katId ||
+                CmbKelas.SelectedItem is not Kelas k)
+            {
+                _activeMapelList = _allMapelList.ToList();
+                CmbMapel.ItemsSource = _activeMapelList;
+                if (_activeMapelList.Count > 0 && CmbMapel.SelectedIndex < 0) CmbMapel.SelectedIndex = 0;
+                return;
+            }
+
+            try
+            {
+                var mapelTingkat = await _apiClient.GetMapelTingkatListAsync(taId, katId);
+                var activeIds = mapelTingkat
+                    .Where(mt => mt.TingkatInt == k.TingkatInt)
+                    .Select(mt => mt.MataPelajaranId)
+                    .ToHashSet();
+
+                var filtered = _allMapelList.Where(m =>
+                    activeIds.Contains(m.Id) ||
+                    (m.Jenis != null && (m.Jenis == "Muhafadzoh" || m.Jenis == "Qiroah" || m.Jenis == "Taftisy"))
+                ).ToList();
+
+                _activeMapelList = filtered.Count > 0 ? filtered : _allMapelList.ToList();
+                CmbMapel.ItemsSource = _activeMapelList;
+
+                if (selectMapelId.HasValue && _activeMapelList.Any(m => m.Id == selectMapelId.Value))
+                {
+                    CmbMapel.SelectedValue = selectMapelId.Value;
+                }
+                else if (_activeMapelList.Count > 0)
+                {
+                    CmbMapel.SelectedValue = _activeMapelList[0].Id;
+                }
+            }
+            catch
+            {
+                _activeMapelList = _allMapelList.ToList();
+                CmbMapel.ItemsSource = _activeMapelList;
+            }
         }
 
         private async Task RefreshStudentListAsync()
@@ -173,26 +230,24 @@ namespace AlHamidScanner
                     var meta = omrResult.Metadata;
                     bool matched = false;
 
-                    if (meta.t.HasValue)
+                    if (meta.t.HasValue && _taList.Any(t => t.Id == meta.t.Value))
                     {
-                        var targetTa = _taList.FirstOrDefault(t => t.Id == meta.t.Value);
-                        if (targetTa != null) { CmbTahunAjaran.SelectedItem = targetTa; matched = true; }
+                        CmbTahunAjaran.SelectedValue = meta.t.Value;
+                        matched = true;
                     }
-                    if (meta.k.HasValue)
+                    if (meta.cat.HasValue && _katList.Any(c => c.Id == meta.cat.Value))
                     {
-                        var targetKelas = _kelasList.FirstOrDefault(c => c.Id == meta.k.Value);
-                        if (targetKelas != null) { CmbKelas.SelectedItem = targetKelas; matched = true; }
+                        CmbKategori.SelectedValue = meta.cat.Value;
+                        matched = true;
                     }
-                    if (meta.cat.HasValue)
+                    if (meta.k.HasValue && _kelasList.Any(c => c.Id == meta.k.Value))
                     {
-                        var cat = _katList.FirstOrDefault(c => c.Id == meta.cat.Value);
-                        if (cat != null) { CmbKategori.SelectedItem = cat; matched = true; }
+                        CmbKelas.SelectedValue = meta.k.Value;
+                        matched = true;
                     }
-                    if (meta.m.HasValue)
-                    {
-                        var m = _mapelList.FirstOrDefault(x => x.Id == meta.m.Value);
-                        if (m != null) { CmbMapel.SelectedItem = m; matched = true; }
-                    }
+
+                    // Update active subjects for this class and select the mapel
+                    await UpdateActiveMapelListAsync(meta.m);
 
                     if (matched)
                     {

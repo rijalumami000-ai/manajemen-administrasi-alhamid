@@ -21,6 +21,8 @@ public partial class App : Application
                 var engine = new OmrEngine();
                 var res = engine.ProcessScannedSheet(imagePath, 28);
                 sb.AppendLine($"[TEST SUCCESS] Total: {res.TotalDetected}, Filled: {res.FilledCount}, Avg: {res.AverageScore:F1}");
+                sb.AppendLine($"QR Metadata: raw_t={res.Metadata?.t_raw}, raw_k={res.Metadata?.k_raw}, raw_m={res.Metadata?.m_raw}, raw_cat={res.Metadata?.cat_raw}");
+                sb.AppendLine($"Parsed: t={res.Metadata?.t}, k={res.Metadata?.k}, m={res.Metadata?.m}, cat={res.Metadata?.cat}");
                 sb.AppendLine(res.DebugInfo);
                 for (int i = 0; i < res.Scores.Count; i++)
                 {

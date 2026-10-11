@@ -105,11 +105,39 @@ namespace AlHamidScanner.Services
         {
             try
             {
-                using var req = CreateRequest(HttpMethod.Get, "/api/kategori-evaluasi");
+                using var req = CreateRequest(HttpMethod.Get, "/api/kategori-nilai");
                 using var res = await _http.SendAsync(req);
                 res.EnsureSuccessStatusCode();
                 var json = await res.Content.ReadAsStringAsync();
                 return JsonSerializer.Deserialize<List<KategoriEvaluasi>>(json, JsonOpts) ?? new();
+            }
+            catch
+            {
+                // Fallback to /api/nilai/kategori
+                try
+                {
+                    using var req = CreateRequest(HttpMethod.Get, "/api/nilai/kategori");
+                    using var res = await _http.SendAsync(req);
+                    res.EnsureSuccessStatusCode();
+                    var json = await res.Content.ReadAsStringAsync();
+                    return JsonSerializer.Deserialize<List<KategoriEvaluasi>>(json, JsonOpts) ?? new();
+                }
+                catch
+                {
+                    return new();
+                }
+            }
+        }
+
+        public async Task<List<MapelTingkat>> GetMapelTingkatListAsync(int tahunAjaranId, int kategoriId)
+        {
+            try
+            {
+                using var req = CreateRequest(HttpMethod.Get, $"/api/nilai/mapel-tingkat?tahun_ajaran_id={tahunAjaranId}&kategori_evaluasi_id={kategoriId}");
+                using var res = await _http.SendAsync(req);
+                res.EnsureSuccessStatusCode();
+                var json = await res.Content.ReadAsStringAsync();
+                return JsonSerializer.Deserialize<List<MapelTingkat>>(json, JsonOpts) ?? new();
             }
             catch
             {
