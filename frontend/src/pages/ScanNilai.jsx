@@ -311,8 +311,8 @@ export function ScanNilai() {
         throw new Error('Tidak ada data santri ditemukan untuk kelas ini. Pastikan kelas dan tahun ajaran tepat.');
       }
 
-      // Computer Vision OMR Bubble Detection on Canvas
-      setOcrProgress('Mendeteksi bulatan OMR dan nilai santri...');
+      // Computer Vision OMR Bubble Detection on Canvas via Line Projection
+      setOcrProgress('Menganalisis kisi tabel dan mendeteksi bulatan nilai OMR...');
       
       const width = activeCanvas.width;
       const height = activeCanvas.height;
@@ -320,100 +320,167 @@ export function ScanNilai() {
       const imgData = actCtx.getImageData(0, 0, width, height);
       const data = imgData.data;
 
-      // Helper to calculate darkness (0 = pure black, 255 = pure white)
-      const getDarknessRatio = (rx, ry, rw, rh) => {
+      // 1. Darkness map (binary)
+      const isDark = new Uint8Array(width * height);
+      for (let y = 0; y < height; y++) {
+        for (let x = 0; x < width; x++) {
+          const idx = (y * width + x) * 4;
+          const gray = (data[idx] + data[idx + 1] + data[idx + 2]) / 3;
+          if (gray < 165) isDark[y * width + x] = 1;
+        }
+      }
+
+      // 2. Vertical line projection across middle height to find table column dividers
+      const sampleYStart = Math.floor(height * 0.25);
+      const sampleYEnd = Math.floor(height * 0.85);
+      const sampleH = Math.max(1, sampleYEnd - sampleYStart);
+
+      const vProj = new Float32Array(width);
+      for (let x = 0; x < width; x++) {
+        let darkCount = 0;
+        for (let y = sampleYStart; y < sampleYEnd; y++) {
+          if (isDark[y * width + x]) darkCount++;
+        }
+        vProj[x] = darkCount / sampleH;
+      }
+
+      const vLines = [];
+      let currVCluster = [];
+      for (let x = 0; x < width; x++) {
+        if (vProj[x] > 0.35) {
+          currVCluster.push(x);
+        } else if (currVCluster.length > 0) {
+          vLines.push(Math.round(currVCluster.reduce((a, b) => a + b, 0) / currVCluster.length));
+          currVCluster = [];
+        }
+      }
+      if (currVCluster.length > 0) {
+        vLines.push(Math.round(currVCluster.reduce((a, b) => a + b, 0) / currVCluster.length));
+      }
+
+      // Column locations:
+      // Line 0: Table Left, Line 1: NO/Nama, Line 2: Nama/Nilai, Line 3: Nilai/Kehadiran
+      let xNilaiLeft = Math.round(width * 0.33);
+      let xNilaiRight = Math.round(width * 0.67);
+      let tableLeft = Math.round(width * 0.04);
+      let tableRight = Math.round(width * 0.94);
+
+      if (vLines.length >= 6) {
+        tableLeft = vLines[0];
+        tableRight = vLines[vLines.length - 1];
+        xNilaiLeft = vLines[2];
+        xNilaiRight = vLines[3];
+      } else if (vLines.length >= 4) {
+        tableLeft = vLines[0];
+        tableRight = vLines[vLines.length - 1];
+        xNilaiLeft = Math.round(tableLeft + (tableRight - tableLeft) * 0.32);
+        xNilaiRight = Math.round(tableLeft + (tableRight - tableLeft) * 0.70);
+      }
+
+      // 3. Horizontal projection within table boundaries to find row lines
+      const tableW = Math.max(1, tableRight - tableLeft);
+      const hProj = new Float32Array(height);
+      for (let y = 0; y < height; y++) {
+        let darkCount = 0;
+        for (let x = tableLeft; x < tableRight; x++) {
+          if (isDark[y * width + x]) darkCount++;
+        }
+        hProj[y] = darkCount / tableW;
+      }
+
+      const hLines = [];
+      let currH = [];
+      for (let y = Math.floor(height * 0.15); y < Math.floor(height * 0.98); y++) {
+        if (hProj[y] > 0.38) {
+          currH.push(y);
+        } else if (currH.length > 0) {
+          hLines.push(Math.round(currH.reduce((a, b) => a + b, 0) / currH.length));
+          currH = [];
+        }
+      }
+      if (currH.length > 0) {
+        hLines.push(Math.round(currH.reduce((a, b) => a + b, 0) / currH.length));
+      }
+
+      // Calculate median row step
+      const steps = [];
+      for (let i = 0; i < hLines.length - 1; i++) {
+        const d = hLines[i + 1] - hLines[i];
+        if (d >= 18 && d <= 45) steps.push(d);
+      }
+      steps.sort((a, b) => a - b);
+      const medianRowHeight = steps.length > 0 ? steps[Math.floor(steps.length / 2)] : 26;
+
+      const studentCount = Math.min(students.length, 30);
+      const yTableEnd = hLines.length > 0 ? hLines[hLines.length - 1] : Math.round(height * 0.96);
+      const yTableStart = yTableEnd - Math.round(studentCount * medianRowHeight);
+      const rowH = (yTableEnd - yTableStart) / studentCount;
+
+      // Helper to measure bubble darkness and average gray
+      const getBubbleMetrics = (cx, cy, r = 6) => {
         let darkCount = 0;
         let totalCount = 0;
-        const startX = Math.max(0, Math.floor(rx));
-        const endX = Math.min(width, Math.floor(rx + rw));
-        const startY = Math.max(0, Math.floor(ry));
-        const endY = Math.min(height, Math.floor(ry + rh));
-
-        for (let y = startY; y < endY; y += 2) {
-          for (let x = startX; x < endX; x += 2) {
+        let graySum = 0;
+        const x1 = Math.max(0, cx - r);
+        const x2 = Math.min(width - 1, cx + r);
+        const y1 = Math.max(0, cy - r);
+        const y2 = Math.min(height - 1, cy + r);
+        for (let y = y1; y <= y2; y++) {
+          for (let x = x1; x <= x2; x++) {
             const idx = (y * width + x) * 4;
-            const r = data[idx];
-            const g = data[idx + 1];
-            const b = data[idx + 2];
-            const gray = (r + g + b) / 3;
-            if (gray < 140) darkCount++;
+            const gray = (data[idx] + data[idx + 1] + data[idx + 2]) / 3;
+            if (gray < 165) darkCount++;
+            graySum += gray;
             totalCount++;
           }
         }
-        return totalCount > 0 ? darkCount / totalCount : 0;
+        return {
+          darkRatio: totalCount > 0 ? darkCount / totalCount : 0,
+          meanGray: totalCount > 0 ? graySum / totalCount : 255
+        };
       };
 
-      // Geometry estimation: If QR code position is known, use it; otherwise estimate from table bounds
-      let qrTop = height * 0.05;
-      let qrRight = width * 0.95;
-      let scale = 1.0;
-
-      if (code && code.location) {
-        const loc = code.location;
-        const qrW = Math.hypot(loc.topRightCorner.x - loc.topLeftCorner.x, loc.topRightCorner.y - loc.topLeftCorner.y);
-        scale = qrW / 80.0;
-        qrTop = loc.topLeftCorner.y;
-        qrRight = loc.topRightCorner.x;
-      }
-
-      // Table start estimated below header
-      const tableTop = code ? qrTop + (75 * scale) : height * 0.18;
-      const tableHeight = height * 0.72;
-      const rowHeight = Math.max(16, tableHeight / Math.min(30, Math.max(students.length, 10)));
-      
-      const colNilaiLeft = width * 0.35;
-      const colNilaiWidth = width * 0.38;
-
-      const bubbleValues = [0, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100, 5];
-      const bubbleStep = colNilaiWidth / 13;
+      const tensValues = [0, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100];
+      const cellW = xNilaiRight - xNilaiLeft;
 
       const detectedResults = students.slice(0, 30).map((s, idx) => {
-        const rowY = tableTop + (idx * rowHeight);
-        
-        let detectedTens = [];
-        let detectedFive = false;
+        const cy = Math.round(yTableStart + (idx + 0.5) * rowH);
 
-        // Inspect 12 bubbles
-        bubbleValues.forEach((val, bIdx) => {
-          const bx = colNilaiLeft + (bIdx * bubbleStep);
-          const by = rowY + (rowHeight * 0.2);
-          const bw = Math.min(bubbleStep * 0.8, 18);
-          const bh = Math.min(rowHeight * 0.7, 18);
+        // 5 bubble
+        const bx5 = xNilaiLeft + Math.round(cellW * 0.954);
+        const m5 = getBubbleMetrics(bx5, cy);
+        const hasFive = m5.darkRatio >= 0.24 || m5.meanGray <= 202;
 
-          const darkRatio = getDarknessRatio(bx, by, bw, bh);
-
-          // If dark pixel density is greater than threshold (> 22%)
-          if (darkRatio > 0.24) {
-            if (val === 5) detectedFive = true;
-            else detectedTens.push(val);
-          }
+        // 11 tens bubbles
+        const tensMetrics = tensValues.map((val, bIdx) => {
+          const bx = xNilaiLeft + Math.round(cellW * (0.050 + bIdx * ((0.833 - 0.050) / 10.0)));
+          const m = getBubbleMetrics(bx, cy);
+          return { val, ...m };
         });
 
-        // Compute score
+        tensMetrics.sort((a, b) => b.darkRatio - a.darkRatio);
+        const bestTen = tensMetrics[0];
+        const secondTen = tensMetrics[1];
+
+        const hasTen = bestTen.darkRatio >= 0.32 || 
+                       (bestTen.darkRatio >= 0.28 && (bestTen.darkRatio - secondTen.darkRatio) >= 0.07);
+
         let score = '';
-        if (detectedTens.length === 1) {
-          if (detectedTens[0] === 100) score = 100;
-          else score = detectedTens[0] + (detectedFive ? 5 : 0);
-        } else if (detectedTens.length === 0 && detectedFive) {
+        if (hasTen) {
+          if (bestTen.val === 100) {
+            score = 100;
+          } else {
+            score = bestTen.val + (hasFive ? 5 : 0);
+          }
+        } else if (hasFive) {
           score = 5;
         }
-
-        // Kehadiran detection (sample columns on the right)
-        const colHadirX = colNilaiLeft + colNilaiWidth + (width * 0.02);
-        const colTidakX = colHadirX + (width * 0.05);
-        const hadirDark = getDarknessRatio(colHadirX, rowY, 15, 15);
-        const tidakDark = getDarknessRatio(colTidakX, rowY, 15, 15);
-
-        let kehadiran = 'Hadir';
-        if (tidakDark > 0.25 && tidakDark > hadirDark) kehadiran = 'Sakit';
 
         return {
           santri_id: s.id,
           nis: s.nis || '-',
           nama: s.nama,
-          nilai: score,
-          kehadiran: kehadiran,
-          predikat: score !== '' ? getPredikat(score) : '-'
+          nilai: score
         };
       });
 
@@ -508,8 +575,8 @@ export function ScanNilai() {
         data: ocrResults.map(r => ({
           santri_id: r.santri_id,
           nilai_angka: r.nilai !== '' && r.nilai !== null && !isNaN(Number(r.nilai)) ? Number(r.nilai) : null,
-          predikat: r.nilai !== '' ? getPredikat(r.nilai) : null,
-          capaian: r.kehadiran === 'Hadir' ? 'Tam' : 'Naqish'
+          predikat: r.nilai !== '' && r.nilai !== null && !isNaN(Number(r.nilai)) ? getPredikat(Number(r.nilai)) : null,
+          capaian: 'Tam'
         }))
       };
 
@@ -851,12 +918,10 @@ export function ScanNilai() {
                 <table>
                   <thead>
                     <tr>
-                      <th style={{ width: '40px', textAlign: 'center' }}>No</th>
-                      <th style={{ width: '100px' }}>NIS</th>
+                      <th style={{ width: '50px', textAlign: 'center' }}>No</th>
+                      <th style={{ width: '130px' }}>NIS</th>
                       <th>Nama Santri</th>
-                      <th style={{ width: '120px', textAlign: 'center' }}>Nilai OMR</th>
-                      <th style={{ width: '130px' }}>Kehadiran</th>
-                      <th style={{ width: '120px', textAlign: 'center' }}>Predikat</th>
+                      <th style={{ width: '140px', textAlign: 'center' }}>Nilai OMR</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -876,36 +941,11 @@ export function ScanNilai() {
                               const val = e.target.value === '' ? '' : Number(e.target.value);
                               setOcrResults(prev => prev.map((item, i) => i === idx ? { 
                                 ...item, 
-                                nilai: val, 
-                                predikat: val !== '' ? getPredikat(val) : '-' 
+                                nilai: val 
                               } : item));
                             }}
                             placeholder="-"
                           />
-                        </td>
-                        <td>
-                          <select
-                            className="kehadiran-select"
-                            value={r.kehadiran}
-                            onChange={(e) => {
-                              const val = e.target.value;
-                              setOcrResults(prev => prev.map((item, i) => i === idx ? { ...item, kehadiran: val } : item));
-                            }}
-                          >
-                            <option value="Hadir">Hadir</option>
-                            <option value="Sakit">Sakit</option>
-                            <option value="Izin">Izin</option>
-                            <option value="Alfa">Alfa</option>
-                          </select>
-                        </td>
-                        <td style={{ textAlign: 'center' }}>
-                          {r.predikat !== '-' ? (
-                            <span className={`badge-predikat ${r.predikat.toLowerCase().replace(/[^a-z]/g, '')}`}>
-                              {r.predikat}
-                            </span>
-                          ) : (
-                            <span style={{ color: '#94a3b8' }}>-</span>
-                          )}
                         </td>
                       </tr>
                     ))}
