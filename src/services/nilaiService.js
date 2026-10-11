@@ -253,7 +253,19 @@ class NilaiService {
       query += ` ORDER BY s.nama ASC`;
       
       const result = await db.query(query, params);
-      return result.rows;
+      return result.rows.map(row => {
+        let n = row.nilai_angka;
+        if (n !== null && n !== undefined) {
+          const num = Number(n);
+          if (!isNaN(num)) {
+            n = Number.isInteger(num) ? num : parseFloat(num.toFixed(2));
+          }
+        }
+        return {
+          ...row,
+          nilai_angka: n
+        };
+      });
     } catch (error) {
       handleDatabaseError(error);
     }

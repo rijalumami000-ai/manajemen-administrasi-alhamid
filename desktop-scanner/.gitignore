@@ -2,3 +2,4 @@ bin/
 obj/
 *.user
 *.suo
+test_output.txt

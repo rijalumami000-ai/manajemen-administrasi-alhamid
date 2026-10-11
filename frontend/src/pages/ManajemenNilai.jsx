@@ -410,12 +410,23 @@ export function ManajemenNilai({ mode = 'input' }) {
         kategori_id: selectedKategori
       };
       const data = await nilaiService.fetchNilaiSantri(filters);
-      setSantriList(data.map(item => ({
-        ...item,
-        nilai_angka: item.nilai_angka || null,
-        predikat: item.predikat || '',
-        capaian: item.capaian || ''
-      })));
+      setSantriList(data.map(item => {
+        let n = item.nilai_angka;
+        if (n !== null && n !== undefined && n !== '') {
+          const num = Number(n);
+          if (!isNaN(num)) {
+            n = Number.isInteger(num) ? num : parseFloat(num.toFixed(2));
+          }
+        } else {
+          n = '';
+        }
+        return {
+          ...item,
+          nilai_angka: n,
+          predikat: item.predikat || '',
+          capaian: item.capaian || ''
+        };
+      }));
     } catch (err) {
       toast.error('Gagal memuat data santri dan nilai');
     } finally {

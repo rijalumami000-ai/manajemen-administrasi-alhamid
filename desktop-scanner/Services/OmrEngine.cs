@@ -197,7 +197,7 @@ namespace AlHamidScanner.Services
             Cv2.Line(annotated, new Point(xNilaiLeft, yTableStart), new Point(xNilaiLeft, yTableEnd), new Scalar(255, 100, 0), 2);
             Cv2.Line(annotated, new Point(xNilaiRight, yTableStart), new Point(xNilaiRight, yTableEnd), new Scalar(255, 100, 0), 2);
 
-            result.DebugInfo = $"vLines: [{string.Join(", ", vLines)}], hLines: {hLines.Count}, yStart: {yTableStart}, yEnd: {yTableEnd}, rowH: {rowH:F2}, cellW: {cellW}, xNilai: [{xNilaiLeft}, {xNilaiRight}]";
+            result.DebugInfo = $"vLines: [{string.Join(", ", vLines)}], hLines: [{string.Join(", ", hLines)}], yStart: {yTableStart}, yEnd: {yTableEnd}, rowH: {rowH:F2}, cellW: {cellW}, xNilai: [{xNilaiLeft}, {xNilaiRight}]";
 
             for (int i = 0; i < targetRows; i++)
             {
@@ -206,7 +206,7 @@ namespace AlHamidScanner.Services
                 // Sample 5 bubble
                 int bx5 = xNilaiLeft + (int)(cellW * 0.954);
                 var m5 = GetBubbleMetrics(gray, binary, bx5, cy, bubbleRadius);
-                bool hasFive = m5.DarkRatio >= 0.24 || m5.MeanGray <= 202;
+                bool hasFive = m5.DarkRatio >= 0.22 || m5.MeanGray <= 205;
 
                 // Sample 11 tens bubbles
                 var tensMetrics = new List<(int val, int bx, double darkRatio, double meanGray)>();
@@ -221,7 +221,7 @@ namespace AlHamidScanner.Services
                 var bestTen = tensMetrics[0];
                 var secondTen = tensMetrics[1];
 
-                bool hasTen = bestTen.darkRatio >= 0.32 || (bestTen.darkRatio >= 0.28 && (bestTen.darkRatio - secondTen.darkRatio) >= 0.07);
+                bool hasTen = bestTen.darkRatio >= 0.34 || (bestTen.darkRatio >= 0.28 && (bestTen.darkRatio - secondTen.darkRatio) >= 0.06);
 
                 int? score = null;
                 if (hasTen)
@@ -235,6 +235,8 @@ namespace AlHamidScanner.Services
                 {
                     score = 5;
                 }
+
+                result.DebugInfo += $"\nRow {i + 1,2}: best={bestTen.val}(dr={bestTen.darkRatio:F3},mg={bestTen.meanGray:F0}) 2nd={secondTen.val}(dr={secondTen.darkRatio:F3}) 5=(dr={m5.DarkRatio:F3}) => hasTen={hasTen}, has5={hasFive}, score={score}";
 
                 result.Scores.Add(score);
 
@@ -286,7 +288,22 @@ namespace AlHamidScanner.Services
             return (darkRatio, meanGray);
         }
 
-        private static QrMetadata? ExtractQrMetadata(Mat src)
+        public static QrMetadata? ExtractQrMetadataFromFile(string imagePath)
+        {
+            if (string.IsNullOrWhiteSpace(imagePath) || !File.Exists(imagePath)) return null;
+            try
+            {
+                using var src = Cv2.ImRead(imagePath, ImreadModes.Color);
+                if (src.Empty()) return null;
+                return ExtractQrMetadata(src);
+            }
+            catch
+            {
+                return null;
+            }
+        }
+
+        public static QrMetadata? ExtractQrMetadata(Mat src)
         {
             try
             {

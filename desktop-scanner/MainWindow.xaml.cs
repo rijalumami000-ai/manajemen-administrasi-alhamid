@@ -219,15 +219,12 @@ namespace AlHamidScanner
 
             try
             {
-                TxtStatusLog.Text = "Menganalisis lembar OMR dengan Computer Vision & QR Code...";
+                TxtStatusLog.Text = "Membaca QR Code lembar ujian...";
 
-                int expectedCount = _studentScores.Count > 0 ? _studentScores.Count : 28;
-                var omrResult = _omrEngine.ProcessScannedSheet(_currentImagePath, expectedCount);
-
-                // 1. If QR metadata is detected, automatically match dropdowns
-                if (omrResult.Metadata != null)
+                // 1. Extract QR metadata FIRST to match class and load exact student roster
+                var meta = OmrEngine.ExtractQrMetadataFromFile(_currentImagePath);
+                if (meta != null)
                 {
-                    var meta = omrResult.Metadata;
                     bool matched = false;
 
                     if (meta.t.HasValue && _taList.Any(t => t.Id == meta.t.Value))
@@ -265,6 +262,11 @@ namespace AlHamidScanner
 
                 // Ensure student list for the selected class is fetched from VPS
                 await RefreshStudentListAsync();
+
+                // 2. Process OMR Sheet with the EXACT student count for this class
+                TxtStatusLog.Text = $"Menganalisis lembar OMR ({_studentScores.Count} santri)...";
+                int expectedCount = _studentScores.Count > 0 ? _studentScores.Count : 28;
+                var omrResult = _omrEngine.ProcessScannedSheet(_currentImagePath, expectedCount);
 
                 // 2. Map detected scores to the students in order
                 for (int i = 0; i < omrResult.Scores.Count; i++)
