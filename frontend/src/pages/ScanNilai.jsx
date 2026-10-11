@@ -58,6 +58,7 @@ export function ScanNilai() {
   const [selectedKelas, setSelectedKelas] = useState('');
   const [selectedMapel, setSelectedMapel] = useState('');
   const [selectedKategori, setSelectedKategori] = useState('');
+  const [mapelTingkat, setMapelTingkat] = useState([]);
   const [santriList, setSantriList] = useState([]);
   const [loadingSantri, setLoadingSantri] = useState(false);
 
@@ -140,8 +141,61 @@ export function ScanNilai() {
     }
   }, [selectedKelas, selectedTA]);
 
+  // Fetch mapel tingkat aktif untuk tahun ajaran dan semester (kategori) terpilih
+  useEffect(() => {
+    if (selectedTA && selectedKategori) {
+      nilaiService.fetchMapelTingkat(selectedTA, selectedKategori)
+        .then(data => {
+          setMapelTingkat(Array.isArray(data) ? data : []);
+        })
+        .catch(err => {
+          console.error('Gagal mengambil mapel tingkat:', err);
+          setMapelTingkat([]);
+        });
+    } else {
+      setMapelTingkat([]);
+    }
+  }, [selectedTA, selectedKategori]);
+
   const currentTAObj = tahunAjaranList.find(t => String(t.id) === String(selectedTA));
   const currentKelasObj = kelasList.find(k => String(k.id) === String(selectedKelas));
+
+  // Filter mapel yang benar-benar aktif untuk tingkat/kelas di tahun ajaran & semester terpilih
+  const filteredMapelList = useMemo(() => {
+    if (!mapelList || mapelList.length === 0) return [];
+    if (!selectedKelas || !currentKelasObj) return mapelList;
+
+    const tingkat = currentKelasObj.tingkat;
+
+    // Ambil ID mapel yang aktif untuk tingkat ini di semester terpilih
+    const activeMapelIds = mapelTingkat
+      .filter(mt => Number(mt.tingkat) === Number(tingkat))
+      .map(mt => mt.mata_pelajaran_id);
+
+    // Mapel Reguler aktif
+    const regulerAktif = mapelList.filter(m => m.jenis === 'Reguler' && activeMapelIds.includes(m.id));
+
+    // Mapel Ujian Khusus (Muhafadzoh Akbar, Qiroatul Kitab, Taftisyul Kutub)
+    const khususAktif = mapelList.filter(m => 
+      ['Muhafadzoh', 'Qiroah', 'Taftisy'].includes(m.jenis) && !m.nama?.toLowerCase().includes('mini')
+    );
+
+    const combined = [...regulerAktif, ...khususAktif];
+    return combined.length > 0 ? combined : regulerAktif;
+  }, [mapelList, mapelTingkat, selectedKelas, currentKelasObj]);
+
+  // Otomatis sesuaikan selectedMapel jika mapel terpilih saat ini tidak ada di daftar aktif kelas
+  useEffect(() => {
+    if (filteredMapelList.length > 0) {
+      const isCurrentValid = filteredMapelList.some(m => String(m.id) === String(selectedMapel));
+      if (!isCurrentValid) {
+        setSelectedMapel(String(filteredMapelList[0].id));
+      }
+    } else {
+      setSelectedMapel('');
+    }
+  }, [filteredMapelList, selectedMapel]);
+
   const currentMapelObj = mapelList.find(m => String(m.id) === String(selectedMapel));
   const currentKategoriObj = kategoriList.find(k => String(k.id) === String(selectedKategori));
 
@@ -514,7 +568,8 @@ export function ScanNilai() {
               label="Mata Pelajaran"
               value={selectedMapel}
               onChange={setSelectedMapel}
-              options={mapelList.map(m => ({ label: `${m.nama} (${m.jenis || 'Reguler'})`, value: String(m.id) }))}
+              placeholder={filteredMapelList.length === 0 ? "Tidak ada mapel aktif" : "Pilih Mata Pelajaran"}
+              options={filteredMapelList.map(m => ({ label: `${m.nama} (${m.jenis || 'Reguler'})`, value: String(m.id) }))}
             />
             <CustomSelect
               label="Kategori Penilaian"
