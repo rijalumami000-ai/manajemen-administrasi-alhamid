@@ -401,9 +401,20 @@ class NilaiService {
       
       const result = await db.query(query, params);
       
-      // Pivot the data in backend or send raw for frontend to pivot
-      // Sending raw is fine, frontend can group by santri_id
-      return result.rows;
+      // Return cleaned rows without .00 trailing decimals
+      return result.rows.map(row => {
+        let n = row.nilai_angka;
+        if (n !== null && n !== undefined) {
+          const num = Number(n);
+          if (!isNaN(num)) {
+            n = Number.isInteger(num) ? num : parseFloat(num.toFixed(2));
+          }
+        }
+        return {
+          ...row,
+          nilai_angka: n
+        };
+      });
     } catch (error) {
       handleDatabaseError(error);
     }

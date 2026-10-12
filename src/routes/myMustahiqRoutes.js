@@ -1248,7 +1248,14 @@ function registerMyMustahiqRoutes(app) {
     const nilaiMap = {};
     for (const n of nilaiResult.rows) {
       if (!nilaiMap[n.santri_id]) nilaiMap[n.santri_id] = {};
-      nilaiMap[n.santri_id][n.mata_pelajaran_id] = { nilai: n.nilai_angka, predikat: n.predikat, capaian: n.capaian, id: n.id };
+      let val = n.nilai_angka;
+      if (val !== null && val !== undefined) {
+        const num = Number(val);
+        if (!isNaN(num)) {
+          val = Number.isInteger(num) ? num : parseFloat(num.toFixed(2));
+        }
+      }
+      nilaiMap[n.santri_id][n.mata_pelajaran_id] = { nilai: val, predikat: n.predikat, capaian: n.capaian, id: n.id };
     }
 
     const ktaResult = await db.query(`

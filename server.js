@@ -140,6 +140,12 @@ app.use('/uploads', express.static(path.join(__dirname, 'public/uploads'), {
   etag: true,
 }));
 
+// ─── Static files: Downloads (Installer Windows Desktop Scanner) ───
+app.use('/downloads', express.static(path.join(__dirname, 'public/downloads'), {
+  maxAge: isProduction ? '1h' : 0,
+  etag: true,
+}));
+
 // ─── Static files with caching headers ──────────────────────────
 app.use(express.static(path.join(__dirname, 'frontend/dist'), {
   maxAge: isProduction ? '1y' : 0,

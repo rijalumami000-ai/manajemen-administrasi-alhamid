@@ -36,7 +36,20 @@ export const nilaiService = {
   // Nilai Santri
   fetchNilaiSantri: async (filters) => {
     const params = new URLSearchParams(filters).toString();
-    return apiGet(`/nilai/santri${params ? '?' + params : ''}`);
+    const data = await apiGet(`/nilai/santri${params ? '?' + params : ''}`);
+    if (Array.isArray(data)) {
+      return data.map(item => {
+        let n = item.nilai_angka;
+        if (n !== null && n !== undefined && n !== '') {
+          const num = Number(n);
+          if (!isNaN(num)) {
+            n = Number.isInteger(num) ? num : parseFloat(num.toFixed(2));
+          }
+        }
+        return { ...item, nilai_angka: n };
+      });
+    }
+    return data;
   },
 
   saveNilaiBulk: async (data) => {
@@ -45,7 +58,20 @@ export const nilaiService = {
 
   fetchRekapNilai: async (filters) => {
     const params = new URLSearchParams(filters).toString();
-    return apiGet(`/nilai/rekap${params ? '?' + params : ''}`);
+    const data = await apiGet(`/nilai/rekap${params ? '?' + params : ''}`);
+    if (Array.isArray(data)) {
+      return data.map(item => {
+        let n = item.nilai_angka;
+        if (n !== null && n !== undefined && n !== '') {
+          const num = Number(n);
+          if (!isNaN(num)) {
+            n = Number.isInteger(num) ? num : parseFloat(num.toFixed(2));
+          }
+        }
+        return { ...item, nilai_angka: n };
+      });
+    }
+    return data;
   },
 
   // Rapor Data

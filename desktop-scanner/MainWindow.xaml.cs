@@ -127,11 +127,16 @@ namespace AlHamidScanner
                     .ToHashSet();
 
                 var filtered = _allMapelList.Where(m =>
-                    activeIds.Contains(m.Id) ||
-                    (m.Jenis != null && (m.Jenis == "Muhafadzoh" || m.Jenis == "Qiroah" || m.Jenis == "Taftisy"))
+                    activeIds.Contains(m.Id) &&
+                    m.Jenis != "Muhafadzoh" &&
+                    m.Jenis != "Qiroah" &&
+                    m.Jenis != "Taftisy" &&
+                    !(m.Nama ?? "").ToLower().Contains("muhafadzoh") &&
+                    !(m.Nama ?? "").ToLower().Contains("qiroat") &&
+                    !(m.Nama ?? "").ToLower().Contains("taftisy")
                 ).ToList();
 
-                _activeMapelList = filtered.Count > 0 ? filtered : _allMapelList.ToList();
+                _activeMapelList = filtered;
                 CmbMapel.ItemsSource = _activeMapelList;
 
                 if (selectMapelId.HasValue && _activeMapelList.Any(m => m.Id == selectMapelId.Value))

@@ -6,6 +6,7 @@
         xmlns:local="clr-namespace:AlHamidScanner"
         mc:Ignorable="d"
         Title="Madrasah Al-Hamid - Intelligent OMR Scanner Desktop" 
+        Icon="app_icon.ico"
         Height="850" Width="1350"
         MinHeight="700" MinWidth="1100"
         WindowStartupLocation="CenterScreen"

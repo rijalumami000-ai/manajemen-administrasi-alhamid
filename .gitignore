@@ -30,3 +30,16 @@ scratch_check_db.js
 
 # Firebase service account credentials
 config/firebase-service-account.json
+
+# Desktop scanner build outputs and large payloads
+desktop-scanner/bin/
+desktop-scanner/obj/
+desktop-scanner/publish*/
+desktop-scanner/*.zip
+desktop-scanner-setup/bin/
+desktop-scanner-setup/obj/
+desktop-scanner-setup/publish/
+desktop-scanner-setup/*.zip
+public/downloads/*.exe
+frontend/public/downloads/*.exe
+frontend/dist/downloads/*.exe
