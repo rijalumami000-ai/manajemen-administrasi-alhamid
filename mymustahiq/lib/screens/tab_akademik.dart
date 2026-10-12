@@ -15,997 +15,892 @@ import '../widgets/taftisy_materi_bottom_sheet.dart';
 import '../widgets/ujian_tulis_materi_bottom_sheet.dart';
 import 'kalender_akademik_screen.dart';
 import 'silabus_pembelajaran_screen.dart';
+import 'laporan_pelanggaran_prestasi_screen.dart';
+import 'jadwal_khusus_screen.dart';
 
-class TabAkademik extends StatelessWidget {
+class TabAkademik extends StatefulWidget {
   const TabAkademik({super.key});
+
+  @override
+  State<TabAkademik> createState() => _TabAkademikState();
+}
+
+class _TabAkademikState extends State<TabAkademik> {
+  String _selectedCategory = 'Semua';
+  String _searchQuery = '';
+  final TextEditingController _searchController = TextEditingController();
+
+  final List<String> _categories = [
+    'Semua',
+    'Master Input',
+    'Laporan',
+    'Jadwal',
+    'Info Ujian & Target',
+  ];
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
     final isDark = context.isDarkMode;
 
-    // Featured Item (Laporan Akademik Siswa) - Full Width
-    final featuredItem = {
-      'title': 'Laporan Akademik Siswa',
-      'desc': 'Tampilkan nilai & rapor seluruh santri dalam satu kelas sekaligus: Muhafadzoh, Qiroah, Taftisy, Ujian Tulis, Absensi, Kepribadian, dan Rapor.',
-      'icon': Icons.table_chart_rounded,
-      'colors': isDark
-          ? [const Color(0xFF312E81), const Color(0xFF0F172A)]
-          : [const Color(0xFFEEF2FF), const Color(0xFFE0E7FF)],
-      'borderColor': isDark
-          ? const Color(0xFF818CF8).withOpacity(0.3)
-          : const Color(0xFF6366F1).withOpacity(0.4),
-      'textColor': isDark ? const Color(0xFFA5B4FC) : const Color(0xFF4338CA),
-      'headingColor': isDark ? Colors.white : const Color(0xFF312E81),
-      'bodyColor': isDark ? Colors.white.withOpacity(0.6) : const Color(0xFF312E81).withOpacity(0.8),
-      'iconColor': isDark ? Colors.white : const Color(0xFF6366F1),
-      'screen': const LaporanAkademikScreen(),
-    };
-
-    // Jadwal Pelajaran Item - Full Width
-    final jadwalItem = {
-      'title': 'Jadwal Pelajaran',
-      'desc': 'Cari jadwal KBM harian dan mingguan per kelas aktif.',
-      'icon': Icons.calendar_today_rounded,
-      'colors': isDark
-          ? [const Color(0xFF065F46), const Color(0xFF0F172A)]
-          : [const Color(0xFFECFDF5), const Color(0xFFD1FAE5)],
-      'borderColor': isDark
-          ? const Color(0xFF10B981).withOpacity(0.25)
-          : const Color(0xFF10B981).withOpacity(0.4),
-      'textColor': isDark ? const Color(0xFF34D399) : const Color(0xFF065F46),
-      'headingColor': isDark ? Colors.white : const Color(0xFF065F46),
-      'bodyColor': isDark ? Colors.white.withOpacity(0.6) : const Color(0xFF064E3B).withOpacity(0.8),
-      'iconColor': isDark ? Colors.white : const Color(0xFF10B981),
-      'screen': const JadwalPelajaranScreen(),
-    };
-
-    // Laporan Absensi Item - Full Width
-    final laporanAbsensiItem = {
-      'title': 'Laporan Absensi Santri',
-      'desc': 'Rekapitulasi absensi santri per kelas, bulan, dan semester.',
-      'icon': Icons.assignment_rounded,
-      'colors': isDark
-          ? [const Color(0xFF1F2937), const Color(0xFF0F172A)]
-          : [const Color(0xFFF8FAFC), const Color(0xFFE2E8F0)],
-      'borderColor': isDark
-          ? const Color(0xFF64748B).withOpacity(0.25)
-          : const Color(0xFF64748B).withOpacity(0.4),
-      'textColor': isDark ? const Color(0xFF94A3B8) : const Color(0xFF475569),
-      'headingColor': isDark ? Colors.white : const Color(0xFF334155),
-      'bodyColor': isDark ? Colors.white.withOpacity(0.6) : const Color(0xFF475569).withOpacity(0.8),
-      'iconColor': isDark ? Colors.white : const Color(0xFF64748B),
-      'screen': const LaporanAbsensiScreen(),
-    };
-
-    // Sub Items Row 1 (Tim Soal & Input Nilai)
-    final subItemsRow1 = [
-      {
-        'title': 'Tim Soal',
-        'desc': 'Kelola bank soal ujian per kelas & mapel.',
-        'icon': Icons.edit_note_rounded,
-        'colors': isDark
-            ? [const Color(0xFF831843), const Color(0xFF0F172A)]
-            : [const Color(0xFFFDF2F8), const Color(0xFFFCE7F3)],
-        'borderColor': isDark
-            ? const Color(0xFFEC4899).withOpacity(0.25)
-            : const Color(0xFFEC4899).withOpacity(0.4),
-        'textColor': isDark ? const Color(0xFFF472B6) : const Color(0xFFBE185D),
-        'headingColor': isDark ? Colors.white : const Color(0xFFBE185D),
-        'bodyColor': isDark ? Colors.white.withOpacity(0.5) : const Color(0xFF831843).withOpacity(0.8),
-        'iconColor': isDark ? Colors.white : const Color(0xFFEC4899),
-        'password': 'timsoal123',
-        'screen': const TimSoalScreen(),
-      },
-      {
-        'title': 'Input Nilai',
-        'desc': 'Input nilai Muhafadzoh, Qiroah, Taftisy, & Ujian.',
-        'icon': Icons.border_color_rounded,
-        'colors': isDark
-            ? [const Color(0xFF7C2D12), const Color(0xFF0F172A)]
-            : [const Color(0xFFFFF7ED), const Color(0xFFFFEDD5)],
-        'borderColor': isDark
-            ? const Color(0xFFF97316).withOpacity(0.25)
-            : const Color(0xFFF97316).withOpacity(0.4),
-        'textColor': isDark ? const Color(0xFFFB923C) : const Color(0xFFC2410C),
-        'headingColor': isDark ? Colors.white : const Color(0xFFC2410C),
-        'bodyColor': isDark ? Colors.white.withOpacity(0.5) : const Color(0xFF7C2D12).withOpacity(0.8),
-        'iconColor': isDark ? Colors.white : const Color(0xFFF97316),
-        'password': 'inputnilai123',
-        'screen': const InputNilaiScreen(),
-      },
-    ];
-
-    // Sub Items Row 2 (Scan Kartu Ujian & Input Absensi)
-    final subItemsRow2 = [
-      {
-        'title': 'Scan Kartu Ujian',
-        'desc': 'Pindai QR Code atau verifikasi nomor kartu ujian.',
-        'icon': Icons.qr_code_scanner_rounded,
-        'colors': isDark
-            ? [const Color(0xFF1E3A8A), const Color(0xFF0F172A)]
-            : [const Color(0xFFEFF6FF), const Color(0xFFDBEAFE)],
-        'borderColor': isDark
-            ? const Color(0xFF3B82F6).withOpacity(0.25)
-            : const Color(0xFF3B82F6).withOpacity(0.4),
-        'textColor': isDark ? const Color(0xFF60A5FA) : const Color(0xFF1E40AF),
-        'headingColor': isDark ? Colors.white : const Color(0xFF1E40AF),
-        'bodyColor': isDark ? Colors.white.withOpacity(0.5) : const Color(0xFF1E3A8A).withOpacity(0.8),
-        'iconColor': isDark ? Colors.white : const Color(0xFF3B82F6),
-        'screen': const ScanKartuUjianScreen(),
-      },
-      {
-        'title': 'Input Absensi',
-        'desc': 'Input data Sakit, Izin, & Alpa bulanan.',
-        'icon': Icons.fact_check_rounded,
-        'colors': isDark
-            ? [const Color(0xFF065F46), const Color(0xFF0F172A)]
-            : [const Color(0xFFECFDF5), const Color(0xFFD1FAE5)],
-        'borderColor': isDark
-            ? const Color(0xFF10B981).withOpacity(0.25)
-            : const Color(0xFF10B981).withOpacity(0.4),
-        'textColor': isDark ? const Color(0xFF34D399) : const Color(0xFF065F46),
-        'headingColor': isDark ? Colors.white : const Color(0xFF065F46),
-        'bodyColor': isDark ? Colors.white.withOpacity(0.5) : const Color(0xFF064E3B).withOpacity(0.8),
-        'iconColor': isDark ? Colors.white : const Color(0xFF10B981),
-        'password': 'absen123',
-        'screen': const InputAbsensiScreen(),
-      },
-    ];
-
-    return SingleChildScrollView(
-      physics: const BouncingScrollPhysics(),
-      child: Padding(
+    return Scaffold(
+      backgroundColor: Colors.transparent,
+      body: SingleChildScrollView(
+        physics: const BouncingScrollPhysics(),
         padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             // Header Section
-            Text(
-              "Layanan Akademik",
-              style: GoogleFonts.outfit(
-                color: context.titleColor,
-                fontSize: 20,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            const SizedBox(height: 6),
-            Text(
-              "Akses portal data santri, jadwal pelajaran, dan ujian.",
-              style: GoogleFonts.outfit(
-                color: context.subTitleColor,
-                fontSize: 13,
-              ),
-            ),
-            const SizedBox(height: 24),
-
-            // 1. FEATURED CARD (Laporan Akademik Siswa) - Full Width
-            GestureDetector(
-              onTap: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (context) => featuredItem['screen'] as Widget),
-                );
-              },
-              child: Container(
-                width: double.infinity,
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    colors: featuredItem['colors'] as List<Color>,
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                  ),
-                  borderRadius: BorderRadius.circular(22),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withOpacity(isDark ? 0.3 : 0.04),
-                      blurRadius: 12,
-                      offset: const Offset(0, 5),
-                    ),
-                  ],
-                  border: Border.all(
-                    color: featuredItem['borderColor'] as Color,
-                    width: 1.5,
-                  ),
-                ),
-                padding: const EdgeInsets.all(22),
-                child: Row(
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.all(14),
-                      decoration: BoxDecoration(
-                        color: isDark ? Colors.white.withOpacity(0.06) : Colors.white.withOpacity(0.6),
-                        borderRadius: BorderRadius.circular(16),
-                        border: isDark ? null : Border.all(color: Colors.white, width: 1.5),
-                      ),
-                      child: Icon(
-                        featuredItem['icon'] as IconData,
-                        color: featuredItem['iconColor'] as Color,
-                        size: 32,
-                      ),
-                    ),
-                    const SizedBox(width: 18),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            featuredItem['title'] as String,
-                            style: GoogleFonts.outfit(
-                              color: featuredItem['headingColor'] as Color,
-                              fontSize: 17,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                          const SizedBox(height: 6),
-                          Text(
-                            featuredItem['desc'] as String,
-                            style: GoogleFonts.outfit(
-                              color: featuredItem['bodyColor'] as Color,
-                              fontSize: 11,
-                              height: 1.4,
-                            ),
-                          ),
-                          const SizedBox(height: 10),
-                          Row(
-                            children: [
-                              Text(
-                                "Buka Laporan",
-                                style: GoogleFonts.outfit(
-                                  color: featuredItem['textColor'] as Color,
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                              const SizedBox(width: 6),
-                              Icon(
-                                Icons.arrow_forward_rounded,
-                                color: featuredItem['textColor'] as Color,
-                                size: 13,
-                              ),
-                            ],
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-            const SizedBox(height: 16),
-
-            // 2. JADWAL PELAJARAN CARD (Full Width)
-            GestureDetector(
-              onTap: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (context) => jadwalItem['screen'] as Widget),
-                );
-              },
-              child: Container(
-                width: double.infinity,
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    colors: jadwalItem['colors'] as List<Color>,
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                  ),
-                  borderRadius: BorderRadius.circular(22),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withOpacity(isDark ? 0.3 : 0.04),
-                      blurRadius: 12,
-                      offset: const Offset(0, 5),
-                    ),
-                  ],
-                  border: Border.all(
-                    color: jadwalItem['borderColor'] as Color,
-                    width: 1.5,
-                  ),
-                ),
-                padding: const EdgeInsets.all(22),
-                child: Row(
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.all(14),
-                      decoration: BoxDecoration(
-                        color: isDark ? Colors.white.withOpacity(0.06) : Colors.white.withOpacity(0.6),
-                        borderRadius: BorderRadius.circular(16),
-                        border: isDark ? null : Border.all(color: Colors.white, width: 1.5),
-                      ),
-                      child: Icon(
-                        jadwalItem['icon'] as IconData,
-                        color: jadwalItem['iconColor'] as Color,
-                        size: 32,
-                      ),
-                    ),
-                    const SizedBox(width: 18),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            jadwalItem['title'] as String,
-                            style: GoogleFonts.outfit(
-                              color: jadwalItem['headingColor'] as Color,
-                              fontSize: 17,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                          const SizedBox(height: 6),
-                          Text(
-                            jadwalItem['desc'] as String,
-                            style: GoogleFonts.outfit(
-                              color: jadwalItem['bodyColor'] as Color,
-                              fontSize: 11,
-                              height: 1.4,
-                            ),
-                          ),
-                          const SizedBox(height: 10),
-                          Row(
-                            children: [
-                              Text(
-                                "Buka Jadwal",
-                                style: GoogleFonts.outfit(
-                                  color: jadwalItem['textColor'] as Color,
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                              const SizedBox(width: 6),
-                              Icon(
-                                Icons.arrow_forward_rounded,
-                                color: jadwalItem['textColor'] as Color,
-                                size: 13,
-                              ),
-                            ],
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-            const SizedBox(height: 16),
-
-            // 3. LAPORAN ABSENSI CARD (Full Width)
-            GestureDetector(
-              onTap: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (context) => laporanAbsensiItem['screen'] as Widget),
-                );
-              },
-              child: Container(
-                width: double.infinity,
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    colors: laporanAbsensiItem['colors'] as List<Color>,
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                  ),
-                  borderRadius: BorderRadius.circular(22),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withOpacity(isDark ? 0.3 : 0.04),
-                      blurRadius: 12,
-                      offset: const Offset(0, 5),
-                    ),
-                  ],
-                  border: Border.all(
-                    color: laporanAbsensiItem['borderColor'] as Color,
-                    width: 1.5,
-                  ),
-                ),
-                padding: const EdgeInsets.all(22),
-                child: Row(
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.all(14),
-                      decoration: BoxDecoration(
-                        color: isDark ? Colors.white.withOpacity(0.06) : Colors.white.withOpacity(0.6),
-                        borderRadius: BorderRadius.circular(16),
-                        border: isDark ? null : Border.all(color: Colors.white, width: 1.5),
-                      ),
-                      child: Icon(
-                        laporanAbsensiItem['icon'] as IconData,
-                        color: laporanAbsensiItem['iconColor'] as Color,
-                        size: 32,
-                      ),
-                    ),
-                    const SizedBox(width: 18),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            laporanAbsensiItem['title'] as String,
-                            style: GoogleFonts.outfit(
-                              color: laporanAbsensiItem['headingColor'] as Color,
-                              fontSize: 17,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                          const SizedBox(height: 6),
-                          Text(
-                            laporanAbsensiItem['desc'] as String,
-                            style: GoogleFonts.outfit(
-                              color: laporanAbsensiItem['bodyColor'] as Color,
-                              fontSize: 11,
-                              height: 1.4,
-                            ),
-                          ),
-                          const SizedBox(height: 10),
-                          Row(
-                            children: [
-                              Text(
-                                "Buka Absensi",
-                                style: GoogleFonts.outfit(
-                                  color: laporanAbsensiItem['textColor'] as Color,
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                              const SizedBox(width: 6),
-                              Icon(
-                                Icons.arrow_forward_rounded,
-                                color: laporanAbsensiItem['textColor'] as Color,
-                                size: 13,
-                              ),
-                            ],
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-            const SizedBox(height: 16),
-
-            // 4. SUB ITEMS ROW 1 (Tim Soal & Input Nilai)
             Row(
               children: [
-                Expanded(child: _buildSubItem(context, subItemsRow1[0], isDark, isLeft: true)),
-                const SizedBox(width: 14),
-                Expanded(child: _buildSubItem(context, subItemsRow1[1], isDark, isLeft: false)),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        "Layanan Akademik",
+                        style: GoogleFonts.outfit(
+                          color: context.titleColor,
+                          fontSize: 22,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        "Portal terpadu penilaian, penjadwalan, laporan, & target kurikulum.",
+                        style: GoogleFonts.outfit(
+                          color: context.subTitleColor,
+                          fontSize: 12,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF10B981).withOpacity(0.12),
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                  child: const Icon(Icons.school_rounded, color: Color(0xFF10B981), size: 24),
+                ),
               ],
             ),
+            const SizedBox(height: 18),
+
+            // Search Bar
+            _buildSearchBar(isDark),
             const SizedBox(height: 14),
 
-            // 5. SUB ITEMS ROW 2 (Scan Kartu Ujian & Input Absensi)
-            Row(
-              children: [
-                Expanded(child: _buildSubItem(context, subItemsRow2[0], isDark, isLeft: true)),
-                const SizedBox(width: 14),
-                Expanded(child: _buildSubItem(context, subItemsRow2[1], isDark, isLeft: false)),
-              ],
-            ),
+            // Quick Filter Chips
+            _buildFilterChips(isDark),
             const SizedBox(height: 24),
 
-            Text(
-              "INFORMASI UJIAN",
-              style: GoogleFonts.outfit(
-                color: context.subTitleColor,
-                fontSize: 11,
-                fontWeight: FontWeight.bold,
-                letterSpacing: 1.5,
+            // 1. CLUSTER: MASTER INPUT
+            if (_shouldShowCluster('Master Input')) ...[
+              _buildSectionHeader(
+                title: "Master Input Nilai & Absensi",
+                subtitle: "Entri harian ujian, absensi santri & verifikasi kartu",
+                badgeText: "4 Menu",
+                icon: Icons.border_color_rounded,
+                color: const Color(0xFFF97316),
+                isDark: isDark,
               ),
-            ),
-            const SizedBox(height: 16),
-            Row(
-              children: [
-                Expanded(
-                  child: _buildInfoBoxItem(
-                    context: context,
-                    title: 'Ketentuan Muhafadzoh',
-                    desc: 'Informasi ketentuan & rentang kriteria nilai Ujian Muhafadzoh.',
-                    icon: Icons.info_outline_rounded,
-                    colors: isDark
-                        ? [const Color(0xFF065F46), const Color(0xFF0F172A)]
-                        : [const Color(0xFFE6F4EA), const Color(0xFFCEEAD6)],
-                    borderColor: isDark
-                        ? const Color(0xFF10B981).withOpacity(0.25)
-                        : const Color(0xFF10B981).withOpacity(0.4),
-                    textColor: isDark ? const Color(0xFF34D399) : const Color(0xFF065F46),
-                    headingColor: isDark ? Colors.white : const Color(0xFF065F46),
-                    bodyColor: isDark ? Colors.white.withOpacity(0.6) : const Color(0xFF064E3B).withOpacity(0.8),
-                    iconColor: isDark ? Colors.white : const Color(0xFF10B981),
-                    isDark: isDark,
-                    onTap: () => MuhafadzohInfoBottomSheet.show(context),
-                  ),
-                ),
-                const SizedBox(width: 16),
-                Expanded(
-                  child: _buildInfoBoxItem(
-                    context: context,
-                    title: 'Maqro Qiroah',
-                    desc: 'Daftar acuan bahan bacaan (Maqro) Ujian Qiroatul Kitab.',
-                    icon: Icons.chrome_reader_mode_rounded,
-                    colors: isDark
-                        ? [const Color(0xFF7C2D12), const Color(0xFF0F172A)]
-                        : [const Color(0xFFFFF7ED), const Color(0xFFFFEDD5)],
-                    borderColor: isDark
-                        ? const Color(0xFFF97316).withOpacity(0.25)
-                        : const Color(0xFFF97316).withOpacity(0.4),
-                    textColor: isDark ? const Color(0xFFFB923C) : const Color(0xFF7C2D12),
-                    headingColor: isDark ? Colors.white : const Color(0xFF7C2D12),
-                    bodyColor: isDark ? Colors.white.withOpacity(0.6) : const Color(0xFF7C2D12).withOpacity(0.8),
-                    iconColor: isDark ? Colors.white : const Color(0xFFF97316),
-                    isDark: isDark,
-                    onTap: () => QiroahMaqroBottomSheet.show(context),
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 16),
-            Row(
-              children: [
-                Expanded(
-                  child: _buildInfoBoxItem(
-                    context: context,
-                    title: 'Batasan Taftisy',
-                    desc: 'Daftar acuan batasan materi dan halaman Ujian Taftisyul Kutub.',
-                    icon: Icons.menu_book_rounded,
-                    colors: isDark
-                        ? [const Color(0xFF5B21B6), const Color(0xFF0F172A)]
-                        : [const Color(0xFFF3E8FF), const Color(0xFFE9D5FF)],
-                    borderColor: isDark
-                        ? const Color(0xFF8B5CF6).withOpacity(0.25)
-                        : const Color(0xFF8B5CF6).withOpacity(0.4),
-                    textColor: isDark ? const Color(0xFFA78BFA) : const Color(0xFF5B21B6),
-                    headingColor: isDark ? Colors.white : const Color(0xFF5B21B6),
-                    bodyColor: isDark ? Colors.white.withOpacity(0.6) : const Color(0xFF5B21B6).withOpacity(0.8),
-                    iconColor: isDark ? Colors.white : const Color(0xFF8B5CF6),
-                    isDark: isDark,
-                    onTap: () => TaftisyMateriBottomSheet.show(context),
-                  ),
-                ),
-                const SizedBox(width: 16),
-                Expanded(
-                  child: _buildInfoBoxItem(
-                    context: context,
-                    title: 'Materi Ujian Tulis',
-                    desc: 'Daftar acuan batasan materi Ujian Tulis reguler per kelas.',
-                    icon: Icons.border_color_rounded,
-                    colors: isDark
-                        ? [const Color(0xFF1E3A8A), const Color(0xFF0F172A)]
-                        : [const Color(0xFFEFF6FF), const Color(0xFFDBEAFE)],
-                    borderColor: isDark
-                        ? const Color(0xFF3B82F6).withOpacity(0.25)
-                        : const Color(0xFF3B82F6).withOpacity(0.4),
-                    textColor: isDark ? const Color(0xFF60A5FA) : const Color(0xFF1E40AF),
-                    headingColor: isDark ? Colors.white : const Color(0xFF1E40AF),
-                    bodyColor: isDark ? Colors.white.withOpacity(0.6) : const Color(0xFF1E40AF).withOpacity(0.8),
-                    iconColor: isDark ? Colors.white : const Color(0xFF3B82F6),
-                    isDark: isDark,
-                    onTap: () => UjianTulisMateriBottomSheet.show(context),
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 16),
-            // Kalender Akademik - Full Width card
-            GestureDetector(
-              onTap: () => Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => const KalenderAkademikScreen(),
-                ),
+              const SizedBox(height: 14),
+              _buildMasterInputGrid(context, isDark),
+              const SizedBox(height: 28),
+            ],
+
+            // 2. CLUSTER: LAPORAN-LAPORAN
+            if (_shouldShowCluster('Laporan')) ...[
+              _buildSectionHeader(
+                title: "Laporan & Rekapitulasi",
+                subtitle: "Hasil evaluasi belajar, kehadiran, pelanggaran & prestasi",
+                badgeText: "4 Laporan",
+                icon: Icons.analytics_rounded,
+                color: const Color(0xFF6366F1),
+                isDark: isDark,
               ),
-              child: Container(
-                width: double.infinity,
-                padding: const EdgeInsets.all(18),
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    colors: isDark
-                        ? [const Color(0xFF134E4A), const Color(0xFF0F172A)]
-                        : [const Color(0xFFECFDF5), const Color(0xFFF0FDF4)],
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                  ),
-                  borderRadius: BorderRadius.circular(22),
-                  border: Border.all(
-                    color: isDark
-                        ? const Color(0xFF10B981).withOpacity(0.25)
-                        : const Color(0xFF10B981).withOpacity(0.35),
-                    width: 1.5,
-                  ),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withOpacity(isDark ? 0.2 : 0.03),
-                      blurRadius: 10,
-                      offset: const Offset(0, 4),
-                    ),
-                  ],
-                ),
-                child: Row(
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.all(12),
-                      decoration: BoxDecoration(
-                        color: isDark
-                            ? Colors.white.withOpacity(0.06)
-                            : Colors.white.withOpacity(0.6),
-                        borderRadius: BorderRadius.circular(14),
-                        border: isDark ? null : Border.all(color: Colors.white, width: 1.5),
-                      ),
-                      child: Icon(
-                        Icons.calendar_month_rounded,
-                        color: isDark ? Colors.white : const Color(0xFF10B981),
-                        size: 28,
-                      ),
-                    ),
-                    const SizedBox(width: 16),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            'Kalender Akademik',
-                            style: GoogleFonts.outfit(
-                              color: isDark ? Colors.white : const Color(0xFF065F46),
-                              fontSize: 15,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                          const SizedBox(height: 4),
-                          Text(
-                            'Lihat jadwal & agenda kegiatan akademik semester Ganjil & Genap.',
-                            style: GoogleFonts.outfit(
-                              color: isDark
-                                  ? Colors.white.withOpacity(0.6)
-                                  : const Color(0xFF065F46).withOpacity(0.75),
-                              fontSize: 11,
-                              height: 1.4,
-                            ),
-                          ),
-                          const SizedBox(height: 8),
-                          Row(
-                            children: [
-                              Text(
-                                'Lihat Kalender',
-                                style: GoogleFonts.outfit(
-                                  color: isDark
-                                      ? const Color(0xFF34D399)
-                                      : const Color(0xFF065F46),
-                                  fontSize: 11,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                              const SizedBox(width: 4),
-                              Icon(
-                                Icons.arrow_forward_rounded,
-                                color: isDark
-                                    ? const Color(0xFF34D399)
-                                    : const Color(0xFF065F46),
-                                size: 12,
-                              ),
-                            ],
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
+              const SizedBox(height: 14),
+              _buildLaporanCluster(context, isDark),
+              const SizedBox(height: 28),
+            ],
+
+            // 3. CLUSTER: JADWAL-JADWAL
+            if (_shouldShowCluster('Jadwal')) ...[
+              _buildSectionHeader(
+                title: "Jadwal & Agenda Kegiatan",
+                subtitle: "Jadwal pelajaran KBM, kajian Romadhon & imam tarawih",
+                badgeText: "3 Jadwal",
+                icon: Icons.calendar_month_rounded,
+                color: const Color(0xFF10B981),
+                isDark: isDark,
               ),
-            ),
-            const SizedBox(height: 16),
-            // Silabus Pembelajaran - Full Width card
-            GestureDetector(
-              onTap: () => Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => const SilabusPembelajaranScreen(),
-                ),
+              const SizedBox(height: 14),
+              _buildJadwalCluster(context, isDark),
+              const SizedBox(height: 28),
+            ],
+
+            // 4. CLUSTER: INFORMASI UJIAN & TARGET AKADEMIK
+            if (_shouldShowCluster('Info Ujian & Target')) ...[
+              _buildSectionHeader(
+                title: "Informasi Ujian & Target Akademik",
+                subtitle: "Standarisasi materi, silabus, maqro, dan kalender",
+                badgeText: "6 Acuan",
+                icon: Icons.auto_stories_rounded,
+                color: const Color(0xFF8B5CF6),
+                isDark: isDark,
               ),
-              child: Container(
-                width: double.infinity,
-                padding: const EdgeInsets.all(18),
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    colors: isDark
-                        ? [const Color(0xFF1E3A8A), const Color(0xFF0F172A)]
-                        : [const Color(0xFFEFF6FF), const Color(0xFFDBEAFE)],
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                  ),
-                  borderRadius: BorderRadius.circular(22),
-                  border: Border.all(
-                    color: isDark
-                        ? const Color(0xFF3B82F6).withOpacity(0.25)
-                        : const Color(0xFF3B82F6).withOpacity(0.4),
-                    width: 1.5,
-                  ),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withOpacity(isDark ? 0.2 : 0.03),
-                      blurRadius: 10,
-                      offset: const Offset(0, 4),
-                    ),
-                  ],
-                ),
-                child: Row(
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.all(12),
-                      decoration: BoxDecoration(
-                        color: isDark
-                            ? Colors.white.withOpacity(0.06)
-                            : Colors.white.withOpacity(0.6),
-                        borderRadius: BorderRadius.circular(14),
-                        border: isDark ? null : Border.all(color: Colors.white, width: 1.5),
-                      ),
-                      child: Icon(
-                        Icons.menu_book_rounded,
-                        color: isDark ? Colors.white : const Color(0xFF3B82F6),
-                        size: 28,
-                      ),
-                    ),
-                    const SizedBox(width: 16),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            'Silabus Pembelajaran',
-                            style: GoogleFonts.outfit(
-                              color: isDark ? Colors.white : const Color(0xFF1E3A8A),
-                              fontSize: 15,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                          const SizedBox(height: 4),
-                          Text(
-                            'Lihat rencana & target materi pembelajaran bulanan kelas Diniyyah.',
-                            style: GoogleFonts.outfit(
-                              color: isDark
-                                  ? Colors.white.withOpacity(0.6)
-                                  : const Color(0xFF1E3A8A).withOpacity(0.75),
-                              fontSize: 11,
-                              height: 1.4,
-                            ),
-                          ),
-                          const SizedBox(height: 8),
-                          Row(
-                            children: [
-                              Text(
-                                'Lihat Silabus',
-                                style: GoogleFonts.outfit(
-                                  color: isDark
-                                      ? const Color(0xFF60A5FA)
-                                      : const Color(0xFF1E3A8A),
-                                  fontSize: 11,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                              const SizedBox(width: 4),
-                              Icon(
-                                Icons.arrow_forward_rounded,
-                                color: isDark
-                                    ? const Color(0xFF60A5FA)
-                                    : const Color(0xFF1E3A8A),
-                                size: 12,
-                              ),
-                            ],
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
+              const SizedBox(height: 14),
+              _buildInfoUjianCluster(context, isDark),
+              const SizedBox(height: 24),
+            ],
           ],
         ),
       ),
     );
   }
 
-  Widget _buildInfoBoxItem({
-    required BuildContext context,
+  bool _shouldShowCluster(String clusterName) {
+    if (_selectedCategory == 'Semua') return true;
+    return _selectedCategory == clusterName;
+  }
+
+  Widget _buildSearchBar(bool isDark) {
+    return Container(
+      decoration: BoxDecoration(
+        color: isDark ? const Color(0xFF131C2E) : Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: isDark ? Colors.white.withOpacity(0.08) : Colors.black.withOpacity(0.08),
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(isDark ? 0.2 : 0.03),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: TextField(
+        controller: _searchController,
+        onChanged: (val) => setState(() => _searchQuery = val.trim().toLowerCase()),
+        style: GoogleFonts.outfit(color: context.titleColor, fontSize: 13),
+        decoration: InputDecoration(
+          hintText: "Cari menu akademik (contoh: Nilai, Maqro, Tarawih)...",
+          hintStyle: GoogleFonts.outfit(color: context.subTitleColor, fontSize: 13),
+          prefixIcon: Icon(Icons.search_rounded, color: context.subTitleColor, size: 20),
+          suffixIcon: _searchQuery.isNotEmpty
+              ? IconButton(
+                  icon: Icon(Icons.close_rounded, color: context.subTitleColor, size: 18),
+                  onPressed: () {
+                    _searchController.clear();
+                    setState(() => _searchQuery = '');
+                  },
+                )
+              : null,
+          border: InputBorder.none,
+          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildFilterChips(bool isDark) {
+    return SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
+      physics: const BouncingScrollPhysics(),
+      child: Row(
+        children: _categories.map((cat) {
+          final isSelected = _selectedCategory == cat;
+          return Padding(
+            padding: const EdgeInsets.only(right: 8),
+            child: ChoiceChip(
+              label: Text(cat),
+              selected: isSelected,
+              onSelected: (val) {
+                if (val) setState(() => _selectedCategory = cat);
+              },
+              selectedColor: const Color(0xFF10B981).withOpacity(0.18),
+              labelStyle: GoogleFonts.outfit(
+                color: isSelected ? const Color(0xFF10B981) : context.subTitleColor,
+                fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
+                fontSize: 12,
+              ),
+              backgroundColor: isDark ? const Color(0xFF131C2E) : Colors.white,
+              side: BorderSide(
+                color: isSelected
+                    ? const Color(0xFF10B981)
+                    : (isDark ? Colors.white.withOpacity(0.08) : Colors.black.withOpacity(0.08)),
+                width: isSelected ? 1.5 : 1.0,
+              ),
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            ),
+          );
+        }).toList(),
+      ),
+    );
+  }
+
+  Widget _buildSectionHeader({
     required String title,
-    required String desc,
+    required String subtitle,
+    required String badgeText,
     required IconData icon,
-    required List<Color> colors,
-    required Color borderColor,
-    required Color textColor,
-    required Color headingColor,
-    required Color bodyColor,
-    required Color iconColor,
-    required VoidCallback onTap,
+    required Color color,
     required bool isDark,
   }) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        height: 175,
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            colors: colors,
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
+    return Row(
+      children: [
+        Container(
+          padding: const EdgeInsets.all(8),
+          decoration: BoxDecoration(
+            color: color.withOpacity(0.12),
+            borderRadius: BorderRadius.circular(10),
           ),
-          borderRadius: BorderRadius.circular(22),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withOpacity(isDark ? 0.25 : 0.03),
-              blurRadius: 10,
-              offset: const Offset(0, 4),
-            ),
-          ],
-          border: Border.all(
-            color: borderColor,
-            width: 1.2,
-          ),
+          child: Icon(icon, color: color, size: 18),
         ),
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Container(
-              padding: const EdgeInsets.all(8),
-              decoration: BoxDecoration(
-                color: isDark ? Colors.white.withOpacity(0.06) : Colors.white.withOpacity(0.6),
-                borderRadius: BorderRadius.circular(12),
-                border: isDark ? null : Border.all(color: Colors.white, width: 1),
-              ),
-              child: Icon(
-                icon,
-                color: iconColor,
-                size: 20,
-              ),
-            ),
-            const Spacer(),
-            Text(
-              title,
-              style: GoogleFonts.outfit(
-                color: headingColor,
-                fontSize: 14,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            const SizedBox(height: 4),
-            Text(
-              desc,
-              style: GoogleFonts.outfit(
-                color: bodyColor,
-                fontSize: 10,
-                height: 1.3,
-              ),
-              maxLines: 2,
-              overflow: TextOverflow.ellipsis,
-            ),
-            const SizedBox(height: 8),
-            Row(
-              children: [
-                Text(
-                  "Buka",
-                  style: GoogleFonts.outfit(
-                    color: textColor,
-                    fontSize: 11,
-                    fontWeight: FontWeight.bold,
+        const SizedBox(width: 12),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Text(
+                    title,
+                    style: GoogleFonts.outfit(
+                      color: context.titleColor,
+                      fontSize: 15,
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
+                  const SizedBox(width: 8),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                    decoration: BoxDecoration(
+                      color: color.withOpacity(0.15),
+                      borderRadius: BorderRadius.circular(6),
+                    ),
+                    child: Text(
+                      badgeText,
+                      style: GoogleFonts.outfit(
+                        color: color,
+                        fontSize: 9,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              Text(
+                subtitle,
+                style: GoogleFonts.outfit(
+                  color: context.subTitleColor,
+                  fontSize: 11,
                 ),
-                const SizedBox(width: 4),
-                Icon(
-                  Icons.arrow_forward_rounded,
-                  color: textColor,
-                  size: 12,
-                ),
-              ],
-            ),
-          ],
+              ),
+            ],
+          ),
         ),
-      ),
+      ],
     );
   }
 
-  Widget _buildSubItem(BuildContext context, Map<String, dynamic> item, bool isDark, {required bool isLeft}) {
-    return GestureDetector(
-      onTap: () async {
-        if (item.containsKey('password') && item['password'] != null) {
-          final isOk = await showDialog<bool>(
-            context: context,
-            barrierDismissible: false,
-            builder: (context) => PasswordGateDialog(
-              title: "Akses Terkunci",
-              correctPassword: item['password'] as String,
-              menuName: item['title'] as String,
-            ),
-          );
-          if (isOk != true) return;
-        }
-
-        if (context.mounted) {
-          Navigator.push(
-            context,
-            MaterialPageRoute(builder: (context) => item['screen'] as Widget),
-          );
-        }
+  // ── 1. MASTER INPUT GRID ──────────────────────────────────────────────────
+  Widget _buildMasterInputGrid(BuildContext context, bool isDark) {
+    final items = [
+      {
+        'title': 'Tim Soal',
+        'desc': 'Kelola bank soal ujian per kelas & mapel.',
+        'icon': Icons.edit_note_rounded,
+        'badge': 'Protected',
+        'color': const Color(0xFFEC4899),
+        'password': 'timsoal123',
+        'screen': const TimSoalScreen(),
       },
-      child: Container(
-        height: 175,
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            colors: item['colors'] as List<Color>,
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-          ),
-          borderRadius: BorderRadius.circular(22),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withOpacity(isDark ? 0.25 : 0.03),
-              blurRadius: 10,
-              offset: const Offset(0, 4),
-            ),
-          ],
-          border: Border.all(
-            color: item['borderColor'] as Color,
-            width: 1.2,
-          ),
-        ),
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Icon
-            Container(
-              padding: const EdgeInsets.all(8),
-              decoration: BoxDecoration(
-                color: isDark ? Colors.white.withOpacity(0.06) : Colors.white.withOpacity(0.6),
-                borderRadius: BorderRadius.circular(12),
-                border: isDark ? null : Border.all(color: Colors.white, width: 1),
-              ),
-              child: Icon(
-                item['icon'] as IconData,
-                color: item['iconColor'] as Color,
-                size: 20,
-              ),
-            ),
-            const Spacer(),
-            // Title
-            Text(
-              item['title'] as String,
-              style: GoogleFonts.outfit(
-                color: item['headingColor'] as Color,
-                fontSize: 14,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            const SizedBox(height: 4),
-            // Desc
-            Text(
-              item['desc'] as String,
-              style: GoogleFonts.outfit(
-                color: item['bodyColor'] as Color,
-                fontSize: 10,
-                height: 1.3,
-              ),
-              maxLines: 2,
-              overflow: TextOverflow.ellipsis,
-            ),
-            const SizedBox(height: 8),
-            // Button
-            Row(
-              children: [
-                Text(
-                  "Buka",
-                  style: GoogleFonts.outfit(
-                    color: item['textColor'] as Color,
-                    fontSize: 11,
-                    fontWeight: FontWeight.bold,
-                  ),
+      {
+        'title': 'Input Nilai',
+        'desc': 'Input nilai Muhafadzoh, Qiroah, Taftisy, Ujian.',
+        'icon': Icons.border_color_rounded,
+        'badge': 'Protected',
+        'color': const Color(0xFFF97316),
+        'password': 'inputnilai123',
+        'screen': const InputNilaiScreen(),
+      },
+      {
+        'title': 'Input Absensi',
+        'desc': 'Rekapitulasi Sakit, Izin, & Alpa bulanan.',
+        'icon': Icons.fact_check_rounded,
+        'badge': 'Protected',
+        'color': const Color(0xFF10B981),
+        'password': 'absen123',
+        'screen': const InputAbsensiScreen(),
+      },
+      {
+        'title': 'Scan Kartu Ujian',
+        'desc': 'Pindai QR Code atau verifikasi nomor kartu.',
+        'icon': Icons.qr_code_scanner_rounded,
+        'badge': 'QR Scanner',
+        'color': const Color(0xFF3B82F6),
+        'screen': const ScanKartuUjianScreen(),
+      },
+    ];
+
+    final filtered = items.where((it) {
+      if (_searchQuery.isEmpty) return true;
+      return it['title'].toString().toLowerCase().contains(_searchQuery) ||
+          it['desc'].toString().toLowerCase().contains(_searchQuery);
+    }).toList();
+
+    if (filtered.isEmpty) {
+      return _buildNoMatchText();
+    }
+
+    return GridView.builder(
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      itemCount: filtered.length,
+      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: 2,
+        mainAxisSpacing: 14,
+        crossAxisSpacing: 14,
+        childAspectRatio: 0.95,
+      ),
+      itemBuilder: (context, index) {
+        final it = filtered[index];
+        final Color col = it['color'] as Color;
+        final hasPw = it.containsKey('password');
+
+        return GestureDetector(
+          onTap: () async {
+            if (hasPw) {
+              final auth = await showDialog<bool>(
+                context: context,
+                builder: (context) => PasswordGateDialog(
+                  title: "Verifikasi Sandi",
+                  correctPassword: it['password'] as String,
+                  menuName: it['title'] as String,
                 ),
-                const SizedBox(width: 4),
-                Icon(
-                  Icons.arrow_forward_rounded,
-                  color: item['textColor'] as Color,
-                  size: 12,
+              );
+              if (auth == true && context.mounted) {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => it['screen'] as Widget),
+                );
+              }
+            } else {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => it['screen'] as Widget),
+              );
+            }
+          },
+          child: Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: isDark ? const Color(0xFF131C2E) : Colors.white,
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(
+                color: col.withOpacity(isDark ? 0.35 : 0.25),
+                width: 1.2,
+              ),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(isDark ? 0.25 : 0.03),
+                  blurRadius: 10,
+                  offset: const Offset(0, 4),
                 ),
               ],
             ),
-          ],
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(10),
+                      decoration: BoxDecoration(
+                        color: col.withOpacity(0.12),
+                        borderRadius: BorderRadius.circular(14),
+                      ),
+                      child: Icon(it['icon'] as IconData, color: col, size: 22),
+                    ),
+                    if (hasPw)
+                      Icon(Icons.lock_rounded, size: 15, color: col.withOpacity(0.8))
+                    else
+                      Icon(Icons.arrow_forward_rounded, size: 15, color: col.withOpacity(0.8)),
+                  ],
+                ),
+                const Spacer(),
+                Text(
+                  it['title'] as String,
+                  style: GoogleFonts.outfit(
+                    color: context.titleColor,
+                    fontSize: 15,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  it['desc'] as String,
+                  style: GoogleFonts.outfit(
+                    color: context.subTitleColor,
+                    fontSize: 10,
+                    height: 1.3,
+                  ),
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  // ── 2. LAPORAN CLUSTER ────────────────────────────────────────────────────
+  Widget _buildLaporanCluster(BuildContext context, bool isDark) {
+    final list = [
+      {
+        'title': 'Laporan Akademik Siswa',
+        'desc': 'Rekapitulasi lengkap nilai Muhafadzoh, Qiroah, Taftisy, Ujian Tulis, dan Rapor per kelas.',
+        'icon': Icons.table_chart_rounded,
+        'badge': 'Rapor Lengkap',
+        'isHero': true,
+        'color': const Color(0xFF6366F1),
+        'screen': const LaporanAkademikScreen(),
+      },
+      {
+        'title': 'Laporan Absensi Santri',
+        'desc': 'Rekapitulasi kehadiran Sakit, Izin, dan Alpa santri per kelas & semester.',
+        'icon': Icons.assignment_rounded,
+        'badge': 'Presensi',
+        'color': const Color(0xFF0EA5E9),
+        'screen': const LaporanAbsensiScreen(),
+      },
+      {
+        'title': 'Laporan Pelanggaran Santri',
+        'desc': 'Catatan poin ketertiban, disiplin ubudiyah, serta takzir edukatif.',
+        'icon': Icons.warning_amber_rounded,
+        'badge': 'Kedisiplinan',
+        'color': const Color(0xFFEF4444),
+        'screen': const LaporanPelanggaranPrestasiScreen(initialTabIndex: 0),
+      },
+      {
+        'title': 'Laporan Prestasi Santri',
+        'desc': 'Rekap prestasi santri dalam kejuaraan MQK, Tahfidz, pidato & wisuda.',
+        'icon': Icons.emoji_events_rounded,
+        'badge': 'Juara & Piagam',
+        'color': const Color(0xFFF59E0B),
+        'screen': const LaporanPelanggaranPrestasiScreen(initialTabIndex: 1),
+      },
+    ];
+
+    final filtered = list.where((it) {
+      if (_searchQuery.isEmpty) return true;
+      return it['title'].toString().toLowerCase().contains(_searchQuery) ||
+          it['desc'].toString().toLowerCase().contains(_searchQuery);
+    }).toList();
+
+    if (filtered.isEmpty) {
+      return _buildNoMatchText();
+    }
+
+    return Column(
+      children: filtered.map((it) {
+        final bool isHero = it['isHero'] == true;
+        final Color col = it['color'] as Color;
+
+        return Container(
+          margin: const EdgeInsets.only(bottom: 12),
+          child: GestureDetector(
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => it['screen'] as Widget),
+              );
+            },
+            child: Container(
+              padding: EdgeInsets.all(isHero ? 18 : 16),
+              decoration: BoxDecoration(
+                gradient: isHero
+                    ? LinearGradient(
+                        colors: isDark
+                            ? [const Color(0xFF312E81), const Color(0xFF0F172A)]
+                            : [const Color(0xFFEEF2FF), const Color(0xFFE0E7FF)],
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                      )
+                    : null,
+                color: isHero ? null : (isDark ? const Color(0xFF131C2E) : Colors.white),
+                borderRadius: BorderRadius.circular(20),
+                border: Border.all(
+                  color: col.withOpacity(isHero ? 0.5 : (isDark ? 0.25 : 0.15)),
+                  width: isHero ? 1.5 : 1.0,
+                ),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(isDark ? 0.25 : 0.03),
+                    blurRadius: 8,
+                    offset: const Offset(0, 3),
+                  ),
+                ],
+              ),
+              child: Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: isHero
+                          ? (isDark ? Colors.white10 : Colors.white)
+                          : col.withOpacity(0.12),
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                    child: Icon(it['icon'] as IconData, color: col, size: 24),
+                  ),
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Text(
+                              it['title'] as String,
+                              style: GoogleFonts.outfit(
+                                color: context.titleColor,
+                                fontSize: 14,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                              decoration: BoxDecoration(
+                                color: col.withOpacity(0.12),
+                                borderRadius: BorderRadius.circular(6),
+                              ),
+                              child: Text(
+                                it['badge'] as String,
+                                style: GoogleFonts.outfit(
+                                  color: col,
+                                  fontSize: 9,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          it['desc'] as String,
+                          style: GoogleFonts.outfit(
+                            color: context.subTitleColor,
+                            fontSize: 11,
+                            height: 1.3,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Icon(Icons.arrow_forward_ios_rounded, color: col, size: 14),
+                ],
+              ),
+            ),
+          ),
+        );
+      }).toList(),
+    );
+  }
+
+  // ── 3. JADWAL CLUSTER ─────────────────────────────────────────────────────
+  Widget _buildJadwalCluster(BuildContext context, bool isDark) {
+    final list = [
+      {
+        'title': 'Jadwal Pelajaran Diniyah',
+        'desc': 'Jadwal KBM aktif mingguan, guru pengampu & ruang kelas santri.',
+        'icon': Icons.calendar_today_rounded,
+        'badge': 'KBM Reguler',
+        'color': const Color(0xFF10B981),
+        'screen': const JadwalPelajaranScreen(),
+      },
+      {
+        'title': 'Jadwal Kajian Balagh Romadhon',
+        'desc': 'Khataman Kitab Kuning Kilatan Ramadhan bersama Masyayikh & Asatidz.',
+        'icon': Icons.menu_book_rounded,
+        'badge': 'Kajian Romadhon',
+        'color': const Color(0xFF059669),
+        'screen': const JadwalKhususScreen(initialTabIndex: 0),
+      },
+      {
+        'title': 'Jadwal Imam Tarawih & Bilal',
+        'desc': 'Daftar imam sholat Isya\', Tarawih, Bilal, dan juz tilawah per malam.',
+        'icon': Icons.mosque_rounded,
+        'badge': 'Sholat Tarawih',
+        'color': const Color(0xFF0D9488),
+        'screen': const JadwalKhususScreen(initialTabIndex: 1),
+      },
+    ];
+
+    final filtered = list.where((it) {
+      if (_searchQuery.isEmpty) return true;
+      return it['title'].toString().toLowerCase().contains(_searchQuery) ||
+          it['desc'].toString().toLowerCase().contains(_searchQuery);
+    }).toList();
+
+    if (filtered.isEmpty) {
+      return _buildNoMatchText();
+    }
+
+    return Column(
+      children: filtered.map((it) {
+        final Color col = it['color'] as Color;
+
+        return Container(
+          margin: const EdgeInsets.only(bottom: 12),
+          child: GestureDetector(
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => it['screen'] as Widget),
+              );
+            },
+            child: Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: isDark ? const Color(0xFF131C2E) : Colors.white,
+                borderRadius: BorderRadius.circular(20),
+                border: Border.all(
+                  color: col.withOpacity(isDark ? 0.3 : 0.2),
+                  width: 1.2,
+                ),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(isDark ? 0.25 : 0.03),
+                    blurRadius: 8,
+                    offset: const Offset(0, 3),
+                  ),
+                ],
+              ),
+              child: Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: col.withOpacity(0.12),
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                    child: Icon(it['icon'] as IconData, color: col, size: 24),
+                  ),
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Text(
+                              it['title'] as String,
+                              style: GoogleFonts.outfit(
+                                color: context.titleColor,
+                                fontSize: 14,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                              decoration: BoxDecoration(
+                                color: col.withOpacity(0.12),
+                                borderRadius: BorderRadius.circular(6),
+                              ),
+                              child: Text(
+                                it['badge'] as String,
+                                style: GoogleFonts.outfit(
+                                  color: col,
+                                  fontSize: 9,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          it['desc'] as String,
+                          style: GoogleFonts.outfit(
+                            color: context.subTitleColor,
+                            fontSize: 11,
+                            height: 1.3,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Icon(Icons.arrow_forward_ios_rounded, color: col, size: 14),
+                ],
+              ),
+            ),
+          ),
+        );
+      }).toList(),
+    );
+  }
+
+  // ── 4. INFORMASI UJIAN & TARGET AKADEMIK ──────────────────────────────────
+  Widget _buildInfoUjianCluster(BuildContext context, bool isDark) {
+    final list = [
+      {
+        'title': 'Ketentuan Muhafadzoh',
+        'desc': 'Pedoman kriteria & rentang nilai hafalan bait.',
+        'icon': Icons.menu_book_rounded,
+        'color': const Color(0xFF10B981),
+        'onTap': () => MuhafadzohInfoBottomSheet.show(context),
+      },
+      {
+        'title': 'Maqro Qiroah',
+        'desc': 'Bahan acuan bacaan Ujian Qiroatul Kitab.',
+        'icon': Icons.chrome_reader_mode_rounded,
+        'color': const Color(0xFFF97316),
+        'onTap': () => QiroahMaqroBottomSheet.show(context),
+      },
+      {
+        'title': 'Batasan Taftisy',
+        'desc': 'Batasan materi & halaman Ujian Taftisyul Kutub.',
+        'icon': Icons.library_books_rounded,
+        'color': const Color(0xFF8B5CF6),
+        'onTap': () => TaftisyMateriBottomSheet.show(context),
+      },
+      {
+        'title': 'Materi Ujian Tulis',
+        'desc': 'Batasan materi Ujian Tulis per tingkatan kelas.',
+        'icon': Icons.border_color_rounded,
+        'color': const Color(0xFF3B82F6),
+        'onTap': () => UjianTulisMateriBottomSheet.show(context),
+      },
+      {
+        'title': 'Kalender Akademik',
+        'desc': 'Jadwal agenda kegiatan, libur, dan pekan ujian.',
+        'icon': Icons.calendar_month_rounded,
+        'color': const Color(0xFF14B8A6),
+        'onTap': () => Navigator.push(
+          context,
+          MaterialPageRoute(builder: (context) => const KalenderAkademikScreen()),
+        ),
+      },
+      {
+        'title': 'Silabus Pembelajaran',
+        'desc': 'Dokumen silabus kurikulum santri per fan mapel.',
+        'icon': Icons.import_contacts_rounded,
+        'color': const Color(0xFFEC4899),
+        'onTap': () => Navigator.push(
+          context,
+          MaterialPageRoute(builder: (context) => const SilabusPembelajaranScreen()),
+        ),
+      },
+    ];
+
+    final filtered = list.where((it) {
+      if (_searchQuery.isEmpty) return true;
+      return it['title'].toString().toLowerCase().contains(_searchQuery) ||
+          it['desc'].toString().toLowerCase().contains(_searchQuery);
+    }).toList();
+
+    if (filtered.isEmpty) {
+      return _buildNoMatchText();
+    }
+
+    return GridView.builder(
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      itemCount: filtered.length,
+      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: 2,
+        mainAxisSpacing: 14,
+        crossAxisSpacing: 14,
+        childAspectRatio: 1.05,
+      ),
+      itemBuilder: (context, index) {
+        final it = filtered[index];
+        final Color col = it['color'] as Color;
+
+        return GestureDetector(
+          onTap: it['onTap'] as VoidCallback,
+          child: Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: isDark ? const Color(0xFF131C2E) : Colors.white,
+              borderRadius: BorderRadius.circular(18),
+              border: Border.all(
+                color: col.withOpacity(isDark ? 0.3 : 0.2),
+                width: 1.2,
+              ),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(isDark ? 0.2 : 0.03),
+                  blurRadius: 8,
+                  offset: const Offset(0, 3),
+                ),
+              ],
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: col.withOpacity(0.12),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Icon(it['icon'] as IconData, color: col, size: 22),
+                ),
+                const Spacer(),
+                Text(
+                  it['title'] as String,
+                  style: GoogleFonts.outfit(
+                    color: context.titleColor,
+                    fontSize: 13,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                const SizedBox(height: 3),
+                Text(
+                  it['desc'] as String,
+                  style: GoogleFonts.outfit(
+                    color: context.subTitleColor,
+                    fontSize: 10,
+                    height: 1.3,
+                  ),
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildNoMatchText() {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 20),
+      child: Center(
+        child: Text(
+          "Tidak ada menu yang sesuai dengan kata kunci pencarian.",
+          style: GoogleFonts.outfit(color: context.subTitleColor, fontSize: 12),
         ),
       ),
     );

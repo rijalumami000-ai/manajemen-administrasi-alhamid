@@ -542,8 +542,8 @@ export function MyMustahiqSettings() {
         subtitle="Kelola akun login ustadz dan kirim notifikasi manual ke aplikasi mobile"
         extra={
           <a
-            href="/downloads/mymustahiq-v1.1.0.apk"
-            download="mymustahiq-v1.1.0.apk"
+            href="/downloads/mymustahiq-v1.2.0.apk"
+            download="mymustahiq-v1.2.0.apk"
             className="mms-btn-download"
             style={{
               display: 'inline-flex',
@@ -560,7 +560,7 @@ export function MyMustahiqSettings() {
             }}
           >
             <Download size={16} />
-            <span>Unduh APK Terbaru (v1.1.0)</span>
+            <span>Unduh APK Terbaru (v1.2.0)</span>
           </a>
         }
       />
