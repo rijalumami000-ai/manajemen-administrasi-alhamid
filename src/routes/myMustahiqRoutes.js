@@ -3,6 +3,7 @@ const db = require('../../db');
 const { getActiveTahunAjaran } = require('../services/tahunAjaranService');
 const { authenticateToken } = require('../middleware/authMiddleware');
 const { asyncHandler } = require('../utils/errorHandler');
+const NilaiService = require('../services/nilaiService');
 
 function registerMyMustahiqRoutes(app) {
   const router = express.Router();
@@ -912,41 +913,55 @@ function registerMyMustahiqRoutes(app) {
       ORDER BY tingkat_order, k.nama
     `, [activeYear.id]);
 
-    // Get subjects per tingkat from mapel_tingkat table (only Reguler subjects, excluding special exams)
-    const mapelPerTingkatResult = await db.query(`
-      SELECT DISTINCT mt.tingkat, mt.mata_pelajaran_id, mp.nama, mp.jenis
-      FROM mapel_tingkat mt
-      JOIN mata_pelajaran mp ON mp.id = mt.mata_pelajaran_id
-      WHERE mp.jenis = 'Reguler'
-      ORDER BY mt.tingkat, mp.nama
-    `);
+    const semResult = await db.query("SELECT value FROM system_settings WHERE key = 'active_semester' LIMIT 1");
+    const activeSemester = semResult.rows[0] ? semResult.rows[0].value : 'Ganjil';
+
+    const katResult = await db.query(
+      "SELECT id FROM kategori_evaluasi WHERE LOWER(nama) LIKE $1 LIMIT 1",
+      [`%semester ${activeSemester.toLowerCase()}%`]
+    );
+    const kategoriId = katResult.rows[0] ? katResult.rows[0].id : (activeSemester.toLowerCase().includes('genap') ? 2 : 1);
+
+    // Get subjects per tingkat using NilaiService (respects configured status)
+    const allMapelTingkat = await NilaiService.getMapelTingkat(activeYear.id, kategoriId);
+
+    const regMapelsRes = await db.query("SELECT id, nama, jenis FROM mata_pelajaran WHERE jenis = 'Reguler'");
+    const regMapelsMap = new Map(regMapelsRes.rows.map(m => [m.id, m]));
 
     // Group subjects by tingkat
     const mapelPerTingkat = {};
-    mapelPerTingkatResult.rows.forEach(row => {
+    (allMapelTingkat || []).forEach(row => {
+      const mapel = regMapelsMap.get(row.mata_pelajaran_id);
+      if (!mapel) return;
       const key = String(row.tingkat);
       if (!mapelPerTingkat[key]) {
         mapelPerTingkat[key] = [];
       }
-      // Avoid duplicates
       if (!mapelPerTingkat[key].some(m => m.id === row.mata_pelajaran_id)) {
         mapelPerTingkat[key].push({
           id: row.mata_pelajaran_id,
-          nama: row.nama,
-          jenis: row.jenis
+          nama: mapel.nama,
+          jenis: mapel.jenis
         });
       }
     });
 
-    // Fallback: if Kelas SP (tingkat 99) has no subjects, copy from tingkat 2
+    // Fallback: if Kelas SP (tingkat 99) has no subjects, copy from tingkat 2 if 99 was not explicitly configured
     if (!mapelPerTingkat['99'] || mapelPerTingkat['99'].length === 0) {
-      if (mapelPerTingkat['2'] && mapelPerTingkat['2'].length > 0) {
+      const key = `mapel_tingkat_configured_${activeYear.id}_${kategoriId}`;
+      let isConfigured99 = false;
+      try {
+        const confRes = await db.query('SELECT value FROM system_settings WHERE key = $1 LIMIT 1', [key]);
+        if (confRes.rows.length > 0 && confRes.rows[0].value) {
+          const arr = JSON.parse(confRes.rows[0].value);
+          if (Array.isArray(arr) && arr.includes(99)) isConfigured99 = true;
+        }
+      } catch (e) {}
+
+      if (!isConfigured99 && mapelPerTingkat['2'] && mapelPerTingkat['2'].length > 0) {
         mapelPerTingkat['99'] = [...mapelPerTingkat['2']];
       }
     }
-
-    const semResult = await db.query("SELECT value FROM system_settings WHERE key = 'active_semester' LIMIT 1");
-    const activeSemester = semResult.rows[0] ? semResult.rows[0].value : 'Ganjil';
 
     res.json({
       tahunAjaran: activeYear.kode,
@@ -1213,28 +1228,43 @@ function registerMyMustahiqRoutes(app) {
     const qiroatulId = qiroatulMapel.rows[0]?.id || 11;
     const taftisyId = taftisyMapel.rows[0]?.id || 12;
 
-    // Get mata pelajaran for this class from mapel_tingkat UNION jadwal_pelajaran_harian
-    const mapelResult = await db.query(`
-      SELECT DISTINCT mp.id, mp.nama, mp.jenis
-      FROM mata_pelajaran mp
-      WHERE mp.id IN (
-        -- Dari mapel_tingkat
-        SELECT mata_pelajaran_id 
-        FROM mapel_tingkat 
-        WHERE tingkat = $1 
-          AND (tahun_ajaran_id = $2 OR tahun_ajaran_id IS NULL)
-          AND (kategori_evaluasi_id = $3 OR kategori_evaluasi_id IS NULL)
-        
-        UNION
-        
-        -- Dari jadwal_pelajaran_harian
-        SELECT mata_pelajaran_id 
-        FROM jadwal_pelajaran_harian 
-        WHERE kelas_id = $4 
-          AND tahun_ajaran_id = $2
-      )
-      ORDER BY mp.nama
-    `, [tingkat, activeYear.id, kategoriId, kelasId]);
+    // 1. Ambil daftar mapel_tingkat aktif dari NilaiService (hanya mata pelajaran yang dicentang pada Jadwal Pelajaran Ujian)
+    const allMapelTingkat = await NilaiService.getMapelTingkat(activeYear.id, kategoriId);
+    let allowedMapelIds = (allMapelTingkat || [])
+      .filter(mt => Number(mt.tingkat) === Number(tingkat))
+      .map(mt => Number(mt.mata_pelajaran_id));
+
+    // Fallback khusus Kelas SP (tingkat 99) jika belum pernah dikonfigurasi sama sekali
+    if (tingkat === 99 && allowedMapelIds.length === 0) {
+      const key = `mapel_tingkat_configured_${activeYear.id}_${kategoriId}`;
+      let isConfigured99 = false;
+      try {
+        const confRes = await db.query('SELECT value FROM system_settings WHERE key = $1 LIMIT 1', [key]);
+        if (confRes.rows.length > 0 && confRes.rows[0].value) {
+          const arr = JSON.parse(confRes.rows[0].value);
+          if (Array.isArray(arr) && arr.includes(99)) isConfigured99 = true;
+        }
+      } catch (e) {}
+
+      if (!isConfigured99) {
+        allowedMapelIds = (allMapelTingkat || [])
+          .filter(mt => Number(mt.tingkat) === 2)
+          .map(mt => Number(mt.mata_pelajaran_id));
+      }
+    }
+
+    let regularSubjects = [];
+    if (allowedMapelIds.length > 0) {
+      const regRes = await db.query(`
+        SELECT id, nama, jenis 
+        FROM mata_pelajaran 
+        WHERE id = ANY($1::int[]) AND jenis = 'Reguler'
+        ORDER BY nama
+      `, [allowedMapelIds]);
+      regularSubjects = regRes.rows;
+    }
+
+    const mapelResult = { rows: [...regularSubjects] };
 
     // Get existing grades for this class/semester
     const nilaiResult = await db.query(`
@@ -2303,31 +2333,43 @@ function registerMyMustahiqRoutes(app) {
     let defaultData = [];
     if (classInfo) {
       // Query the regular subjects from mapel_tingkat for this tingkat, academic year, and category
-      const mapelRes = await db.query(`
-        SELECT DISTINCT mp.nama
-        FROM mapel_tingkat mt
-        JOIN mata_pelajaran mp ON mp.id = mt.mata_pelajaran_id
-        WHERE mt.tingkat = $1
-          AND mp.jenis = 'Reguler'
-          AND (
-            (mt.tahun_ajaran_id = $2 AND mt.kategori_evaluasi_id = $3)
-            OR (
-              mt.tahun_ajaran_id IS NULL AND mt.kategori_evaluasi_id IS NULL
-              AND NOT EXISTS (
-                SELECT 1 FROM mapel_tingkat mt2
-                WHERE mt2.tingkat = $1 AND mt2.tahun_ajaran_id = $2 AND mt2.kategori_evaluasi_id = $3
-              )
-            )
-          )
-        ORDER BY mp.nama
-      `, [classInfo.tingkat, activeYear.id, kategoriId]);
+      const allMt = await NilaiService.getMapelTingkat(activeYear.id, kategoriId);
+      let targetMtIds = (allMt || [])
+        .filter(mt => Number(mt.tingkat) === Number(classInfo.tingkat))
+        .map(mt => Number(mt.mata_pelajaran_id));
 
-      defaultData = mapelRes.rows.map(row => ({
-        pelajaran: row.nama,
-        batas_awal: "",
-        batas_akhir: "",
-        halaman: ""
-      }));
+      if (classInfo.tingkat === 99 && targetMtIds.length === 0) {
+        const key = `mapel_tingkat_configured_${activeYear.id}_${kategoriId}`;
+        let isConfigured99 = false;
+        try {
+          const confRes = await db.query('SELECT value FROM system_settings WHERE key = $1 LIMIT 1', [key]);
+          if (confRes.rows.length > 0 && confRes.rows[0].value) {
+            const arr = JSON.parse(confRes.rows[0].value);
+            if (Array.isArray(arr) && arr.includes(99)) isConfigured99 = true;
+          }
+        } catch (e) {}
+        if (!isConfigured99) {
+          targetMtIds = (allMt || [])
+            .filter(mt => Number(mt.tingkat) === 2)
+            .map(mt => Number(mt.mata_pelajaran_id));
+        }
+      }
+
+      if (targetMtIds.length > 0) {
+        const mapelRes = await db.query(`
+          SELECT DISTINCT mp.nama
+          FROM mata_pelajaran mp
+          WHERE mp.id = ANY($1::int[]) AND mp.jenis = 'Reguler'
+          ORDER BY mp.nama
+        `, [targetMtIds]);
+
+        defaultData = mapelRes.rows.map(row => ({
+          pelajaran: row.nama,
+          batas_awal: "",
+          batas_akhir: "",
+          halaman: ""
+        }));
+      }
     }
 
     // Check if requested year is active
@@ -2386,30 +2428,43 @@ function registerMyMustahiqRoutes(app) {
     }
 
     // Query the regular subjects from mapel_tingkat for this tingkat, academic year, and category
-    const mapelRes = await db.query(`
-      SELECT DISTINCT mp.nama
-      FROM mapel_tingkat mt
-      JOIN mata_pelajaran mp ON mp.id = mt.mata_pelajaran_id
-      WHERE mt.tingkat = $1
-        AND mp.jenis = 'Reguler'
-        AND (
-          (mt.tahun_ajaran_id = $2 AND mt.kategori_evaluasi_id = $3)
-          OR (
-            mt.tahun_ajaran_id IS NULL AND mt.kategori_evaluasi_id IS NULL
-            AND NOT EXISTS (
-              SELECT 1 FROM mapel_tingkat mt2
-              WHERE mt2.tingkat = $1 AND mt2.tahun_ajaran_id = $2 AND mt2.kategori_evaluasi_id = $3
-            )
-          )
-        )
-      ORDER BY mp.nama
-    `, [tingkat, activeYear.id, kategoriId]);
+    const allMt = await NilaiService.getMapelTingkat(activeYear.id, kategoriId);
+    let targetMtIds = (allMt || [])
+      .filter(mt => Number(mt.tingkat) === Number(tingkat))
+      .map(mt => Number(mt.mata_pelajaran_id));
 
-    const defaultData = mapelRes.rows.map(row => ({
-      pelajaran: row.nama,
-      batas_awal: "",
-      batas_akhir: ""
-    }));
+    if (tingkat === 99 && targetMtIds.length === 0) {
+      const key = `mapel_tingkat_configured_${activeYear.id}_${kategoriId}`;
+      let isConfigured99 = false;
+      try {
+        const confRes = await db.query('SELECT value FROM system_settings WHERE key = $1 LIMIT 1', [key]);
+        if (confRes.rows.length > 0 && confRes.rows[0].value) {
+          const arr = JSON.parse(confRes.rows[0].value);
+          if (Array.isArray(arr) && arr.includes(99)) isConfigured99 = true;
+        }
+      } catch (e) {}
+      if (!isConfigured99) {
+        targetMtIds = (allMt || [])
+          .filter(mt => Number(mt.tingkat) === 2)
+          .map(mt => Number(mt.mata_pelajaran_id));
+      }
+    }
+
+    let defaultData = [];
+    if (targetMtIds.length > 0) {
+      const mapelRes = await db.query(`
+        SELECT DISTINCT mp.nama
+        FROM mata_pelajaran mp
+        WHERE mp.id = ANY($1::int[]) AND mp.jenis = 'Reguler'
+        ORDER BY mp.nama
+      `, [targetMtIds]);
+
+      defaultData = mapelRes.rows.map(row => ({
+        pelajaran: row.nama,
+        batas_awal: "",
+        batas_akhir: ""
+      }));
+    }
 
     // Check if requested year is active
     const activeYearRes2 = await db.query('SELECT id FROM tahun_ajaran WHERE is_active = true LIMIT 1');

@@ -818,6 +818,28 @@ class NilaiService {
 
       // 6. Get Nilai for this santri specifically with mapel details
       const tingkatParam = (kelasData.nama === 'SP' && kelasData.tingkat === 1) ? 99 : kelasData.tingkat;
+      const allMt = await this.getMapelTingkat(tahunAjaranId, kategoriId);
+      let allowedMtIds = (allMt || [])
+        .filter(mt => Number(mt.tingkat) === Number(tingkatParam))
+        .map(mt => Number(mt.mata_pelajaran_id));
+
+      if (tingkatParam === 99 && allowedMtIds.length === 0) {
+        const key = `mapel_tingkat_configured_${tahunAjaranId}_${kategoriId}`;
+        let isConfigured99 = false;
+        try {
+          const confRes = await db.query('SELECT value FROM system_settings WHERE key = $1 LIMIT 1', [key]);
+          if (confRes.rows.length > 0 && confRes.rows[0].value) {
+            const arr = JSON.parse(confRes.rows[0].value);
+            if (Array.isArray(arr) && arr.includes(99)) isConfigured99 = true;
+          }
+        } catch (e) {}
+        if (!isConfigured99) {
+          allowedMtIds = (allMt || [])
+            .filter(mt => Number(mt.tingkat) === 2)
+            .map(mt => Number(mt.mata_pelajaran_id));
+        }
+      }
+
       const nilaiRes = await db.query(`
         SELECT n.*, m.nama as mapel_nama, m.nama_arab as mapel_arab, m.jenis as mapel_jenis
         FROM nilai_santri n
@@ -825,23 +847,9 @@ class NilaiService {
         WHERE n.santri_id = $1 AND n.tahun_ajaran_id = $2 AND n.kategori_evaluasi_id = $3
           AND (
             m.jenis != 'Reguler'
-            OR EXISTS (
-              SELECT 1 FROM mapel_tingkat mt
-              WHERE mt.mata_pelajaran_id = m.id
-                AND mt.tingkat = $4
-                AND (
-                  (mt.tahun_ajaran_id = $2 AND mt.kategori_evaluasi_id = $3)
-                  OR (
-                    mt.tahun_ajaran_id IS NULL AND mt.kategori_evaluasi_id IS NULL
-                    AND NOT EXISTS (
-                      SELECT 1 FROM mapel_tingkat mt2
-                      WHERE mt2.tingkat = $4 AND mt2.tahun_ajaran_id = $2 AND mt2.kategori_evaluasi_id = $3
-                    )
-                  )
-                )
-            )
+            OR m.id = ANY($4::int[])
           )
-      `, [santriId, tahunAjaranId, kategoriId, tingkatParam]);
+      `, [santriId, tahunAjaranId, kategoriId, allowedMtIds]);
       const nilaiList = nilaiRes.rows;
 
       // 7. Get Rekap Data to find Peringkat and Total (Call existing method)
