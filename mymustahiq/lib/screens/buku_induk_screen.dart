@@ -344,12 +344,6 @@ class _BukuIndukScreenState extends State<BukuIndukScreen> {
     final kamar = student['nama_kamar'] ?? '-';
     final photo = student['foto_url'];
     final gender = student['jenis_kelamin'] ?? 'Laki-laki';
-    
-    // Biometric statuses
-    final isFace = student['is_face_registered'] == true;
-    final isQr = student['qr_code'] != null && student['qr_code'].toString().isNotEmpty;
-    final isNfc = student['nfc_uid'] != null && student['nfc_uid'].toString().isNotEmpty;
-    final isFinger = student['fingerprint_id'] != null && student['fingerprint_id'].toString().isNotEmpty;
 
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
@@ -438,18 +432,6 @@ class _BukuIndukScreenState extends State<BukuIndukScreen> {
                         fontWeight: FontWeight.w600,
                       ),
                     ),
-                    const SizedBox(height: 6),
-                    Row(
-                      children: [
-                        _buildBiometricIcon(Icons.face_rounded, isFace, 'Wajah'),
-                        const SizedBox(width: 6),
-                        _buildBiometricIcon(Icons.qr_code_rounded, isQr, 'QR'),
-                        const SizedBox(width: 6),
-                        _buildBiometricIcon(Icons.contactless_rounded, isNfc, 'NFC'),
-                        const SizedBox(width: 6),
-                        _buildBiometricIcon(Icons.fingerprint_rounded, isFinger, 'Jari'),
-                      ],
-                    ),
                   ],
                 ),
               ),
@@ -461,26 +443,6 @@ class _BukuIndukScreenState extends State<BukuIndukScreen> {
               ),
             ],
           ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildBiometricIcon(IconData icon, bool isActive, String label) {
-    final activeColor = const Color(0xFF10B981);
-    final inactiveColor = context.subTitleColor.withOpacity(0.3);
-    return Tooltip(
-      message: "$label: ${isActive ? 'Aktif' : 'Belum Terdaftar'}",
-      child: Container(
-        padding: const EdgeInsets.all(4),
-        decoration: BoxDecoration(
-          color: (isActive ? activeColor : inactiveColor).withOpacity(0.1),
-          shape: BoxShape.circle,
-        ),
-        child: Icon(
-          icon,
-          color: isActive ? activeColor : inactiveColor,
-          size: 14,
         ),
       ),
     );

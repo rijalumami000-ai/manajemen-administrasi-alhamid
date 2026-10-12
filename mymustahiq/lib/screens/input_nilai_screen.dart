@@ -154,6 +154,14 @@ class _InputNilaiScreenState extends State<InputNilaiScreen> {
     return nilai.toString();
   }
 
+  bool _isGradeFilled(dynamic g) {
+    if (g == null) return false;
+    if (g['nilai'] != null && g['nilai'].toString().trim().isNotEmpty) return true;
+    if (g['capaian'] != null && g['capaian'].toString().trim().isNotEmpty) return true;
+    if (g['predikat'] != null && g['predikat'].toString().trim().isNotEmpty) return true;
+    return false;
+  }
+
   int _getGradeProgress(int santriId) {
     final sIdStr = santriId.toString();
     if (!_nilaiExisting.containsKey(sIdStr)) return 0;
@@ -164,22 +172,22 @@ class _InputNilaiScreenState extends State<InputNilaiScreen> {
     // Check muhafadzoh
     if (_muhafadzohMapelId != null && studentGrades.containsKey(_muhafadzohMapelId.toString())) {
       final g = studentGrades[_muhafadzohMapelId.toString()];
-      if (g != null && g['nilai'] != null) filled++;
+      if (_isGradeFilled(g)) filled++;
     }
     
     // Check qiroah
     if (_qiroatulMapelId != null && studentGrades.containsKey(_qiroatulMapelId.toString())) {
       final g = studentGrades[_qiroatulMapelId.toString()];
-      if (g != null && g['nilai'] != null) filled++;
+      if (_isGradeFilled(g)) filled++;
     }
     
-    // Check others
+    // Check others (including Taftisyul Kutub and Reguler subjects)
     for (final mapel in _mataPelajaran) {
       final mId = mapel['id'].toString();
       if (mId == _muhafadzohMapelId?.toString() || mId == _qiroatulMapelId?.toString()) continue;
       if (studentGrades.containsKey(mId)) {
         final g = studentGrades[mId];
-        if (g != null && g['nilai'] != null) filled++;
+        if (_isGradeFilled(g)) filled++;
       }
     }
     

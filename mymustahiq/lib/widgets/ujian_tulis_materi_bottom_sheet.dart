@@ -37,10 +37,17 @@ class _UjianTulisMateriBottomSheetState extends State<UjianTulisMateriBottomShee
   String _selectedSemester = 'Ganjil';
   bool _loadingFilters = true;
 
-  List<dynamic> _classes = [];
-  int? _selectedKelasId;
-  bool _loadingClasses = false;
-  String? _classError;
+  final List<Map<String, dynamic>> _tingkatanList = const [
+    {'tingkat': 0, 'nama': 'Kelas Sifir'},
+    {'tingkat': 1, 'nama': 'Kelas 1'},
+    {'tingkat': 99, 'nama': 'Kelas SP'},
+    {'tingkat': 2, 'nama': 'Kelas 2'},
+    {'tingkat': 3, 'nama': 'Kelas 3'},
+    {'tingkat': 4, 'nama': 'Kelas 4'},
+    {'tingkat': 5, 'nama': 'Kelas 5'},
+    {'tingkat': 6, 'nama': 'Kelas 6'},
+  ];
+  int _selectedTingkat = 0;
 
   List<dynamic> _ujianTulisMateri = [];
   bool _loadingMateri = false;
@@ -49,10 +56,10 @@ class _UjianTulisMateriBottomSheetState extends State<UjianTulisMateriBottomShee
   @override
   void initState() {
     super.initState();
-    _loadFiltersAndClasses();
+    _loadFilters();
   }
 
-  Future<void> _loadFiltersAndClasses() async {
+  Future<void> _loadFilters() async {
     try {
       final taResult = await _apiService.getTahunAjaranList();
       _tahunAjaranList = taResult['tahunAjaran'] ?? [];
@@ -75,58 +82,19 @@ class _UjianTulisMateriBottomSheetState extends State<UjianTulisMateriBottomShee
         setState(() {
           _loadingFilters = false;
         });
-        await _loadClasses();
+        await _loadMateri(_selectedTingkat);
       }
     } catch (e) {
       if (mounted) {
         setState(() {
           _loadingFilters = false;
         });
-        await _loadClasses();
+        await _loadMateri(_selectedTingkat);
       }
     }
   }
 
-  Future<void> _loadClasses() async {
-    if (_selectedTahunAjaran == null) return;
-    
-    setState(() {
-      _loadingClasses = true;
-      _classError = null;
-      _classes = [];
-      _selectedKelasId = null;
-      _ujianTulisMateri = [];
-    });
-
-    try {
-      final classesData = await _apiService.getClasses(
-        tahunAjaranId: _selectedTahunAjaran?['id'],
-        semester: _selectedSemester,
-      );
-      if (mounted) {
-        setState(() {
-          _classes = classesData['classes'] ?? [];
-          _loadingClasses = false;
-          if (_classes.isNotEmpty) {
-            _selectedKelasId = _classes.first['id'] as int;
-          }
-        });
-
-        if (_selectedKelasId != null) {
-          _loadMateri(_selectedKelasId!);
-        }
-      }
-    } catch (e) {
-      if (mounted) {
-        setState(() {
-          _classError = e.toString().replaceFirst('Exception: ', '');
-          _loadingClasses = false;
-        });
-      }
-    }
-  }
-
-  Future<void> _loadMateri(int kelasId) async {
+  Future<void> _loadMateri(int tingkat) async {
     setState(() {
       _loadingMateri = true;
       _materiError = null;
@@ -134,7 +102,7 @@ class _UjianTulisMateriBottomSheetState extends State<UjianTulisMateriBottomShee
 
     try {
       final data = await _apiService.getMateriUjianTulis(
-        kelasId: kelasId,
+        tingkat: tingkat,
         tahunAjaranId: _selectedTahunAjaran?['id'],
         semester: _selectedSemester,
       );
@@ -275,7 +243,7 @@ class _UjianTulisMateriBottomSheetState extends State<UjianTulisMateriBottomShee
                           setState(() {
                             _selectedTahunAjaran = _tahunAjaranList.firstWhere((ta) => ta['id'] == val);
                           });
-                          _loadClasses();
+                          _loadMateri(_selectedTingkat);
                         }
                       },
                     ),
@@ -309,7 +277,7 @@ class _UjianTulisMateriBottomSheetState extends State<UjianTulisMateriBottomShee
                           setState(() {
                             _selectedSemester = val;
                           });
-                          _loadClasses();
+                          _loadMateri(_selectedTingkat);
                         }
                       },
                     ),
@@ -320,64 +288,50 @@ class _UjianTulisMateriBottomSheetState extends State<UjianTulisMateriBottomShee
 
           const SizedBox(height: 8),
 
-          // Class Selection Dropdown
-          if (_loadingClasses)
-            const Padding(
-              padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-              child: Center(child: LinearProgressIndicator(color: Color(0xFF3B82F6))),
-            )
-          else if (_classError != null)
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-              child: Text(
-                "Gagal memuat kelas: $_classError",
-                style: GoogleFonts.outfit(color: Colors.redAccent, fontSize: 13),
-              ),
-            )
-          else if (_classes.isNotEmpty)
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-              child: DropdownButtonFormField<int>(
-                value: _selectedKelasId,
-                decoration: InputDecoration(
-                  labelText: "Pilih Kelas Diniyah",
-                  labelStyle: GoogleFonts.outfit(color: isDark ? Colors.white70 : Colors.black87),
-                  contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: BorderSide(color: borderCol),
-                  ),
-                  enabledBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: BorderSide(color: borderCol),
-                  ),
-                  focusedBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: const BorderSide(color: Color(0xFF3B82F6), width: 1.5),
-                  ),
-                  filled: true,
-                  fillColor: isDark ? const Color(0xFF1F2937) : const Color(0xFFF8FAFC),
+          // Tingkatan Kelas Selection Dropdown
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            child: DropdownButtonFormField<int>(
+              value: _selectedTingkat,
+              decoration: InputDecoration(
+                labelText: "Pilih Tingkatan Kelas",
+                labelStyle: GoogleFonts.outfit(color: isDark ? Colors.white70 : Colors.black87),
+                contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide(color: borderCol),
                 ),
-                dropdownColor: isDark ? const Color(0xFF1F2937) : Colors.white,
-                items: _classes.map<DropdownMenuItem<int>>((c) {
-                  return DropdownMenuItem<int>(
-                    value: c['id'] as int,
-                    child: Text(
-                      c['nama']?.toString() ?? '',
-                      style: GoogleFonts.outfit(color: headingColor, fontWeight: FontWeight.w500),
-                    ),
-                  );
-                }).toList(),
-                onChanged: (val) {
-                  if (val != null) {
-                    setState(() {
-                      _selectedKelasId = val;
-                    });
-                    _loadMateri(val);
-                  }
-                },
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide(color: borderCol),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: const BorderSide(color: Color(0xFF3B82F6), width: 1.5),
+                ),
+                filled: true,
+                fillColor: isDark ? const Color(0xFF1F2937) : const Color(0xFFF8FAFC),
               ),
+              dropdownColor: isDark ? const Color(0xFF1F2937) : Colors.white,
+              items: _tingkatanList.map<DropdownMenuItem<int>>((t) {
+                return DropdownMenuItem<int>(
+                  value: t['tingkat'] as int,
+                  child: Text(
+                    t['nama']?.toString() ?? '',
+                    style: GoogleFonts.outfit(color: headingColor, fontWeight: FontWeight.w500),
+                  ),
+                );
+              }).toList(),
+              onChanged: (val) {
+                if (val != null) {
+                  setState(() {
+                    _selectedTingkat = val;
+                  });
+                  _loadMateri(val);
+                }
+              },
             ),
+          ),
 
           const SizedBox(height: 12),
 
@@ -424,9 +378,7 @@ class _UjianTulisMateriBottomSheetState extends State<UjianTulisMateriBottomShee
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                 ),
                 onPressed: () {
-                  if (_selectedKelasId != null) {
-                    _loadMateri(_selectedKelasId!);
-                  }
+                  _loadMateri(_selectedTingkat);
                 },
               )
             ],

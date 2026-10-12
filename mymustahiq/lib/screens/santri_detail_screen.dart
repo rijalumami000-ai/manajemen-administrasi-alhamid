@@ -83,6 +83,26 @@ class _SantriDetailScreenState extends State<SantriDetailScreen> with SingleTick
     }
   }
 
+  String _formatTanggal(dynamic rawDate) {
+    if (rawDate == null || rawDate.toString().trim().isEmpty || rawDate.toString() == '-') {
+      return '-';
+    }
+    final str = rawDate.toString().trim();
+    try {
+      final dt = DateTime.parse(str);
+      final day = dt.day.toString().padLeft(2, '0');
+      final month = dt.month.toString().padLeft(2, '0');
+      final year = dt.year.toString();
+      return '$day-$month-$year';
+    } catch (_) {
+      final match = RegExp(r'^(\d{4})-(\d{2})-(\d{2})').firstMatch(str);
+      if (match != null) {
+        return '${match.group(3)}-${match.group(2)}-${match.group(1)}';
+      }
+      return str;
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final profile = _data?['profile'];
@@ -353,7 +373,7 @@ class _SantriDetailScreenState extends State<SantriDetailScreen> with SingleTick
                 _buildDivider(),
                 _buildInfoRow("Tempat Lahir", profile['tempat_lahir'] ?? '-'),
                 _buildDivider(),
-                _buildInfoRow("Tanggal Lahir", profile['tanggal_lahir'] ?? '-'),
+                _buildInfoRow("Tanggal Lahir", _formatTanggal(profile['tanggal_lahir'])),
                 _buildDivider(),
                 _buildInfoRow("Kamar Asrama", profile['kamar'] ?? '-'),
                 _buildDivider(),

@@ -730,11 +730,14 @@ class ApiService {
   }
 
   // Get Batasan Materi Ujian Tulis
-  Future<List<dynamic>> getMateriUjianTulis({required int kelasId, int? tahunAjaranId, String? semester}) async {
+  Future<List<dynamic>> getMateriUjianTulis({int? kelasId, int? tingkat, int? tahunAjaranId, String? semester}) async {
     try {
-      final Map<String, dynamic> queryParams = {
-        'kelas_id': kelasId,
-      };
+      final Map<String, dynamic> queryParams = {};
+      if (tingkat != null) {
+        queryParams['tingkat'] = tingkat;
+      } else if (kelasId != null) {
+        queryParams['kelas_id'] = kelasId;
+      }
       if (tahunAjaranId != null) {
         queryParams['tahun_ajaran_id'] = tahunAjaranId;
       }

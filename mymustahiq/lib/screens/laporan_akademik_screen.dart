@@ -43,7 +43,22 @@ class _LaporanAkademikScreenState extends State<LaporanAkademikScreen> {
           orElse: () => _tahunAjaranList.first,
         );
       }
+      await _loadClasses();
+    } catch (e) {
+      setState(() {
+        _errorMessage = e.toString().replaceFirst('Exception: ', '');
+        _isLoadingClasses = false;
+      });
+    }
+  }
 
+  Future<void> _loadClasses() async {
+    if (_selectedTahunAjaran == null) {
+      setState(() { _isLoadingClasses = false; });
+      return;
+    }
+    setState(() { _isLoadingClasses = true; _errorMessage = null; });
+    try {
       final classRes = await _apiService.getClasses(
         tahunAjaranId: _selectedTahunAjaran?['id'],
         semester: _selectedSemester,
@@ -120,22 +135,29 @@ class _LaporanAkademikScreenState extends State<LaporanAkademikScreen> {
       child: Row(
         children: [
           Expanded(
-            child: DropdownButton<Map<String, dynamic>>(
+            child: DropdownButton<int>(
               dropdownColor: context.isDarkMode ? const Color(0xFF1E293B) : Colors.white,
-              value: _selectedTahunAjaran,
+              value: _selectedTahunAjaran?['id'] as int?,
               isExpanded: true,
               underline: const SizedBox(),
               style: GoogleFonts.outfit(color: context.titleColor, fontSize: 13, fontWeight: FontWeight.bold),
-              items: _tahunAjaranList.map<DropdownMenuItem<Map<String, dynamic>>>((ta) {
-                return DropdownMenuItem<Map<String, dynamic>>(
-                  value: ta as Map<String, dynamic>,
+              items: _tahunAjaranList.map<DropdownMenuItem<int>>((ta) {
+                return DropdownMenuItem<int>(
+                  value: ta['id'] as int,
                   child: Text("T.A: ${ta['kode']}"),
                 );
               }).toList(),
               onChanged: (val) {
                 if (val != null) {
-                  setState(() { _selectedTahunAjaran = val; _laporanData = null; _selectedKelas = null; });
-                  _fetchInitialData();
+                  setState(() {
+                    _selectedTahunAjaran = _tahunAjaranList.firstWhere(
+                      (ta) => ta['id'] == val,
+                      orElse: () => _selectedTahunAjaran,
+                    );
+                    _laporanData = null;
+                    _selectedKelas = null;
+                  });
+                  _loadClasses();
                 }
               },
             ),
@@ -154,7 +176,12 @@ class _LaporanAkademikScreenState extends State<LaporanAkademikScreen> {
               ],
               onChanged: (val) {
                 if (val != null) {
-                  setState(() { _selectedSemester = val; _laporanData = null; _selectedKelas = null; });
+                  setState(() {
+                    _selectedSemester = val;
+                    _laporanData = null;
+                    _selectedKelas = null;
+                  });
+                  _loadClasses();
                 }
               },
             ),

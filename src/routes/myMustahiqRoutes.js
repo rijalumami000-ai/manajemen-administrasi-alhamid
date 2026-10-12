@@ -821,6 +821,8 @@ function registerMyMustahiqRoutes(app) {
       LEFT JOIN kelas_tahun_ajaran kta ON kta.mustahiq_id = g.id AND kta.tahun_ajaran_id = $1
       LEFT JOIN kelas k ON kta.kelas_id = k.id
       WHERE g.jabatan_id = 1
+        AND LOWER(COALESCE(g.status, 'aktif')) = 'aktif'
+        AND LOWER(COALESCE(g.status, '')) NOT IN ('cuti', 'pensiun')
       ORDER BY g.nama
     `, [activeYear ? activeYear.id : null]);
 
@@ -850,6 +852,8 @@ function registerMyMustahiqRoutes(app) {
         g.foto_url
       FROM guru g
       WHERE g.jabatan_id = 2
+        AND LOWER(COALESCE(g.status, 'aktif')) = 'aktif'
+        AND LOWER(COALESCE(g.status, '')) NOT IN ('cuti', 'pensiun')
       ORDER BY g.nama
     `);
 
@@ -2388,7 +2392,7 @@ function registerMyMustahiqRoutes(app) {
   }));
 
   router.get('/materi-ujian-tulis', asyncHandler(async (req, res) => {
-    const { kelas_id, semester, tahun_ajaran_id } = req.query;
+    const { kelas_id, tingkat: reqTingkat, semester, tahun_ajaran_id } = req.query;
     const parsedTahunAjaranId = tahun_ajaran_id && tahun_ajaran_id !== 'null' && tahun_ajaran_id !== 'undefined' ? parseInt(tahun_ajaran_id, 10) : null;
     const activeYear = parsedTahunAjaranId
       ? (await db.query('SELECT id, kode FROM tahun_ajaran WHERE id = $1', [parsedTahunAjaranId])).rows[0]
@@ -2405,19 +2409,23 @@ function registerMyMustahiqRoutes(app) {
     );
     const kategoriId = katResult.rows[0] ? katResult.rows[0].id : (activeSemester.toLowerCase().includes('genap') ? 2 : 1);
 
-    // Query the class information to get the tingkat
-    const classRes = await db.query('SELECT nama, tingkat FROM kelas WHERE id = $1 LIMIT 1', [kelas_id]);
-    const classInfo = classRes.rows[0];
+    // Determine tingkat: directly from query or via kelas_id
     let tingkat = null;
-    if (classInfo) {
-      tingkat = classInfo.tingkat;
-      if (classInfo.nama === 'SP' && classInfo.tingkat === 1) {
-        tingkat = 99;
+    if (reqTingkat !== undefined && reqTingkat !== null && reqTingkat !== '') {
+      tingkat = parseInt(reqTingkat, 10);
+    } else if (kelas_id) {
+      const classRes = await db.query('SELECT nama, tingkat FROM kelas WHERE id = $1 LIMIT 1', [kelas_id]);
+      const classInfo = classRes.rows[0];
+      if (classInfo) {
+        tingkat = classInfo.tingkat;
+        if (classInfo.nama === 'SP' && classInfo.tingkat === 1) {
+          tingkat = 99;
+        }
       }
     }
 
-    if (tingkat === null) {
-      return res.status(400).json({ error: 'Kelas tidak ditemukan atau tidak valid.' });
+    if (tingkat === null || isNaN(tingkat)) {
+      return res.status(400).json({ error: 'Tingkat kelas tidak ditemukan atau tidak valid.' });
     }
 
     const key = `materi_ujian_tulis_${activeYear.id}_${kategoriId}_${tingkat}`;
