@@ -37,6 +37,8 @@ const RadioPlayer = lazy(() => import('./pages/RadioPlayer').then(m => ({ defaul
 const StrukturOrganisasi = lazy(() => import('./pages/StrukturOrganisasi').then(m => ({ default: m.StrukturOrganisasi })));
 const JadwalPelajaran = lazy(() => import('./pages/JadwalPelajaran').then(m => ({ default: m.JadwalPelajaran })));
 const SilabusPembelajaran = lazy(() => import('./pages/SilabusPembelajaran').then(m => ({ default: m.SilabusPembelajaran })));
+const Romadhon = lazy(() => import('./pages/Romadhon').then(m => ({ default: m.Romadhon })));
+const MateriSidangPage = lazy(() => import('./pages/MateriSidang').then(m => ({ default: m.MateriSidang })));
 
 // ── Modul Keuangan (lazy loaded) ──────────────────────────────────────────
 const KeuanganDashboard = lazy(() => import('./pages/KeuanganDashboard'));
@@ -110,6 +112,9 @@ function App() {
                   <Route path="struktur-organisasi" element={<StrukturOrganisasi />} />
                   <Route path="jadwal-pelajaran" element={<JadwalPelajaran />} />
                   <Route path="silabus-pembelajaran" element={<SilabusPembelajaran />} />
+                  <Route path="romadhon" element={<Romadhon />} />
+                  <Route path="materi-sidang" element={<MateriSidangPage />} />
+                  <Route path="struktur-kepesantrenan" element={<StrukturOrganisasi />} />
 
                   {/* ── Keuangan ─────────────────────────────────────── */}
                   <Route path="keuangan" element={<KeuanganDashboard />} />

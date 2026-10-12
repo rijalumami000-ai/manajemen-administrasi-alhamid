@@ -22,6 +22,8 @@ const registerLembarUjianRoutes = require('./lembarUjianRoutes');
 const registerStrukturRoutes = require('./strukturRoutes');
 const registerJadwalPelajaranRoutes = require('./jadwalPelajaranRoutes');
 const registerMyMustahiqRoutes = require('./myMustahiqRoutes');
+const registerRomadhonRoutes = require('./romadhonRoutes');
+const registerMateriSidangRoutes = require('./materiSidangRoutes');
 
 function registerApiRoutes(app) {
   // Authentication routes (public)
@@ -55,6 +57,8 @@ function registerApiRoutes(app) {
   registerStrukturRoutes(app);
   registerJadwalPelajaranRoutes(app);
   registerMyMustahiqRoutes(app);
+  registerRomadhonRoutes(app);
+  registerMateriSidangRoutes(app);
 }
 
 module.exports = registerApiRoutes;

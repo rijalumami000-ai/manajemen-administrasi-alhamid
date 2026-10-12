@@ -3036,6 +3036,132 @@ function registerMyMustahiqRoutes(app) {
     }
   }));
 
+  // ═══════════════════════════════════════════════════════════════
+  // PELANGGARAN & PRESTASI (read-only for app, data from web)
+  // ═══════════════════════════════════════════════════════════════
+  router.get('/pelanggaran', asyncHandler(async (req, res) => {
+    const result = await db.query(`
+      SELECT p.*, s.nis, s.nama AS nama_santri, 
+             k.nama AS kelas_nama
+      FROM pelanggaran p
+      LEFT JOIN santri s ON p.santri_id = s.id
+      LEFT JOIN kelas k ON s.kelas_id = k.id
+      ORDER BY p.tanggal DESC
+      LIMIT 100
+    `);
+    res.json(result.rows);
+  }));
+
+  router.get('/prestasi', asyncHandler(async (req, res) => {
+    const result = await db.query(`
+      SELECT p.*, s.nis, s.nama AS nama_santri,
+             k.nama AS kelas_nama
+      FROM prestasi p
+      LEFT JOIN santri s ON p.santri_id = s.id
+      LEFT JOIN kelas k ON s.kelas_id = k.id
+      ORDER BY p.tanggal DESC
+      LIMIT 100
+    `);
+    res.json(result.rows);
+  }));
+
+  // ═══════════════════════════════════════════════════════════════
+  // JADWAL KAJIAN BALAGH ROMADHON (read-only for app)
+  // ═══════════════════════════════════════════════════════════════
+  router.get('/kajian-balagh', asyncHandler(async (req, res) => {
+    const activeYear = await getActiveTahunAjaran();
+    const tahunAjaranId = req.query.tahun_ajaran_id || (activeYear ? activeYear.id : null);
+    
+    if (!tahunAjaranId) {
+      return res.json([]);
+    }
+
+    const result = await db.query(
+      `SELECT * FROM jadwal_kajian_balagh WHERE tahun_ajaran_id = $1 ORDER BY kelas ASC, no_urut ASC, id ASC`,
+      [tahunAjaranId]
+    );
+    res.json(result.rows);
+  }));
+
+  // ═══════════════════════════════════════════════════════════════
+  // JADWAL IMAM TARAWIH & BILAL (read-only for app)
+  // ═══════════════════════════════════════════════════════════════
+  router.get('/imam-tarawih', asyncHandler(async (req, res) => {
+    const activeYear = await getActiveTahunAjaran();
+    const tahunAjaranId = req.query.tahun_ajaran_id || (activeYear ? activeYear.id : null);
+    
+    if (!tahunAjaranId) {
+      return res.json([]);
+    }
+
+    const result = await db.query(
+      `SELECT * FROM jadwal_imam_tarawih WHERE tahun_ajaran_id = $1 ORDER BY malam ASC, no_urut ASC`,
+      [tahunAjaranId]
+    );
+    res.json(result.rows);
+  }));
+
+  // ═══════════════════════════════════════════════════════════════
+  // STRUKTUR ORGANISASI (all types for app)
+  // ═══════════════════════════════════════════════════════════════
+  router.get('/struktur', asyncHandler(async (req, res) => {
+    const { tipe, tahun_ajaran_id } = req.query;
+    
+    if (!tipe) {
+      return res.status(400).json({ error: 'Parameter tipe wajib disertakan.' });
+    }
+
+    let query = `
+      SELECT 
+        s.id, s.tipe, s.jabatan, s.guru_id, s.nama_custom, s.keterangan, s.no_urut, s.tahun_ajaran_id,
+        g.nama AS guru_nama, g.no_hp AS guru_no_hp, g.foto_url AS guru_foto_url
+      FROM struktur_organisasi s
+      LEFT JOIN guru g ON s.guru_id = g.id
+      WHERE s.tipe = $1
+    `;
+    const params = [tipe];
+
+    if (tahun_ajaran_id && tipe !== 'panitia_sambangan') {
+      query += ` AND (s.tahun_ajaran_id = $2 OR s.tahun_ajaran_id IS NULL)`;
+      params.push(tahun_ajaran_id);
+    }
+
+    query += ` ORDER BY s.no_urut ASC, s.id ASC`;
+
+    const result = await db.query(query, params);
+    res.json(result.rows);
+  }));
+
+  // ═══════════════════════════════════════════════════════════════
+  // MATERI SIDANG (read-only for app)
+  // ═══════════════════════════════════════════════════════════════
+  router.get('/materi-sidang', asyncHandler(async (req, res) => {
+    const { tahun_masehi, kategori } = req.query;
+    let query = 'SELECT * FROM materi_sidang WHERE 1=1';
+    const params = [];
+    let idx = 1;
+
+    if (tahun_masehi) {
+      query += ` AND tahun_masehi = $${idx++}`;
+      params.push(tahun_masehi);
+    }
+    if (kategori) {
+      query += ` AND kategori = $${idx++}`;
+      params.push(kategori);
+    }
+    query += ' ORDER BY kategori ASC, tanggal DESC, id DESC';
+
+    const result = await db.query(query, params);
+    res.json(result.rows);
+  }));
+
+  router.get('/materi-sidang/tahun-options', asyncHandler(async (req, res) => {
+    const result = await db.query(
+      `SELECT DISTINCT tahun_masehi FROM materi_sidang ORDER BY tahun_masehi DESC`
+    );
+    res.json(result.rows.map(r => r.tahun_masehi));
+  }));
+
   app.use('/api/my-mustahiq', router);
 
 }

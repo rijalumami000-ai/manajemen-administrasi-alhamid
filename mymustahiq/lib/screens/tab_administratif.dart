@@ -16,12 +16,9 @@ class TabAdministratif extends StatefulWidget {
 }
 
 class _TabAdministratifState extends State<TabAdministratif> {
-  String _selectedCategory = 'Semua';
-  String _searchQuery = '';
-  final TextEditingController _searchController = TextEditingController();
+  String _selectedCategory = 'Data Kesiswaan';
 
   final List<String> _categories = [
-    'Semua',
     'Data Kesiswaan',
     'Asatidz',
     'Struktur',
@@ -31,7 +28,6 @@ class _TabAdministratifState extends State<TabAdministratif> {
 
   @override
   void dispose() {
-    _searchController.dispose();
     super.dispose();
   }
 
@@ -84,10 +80,6 @@ class _TabAdministratifState extends State<TabAdministratif> {
               ],
             ),
             const SizedBox(height: 18),
-
-            // Search Bar
-            _buildSearchBar(isDark),
-            const SizedBox(height: 14),
 
             // Quick Filter Chips
             _buildFilterChips(isDark),
@@ -174,7 +166,6 @@ class _TabAdministratifState extends State<TabAdministratif> {
   }
 
   bool _shouldShowCluster(String clusterName) {
-    if (_selectedCategory == 'Semua') return true;
     return _selectedCategory == clusterName;
   }
 

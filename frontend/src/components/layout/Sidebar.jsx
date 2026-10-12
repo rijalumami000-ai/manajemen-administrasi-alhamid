@@ -34,7 +34,10 @@ import {
   Wallet,
   BarChart3,
   Zap,
-  ShieldAlert
+  ShieldAlert,
+  Moon,
+  Landmark,
+  FileArchive
 } from 'lucide-react';
 import './Sidebar.scss';
 
@@ -70,7 +73,10 @@ const IconMap = {
   Wallet,
   BarChart3,
   Zap,
-  ShieldAlert
+  ShieldAlert,
+  Moon,
+  Landmark,
+  FileArchive
 };
 
 const renderIcon = (name, props = {}) => {
@@ -209,6 +215,8 @@ export function Sidebar({ collapsed, onCollapse }) {
         { key: '/buku-induk', icon: 'BookOpen', label: 'Buku Induk' },
         { key: '/kamar', icon: 'Home', label: 'Data Kamar' },
         { key: '/pelanggaran-prestasi', icon: 'Award', label: 'Pelanggaran & Prestasi' },
+        { key: '/struktur-kepesantrenan', icon: 'Landmark', label: 'Struktur Organisasi' },
+        { key: '/materi-sidang', icon: 'FileArchive', label: 'PDF Materi Sidang' },
       ]
     },
     {
@@ -231,7 +239,8 @@ export function Sidebar({ collapsed, onCollapse }) {
         { key: '/laporan-ujian-khusus', icon: 'FileText', label: 'Laporan Ujian Khusus', disabled: isStaff() },
         { key: '/kartu-ujian-semester', icon: 'IdCard', label: 'Kartu Ujian Semester', disabled: isStaff() },
         { key: '/lembar-ujian', icon: 'FileText', label: 'Lembar Ujian', disabled: isStaff() },
-        { key: '/alumni', icon: 'GraduationCap', label: 'Alumni', disabled: isStaff() }
+        { key: '/alumni', icon: 'GraduationCap', label: 'Alumni', disabled: isStaff() },
+        { key: '/romadhon', icon: 'Moon', label: 'Romadhon', disabled: isStaff() },
       ]
     },
     {

@@ -1,16 +1,23 @@
 const db = require('../../db');
 
+const VALID_TYPES = [
+  'madrasah_diniyah', 'panitia_ujian',
+  'pmq', 'pondok_putra', 'pondok_putri',
+  'panitia_sambangan', 'panitia_haflah', 'panitia_psb'
+];
+
 function registerStrukturRoutes(app) {
   // GET /api/struktur/:tipe
   app.get('/api/struktur/:tipe', async (req, res) => {
-    const { tipe } = db.query; // wait, let's use req.params
     const typeParam = req.params.tipe;
-    if (typeParam !== 'madrasah_diniyah' && typeParam !== 'panitia_ujian') {
-      return res.status(400).json({ error: 'Tipe struktur tidak valid. Gunakan: madrasah_diniyah atau panitia_ujian' });
+    if (!VALID_TYPES.includes(typeParam)) {
+      return res.status(400).json({ error: `Tipe struktur tidak valid. Gunakan salah satu: ${VALID_TYPES.join(', ')}` });
     }
 
+    const { tahun_ajaran_id } = req.query;
+
     try {
-      const result = await db.query(`
+      let query = `
         SELECT 
           s.id,
           s.tipe,
@@ -19,15 +26,25 @@ function registerStrukturRoutes(app) {
           s.nama_custom,
           s.keterangan,
           s.no_urut,
+          s.tahun_ajaran_id,
           g.nama AS guru_nama,
           g.no_hp AS guru_no_hp,
           g.foto_url AS guru_foto_url
         FROM struktur_organisasi s
         LEFT JOIN guru g ON s.guru_id = g.id
         WHERE s.tipe = $1
-        ORDER BY s.no_urut ASC, s.id ASC
-      `, [typeParam]);
+      `;
+      const params = [typeParam];
 
+      // Sambangan has no tahun_ajaran concept
+      if (tahun_ajaran_id && typeParam !== 'panitia_sambangan') {
+        query += ` AND (s.tahun_ajaran_id = $2 OR s.tahun_ajaran_id IS NULL)`;
+        params.push(tahun_ajaran_id);
+      }
+
+      query += ` ORDER BY s.no_urut ASC, s.id ASC`;
+
+      const result = await db.query(query, params);
       res.json(result.rows);
     } catch (error) {
       console.error('Error fetching struktur:', error);
@@ -149,7 +166,7 @@ function registerStrukturRoutes(app) {
   // POST /api/struktur/reset
   app.post('/api/struktur/reset', async (req, res) => {
     const { tipe } = req.body;
-    if (tipe !== 'madrasah_diniyah' && tipe !== 'panitia_ujian') {
+    if (!VALID_TYPES.includes(tipe)) {
       return res.status(400).json({ error: 'Tipe struktur tidak valid.' });
     }
 

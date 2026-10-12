@@ -26,21 +26,17 @@ class TabAkademik extends StatefulWidget {
 }
 
 class _TabAkademikState extends State<TabAkademik> {
-  String _selectedCategory = 'Semua';
-  String _searchQuery = '';
-  final TextEditingController _searchController = TextEditingController();
+  String _selectedCategory = 'Jadwal';
 
   final List<String> _categories = [
-    'Semua',
-    'Master Input',
-    'Laporan',
     'Jadwal',
+    'Laporan',
     'Info Ujian & Target',
+    'Master Input',
   ];
 
   @override
   void dispose() {
-    _searchController.dispose();
     super.dispose();
   }
 
@@ -94,26 +90,22 @@ class _TabAkademikState extends State<TabAkademik> {
             ),
             const SizedBox(height: 18),
 
-            // Search Bar
-            _buildSearchBar(isDark),
-            const SizedBox(height: 14),
-
             // Quick Filter Chips
             _buildFilterChips(isDark),
             const SizedBox(height: 24),
 
-            // 1. CLUSTER: MASTER INPUT
-            if (_shouldShowCluster('Master Input')) ...[
+            // 1. CLUSTER: JADWAL-JADWAL
+            if (_shouldShowCluster('Jadwal')) ...[
               _buildSectionHeader(
-                title: "Master Input Nilai & Absensi",
-                subtitle: "Entri harian ujian, absensi santri & verifikasi kartu",
-                badgeText: "4 Menu",
-                icon: Icons.border_color_rounded,
-                color: const Color(0xFFF97316),
+                title: "Jadwal & Agenda Kegiatan",
+                subtitle: "Jadwal pelajaran KBM, kajian Romadhon & imam tarawih",
+                badgeText: "3 Jadwal",
+                icon: Icons.calendar_month_rounded,
+                color: const Color(0xFF10B981),
                 isDark: isDark,
               ),
               const SizedBox(height: 14),
-              _buildMasterInputGrid(context, isDark),
+              _buildJadwalCluster(context, isDark),
               const SizedBox(height: 28),
             ],
 
@@ -132,22 +124,7 @@ class _TabAkademikState extends State<TabAkademik> {
               const SizedBox(height: 28),
             ],
 
-            // 3. CLUSTER: JADWAL-JADWAL
-            if (_shouldShowCluster('Jadwal')) ...[
-              _buildSectionHeader(
-                title: "Jadwal & Agenda Kegiatan",
-                subtitle: "Jadwal pelajaran KBM, kajian Romadhon & imam tarawih",
-                badgeText: "3 Jadwal",
-                icon: Icons.calendar_month_rounded,
-                color: const Color(0xFF10B981),
-                isDark: isDark,
-              ),
-              const SizedBox(height: 14),
-              _buildJadwalCluster(context, isDark),
-              const SizedBox(height: 28),
-            ],
-
-            // 4. CLUSTER: INFORMASI UJIAN & TARGET AKADEMIK
+            // 3. CLUSTER: INFORMASI UJIAN & TARGET AKADEMIK
             if (_shouldShowCluster('Info Ujian & Target')) ...[
               _buildSectionHeader(
                 title: "Informasi Ujian & Target Akademik",
@@ -159,6 +136,21 @@ class _TabAkademikState extends State<TabAkademik> {
               ),
               const SizedBox(height: 14),
               _buildInfoUjianCluster(context, isDark),
+              const SizedBox(height: 28),
+            ],
+
+            // 4. CLUSTER: MASTER INPUT
+            if (_shouldShowCluster('Master Input')) ...[
+              _buildSectionHeader(
+                title: "Master Input Nilai & Absensi",
+                subtitle: "Entri harian ujian, absensi santri & verifikasi kartu",
+                badgeText: "4 Menu",
+                icon: Icons.border_color_rounded,
+                color: const Color(0xFFF97316),
+                isDark: isDark,
+              ),
+              const SizedBox(height: 14),
+              _buildMasterInputGrid(context, isDark),
               const SizedBox(height: 24),
             ],
           ],
@@ -168,7 +160,6 @@ class _TabAkademikState extends State<TabAkademik> {
   }
 
   bool _shouldShowCluster(String clusterName) {
-    if (_selectedCategory == 'Semua') return true;
     return _selectedCategory == clusterName;
   }
 

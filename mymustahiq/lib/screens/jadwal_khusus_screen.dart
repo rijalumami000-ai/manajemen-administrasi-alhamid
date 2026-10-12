@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import '../services/api_service.dart';
 import '../services/theme_manager.dart';
 
 class JadwalKhususScreen extends StatefulWidget {
@@ -16,117 +17,12 @@ class JadwalKhususScreen extends StatefulWidget {
 class _JadwalKhususScreenState extends State<JadwalKhususScreen>
     with SingleTickerProviderStateMixin {
   late TabController _tabController;
-  String _selectedFaseRamadhan = 'Semua';
+  final ApiService _apiService = ApiService();
 
-  final List<Map<String, dynamic>> _kajianBalaghList = [
-    {
-      'kitab': 'Shohih Al-Bukhari (Mukhtashor)',
-      'mualif': 'Imam Abu Abdillah Muhammad bin Ismail Al-Bukhari',
-      'pengampu': 'K.H. Musthofa Bisri (Pengasuh)',
-      'waktu': 'Ba\'da Shubuh - 07.30 WIB',
-      'tempat': 'Masjid Jami\' Al-Hamid',
-      'target': 'Khatam 20 Ramadhan',
-      'peserta': 'Seluruh Santri & Alumni',
-      'badgeColor': const Color(0xFF10B981),
-    },
-    {
-      'kitab': 'Mukhtashor Ibni Abi Jamroh',
-      'mualif': 'Imam Ibnu Abi Jamroh Al-Andalusi',
-      'pengampu': 'K.H. Ahmad Dahlan, Lc',
-      'waktu': 'Ba\'da Ashar - Menjelang Maghrib',
-      'tempat': 'Aula Utama Pondok Putri & Putra',
-      'target': 'Khatam 17 Ramadhan (Nuzulul Qur\'an)',
-      'peserta': 'Santri Wustho & Ulya',
-      'badgeColor': const Color(0xFF3B82F6),
-    },
-    {
-      'kitab': 'Kifayatul Atqiya\' wa Minhajul Ashfiya\'',
-      'mualif': 'Sayyid Bakri bin Muhammad Syatha Ad-Dimyathi',
-      'pengampu': 'Ust. M. Syukron, M.Ag',
-      'waktu': 'Ba\'da Tarawih - 22.00 WIB',
-      'tempat': 'Musholla As-Salam (Komplek Barat)',
-      'target': 'Khatam 21 Ramadhan',
-      'peserta': 'Khusus Santri Kelas 3 & Ulya',
-      'badgeColor': const Color(0xFF8B5CF6),
-    },
-    {
-      'kitab': 'Risalatul Mu\'awanah wal Mudzakarah',
-      'mualif': 'Al-Habib Abdullah bin Alawi Al-Haddad',
-      'pengampu': 'Ust. Nurul Huda, S.Pd.I',
-      'waktu': '09.00 - 11.00 WIB (Pagi)',
-      'tempat': 'Gedung Madrasah Lt. 2',
-      'target': 'Khatam 15 Ramadhan',
-      'peserta': 'Santri Sifir & Ibtidaiyah',
-      'badgeColor': const Color(0xFFF59E0B),
-    },
-    {
-      'kitab': 'Bidayatul Hidayah (Bab Adab & Ubudiyah)',
-      'mualif': 'Hujjatul Islam Imam Al-Ghazali',
-      'pengampu': 'Ust. Farhan Azis & Dewan Asatidz',
-      'waktu': '13.30 - 15.00 WIB (Siang)',
-      'tempat': 'Teras Ndalem Pengasuh',
-      'target': 'Khatam 18 Ramadhan',
-      'peserta': 'Santri Baru & Kader Da\'i',
-      'badgeColor': const Color(0xFFEC4899),
-    },
-  ];
-
-  final List<Map<String, dynamic>> _tarawihList = [
-    {
-      'malam': 1,
-      'hijriah': '1 Ramadhan 1446 H',
-      'fase': '10 Pertama (Rahmah)',
-      'imam': 'K.H. Musthofa Bisri',
-      'bilal': 'Ust. Rifqi Maulana',
-      'juz': 'Juz 1 (Al-Baqarah 1-141)',
-      'tempat': 'Masjid Jami\' Al-Hamid',
-    },
-    {
-      'malam': 2,
-      'hijriah': '2 Ramadhan 1446 H',
-      'fase': '10 Pertama (Rahmah)',
-      'imam': 'Ust. M. Syukron, M.Ag',
-      'bilal': 'Ust. Ahmad Wildan',
-      'juz': 'Juz 2 (Al-Baqarah 142-252)',
-      'tempat': 'Masjid Jami\' Al-Hamid',
-    },
-    {
-      'malam': 3,
-      'hijriah': '3 Ramadhan 1446 H',
-      'fase': '10 Pertama (Rahmah)',
-      'imam': 'Ust. Nurul Huda, S.Pd.I',
-      'bilal': 'Ust. Farhan Azis',
-      'juz': 'Juz 3 (Al-Baqarah 253 - Ali \'Imran 92)',
-      'tempat': 'Masjid Jami\' Al-Hamid',
-    },
-    {
-      'malam': 15,
-      'hijriah': '15 Ramadhan 1446 H',
-      'fase': '10 Kedua (Maghfirah)',
-      'imam': 'K.H. Ahmad Dahlan, Lc',
-      'bilal': 'Ust. Zidni Ilman',
-      'juz': 'Juz 15 (Al-Isra\' 1 - Al-Kahf 74)',
-      'tempat': 'Masjid Jami\' Al-Hamid (Mulai Doa Qunut)',
-    },
-    {
-      'malam': 21,
-      'hijriah': '21 Ramadhan 1446 H',
-      'fase': '10 Terakhir (Itqun Minan Nar)',
-      'imam': 'K.H. Musthofa Bisri',
-      'bilal': 'Ust. Rifqi Maulana',
-      'juz': 'Juz 21 (Al-\'Ankabut 46 - Al-Ahzab 30) + Qiyamul Lail',
-      'tempat': 'Masjid Jami\' Al-Hamid',
-    },
-    {
-      'malam': 27,
-      'hijriah': '27 Ramadhan 1446 H',
-      'fase': '10 Terakhir (Itqun Minan Nar)',
-      'imam': 'K.H. Musthofa Bisri & Para Hufadz',
-      'bilal': 'Ust. M. Syukron',
-      'juz': 'Juz 27 (Adz-Dzariyat 31 - Al-Hadid 29) + Khataman Tarawih',
-      'tempat': 'Masjid Jami\' Al-Hamid',
-    },
-  ];
+  List<dynamic> _kajianList = [];
+  List<dynamic> _tarawihList = [];
+  bool _isLoading = true;
+  String? _error;
 
   @override
   void initState() {
@@ -136,12 +32,33 @@ class _JadwalKhususScreenState extends State<JadwalKhususScreen>
       vsync: this,
       initialIndex: widget.initialTabIndex,
     );
+    _loadData();
   }
 
   @override
   void dispose() {
     _tabController.dispose();
     super.dispose();
+  }
+
+  Future<void> _loadData() async {
+    setState(() { _isLoading = true; _error = null; });
+    try {
+      final results = await Future.wait([
+        _apiService.getKajianBalagh(),
+        _apiService.getImamTarawih(),
+      ]);
+      setState(() {
+        _kajianList = results[0];
+        _tarawihList = results[1];
+        _isLoading = false;
+      });
+    } catch (e) {
+      setState(() {
+        _error = e.toString().replaceAll('Exception: ', '');
+        _isLoading = false;
+      });
+    }
   }
 
   @override
@@ -185,410 +102,424 @@ class _JadwalKhususScreenState extends State<JadwalKhususScreen>
           ],
         ),
       ),
-      body: TabBarView(
-        controller: _tabController,
-        children: [
-          _buildBalaghTab(context, isDark),
-          _buildTarawihTab(context, isDark),
-        ],
-      ),
+      body: _isLoading
+          ? const Center(child: CircularProgressIndicator(color: Color(0xFF10B981)))
+          : _error != null
+              ? Center(
+                  child: Padding(
+                    padding: const EdgeInsets.all(24),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(Icons.cloud_off_rounded, size: 48, color: Colors.grey[400]),
+                        const SizedBox(height: 12),
+                        Text(_error!, textAlign: TextAlign.center, style: GoogleFonts.outfit(color: Colors.grey)),
+                        const SizedBox(height: 16),
+                        ElevatedButton.icon(
+                          onPressed: _loadData,
+                          icon: const Icon(Icons.refresh_rounded, size: 18),
+                          label: const Text("Coba Lagi"),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color(0xFF10B981),
+                            foregroundColor: Colors.white,
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                )
+              : TabBarView(
+                  controller: _tabController,
+                  children: [
+                    _buildBalaghTab(context, isDark),
+                    _buildTarawihTab(context, isDark),
+                  ],
+                ),
     );
   }
 
   Widget _buildBalaghTab(BuildContext context, bool isDark) {
-    return SingleChildScrollView(
-      physics: const BouncingScrollPhysics(),
-      padding: const EdgeInsets.all(20),
+    // Group by kelas
+    final Map<String, List<dynamic>> grouped = {};
+    for (final item in _kajianList) {
+      final kelas = item['kelas']?.toString() ?? 'Lainnya';
+      grouped.putIfAbsent(kelas, () => []);
+      grouped[kelas]!.add(item);
+    }
+
+    return RefreshIndicator(
+      onRefresh: _loadData,
+      color: const Color(0xFF10B981),
+      child: SingleChildScrollView(
+        physics: const AlwaysScrollableScrollPhysics(parent: BouncingScrollPhysics()),
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Banner
+            Container(
+              padding: const EdgeInsets.all(18),
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  colors: isDark
+                      ? [const Color(0xFF065F46), const Color(0xFF0F172A)]
+                      : [const Color(0xFFECFDF5), const Color(0xFFD1FAE5)],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                ),
+                borderRadius: BorderRadius.circular(20),
+                border: Border.all(color: const Color(0xFF10B981).withOpacity(0.3)),
+              ),
+              child: Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF10B981).withOpacity(0.18),
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                    child: const Icon(Icons.nights_stay_rounded, color: Color(0xFF10B981), size: 28),
+                  ),
+                  const SizedBox(width: 14),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          "Kajian Kilatan Balagh Romadhon",
+                          style: GoogleFonts.outfit(
+                            color: isDark ? Colors.white : const Color(0xFF065F46),
+                            fontWeight: FontWeight.bold,
+                            fontSize: 15,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          "Khataman Kitab Salaf bersama Masyayikh & Dewan Asatidz Pondok Pesantren Al-Hamid.",
+                          style: GoogleFonts.outfit(
+                            color: isDark ? Colors.white70 : const Color(0xFF047857),
+                            fontSize: 11,
+                            height: 1.3,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 20),
+
+            if (_kajianList.isEmpty)
+              _buildEmptyState("Belum ada data jadwal kajian balagh.", Icons.menu_book_rounded)
+            else
+              ...grouped.entries.map((entry) {
+                final kelas = entry.key;
+                final items = entry.value;
+                return _buildKelasGroup(kelas, items, isDark);
+              }),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildKelasGroup(String kelas, List<dynamic> items, bool isDark) {
+    final colors = [
+      const Color(0xFF10B981),
+      const Color(0xFF3B82F6),
+      const Color(0xFF8B5CF6),
+      const Color(0xFFF59E0B),
+      const Color(0xFFEC4899),
+    ];
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // Kelas header
+        Container(
+          margin: const EdgeInsets.only(bottom: 10),
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              colors: [const Color(0xFF065F46), const Color(0xFF047857)],
+            ),
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: Row(
+            children: [
+              const Icon(Icons.groups_rounded, color: Colors.white, size: 16),
+              const SizedBox(width: 8),
+              Text(
+                kelas,
+                style: GoogleFonts.outfit(
+                  color: Colors.white,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 13,
+                ),
+              ),
+              const Spacer(),
+              Text(
+                "${items.length} sesi",
+                style: GoogleFonts.outfit(
+                  color: Colors.white70,
+                  fontSize: 11,
+                ),
+              ),
+            ],
+          ),
+        ),
+        ...items.asMap().entries.map((entry) {
+          final idx = entry.key;
+          final item = entry.value;
+          final color = colors[idx % colors.length];
+          return _buildKajianCard(item, color, isDark);
+        }),
+        const SizedBox(height: 16),
+      ],
+    );
+  }
+
+  Widget _buildKajianCard(Map<String, dynamic> item, Color badgeColor, bool isDark) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: isDark ? const Color(0xFF131C2E) : Colors.white,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: isDark ? Colors.white.withOpacity(0.06) : Colors.black.withOpacity(0.06)),
+        boxShadow: [
+          BoxShadow(color: Colors.black.withOpacity(isDark ? 0.15 : 0.04), blurRadius: 10, offset: const Offset(0, 4)),
+        ],
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Banner Ramadhan
-          Container(
-            padding: const EdgeInsets.all(18),
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                colors: isDark
-                    ? [const Color(0xFF065F46), const Color(0xFF0F172A)]
-                    : [const Color(0xFFECFDF5), const Color(0xFFD1FAE5)],
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-              ),
-              borderRadius: BorderRadius.circular(20),
-              border: Border.all(
-                color: const Color(0xFF10B981).withOpacity(0.3),
-              ),
-            ),
-            child: Row(
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFF10B981).withOpacity(0.18),
-                    borderRadius: BorderRadius.circular(16),
-                  ),
-                  child: const Icon(Icons.nights_stay_rounded, color: Color(0xFF10B981), size: 28),
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: badgeColor.withOpacity(0.14),
+                  borderRadius: BorderRadius.circular(12),
                 ),
-                const SizedBox(width: 14),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        "Kajian Kilatan Balagh Romadhon",
-                        style: GoogleFonts.outfit(
-                          color: isDark ? Colors.white : const Color(0xFF065F46),
-                          fontWeight: FontWeight.bold,
-                          fontSize: 15,
-                        ),
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        "Khataman Kitab Salaf bersama Masyayikh & Dewan Asatidz Pondok Pesantren Al-Hamid.",
-                        style: GoogleFonts.outfit(
-                          color: isDark ? Colors.white70 : const Color(0xFF047857),
-                          fontSize: 11,
-                          height: 1.3,
-                        ),
-                      ),
-                    ],
+                child: Icon(Icons.auto_stories_rounded, color: badgeColor, size: 20),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  item['kitab']?.toString() ?? '-',
+                  style: GoogleFonts.outfit(
+                    color: context.titleColor,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 14,
                   ),
                 ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 20),
-
-          Text(
-            "DAFTAR KITAB & JADWAL PENGAJIAN",
-            style: GoogleFonts.outfit(
-              color: context.subTitleColor,
-              fontSize: 11,
-              fontWeight: FontWeight.bold,
-              letterSpacing: 1.2,
-            ),
+              ),
+            ],
           ),
           const SizedBox(height: 12),
-
-          ..._kajianBalaghList.map((item) => _buildBalaghCard(item, isDark)),
+          _buildInfoRow(Icons.person_rounded, "Qori'", item['qori']?.toString() ?? '-', isDark),
+          _buildInfoRow(Icons.access_time_rounded, "Waktu", item['waktu']?.toString() ?? '-', isDark),
+          if (item['tempat'] != null && item['tempat'].toString().isNotEmpty)
+            _buildInfoRow(Icons.location_on_rounded, "Tempat", item['tempat'].toString(), isDark),
         ],
       ),
     );
   }
 
   Widget _buildTarawihTab(BuildContext context, bool isDark) {
-    final filtered = _tarawihList.where((item) {
-      if (_selectedFaseRamadhan == 'Semua') return true;
-      return item['fase'] == _selectedFaseRamadhan;
-    }).toList();
-
-    return SingleChildScrollView(
-      physics: const BouncingScrollPhysics(),
-      padding: const EdgeInsets.all(20),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Filter Fase
-          SingleChildScrollView(
-            scrollDirection: Axis.horizontal,
-            child: Row(
-              children: [
-                'Semua',
-                '10 Pertama (Rahmah)',
-                '10 Kedua (Maghfirah)',
-                '10 Terakhir (Itqun Minan Nar)',
-              ].map((fase) {
-                final isSelected = _selectedFaseRamadhan == fase;
-                return Padding(
-                  padding: const EdgeInsets.only(right: 8),
-                  child: ChoiceChip(
-                    label: Text(fase, style: GoogleFonts.outfit(fontSize: 12)),
-                    selected: isSelected,
-                    onSelected: (val) => setState(() => _selectedFaseRamadhan = fase),
-                    selectedColor: const Color(0xFF10B981).withOpacity(0.18),
-                    labelStyle: GoogleFonts.outfit(
-                      color: isSelected ? const Color(0xFF10B981) : context.subTitleColor,
-                      fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+    return RefreshIndicator(
+      onRefresh: _loadData,
+      color: const Color(0xFF10B981),
+      child: SingleChildScrollView(
+        physics: const AlwaysScrollableScrollPhysics(parent: BouncingScrollPhysics()),
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Banner
+            Container(
+              padding: const EdgeInsets.all(18),
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  colors: isDark
+                      ? [const Color(0xFF312E81), const Color(0xFF0F172A)]
+                      : [const Color(0xFFEDE9FE), const Color(0xFFC4B5FD)],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                ),
+                borderRadius: BorderRadius.circular(20),
+                border: Border.all(color: const Color(0xFF8B5CF6).withOpacity(0.3)),
+              ),
+              child: Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF8B5CF6).withOpacity(0.18),
+                      borderRadius: BorderRadius.circular(16),
                     ),
-                    backgroundColor: isDark ? const Color(0xFF131C2E) : Colors.white,
-                    side: BorderSide(
-                      color: isSelected
-                          ? const Color(0xFF10B981)
-                          : (isDark ? Colors.white12 : Colors.black12),
+                    child: const Icon(Icons.mosque_rounded, color: Color(0xFF8B5CF6), size: 28),
+                  ),
+                  const SizedBox(width: 14),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          "Jadwal Imam Tarawih & Bilal",
+                          style: GoogleFonts.outfit(
+                            color: isDark ? Colors.white : const Color(0xFF312E81),
+                            fontWeight: FontWeight.bold,
+                            fontSize: 15,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          "Petugas sholat tarawih dan bilal/muroqqi Bulan Romadhon.",
+                          style: GoogleFonts.outfit(
+                            color: isDark ? Colors.white70 : const Color(0xFF5B21B6),
+                            fontSize: 11,
+                            height: 1.3,
+                          ),
+                        ),
+                      ],
                     ),
                   ),
-                );
-              }).toList(),
+                ],
+              ),
             ),
-          ),
-          const SizedBox(height: 18),
+            const SizedBox(height: 20),
 
-          Text(
-            "JADWAL PETUGAS SHOLAT ISYA', TARAWIH & WITIR",
-            style: GoogleFonts.outfit(
-              color: context.subTitleColor,
-              fontSize: 11,
-              fontWeight: FontWeight.bold,
-              letterSpacing: 1.2,
-            ),
-          ),
-          const SizedBox(height: 12),
-
-          ...filtered.map((item) => _buildTarawihCard(item, isDark)),
-        ],
+            if (_tarawihList.isEmpty)
+              _buildEmptyState("Belum ada data jadwal imam tarawih.", Icons.mosque_rounded)
+            else
+              ..._tarawihList.map((item) => _buildTarawihCard(item, isDark)),
+          ],
+        ),
       ),
     );
   }
 
-  Widget _buildBalaghCard(Map<String, dynamic> item, bool isDark) {
-    final Color badgeCol = item['badgeColor'] as Color;
+  Widget _buildTarawihCard(dynamic item, bool isDark) {
+    final malam = item['malam']?.toString() ?? '-';
 
     return Container(
-      margin: const EdgeInsets.only(bottom: 14),
-      padding: const EdgeInsets.all(16),
+      margin: const EdgeInsets.only(bottom: 12),
       decoration: BoxDecoration(
         color: isDark ? const Color(0xFF131C2E) : Colors.white,
         borderRadius: BorderRadius.circular(18),
-        border: Border.all(
-          color: isDark ? Colors.white.withOpacity(0.06) : Colors.black.withOpacity(0.06),
-        ),
+        border: Border.all(color: isDark ? Colors.white.withOpacity(0.06) : Colors.black.withOpacity(0.06)),
+        boxShadow: [
+          BoxShadow(color: Colors.black.withOpacity(isDark ? 0.15 : 0.04), blurRadius: 10, offset: const Offset(0, 4)),
+        ],
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+      child: Row(
         children: [
-          Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                decoration: BoxDecoration(
-                  color: badgeCol.withOpacity(0.12),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Text(
-                  item['target'],
-                  style: GoogleFonts.outfit(
-                    color: badgeCol,
-                    fontWeight: FontWeight.bold,
-                    fontSize: 10,
-                  ),
-                ),
-              ),
-              const Spacer(),
-              Text(
-                item['peserta'],
-                style: GoogleFonts.outfit(
-                  color: context.subTitleColor,
-                  fontSize: 11,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 10),
-          Text(
-            item['kitab'],
-            style: GoogleFonts.outfit(
-              color: context.titleColor,
-              fontWeight: FontWeight.bold,
-              fontSize: 15,
-            ),
-          ),
-          Text(
-            "Karya: ${item['mualif']}",
-            style: GoogleFonts.outfit(
-              color: context.subTitleColor,
-              fontSize: 11,
-              fontStyle: FontStyle.italic,
-            ),
-          ),
-          const SizedBox(height: 12),
+          // Malam badge
           Container(
-            padding: const EdgeInsets.all(12),
+            width: 60,
+            padding: const EdgeInsets.symmetric(vertical: 18),
             decoration: BoxDecoration(
-              color: isDark ? Colors.white.withOpacity(0.02) : const Color(0xFFF8FAFC),
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: isDark ? Colors.white10 : Colors.black12),
+              gradient: const LinearGradient(
+                colors: [Color(0xFF8B5CF6), Color(0xFF7C3AED)],
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+              ),
+              borderRadius: const BorderRadius.only(
+                topLeft: Radius.circular(18),
+                bottomLeft: Radius.circular(18),
+              ),
             ),
             child: Column(
               children: [
-                Row(
-                  children: [
-                    const Icon(Icons.person_pin_rounded, color: Color(0xFF10B981), size: 16),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: Text(
-                        "Qori': ${item['pengampu']}",
-                        style: GoogleFonts.outfit(
-                          color: context.titleColor,
-                          fontWeight: FontWeight.w600,
-                          fontSize: 12,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 6),
-                Row(
-                  children: [
-                    Icon(Icons.access_time_rounded, color: context.subTitleColor, size: 16),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: Text(
-                        item['waktu'],
-                        style: GoogleFonts.outfit(
-                          color: context.subTitleColor,
-                          fontSize: 11,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 4),
-                Row(
-                  children: [
-                    Icon(Icons.place_rounded, color: context.subTitleColor, size: 16),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: Text(
-                        item['tempat'],
-                        style: GoogleFonts.outfit(
-                          color: context.subTitleColor,
-                          fontSize: 11,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildTarawihCard(Map<String, dynamic> item, bool isDark) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 14),
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: isDark ? const Color(0xFF131C2E) : Colors.white,
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(
-          color: isDark ? Colors.white.withOpacity(0.06) : Colors.black.withOpacity(0.06),
-        ),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.all(10),
-                decoration: BoxDecoration(
-                  gradient: const LinearGradient(
-                    colors: [Color(0xFF10B981), Color(0xFF059669)],
-                  ),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Text(
-                  "${item['malam']}",
+                Text(
+                  malam,
                   style: GoogleFonts.outfit(
                     color: Colors.white,
-                    fontWeight: FontWeight.bold,
-                    fontSize: 16,
+                    fontWeight: FontWeight.w800,
+                    fontSize: 22,
                   ),
                 ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      "Malam ke-${item['malam']} Ramadhan",
-                      style: GoogleFonts.outfit(
-                        color: context.titleColor,
-                        fontWeight: FontWeight.bold,
-                        fontSize: 14,
-                      ),
-                    ),
-                    Text(
-                      "${item['hijriah']} • ${item['fase']}",
-                      style: GoogleFonts.outfit(
-                        color: context.subTitleColor,
-                        fontSize: 11,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 12),
-          Container(
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: isDark ? Colors.white.withOpacity(0.02) : const Color(0xFFF8FAFC),
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: isDark ? Colors.white10 : Colors.black12),
-            ),
-            child: Column(
-              children: [
-                Row(
-                  children: [
-                    const Icon(Icons.person_rounded, color: Color(0xFF10B981), size: 16),
-                    const SizedBox(width: 8),
-                    Text("Imam: ", style: GoogleFonts.outfit(fontSize: 12, color: context.subTitleColor)),
-                    Expanded(
-                      child: Text(
-                        item['imam'],
-                        style: GoogleFonts.outfit(
-                          color: context.titleColor,
-                          fontWeight: FontWeight.bold,
-                          fontSize: 12,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 6),
-                Row(
-                  children: [
-                    const Icon(Icons.record_voice_over_rounded, color: Color(0xFF3B82F6), size: 16),
-                    const SizedBox(width: 8),
-                    Text("Bilal: ", style: GoogleFonts.outfit(fontSize: 12, color: context.subTitleColor)),
-                    Expanded(
-                      child: Text(
-                        item['bilal'],
-                        style: GoogleFonts.outfit(
-                          color: context.titleColor,
-                          fontWeight: FontWeight.w600,
-                          fontSize: 12,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 6),
-                Row(
-                  children: [
-                    const Icon(Icons.menu_book_rounded, color: Color(0xFFF59E0B), size: 16),
-                    const SizedBox(width: 8),
-                    Text("Tilawah: ", style: GoogleFonts.outfit(fontSize: 12, color: context.subTitleColor)),
-                    Expanded(
-                      child: Text(
-                        item['juz'],
-                        style: GoogleFonts.outfit(
-                          color: context.subTitleColor,
-                          fontSize: 11,
-                        ),
-                      ),
-                    ),
-                  ],
+                Text(
+                  "Malam",
+                  style: GoogleFonts.outfit(
+                    color: Colors.white70,
+                    fontSize: 9,
+                    fontWeight: FontWeight.w600,
+                  ),
                 ),
               ],
             ),
           ),
+          Expanded(
+            child: Padding(
+              padding: const EdgeInsets.all(14),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _buildInfoRow(Icons.person_rounded, "Imam", item['imam']?.toString() ?? '-', isDark),
+                  if (item['bilal'] != null && item['bilal'].toString().isNotEmpty)
+                    _buildInfoRow(Icons.record_voice_over_rounded, "Bilal", item['bilal'].toString(), isDark),
+                  if (item['tempat'] != null && item['tempat'].toString().isNotEmpty)
+                    _buildInfoRow(Icons.location_on_rounded, "Tempat", item['tempat'].toString(), isDark),
+                ],
+              ),
+            ),
+          ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildInfoRow(IconData icon, String label, String value, bool isDark) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 6),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(icon, size: 14, color: isDark ? Colors.white38 : Colors.grey[500]),
+          const SizedBox(width: 6),
+          Text(
+            "$label: ",
+            style: GoogleFonts.outfit(
+              color: isDark ? Colors.white38 : Colors.grey[500],
+              fontSize: 11,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          Expanded(
+            child: Text(
+              value,
+              style: GoogleFonts.outfit(
+                color: context.titleColor,
+                fontSize: 12,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildEmptyState(String message, IconData icon) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 60),
+        child: Column(
+          children: [
+            Icon(icon, size: 48, color: Colors.grey[300]),
+            const SizedBox(height: 12),
+            Text(
+              message,
+              style: GoogleFonts.outfit(color: Colors.grey, fontSize: 13),
+              textAlign: TextAlign.center,
+            ),
+          ],
+        ),
       ),
     );
   }

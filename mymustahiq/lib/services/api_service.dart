@@ -1007,10 +1007,108 @@ class ApiService {
       rethrow;
     }
   }
+
+  // --- PELANGGARAN (from web data) ---
+  Future<List<dynamic>> getPelanggaran() async {
+    try {
+      final response = await _dio.get('/my-mustahiq/pelanggaran');
+      if (response.statusCode == 200) {
+        return response.data as List<dynamic>;
+      }
+      throw Exception('Gagal mengambil data pelanggaran.');
+    } catch (e) {
+      if (e is DioException && e.response != null) {
+        throw Exception(e.response?.data['error'] ?? 'Gagal mengambil data pelanggaran.');
+      }
+      rethrow;
+    }
+  }
+
+  // --- PRESTASI (from web data) ---
+  Future<List<dynamic>> getPrestasi() async {
+    try {
+      final response = await _dio.get('/my-mustahiq/prestasi');
+      if (response.statusCode == 200) {
+        return response.data as List<dynamic>;
+      }
+      throw Exception('Gagal mengambil data prestasi.');
+    } catch (e) {
+      if (e is DioException && e.response != null) {
+        throw Exception(e.response?.data['error'] ?? 'Gagal mengambil data prestasi.');
+      }
+      rethrow;
+    }
+  }
+
+  // --- JADWAL KAJIAN BALAGH ROMADHON ---
+  Future<List<dynamic>> getKajianBalagh({int? tahunAjaranId}) async {
+    try {
+      final Map<String, dynamic> qp = {};
+      if (tahunAjaranId != null) qp['tahun_ajaran_id'] = tahunAjaranId;
+      final response = await _dio.get('/my-mustahiq/kajian-balagh', queryParameters: qp);
+      if (response.statusCode == 200) {
+        return response.data as List<dynamic>;
+      }
+      throw Exception('Gagal mengambil jadwal kajian balagh.');
+    } catch (e) {
+      if (e is DioException && e.response != null) {
+        throw Exception(e.response?.data['error'] ?? 'Gagal mengambil jadwal kajian balagh.');
+      }
+      rethrow;
+    }
+  }
+
+  // --- JADWAL IMAM TARAWIH & BILAL ---
+  Future<List<dynamic>> getImamTarawih({int? tahunAjaranId}) async {
+    try {
+      final Map<String, dynamic> qp = {};
+      if (tahunAjaranId != null) qp['tahun_ajaran_id'] = tahunAjaranId;
+      final response = await _dio.get('/my-mustahiq/imam-tarawih', queryParameters: qp);
+      if (response.statusCode == 200) {
+        return response.data as List<dynamic>;
+      }
+      throw Exception('Gagal mengambil jadwal imam tarawih.');
+    } catch (e) {
+      if (e is DioException && e.response != null) {
+        throw Exception(e.response?.data['error'] ?? 'Gagal mengambil jadwal imam tarawih.');
+      }
+      rethrow;
+    }
+  }
+
+  // --- MATERI SIDANG ---
+  Future<List<dynamic>> getMateriSidang({String? tahunMasehi, String? kategori}) async {
+    try {
+      final Map<String, dynamic> qp = {};
+      if (tahunMasehi != null) qp['tahun_masehi'] = tahunMasehi;
+      if (kategori != null) qp['kategori'] = kategori;
+      final response = await _dio.get('/my-mustahiq/materi-sidang', queryParameters: qp);
+      if (response.statusCode == 200) {
+        return response.data as List<dynamic>;
+      }
+      throw Exception('Gagal mengambil materi sidang.');
+    } catch (e) {
+      if (e is DioException && e.response != null) {
+        throw Exception(e.response?.data['error'] ?? 'Gagal mengambil materi sidang.');
+      }
+      rethrow;
+    }
+  }
+
+  Future<List<dynamic>> getMateriSidangTahunOptions() async {
+    try {
+      final response = await _dio.get('/my-mustahiq/materi-sidang/tahun-options');
+      if (response.statusCode == 200) {
+        return response.data as List<dynamic>;
+      }
+      throw Exception('Gagal mengambil opsi tahun.');
+    } catch (e) {
+      if (e is DioException && e.response != null) {
+        throw Exception(e.response?.data['error'] ?? 'Gagal mengambil opsi tahun.');
+      }
+      rethrow;
+    }
+  }
 }
-
-
-
-
 
 
