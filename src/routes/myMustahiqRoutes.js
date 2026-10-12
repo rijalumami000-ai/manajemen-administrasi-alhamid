@@ -1297,11 +1297,11 @@ function registerMyMustahiqRoutes(app) {
 
     const kelasConfig = ktaResult.rows[0] || {};
 
-    // Fetch special subjects that might not be in mapelResult (Taftisyul Kutub, Muhafadzoh Akbar, Qiroatul Kitab)
+    // Fetch special subjects (Muhafadzoh Akbar, Qiroatul Kitab, Taftisyul Kutub) that might not be in mapelResult
     const specialSubjects = await db.query(`
       SELECT id, nama, jenis FROM mata_pelajaran 
-      WHERE id IN ($1, $2, $3, $4, $5)
-    `, [muhafadzohId, qiroatulId, taftisyId, kelasConfig.muhafadzoh_mapel_id || -1, kelasConfig.qiroatul_mapel_id || -1]);
+      WHERE id IN ($1, $2, $3)
+    `, [muhafadzohId, qiroatulId, taftisyId]);
 
     specialSubjects.rows.forEach(sm => {
       if (!mapelResult.rows.some(m => m.id === sm.id)) {
