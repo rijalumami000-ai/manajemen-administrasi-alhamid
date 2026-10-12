@@ -163,45 +163,8 @@ class _TabAkademikState extends State<TabAkademik> {
     return _selectedCategory == clusterName;
   }
 
-  Widget _buildSearchBar(bool isDark) {
-    return Container(
-      decoration: BoxDecoration(
-        color: isDark ? const Color(0xFF131C2E) : Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: isDark ? Colors.white.withOpacity(0.08) : Colors.black.withOpacity(0.08),
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(isDark ? 0.2 : 0.03),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      child: TextField(
-        controller: _searchController,
-        onChanged: (val) => setState(() => _searchQuery = val.trim().toLowerCase()),
-        style: GoogleFonts.outfit(color: context.titleColor, fontSize: 13),
-        decoration: InputDecoration(
-          hintText: "Cari menu akademik (contoh: Nilai, Maqro, Tarawih)...",
-          hintStyle: GoogleFonts.outfit(color: context.subTitleColor, fontSize: 13),
-          prefixIcon: Icon(Icons.search_rounded, color: context.subTitleColor, size: 20),
-          suffixIcon: _searchQuery.isNotEmpty
-              ? IconButton(
-                  icon: Icon(Icons.close_rounded, color: context.subTitleColor, size: 18),
-                  onPressed: () {
-                    _searchController.clear();
-                    setState(() => _searchQuery = '');
-                  },
-                )
-              : null,
-          border: InputBorder.none,
-          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-        ),
-      ),
-    );
-  }
+
+
 
   Widget _buildFilterChips(bool isDark) {
     return SingleChildScrollView(
@@ -345,11 +308,7 @@ class _TabAkademikState extends State<TabAkademik> {
       },
     ];
 
-    final filtered = items.where((it) {
-      if (_searchQuery.isEmpty) return true;
-      return it['title'].toString().toLowerCase().contains(_searchQuery) ||
-          it['desc'].toString().toLowerCase().contains(_searchQuery);
-    }).toList();
+    final filtered = items;
 
     if (filtered.isEmpty) {
       return _buildNoMatchText();
@@ -497,11 +456,7 @@ class _TabAkademikState extends State<TabAkademik> {
       },
     ];
 
-    final filtered = list.where((it) {
-      if (_searchQuery.isEmpty) return true;
-      return it['title'].toString().toLowerCase().contains(_searchQuery) ||
-          it['desc'].toString().toLowerCase().contains(_searchQuery);
-    }).toList();
+    final filtered = list;
 
     if (filtered.isEmpty) {
       return _buildNoMatchText();
@@ -644,11 +599,7 @@ class _TabAkademikState extends State<TabAkademik> {
       },
     ];
 
-    final filtered = list.where((it) {
-      if (_searchQuery.isEmpty) return true;
-      return it['title'].toString().toLowerCase().contains(_searchQuery) ||
-          it['desc'].toString().toLowerCase().contains(_searchQuery);
-    }).toList();
+    final filtered = list;
 
     if (filtered.isEmpty) {
       return _buildNoMatchText();
@@ -803,11 +754,7 @@ class _TabAkademikState extends State<TabAkademik> {
       },
     ];
 
-    final filtered = list.where((it) {
-      if (_searchQuery.isEmpty) return true;
-      return it['title'].toString().toLowerCase().contains(_searchQuery) ||
-          it['desc'].toString().toLowerCase().contains(_searchQuery);
-    }).toList();
+    final filtered = list;
 
     if (filtered.isEmpty) {
       return _buildNoMatchText();
