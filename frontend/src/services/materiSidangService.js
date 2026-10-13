@@ -22,19 +22,7 @@ export const materiSidangService = {
   },
 
   async updateMateriSidang(id, formData) {
-    // Use FormData for file upload
-    const response = await fetch(`/api/materi-sidang/${id}`, {
-      method: 'PUT',
-      headers: {
-        'Authorization': `Bearer ${localStorage.getItem('token')}`,
-      },
-      body: formData,
-    });
-    if (!response.ok) {
-      const err = await response.json();
-      throw new Error(err.error || 'Gagal memperbarui data');
-    }
-    return response.json();
+    return apiPut(`/materi-sidang/${id}`, formData);
   },
 
   async deleteMateriSidang(id) {

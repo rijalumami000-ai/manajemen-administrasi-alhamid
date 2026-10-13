@@ -207,6 +207,8 @@ class _StrukturLembagaScreenState extends State<StrukturLembagaScreen>
 
   final ApiService _apiService = ApiService();
   final Map<String, List<Map<String, dynamic>>> _liveApiData = {};
+  List<dynamic> _tahunAjaranList = [];
+  int? _selectedTahunAjaranId;
   bool _isLoadingApi = false;
 
   @override
@@ -217,6 +219,23 @@ class _StrukturLembagaScreenState extends State<StrukturLembagaScreen>
       vsync: this,
       initialIndex: widget.initialTabIndex.clamp(0, 5),
     );
+    _initTahunAjaranAndFetch();
+  }
+
+  Future<void> _initTahunAjaranAndFetch() async {
+    try {
+      final taData = await _apiService.getTahunAjaranList();
+      if (taData['tahunAjaran'] != null && taData['tahunAjaran'] is List) {
+        final list = (taData['tahunAjaran'] as List);
+        _tahunAjaranList = list;
+        final active = list.firstWhere((t) => t['is_active'] == true, orElse: () => null);
+        if (active != null) {
+          _selectedTahunAjaranId = active['id'] as int;
+        } else if (list.isNotEmpty) {
+          _selectedTahunAjaranId = list.first['id'] as int;
+        }
+      }
+    } catch (_) {}
     _fetchLiveStructures();
   }
 
@@ -225,7 +244,7 @@ class _StrukturLembagaScreenState extends State<StrukturLembagaScreen>
     final keys = ['pmq', 'pondok', 'sambangan', 'haflah', 'psb'];
     for (final k in keys) {
       try {
-        final res = await _apiService.getStructure(k);
+        final res = await _apiService.getStructure(k, tahunAjaranId: _selectedTahunAjaranId);
         if (res.isNotEmpty) {
           final mapped = res.map<Map<String, dynamic>>((item) {
             final displayName = (item['guru_nama'] ?? item['nama_custom'] ?? '-').toString();
@@ -294,21 +313,109 @@ class _StrukturLembagaScreenState extends State<StrukturLembagaScreen>
           ],
         ),
       ),
-      body: TabBarView(
-        controller: _tabController,
+      body: Column(
         children: [
-          // 1. Madrasah Diniyah (Embed existing StrukturOrganisasiScreen content cleanly)
-          const _MadrasahTabWrapper(),
-          // 2. PMQ
-          _buildStructureList('pmq', 'Pendidikan Madin & Al-Qur\'an (PMQ)', 'Lembaga khusus tahfidz dan tahsin quran pesantren.', isDark),
-          // 3. Pondok
-          _buildStructureList('pondok', 'Pondok Pesantren Al-Hamid', 'Kepengurusan pusat santri putra dan putri.', isDark),
-          // 4. Sambangan
-          _buildStructureList('sambangan', 'Panitia Sambangan Santri', 'Kepanitiaan acara kunjungan rutin wali santri bulanan.', isDark),
-          // 5. Haflah
-          _buildStructureList('haflah', 'Panitia Haflah Akhirussanah', 'Kepanitiaan wisuda santri dan pengajian akbar tahunan.', isDark),
-          // 6. PSB
-          _buildStructureList('psb', 'Panitia Penerimaan Santri Baru (PSB)', 'Kepanitiaan pendaftaran, seleksi berkas & tes santri baru.', isDark),
+          _buildTahunAjaranFilter(context, isDark),
+          Expanded(
+            child: TabBarView(
+              controller: _tabController,
+              children: [
+                // 1. Madrasah Diniyah (Embed existing StrukturOrganisasiScreen content cleanly)
+                _MadrasahTabWrapper(tahunAjaranId: _selectedTahunAjaranId),
+                // 2. PMQ
+                _buildStructureList('pmq', 'Pendidikan Madin & Al-Qur\'an (PMQ)', 'Lembaga khusus tahfidz dan tahsin quran pesantren.', isDark),
+                // 3. Pondok
+                _buildStructureList('pondok', 'Pondok Pesantren Al-Hamid', 'Kepengurusan pusat santri putra dan putri.', isDark),
+                // 4. Sambangan
+                _buildStructureList('sambangan', 'Panitia Sambangan Santri', 'Kepanitiaan acara kunjungan rutin wali santri bulanan.', isDark),
+                // 5. Haflah
+                _buildStructureList('haflah', 'Panitia Haflah Akhirussanah', 'Kepanitiaan wisuda santri dan pengajian akbar tahunan.', isDark),
+                // 6. PSB
+                _buildStructureList('psb', 'Panitia Penerimaan Santri Baru (PSB)', 'Kepanitiaan pendaftaran, seleksi berkas & tes santri baru.', isDark),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildTahunAjaranFilter(BuildContext context, bool isDark) {
+    if (_tahunAjaranList.isEmpty) return const SizedBox.shrink();
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      decoration: BoxDecoration(
+        color: isDark ? const Color(0xFF151F32) : const Color(0xFFF1F5F9),
+        border: Border(
+          bottom: BorderSide(
+            color: isDark ? Colors.white.withOpacity(0.06) : Colors.black.withOpacity(0.06),
+          ),
+        ),
+      ),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(6),
+            decoration: BoxDecoration(
+              color: const Color(0xFF3B82F6).withOpacity(0.12),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: const Icon(Icons.calendar_month_rounded, size: 16, color: Color(0xFF3B82F6)),
+          ),
+          const SizedBox(width: 10),
+          Text(
+            "Tahun Ajaran:",
+            style: GoogleFonts.outfit(
+              fontSize: 13,
+              fontWeight: FontWeight.w600,
+              color: context.titleColor,
+            ),
+          ),
+          const Spacer(),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 2),
+            decoration: BoxDecoration(
+              color: isDark ? const Color(0xFF0F172A) : Colors.white,
+              borderRadius: BorderRadius.circular(10),
+              border: Border.all(
+                color: isDark ? Colors.white12 : Colors.grey.shade300,
+              ),
+            ),
+            child: DropdownButtonHideUnderline(
+              child: DropdownButton<int?>(
+                value: _selectedTahunAjaranId,
+                isDense: true,
+                icon: Icon(Icons.arrow_drop_down_rounded, color: context.subTitleColor, size: 22),
+                style: GoogleFonts.outfit(
+                  color: context.titleColor,
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                ),
+                dropdownColor: isDark ? const Color(0xFF1E293B) : Colors.white,
+                borderRadius: BorderRadius.circular(12),
+                items: [
+                  const DropdownMenuItem<int?>(
+                    value: null,
+                    child: Text("Semua Tahun"),
+                  ),
+                  ..._tahunAjaranList.map((t) {
+                    final id = t['id'] as int;
+                    final kode = t['kode']?.toString() ?? '-';
+                    final isActive = t['is_active'] == true;
+                    return DropdownMenuItem<int?>(
+                      value: id,
+                      child: Text(isActive ? "$kode (Aktif)" : kode),
+                    );
+                  }),
+                ],
+                onChanged: (val) {
+                  setState(() => _selectedTahunAjaranId = val);
+                  _fetchLiveStructures();
+                },
+              ),
+            ),
+          ),
         ],
       ),
     );
@@ -497,7 +604,8 @@ class _StrukturLembagaScreenState extends State<StrukturLembagaScreen>
 }
 
 class _MadrasahTabWrapper extends StatefulWidget {
-  const _MadrasahTabWrapper();
+  final int? tahunAjaranId;
+  const _MadrasahTabWrapper({this.tahunAjaranId});
 
   @override
   State<_MadrasahTabWrapper> createState() => _MadrasahTabWrapperState();
@@ -514,9 +622,18 @@ class _MadrasahTabWrapperState extends State<_MadrasahTabWrapper> {
     _load();
   }
 
+  @override
+  void didUpdateWidget(covariant _MadrasahTabWrapper oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.tahunAjaranId != widget.tahunAjaranId) {
+      _load();
+    }
+  }
+
   Future<void> _load() async {
     try {
-      final res = await _apiService.getStructure('madrasah_diniyah');
+      if (mounted) setState(() => _loading = true);
+      final res = await _apiService.getStructure('madrasah_diniyah', tahunAjaranId: widget.tahunAjaranId);
       if (mounted) setState(() { _diniyahList = res; _loading = false; });
     } catch (_) {
       if (mounted) setState(() { _loading = false; });

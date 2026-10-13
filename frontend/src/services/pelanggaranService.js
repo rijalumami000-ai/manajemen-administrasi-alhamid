@@ -1,9 +1,14 @@
 import { apiGet, apiPost, apiPut, apiDelete } from './apiClient';
 
-// Pelanggaran endpoints
+// Pelanggaran & Prestasi endpoints
 export const pelanggaranService = {
-  async fetchPelanggaran() {
-    return apiGet('/pelanggaran', { noCache: true });
+  async fetchTahunAjaran() {
+    return apiGet('/tahun-ajaran', { noCache: true });
+  },
+
+  async fetchPelanggaran(tahunAjaranId) {
+    const qp = tahunAjaranId ? `?tahun_ajaran_id=${tahunAjaranId}` : '';
+    return apiGet(`/pelanggaran${qp}`, { noCache: true });
   },
 
   async createPelanggaran(data) {
@@ -19,8 +24,9 @@ export const pelanggaranService = {
   },
 
   // Prestasi endpoints
-  async fetchPrestasi() {
-    return apiGet('/prestasi', { noCache: true });
+  async fetchPrestasi(tahunAjaranId) {
+    const qp = tahunAjaranId ? `?tahun_ajaran_id=${tahunAjaranId}` : '';
+    return apiGet(`/prestasi${qp}`, { noCache: true });
   },
 
   async createPrestasi(data) {

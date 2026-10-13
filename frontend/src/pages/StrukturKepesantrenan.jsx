@@ -43,6 +43,10 @@ export function StrukturKepesantrenan() {
   const [strukturData, setStrukturData] = useState([]);
   const [guruList, setGuruList] = useState([]);
   
+  // Academic Year State
+  const [tahunAjaranList, setTahunAjaranList] = useState([]);
+  const [selectedTahunAjaran, setSelectedTahunAjaran] = useState(null);
+  
   // Edit Form States
   const [editModalOpen, setEditModalOpen] = useState(false);
   const [selectedNode, setSelectedNode] = useState(null);
@@ -68,10 +72,25 @@ export function StrukturKepesantrenan() {
     nama: ''
   });
 
-  const loadStruktur = async (tipe) => {
+  const loadTahunAjaran = async () => {
+    try {
+      const list = await strukturService.fetchTahunAjaran();
+      setTahunAjaranList(list || []);
+      const active = (list || []).find(t => t.is_active);
+      if (active) {
+        setSelectedTahunAjaran(active.id);
+      } else if (list && list.length > 0) {
+        setSelectedTahunAjaran(list[0].id);
+      }
+    } catch (err) {
+      console.error('Gagal memuat tahun ajaran:', err);
+    }
+  };
+
+  const loadStruktur = async (tipe, tahunId = selectedTahunAjaran) => {
     setLoading(true);
     try {
-      const data = await strukturService.fetchStruktur(tipe);
+      const data = await strukturService.fetchStruktur(tipe, tahunId);
       setStrukturData(data);
     } catch (error) {
       console.error(error);
@@ -91,12 +110,15 @@ export function StrukturKepesantrenan() {
   };
 
   useEffect(() => {
-    loadStruktur(activeTab);
-  }, [activeTab]);
-
-  useEffect(() => {
+    loadTahunAjaran();
     loadGuru();
   }, []);
+
+  useEffect(() => {
+    if (selectedTahunAjaran !== null) {
+      loadStruktur(activeTab, selectedTahunAjaran);
+    }
+  }, [activeTab, selectedTahunAjaran]);
 
   const handleEditClick = (node) => {
     setSelectedNode(node);
@@ -126,7 +148,8 @@ export function StrukturKepesantrenan() {
           id: selectedNode.id,
           guru_id: selectedGuruId,
           nama_custom: customName,
-          keterangan: keterangan
+          keterangan: keterangan,
+          tahun_ajaran_id: selectedTahunAjaran
         });
         toast.success(`Berhasil memperbarui posisi ${selectedNode.jabatan}`);
       } else {
@@ -136,13 +159,14 @@ export function StrukturKepesantrenan() {
           guru_id: selectedGuruId,
           nama_custom: customName,
           keterangan: keterangan,
-          no_urut: selectedNode.no_urut || 99
+          no_urut: selectedNode.no_urut || 99,
+          tahun_ajaran_id: selectedTahunAjaran
         });
         toast.success(`Berhasil menambahkan personel untuk ${selectedNode.jabatan}`);
       }
 
       setEditModalOpen(false);
-      loadStruktur(activeTab);
+      loadStruktur(activeTab, selectedTahunAjaran);
     } catch (error) {
       console.error(error);
       toast.error('Gagal menyimpan data: ' + error.message);
@@ -170,7 +194,8 @@ export function StrukturKepesantrenan() {
         guru_id: newGuruId,
         nama_custom: newNama.trim() || null,
         keterangan: newKeterangan.trim() || null,
-        no_urut: strukturData.length + 1
+        no_urut: strukturData.length + 1,
+        tahun_ajaran_id: selectedTahunAjaran
       });
       toast.success(`Berhasil menambahkan posisi ${newJabatan}`);
       setAddPosModalOpen(false);
@@ -178,7 +203,7 @@ export function StrukturKepesantrenan() {
       setNewNama('');
       setNewGuruId(null);
       setNewKeterangan('');
-      loadStruktur(activeTab);
+      loadStruktur(activeTab, selectedTahunAjaran);
     } catch (err) {
       toast.error('Gagal menambah posisi: ' + err.message);
     } finally {
@@ -204,7 +229,7 @@ export function StrukturKepesantrenan() {
       await strukturService.deleteStruktur(nodeId);
       toast.success('Personel berhasil dihapus dari struktur.');
       setDeleteConfirm({ isOpen: false, nodeId: null, jabatan: '', nama: '' });
-      loadStruktur(activeTab);
+      loadStruktur(activeTab, selectedTahunAjaran);
     } catch (error) {
       console.error(error);
       toast.error('Gagal menghapus personel: ' + error.message);
@@ -398,7 +423,21 @@ export function StrukturKepesantrenan() {
         title="🏛️ Struktur Organisasi Kepesantrenan"
         subtitle="Kelola struktur pengurus Pondok Pesantren, PMQ, Panitia Sambangan, Haflah, dan PSB"
         extra={
-          <div style={{ display: 'flex', gap: '10px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
+            <div style={{ minWidth: '220px' }}>
+              <CustomSelect
+                value={selectedTahunAjaran ? String(selectedTahunAjaran) : ''}
+                onChange={(val) => setSelectedTahunAjaran(val ? Number(val) : '')}
+                options={[
+                  { value: '', label: 'Semua Tahun Ajaran' },
+                  ...tahunAjaranList.map(t => ({
+                    value: String(t.id),
+                    label: `${t.tahun} (${t.semester || '-'}) ${t.is_active ? '★ Aktif' : ''}`
+                  }))
+                ]}
+                placeholder="Pilih Tahun Ajaran"
+              />
+            </div>
             {isAdmin() && (
               <button 
                 type="button" 
@@ -413,7 +452,7 @@ export function StrukturKepesantrenan() {
             <button 
               type="button" 
               className="btn-custom btn-secondary"
-              onClick={() => loadStruktur(activeTab)}
+              onClick={() => loadStruktur(activeTab, selectedTahunAjaran)}
               disabled={loading}
               style={{ height: '36px', padding: '0 16px', borderRadius: '10px' }}
             >

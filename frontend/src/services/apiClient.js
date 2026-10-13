@@ -79,11 +79,17 @@ export async function apiPost(endpoint, data, options = {}) {
 /**
  * PUT request with auth
  */
-export async function apiPut(endpoint, data) {
+export async function apiPut(endpoint, data, options = {}) {
+  const isFormData = data instanceof FormData;
+  const headers = isFormData 
+    ? getAuthHeaders() // FormData sets Content-Type automatically
+    : getAuthHeaders({ 'Content-Type': 'application/json' });
+
   const response = await fetch(`${API_BASE}${endpoint}`, {
     method: 'PUT',
-    headers: getAuthHeaders({ 'Content-Type': 'application/json' }),
-    body: JSON.stringify(data),
+    headers,
+    body: isFormData ? data : JSON.stringify(data),
+    ...options,
   });
   return handleResponse(response);
 }

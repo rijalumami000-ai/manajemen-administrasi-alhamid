@@ -1,15 +1,26 @@
 import { useState, useEffect } from 'react';
 import { CustomModal } from '../ui/CustomModal';
 import { FloatingInput } from '../ui/FloatingInput';
+import { CustomSelect } from '../ui/CustomSelect';
 import { CustomDatePicker } from '../ui/CustomDatePicker';
 import { SmartAlert } from '../ui/SmartAlert';
-import { Trophy, Save, FileText, Award } from 'lucide-react';
+import { Trophy, Save, FileText, Award, Calendar } from 'lucide-react';
 import { SantriAutocomplete } from './SantriAutocomplete';
 import './PrestasiModal.scss';
 
-export function PrestasiModal({ isOpen, onClose, onSubmit, editData, isSubmitting, error }) {
+export function PrestasiModal({ 
+  isOpen, 
+  onClose, 
+  onSubmit, 
+  editData, 
+  isSubmitting, 
+  error,
+  tahunAjaranList = [],
+  defaultTahunAjaranId = null
+}) {
   const [formData, setFormData] = useState({
     santri_id: '',
+    tahun_ajaran_id: defaultTahunAjaranId || '',
     jenis: '',
     tanggal: '',
     deskripsi: '',
@@ -22,6 +33,7 @@ export function PrestasiModal({ isOpen, onClose, onSubmit, editData, isSubmittin
       if (editData) {
         setFormData({
           santri_id: editData.santri_id || '',
+          tahun_ajaran_id: editData.tahun_ajaran_id || defaultTahunAjaranId || '',
           jenis: editData.jenis || '',
           tanggal: editData.tanggal ? editData.tanggal.split('T')[0] : '',
           deskripsi: editData.deskripsi || '',
@@ -30,6 +42,7 @@ export function PrestasiModal({ isOpen, onClose, onSubmit, editData, isSubmittin
       } else {
         setFormData({
           santri_id: '',
+          tahun_ajaran_id: defaultTahunAjaranId || '',
           jenis: '',
           tanggal: new Date().toISOString().split('T')[0],
           deskripsi: '',
@@ -38,7 +51,7 @@ export function PrestasiModal({ isOpen, onClose, onSubmit, editData, isSubmittin
       }
       setFormErrors({});
     }
-  }, [isOpen, editData]);
+  }, [isOpen, editData, defaultTahunAjaranId]);
 
   const handleChange = (name, value) => {
     setFormData(prev => ({ ...prev, [name]: value }));
@@ -60,21 +73,20 @@ export function PrestasiModal({ isOpen, onClose, onSubmit, editData, isSubmittin
       return;
     }
 
-    onSubmit({
-      santri_id: formData.santri_id,
-      jenis: formData.jenis.trim(),
-      tanggal: formData.tanggal,
-      deskripsi: formData.deskripsi ? formData.deskripsi.trim() : null,
-      penghargaan: formData.penghargaan ? formData.penghargaan.trim() : null
-    });
+    onSubmit(formData);
   };
+
+  const tahunOptions = tahunAjaranList.map(t => ({
+    value: String(t.id),
+    label: `${t.kode} ${t.is_active ? '(Aktif)' : ''}`
+  }));
 
   return (
     <CustomModal
       open={isOpen}
       onClose={onClose}
       title={editData ? 'Edit Data Prestasi' : 'Tambah Data Prestasi'}
-      subtitle={editData ? 'Perbarui pencapaian dan prestasi santri' : 'Catat prestasi santri baru'}
+      subtitle={editData ? 'Perbarui catatan prestasi santri' : 'Catat prestasi santri baru'}
       icon={<Trophy style={{ color: '#f59e0b' }} />}
       width={560}
       footer={
@@ -92,6 +104,19 @@ export function PrestasiModal({ isOpen, onClose, onSubmit, editData, isSubmittin
         {error && <div style={{ marginBottom: '16px' }}><SmartAlert message={error} type="error" /></div>}
 
         <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+          {tahunOptions.length > 0 && (
+            <div>
+              <CustomSelect
+                label="Tahun Ajaran"
+                value={formData.tahun_ajaran_id ? String(formData.tahun_ajaran_id) : ''}
+                onChange={(val) => handleChange('tahun_ajaran_id', val ? Number(val) : null)}
+                options={tahunOptions}
+                placeholder="Pilih Tahun Ajaran"
+                disabled={isSubmitting}
+              />
+            </div>
+          )}
+
           <div>
             <label style={{ display: 'block', marginBottom: '6px', fontSize: '13px', fontWeight: 500, color: 'var(--lt-text-secondary, #475569)' }}>
               Santri <span style={{ color: '#ef4444' }}>*</span>
@@ -104,7 +129,7 @@ export function PrestasiModal({ isOpen, onClose, onSubmit, editData, isSubmittin
           </div>
 
           <FloatingInput
-            label="Jenis Prestasi"
+            label="Jenis / Nama Prestasi"
             name="jenis"
             icon={Trophy}
             value={formData.jenis}
@@ -112,7 +137,7 @@ export function PrestasiModal({ isOpen, onClose, onSubmit, editData, isSubmittin
             error={formErrors.jenis}
             required
             disabled={isSubmitting}
-            placeholder="Contoh: Juara Lomba, Hafalan Terbaik"
+            placeholder="Contoh: Juara 1 MQK Tingkat Kabupaten, Hafal 30 Juz"
           />
 
           <CustomDatePicker
@@ -125,26 +150,27 @@ export function PrestasiModal({ isOpen, onClose, onSubmit, editData, isSubmittin
           />
 
           <FloatingInput
-            label="Deskripsi Prestasi"
+            label="Deskripsi / Keterangan"
             name="deskripsi"
             icon={FileText}
             value={formData.deskripsi}
             onChange={(e) => handleChange('deskripsi', e.target.value)}
             disabled={isSubmitting}
-            placeholder="Detail penjelasan pencapaian..."
+            placeholder="Keterangan acara, penyelenggara, atau rincian prestasi..."
           />
 
           <FloatingInput
-            label="Penghargaan yang Diterima"
+            label="Penghargaan / Hadiah"
             name="penghargaan"
             icon={Award}
             value={formData.penghargaan}
             onChange={(e) => handleChange('penghargaan', e.target.value)}
             disabled={isSubmitting}
-            placeholder="Piala, Sertifikat, Beasiswa..."
+            placeholder="Contoh: Piala, Sertifikat, Beasiswa"
           />
         </form>
       </div>
     </CustomModal>
   );
 }
+export default PrestasiModal;

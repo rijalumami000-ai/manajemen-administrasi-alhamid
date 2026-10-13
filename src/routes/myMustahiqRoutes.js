@@ -3012,32 +3012,44 @@ function registerMyMustahiqRoutes(app) {
   // PELANGGARAN & PRESTASI (read-only for app, data from web)
   // ═══════════════════════════════════════════════════════════════
   router.get('/pelanggaran', asyncHandler(async (req, res) => {
-    const result = await db.query(`
+    const { tahun_ajaran_id } = req.query;
+    const targetTaId = tahun_ajaran_id ? parseInt(tahun_ajaran_id, 10) : null;
+    let query = `
       SELECT p.*, s.nis, s.nama AS nama_santri, 
              COALESCE(kd.nama, ks.nama, '-') AS kelas_nama
       FROM pelanggaran p
       LEFT JOIN santri s ON p.santri_id = s.id
-      LEFT JOIN santri_tahun_ajaran sta ON sta.santri_id = s.id AND sta.tahun_ajaran_id = (SELECT id FROM tahun_ajaran WHERE is_active = true LIMIT 1)
+      LEFT JOIN santri_tahun_ajaran sta ON sta.santri_id = s.id AND sta.tahun_ajaran_id = COALESCE($1, (SELECT id FROM tahun_ajaran WHERE is_active = true LIMIT 1))
       LEFT JOIN kelas kd ON sta.kelas_diniyah_id = kd.id
       LEFT JOIN kelas ks ON sta.kelas_sekolah_id = ks.id
-      ORDER BY p.tanggal DESC
-      LIMIT 100
-    `);
+    `;
+    const params = [targetTaId];
+    if (targetTaId) {
+      query += ` WHERE p.tahun_ajaran_id = $1`;
+    }
+    query += ` ORDER BY p.tanggal DESC LIMIT 100`;
+    const result = await db.query(query, params);
     res.json(result.rows);
   }));
 
   router.get('/prestasi', asyncHandler(async (req, res) => {
-    const result = await db.query(`
+    const { tahun_ajaran_id } = req.query;
+    const targetTaId = tahun_ajaran_id ? parseInt(tahun_ajaran_id, 10) : null;
+    let query = `
       SELECT p.*, s.nis, s.nama AS nama_santri,
              COALESCE(kd.nama, ks.nama, '-') AS kelas_nama
       FROM prestasi p
       LEFT JOIN santri s ON p.santri_id = s.id
-      LEFT JOIN santri_tahun_ajaran sta ON sta.santri_id = s.id AND sta.tahun_ajaran_id = (SELECT id FROM tahun_ajaran WHERE is_active = true LIMIT 1)
+      LEFT JOIN santri_tahun_ajaran sta ON sta.santri_id = s.id AND sta.tahun_ajaran_id = COALESCE($1, (SELECT id FROM tahun_ajaran WHERE is_active = true LIMIT 1))
       LEFT JOIN kelas kd ON sta.kelas_diniyah_id = kd.id
       LEFT JOIN kelas ks ON sta.kelas_sekolah_id = ks.id
-      ORDER BY p.tanggal DESC
-      LIMIT 100
-    `);
+    `;
+    const params = [targetTaId];
+    if (targetTaId) {
+      query += ` WHERE p.tahun_ajaran_id = $1`;
+    }
+    query += ` ORDER BY p.tanggal DESC LIMIT 100`;
+    const result = await db.query(query, params);
     res.json(result.rows);
   }));
 
@@ -3106,9 +3118,9 @@ function registerMyMustahiqRoutes(app) {
       params.push(tipe);
     }
 
-    if (tahun_ajaran_id && tipe !== 'panitia_sambangan') {
+    if (tahun_ajaran_id) {
       query += ` AND (s.tahun_ajaran_id = $${paramIdx++} OR s.tahun_ajaran_id IS NULL)`;
-      params.push(tahun_ajaran_id);
+      params.push(parseInt(tahun_ajaran_id, 10));
     }
 
     query += ` ORDER BY s.no_urut ASC, s.id ASC`;

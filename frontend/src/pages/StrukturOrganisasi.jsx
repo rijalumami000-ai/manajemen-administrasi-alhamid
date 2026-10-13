@@ -31,6 +31,10 @@ export function StrukturOrganisasi() {
   const [editModalOpen, setEditModalOpen] = useState(false);
   const [selectedNode, setSelectedNode] = useState(null);
   
+  // Academic Year State
+  const [tahunAjaranList, setTahunAjaranList] = useState([]);
+  const [selectedTahunAjaran, setSelectedTahunAjaran] = useState(null);
+  
   // Edit Form States
   const [selectedGuruId, setSelectedGuruId] = useState(null);
   const [customName, setCustomName] = useState('');
@@ -46,11 +50,26 @@ export function StrukturOrganisasi() {
     nama: ''
   });
 
+  const loadTahunAjaran = async () => {
+    try {
+      const list = await strukturService.fetchTahunAjaran();
+      setTahunAjaranList(list || []);
+      const active = (list || []).find(t => t.is_active);
+      if (active) {
+        setSelectedTahunAjaran(active.id);
+      } else if (list && list.length > 0) {
+        setSelectedTahunAjaran(list[0].id);
+      }
+    } catch (err) {
+      console.error('Gagal memuat tahun ajaran:', err);
+    }
+  };
+
   // Load structure data based on active tab
-  const loadStruktur = async (tipe) => {
+  const loadStruktur = async (tipe, tahunId = selectedTahunAjaran) => {
     setLoading(true);
     try {
-      const data = await strukturService.fetchStruktur(tipe);
+      const data = await strukturService.fetchStruktur(tipe, tahunId);
       setStrukturData(data);
     } catch (error) {
       console.error(error);
@@ -71,12 +90,15 @@ export function StrukturOrganisasi() {
   };
 
   useEffect(() => {
-    loadStruktur(activeTab);
-  }, [activeTab]);
-
-  useEffect(() => {
+    loadTahunAjaran();
     loadGuru();
   }, []);
+
+  useEffect(() => {
+    if (selectedTahunAjaran !== null) {
+      loadStruktur(activeTab, selectedTahunAjaran);
+    }
+  }, [activeTab, selectedTahunAjaran]);
 
   const handleEditClick = (node) => {
     setSelectedNode(node);
@@ -105,7 +127,8 @@ export function StrukturOrganisasi() {
       const payload = {
         guru_id: selectedGuruId ? Number(selectedGuruId) : null,
         nama_custom: selectedGuruId ? null : customName.trim(), // clear custom name if a teacher is selected
-        keterangan: keterangan.trim()
+        keterangan: keterangan.trim(),
+        tahun_ajaran_id: selectedTahunAjaran
       };
 
       if (selectedNode.id === null) {
@@ -127,7 +150,7 @@ export function StrukturOrganisasi() {
       }
       
       setEditModalOpen(false);
-      loadStruktur(activeTab);
+      loadStruktur(activeTab, selectedTahunAjaran);
     } catch (error) {
       console.error(error);
       toast.error('Gagal menyimpan posisi: ' + error.message);
@@ -168,7 +191,7 @@ export function StrukturOrganisasi() {
       await strukturService.deleteStruktur(nodeId);
       toast.success('Personel berhasil dihapus dari struktur.');
       setDeleteConfirm({ isOpen: false, nodeId: null, jabatan: '', nama: '' });
-      loadStruktur(activeTab);
+      loadStruktur(activeTab, selectedTahunAjaran);
     } catch (error) {
       console.error(error);
       toast.error('Gagal menghapus personel: ' + error.message);
@@ -473,7 +496,7 @@ export function StrukturOrganisasi() {
       <div className="content-layout">
         {/* Custom Tabs Navigation */}
         <div className="custom-tabs-container">
-          <div className="custom-tabs-nav-row" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid rgba(226, 232, 240, 0.6)', paddingBottom: '0', marginBottom: '24px' }}>
+          <div className="custom-tabs-nav-row" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid rgba(226, 232, 240, 0.6)', paddingBottom: '0', marginBottom: '24px', flexWrap: 'wrap', gap: '12px' }}>
             <div className="custom-tabs-nav" style={{ display: 'flex', gap: '16px', borderBottom: 'none', marginBottom: 0, paddingBottom: 0 }}>
               <button 
                 type="button"
@@ -491,16 +514,32 @@ export function StrukturOrganisasi() {
               </button>
             </div>
             
-            <button 
-              type="button" 
-              className="btn-custom btn-secondary"
-              onClick={() => loadStruktur(activeTab)}
-              disabled={loading}
-              style={{ height: '36px', padding: '0 16px', borderRadius: '10px' }}
-            >
-              <RefreshCw size={14} className={loading ? 'spin-anim' : ''} style={{ marginRight: '6px' }} />
-              <span>Reload</span>
-            </button>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+              <div style={{ minWidth: '220px' }}>
+                <CustomSelect
+                  value={selectedTahunAjaran ? String(selectedTahunAjaran) : ''}
+                  onChange={(val) => setSelectedTahunAjaran(val ? Number(val) : '')}
+                  options={[
+                    { value: '', label: 'Semua Tahun Ajaran' },
+                    ...tahunAjaranList.map(t => ({
+                      value: String(t.id),
+                      label: `${t.tahun} (${t.semester || '-'}) ${t.is_active ? '★ Aktif' : ''}`
+                    }))
+                  ]}
+                  placeholder="Pilih Tahun Ajaran"
+                />
+              </div>
+              <button 
+                type="button" 
+                className="btn-custom btn-secondary"
+                onClick={() => loadStruktur(activeTab, selectedTahunAjaran)}
+                disabled={loading}
+                style={{ height: '36px', padding: '0 16px', borderRadius: '10px' }}
+              >
+                <RefreshCw size={14} className={loading ? 'spin-anim' : ''} style={{ marginRight: '6px' }} />
+                <span>Reload</span>
+              </button>
+            </div>
           </div>
 
           <div className="custom-tabs-content">

@@ -36,10 +36,9 @@ function registerStrukturRoutes(app) {
       `;
       const params = [typeParam];
 
-      // Sambangan has no tahun_ajaran concept
-      if (tahun_ajaran_id && typeParam !== 'panitia_sambangan') {
+      if (tahun_ajaran_id) {
         query += ` AND (s.tahun_ajaran_id = $2 OR s.tahun_ajaran_id IS NULL)`;
-        params.push(tahun_ajaran_id);
+        params.push(parseInt(tahun_ajaran_id, 10));
       }
 
       query += ` ORDER BY s.no_urut ASC, s.id ASC`;
@@ -54,7 +53,7 @@ function registerStrukturRoutes(app) {
 
   // POST /api/struktur
   app.post('/api/struktur', async (req, res) => {
-    const { id, guru_id, nama_custom, keterangan } = req.body;
+    const { id, guru_id, nama_custom, keterangan, tahun_ajaran_id } = req.body;
 
     if (!id) {
       return res.status(400).json({ error: 'ID struktur wajib disertakan.' });
@@ -62,6 +61,7 @@ function registerStrukturRoutes(app) {
 
     const parsedGuruId = guru_id ? Number(guru_id) : null;
     const parsedNamaCustom = nama_custom ? nama_custom.trim() : null;
+    const parsedTaId = tahun_ajaran_id ? Number(tahun_ajaran_id) : null;
 
     try {
       const result = await db.query(`
@@ -70,10 +70,11 @@ function registerStrukturRoutes(app) {
           guru_id = $1,
           nama_custom = $2,
           keterangan = $3,
+          tahun_ajaran_id = COALESCE($4, tahun_ajaran_id),
           updated_at = NOW()
-        WHERE id = $4
+        WHERE id = $5
         RETURNING *
-      `, [parsedGuruId, parsedNamaCustom, keterangan, id]);
+      `, [parsedGuruId, parsedNamaCustom, keterangan, parsedTaId, id]);
 
       if (!result.rows.length) {
         return res.status(404).json({ error: 'Jabatan/struktur tidak ditemukan.' });
@@ -89,6 +90,7 @@ function registerStrukturRoutes(app) {
           s.nama_custom,
           s.keterangan,
           s.no_urut,
+          s.tahun_ajaran_id,
           g.nama AS guru_nama,
           g.no_hp AS guru_no_hp,
           g.foto_url AS guru_foto_url
@@ -106,7 +108,7 @@ function registerStrukturRoutes(app) {
 
   // POST /api/struktur/add (For multiple roles like TU)
   app.post('/api/struktur/add', async (req, res) => {
-    const { tipe, jabatan, guru_id, nama_custom, keterangan, no_urut } = req.body;
+    const { tipe, jabatan, guru_id, nama_custom, keterangan, no_urut, tahun_ajaran_id } = req.body;
 
     if (!tipe || !jabatan) {
       return res.status(400).json({ error: 'Tipe dan Jabatan wajib diisi.' });
@@ -114,14 +116,15 @@ function registerStrukturRoutes(app) {
 
     const parsedGuruId = guru_id ? Number(guru_id) : null;
     const parsedNamaCustom = nama_custom ? nama_custom.trim() : null;
-    const parsedNoUrut = no_urut ? Number(no_urut) : 99; // Default to high number so it displays at bottom
+    const parsedNoUrut = no_urut ? Number(no_urut) : 99;
+    const parsedTaId = tahun_ajaran_id ? Number(tahun_ajaran_id) : null;
 
     try {
       const result = await db.query(`
-        INSERT INTO struktur_organisasi (tipe, jabatan, guru_id, nama_custom, keterangan, no_urut)
-        VALUES ($1, $2, $3, $4, $5, $6)
+        INSERT INTO struktur_organisasi (tipe, jabatan, guru_id, nama_custom, keterangan, no_urut, tahun_ajaran_id)
+        VALUES ($1, $2, $3, $4, $5, $6, $7)
         RETURNING *
-      `, [tipe, jabatan, parsedGuruId, parsedNamaCustom, keterangan, parsedNoUrut]);
+      `, [tipe, jabatan, parsedGuruId, parsedNamaCustom, keterangan, parsedNoUrut, parsedTaId]);
 
       // Fetch full row with joined details
       const fullRow = await db.query(`
@@ -133,6 +136,7 @@ function registerStrukturRoutes(app) {
           s.nama_custom,
           s.keterangan,
           s.no_urut,
+          s.tahun_ajaran_id,
           g.nama AS guru_nama,
           g.no_hp AS guru_no_hp,
           g.foto_url AS guru_foto_url
@@ -165,14 +169,14 @@ function registerStrukturRoutes(app) {
 
   // POST /api/struktur/reset
   app.post('/api/struktur/reset', async (req, res) => {
-    const { tipe } = req.body;
+    const { tipe, tahun_ajaran_id } = req.body;
     if (!VALID_TYPES.includes(tipe)) {
       return res.status(400).json({ error: 'Tipe struktur tidak valid.' });
     }
 
     try {
       // 1. Set all guru_id and nama_custom to null for seeded positions
-      await db.query(`
+      let resetQuery = `
         UPDATE struktur_organisasi
         SET 
           guru_id = NULL,
@@ -180,13 +184,22 @@ function registerStrukturRoutes(app) {
           keterangan = NULL,
           updated_at = NOW()
         WHERE tipe = $1 AND no_urut <= 7
-      `, [tipe]);
+      `;
+      const resetParams = [tipe];
+      if (tahun_ajaran_id) {
+        resetQuery += ` AND (tahun_ajaran_id = $2 OR tahun_ajaran_id IS NULL)`;
+        resetParams.push(parseInt(tahun_ajaran_id, 10));
+      }
+      await db.query(resetQuery, resetParams);
 
-      // 2. Delete any extra custom positions (e.g. extra TUs that were added)
-      await db.query(`
-        DELETE FROM struktur_organisasi
-        WHERE tipe = $1 AND no_urut > 7
-      `, [tipe]);
+      // 2. Delete any extra custom positions
+      let deleteQuery = `DELETE FROM struktur_organisasi WHERE tipe = $1 AND no_urut > 7`;
+      const deleteParams = [tipe];
+      if (tahun_ajaran_id) {
+        deleteQuery += ` AND (tahun_ajaran_id = $2 OR tahun_ajaran_id IS NULL)`;
+        deleteParams.push(parseInt(tahun_ajaran_id, 10));
+      }
+      await db.query(deleteQuery, deleteParams);
 
       res.json({ message: 'Struktur organisasi berhasil dikosongkan.' });
     } catch (error) {

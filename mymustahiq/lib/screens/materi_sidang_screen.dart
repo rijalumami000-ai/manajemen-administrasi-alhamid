@@ -22,8 +22,8 @@ class _MateriSidangScreenState extends State<MateriSidangScreen>
   final ApiService _apiService = ApiService();
 
   List<dynamic> _allDocs = [];
-  List<String> _tahunOptions = [];
-  String? _selectedTahun;
+  List<dynamic> _tahunAjaranList = [];
+  int? _selectedTahunAjaranId;
   bool _isLoading = true;
   String? _error;
 
@@ -42,7 +42,7 @@ class _MateriSidangScreenState extends State<MateriSidangScreen>
       vsync: this,
       initialIndex: widget.initialTabIndex,
     );
-    _loadTahunOptions();
+    _loadTahunAjaran();
   }
 
   @override
@@ -51,18 +51,19 @@ class _MateriSidangScreenState extends State<MateriSidangScreen>
     super.dispose();
   }
 
-  Future<void> _loadTahunOptions() async {
+  Future<void> _loadTahunAjaran() async {
     try {
-      final options = await _apiService.getMateriSidangTahunOptions();
-      final now = DateTime.now();
-      final currentYear = now.month >= 7 ? '${now.year}-${now.year + 1}' : '${now.year - 1}-${now.year}';
-      final allOptions = <String>{currentYear, ...options.map((e) => e.toString())}.toList();
-      allOptions.sort((a, b) => b.compareTo(a));
-
-      setState(() {
-        _tahunOptions = allOptions;
-        _selectedTahun = allOptions.isNotEmpty ? allOptions.first : currentYear;
-      });
+      final taData = await _apiService.getTahunAjaranList();
+      if (taData['tahunAjaran'] != null && taData['tahunAjaran'] is List) {
+        final list = (taData['tahunAjaran'] as List);
+        _tahunAjaranList = list;
+        final active = list.firstWhere((t) => t['is_active'] == true, orElse: () => null);
+        if (active != null) {
+          _selectedTahunAjaranId = active['id'] as int;
+        } else if (list.isNotEmpty) {
+          _selectedTahunAjaranId = list.first['id'] as int;
+        }
+      }
       _loadData();
     } catch (e) {
       setState(() { _error = e.toString().replaceAll('Exception: ', ''); _isLoading = false; });
@@ -70,10 +71,9 @@ class _MateriSidangScreenState extends State<MateriSidangScreen>
   }
 
   Future<void> _loadData() async {
-    if (_selectedTahun == null) return;
     setState(() { _isLoading = true; _error = null; });
     try {
-      final docs = await _apiService.getMateriSidang(tahunMasehi: _selectedTahun);
+      final docs = await _apiService.getMateriSidang(tahunAjaranId: _selectedTahunAjaranId);
       setState(() { _allDocs = docs; _isLoading = false; });
     } catch (e) {
       setState(() { _error = e.toString().replaceAll('Exception: ', ''); _isLoading = false; });
@@ -130,24 +130,34 @@ class _MateriSidangScreenState extends State<MateriSidangScreen>
           ),
         ),
         actions: [
-          // Tahun dropdown
+          // Tahun Ajaran dropdown
           Padding(
             padding: const EdgeInsets.only(right: 12),
             child: DropdownButtonHideUnderline(
-              child: DropdownButton<String>(
-                value: _selectedTahun,
+              child: DropdownButton<int?>(
+                value: _selectedTahunAjaranId,
                 icon: Icon(Icons.expand_more_rounded, color: context.subTitleColor, size: 20),
                 style: GoogleFonts.outfit(color: context.titleColor, fontSize: 12, fontWeight: FontWeight.w600),
                 dropdownColor: isDark ? const Color(0xFF1E293B) : Colors.white,
                 borderRadius: BorderRadius.circular(12),
-                items: _tahunOptions.map((t) {
-                  return DropdownMenuItem(value: t, child: Text('$t M'));
-                }).toList(),
+                items: [
+                  const DropdownMenuItem<int?>(
+                    value: null,
+                    child: Text('Semua'),
+                  ),
+                  ..._tahunAjaranList.map((t) {
+                    final id = t['id'] as int;
+                    final kode = t['kode']?.toString() ?? '-';
+                    final isActive = t['is_active'] == true;
+                    return DropdownMenuItem<int?>(
+                      value: id,
+                      child: Text(isActive ? '$kode (Aktif)' : kode),
+                    );
+                  }),
+                ],
                 onChanged: (val) {
-                  if (val != null) {
-                    setState(() => _selectedTahun = val);
-                    _loadData();
-                  }
+                  setState(() => _selectedTahunAjaranId = val);
+                  _loadData();
                 },
               ),
             ),

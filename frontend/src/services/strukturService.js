@@ -1,9 +1,15 @@
 import { apiGet, apiPost, apiDelete } from './apiClient';
 
 export const strukturService = {
+  // Fetch academic years
+  async fetchTahunAjaran() {
+    return apiGet('/tahun-ajaran', { noCache: true });
+  },
+
   // Fetch structure cards by type
-  async fetchStruktur(tipe) {
-    return apiGet(`/struktur/${tipe}`, { noCache: true });
+  async fetchStruktur(tipe, tahunAjaranId) {
+    const qp = tahunAjaranId ? `?tahun_ajaran_id=${tahunAjaranId}` : '';
+    return apiGet(`/struktur/${tipe}${qp}`, { noCache: true });
   },
 
   // Update a structure position assignment
@@ -22,7 +28,7 @@ export const strukturService = {
   },
 
   // Reset all assignments for a structure type
-  async resetStruktur(tipe) {
-    return apiPost('/struktur/reset', { tipe });
+  async resetStruktur(tipe, tahunAjaranId) {
+    return apiPost('/struktur/reset', { tipe, tahun_ajaran_id: tahunAjaranId });
   }
 };

@@ -56,6 +56,19 @@ async function migrate() {
       -- Ensure struktur_organisasi has tahun_ajaran_id
       ALTER TABLE struktur_organisasi ADD COLUMN IF NOT EXISTS tahun_ajaran_id INTEGER REFERENCES tahun_ajaran(id) ON DELETE SET NULL;
 
+      -- Ensure pelanggaran and prestasi have tahun_ajaran_id
+      ALTER TABLE pelanggaran ADD COLUMN IF NOT EXISTS tahun_ajaran_id INTEGER REFERENCES tahun_ajaran(id) ON DELETE SET NULL;
+      ALTER TABLE prestasi ADD COLUMN IF NOT EXISTS tahun_ajaran_id INTEGER REFERENCES tahun_ajaran(id) ON DELETE SET NULL;
+
+      -- Backfill NULL tahun_ajaran_id for pelanggaran and prestasi with active year
+      UPDATE pelanggaran 
+      SET tahun_ajaran_id = (SELECT id FROM tahun_ajaran WHERE is_active = true LIMIT 1) 
+      WHERE tahun_ajaran_id IS NULL;
+
+      UPDATE prestasi 
+      SET tahun_ajaran_id = (SELECT id FROM tahun_ajaran WHERE is_active = true LIMIT 1) 
+      WHERE tahun_ajaran_id IS NULL;
+
       -- Update CHECK constraint to allow all new structure types
       ALTER TABLE struktur_organisasi DROP CONSTRAINT IF EXISTS struktur_organisasi_tipe_check;
       ALTER TABLE struktur_organisasi ADD CONSTRAINT struktur_organisasi_tipe_check CHECK (

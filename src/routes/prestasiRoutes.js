@@ -7,12 +7,21 @@ function registerPrestasiRoutes(app) {
   // ===== PRESTASI API =====
   app.get('/api/prestasi', async (req, res) => {
     try {
-      const result = await db.query(`
-        SELECT p.*, s.nis, s.nama AS nama_santri
+      const { tahun_ajaran_id } = req.query;
+      let query = `
+        SELECT p.*, s.nis, s.nama AS nama_santri, ta.kode AS tahun_ajaran_kode
         FROM prestasi p
         LEFT JOIN santri s ON p.santri_id = s.id
-        ORDER BY p.tanggal DESC
-      `);
+        LEFT JOIN tahun_ajaran ta ON p.tahun_ajaran_id = ta.id
+      `;
+      const params = [];
+      if (tahun_ajaran_id) {
+        query += ` WHERE p.tahun_ajaran_id = $1`;
+        params.push(parseInt(tahun_ajaran_id, 10));
+      }
+      query += ` ORDER BY p.tanggal DESC, p.id DESC`;
+
+      const result = await db.query(query, params);
       res.json(result.rows);
     } catch (error) {
       console.error(error);
@@ -22,6 +31,7 @@ function registerPrestasiRoutes(app) {
   
   app.post('/api/prestasi', async (req, res) => {
     const santri_id = req.body.santri_id ? parseInt(req.body.santri_id, 10) : null;
+    let tahun_ajaran_id = req.body.tahun_ajaran_id ? parseInt(req.body.tahun_ajaran_id, 10) : null;
     const jenis = normalizeText(req.body.jenis);
     const tanggal = req.body.tanggal || null;
     const deskripsi = normalizeText(req.body.deskripsi);
@@ -30,13 +40,18 @@ function registerPrestasiRoutes(app) {
     if (!santri_id || !jenis || !tanggal) {
       return res.status(400).json({ error: 'Santri, jenis, dan tanggal wajib diisi.' });
     }
+
+    if (!tahun_ajaran_id) {
+      const activeTa = await getActiveTahunAjaran(db);
+      if (activeTa) tahun_ajaran_id = activeTa.id;
+    }
   
     try {
       const result = await db.query(
-        `INSERT INTO prestasi (santri_id, jenis, tanggal, deskripsi, penghargaan)
-         VALUES ($1, $2, $3, $4, $5)
+        `INSERT INTO prestasi (santri_id, jenis, tanggal, deskripsi, penghargaan, tahun_ajaran_id)
+         VALUES ($1, $2, $3, $4, $5, $6)
          RETURNING *`,
-        [santri_id, jenis, tanggal, deskripsi, penghargaan]
+        [santri_id, jenis, tanggal, deskripsi, penghargaan, tahun_ajaran_id]
       );
       res.status(201).json(result.rows[0]);
     } catch (error) {
@@ -51,6 +66,7 @@ function registerPrestasiRoutes(app) {
   app.put('/api/prestasi/:id', async (req, res) => {
     const { id } = req.params;
     const santri_id = req.body.santri_id ? parseInt(req.body.santri_id, 10) : null;
+    const tahun_ajaran_id = req.body.tahun_ajaran_id ? parseInt(req.body.tahun_ajaran_id, 10) : null;
     const jenis = normalizeText(req.body.jenis);
     const tanggal = req.body.tanggal || null;
     const deskripsi = normalizeText(req.body.deskripsi);
@@ -63,10 +79,11 @@ function registerPrestasiRoutes(app) {
     try {
       const result = await db.query(
         `UPDATE prestasi 
-         SET santri_id = $1, jenis = $2, tanggal = $3, deskripsi = $4, penghargaan = $5
-         WHERE id = $6
+         SET santri_id = $1, jenis = $2, tanggal = $3, deskripsi = $4, penghargaan = $5,
+             tahun_ajaran_id = COALESCE($6, tahun_ajaran_id)
+         WHERE id = $7
          RETURNING *`,
-        [santri_id, jenis, tanggal, deskripsi, penghargaan, id]
+        [santri_id, jenis, tanggal, deskripsi, penghargaan, tahun_ajaran_id, id]
       );
   
       if (!result.rows.length) {

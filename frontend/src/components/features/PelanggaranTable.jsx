@@ -2,7 +2,7 @@ import React from 'react';
 import { CustomTag } from '../ui/CustomTag';
 import { EmptyState } from '../common/EmptyState';
 import { formatDate } from '../../utils/formatters';
-import { Edit2, Trash2, AlertTriangle } from 'lucide-react';
+import { Edit2, Trash2, AlertTriangle, Calendar } from 'lucide-react';
 
 export function PelanggaranTable({ data = [], onEdit, onDelete }) {
   if (data.length === 0) {
@@ -16,6 +16,7 @@ export function PelanggaranTable({ data = [], onEdit, onDelete }) {
           <tr style={{ background: '#f8fafc', borderBottom: '1px solid #cbd5e1' }}>
             <th style={{ padding: '10px 12px', textAlign: 'left' }}>NIS</th>
             <th style={{ padding: '10px 12px', textAlign: 'left' }}>Nama Santri</th>
+            <th style={{ padding: '10px 12px', textAlign: 'left' }}>Tahun Ajaran</th>
             <th style={{ padding: '10px 12px', textAlign: 'left' }}>Jenis Pelanggaran</th>
             <th style={{ padding: '10px 12px', textAlign: 'left' }}>Tanggal</th>
             <th style={{ padding: '10px 12px', textAlign: 'left' }}>Deskripsi</th>
@@ -28,6 +29,11 @@ export function PelanggaranTable({ data = [], onEdit, onDelete }) {
             <tr key={record.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
               <td style={{ padding: '10px 12px', fontFamily: 'monospace' }}>{record.nis || '-'}</td>
               <td style={{ padding: '10px 12px', fontWeight: 600 }}>{record.nama_santri || '-'}</td>
+              <td style={{ padding: '10px 12px' }}>
+                <span style={{ fontSize: '11px', padding: '3px 8px', borderRadius: '6px', background: '#f1f5f9', color: '#475569', fontWeight: 600 }}>
+                  {record.tahun_ajaran_kode || '-'}
+                </span>
+              </td>
               <td style={{ padding: '10px 12px' }}>
                 <CustomTag color="red">
                   <AlertTriangle size={12} /> {record.jenis || '-'}
@@ -65,3 +71,4 @@ export function PelanggaranTable({ data = [], onEdit, onDelete }) {
     </div>
   );
 }
+export default PelanggaranTable;

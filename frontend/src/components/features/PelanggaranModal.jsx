@@ -1,15 +1,26 @@
 import { useState, useEffect } from 'react';
 import { CustomModal } from '../ui/CustomModal';
 import { FloatingInput } from '../ui/FloatingInput';
+import { CustomSelect } from '../ui/CustomSelect';
 import { CustomDatePicker } from '../ui/CustomDatePicker';
 import { SmartAlert } from '../ui/SmartAlert';
-import { AlertTriangle, Save, FileText, ShieldAlert } from 'lucide-react';
+import { AlertTriangle, Save, FileText, ShieldAlert, Calendar } from 'lucide-react';
 import { SantriAutocomplete } from './SantriAutocomplete';
 import './PelanggaranModal.scss';
 
-export function PelanggaranModal({ isOpen, onClose, onSubmit, editData, isSubmitting, error }) {
+export function PelanggaranModal({ 
+  isOpen, 
+  onClose, 
+  onSubmit, 
+  editData, 
+  isSubmitting, 
+  error,
+  tahunAjaranList = [],
+  defaultTahunAjaranId = null
+}) {
   const [formData, setFormData] = useState({
     santri_id: '',
+    tahun_ajaran_id: defaultTahunAjaranId || '',
     jenis: '',
     tanggal: '',
     deskripsi: '',
@@ -22,6 +33,7 @@ export function PelanggaranModal({ isOpen, onClose, onSubmit, editData, isSubmit
       if (editData) {
         setFormData({
           santri_id: editData.santri_id || '',
+          tahun_ajaran_id: editData.tahun_ajaran_id || defaultTahunAjaranId || '',
           jenis: editData.jenis || '',
           tanggal: editData.tanggal ? editData.tanggal.split('T')[0] : '',
           deskripsi: editData.deskripsi || '',
@@ -30,6 +42,7 @@ export function PelanggaranModal({ isOpen, onClose, onSubmit, editData, isSubmit
       } else {
         setFormData({
           santri_id: '',
+          tahun_ajaran_id: defaultTahunAjaranId || '',
           jenis: '',
           tanggal: new Date().toISOString().split('T')[0],
           deskripsi: '',
@@ -38,7 +51,7 @@ export function PelanggaranModal({ isOpen, onClose, onSubmit, editData, isSubmit
       }
       setFormErrors({});
     }
-  }, [isOpen, editData]);
+  }, [isOpen, editData, defaultTahunAjaranId]);
 
   const handleChange = (name, value) => {
     setFormData(prev => ({ ...prev, [name]: value }));
@@ -60,14 +73,13 @@ export function PelanggaranModal({ isOpen, onClose, onSubmit, editData, isSubmit
       return;
     }
 
-    onSubmit({
-      santri_id: formData.santri_id,
-      jenis: formData.jenis.trim(),
-      tanggal: formData.tanggal,
-      deskripsi: formData.deskripsi ? formData.deskripsi.trim() : null,
-      sanksi: formData.sanksi ? formData.sanksi.trim() : null
-    });
+    onSubmit(formData);
   };
+
+  const tahunOptions = tahunAjaranList.map(t => ({
+    value: String(t.id),
+    label: `${t.kode} ${t.is_active ? '(Aktif)' : ''}`
+  }));
 
   return (
     <CustomModal
@@ -92,6 +104,19 @@ export function PelanggaranModal({ isOpen, onClose, onSubmit, editData, isSubmit
         {error && <div style={{ marginBottom: '16px' }}><SmartAlert message={error} type="error" /></div>}
 
         <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+          {tahunOptions.length > 0 && (
+            <div>
+              <CustomSelect
+                label="Tahun Ajaran"
+                value={formData.tahun_ajaran_id ? String(formData.tahun_ajaran_id) : ''}
+                onChange={(val) => handleChange('tahun_ajaran_id', val ? Number(val) : null)}
+                options={tahunOptions}
+                placeholder="Pilih Tahun Ajaran"
+                disabled={isSubmitting}
+              />
+            </div>
+          )}
+
           <div>
             <label style={{ display: 'block', marginBottom: '6px', fontSize: '13px', fontWeight: 500, color: 'var(--lt-text-secondary, #475569)' }}>
               Santri <span style={{ color: '#ef4444' }}>*</span>
@@ -125,26 +150,27 @@ export function PelanggaranModal({ isOpen, onClose, onSubmit, editData, isSubmit
           />
 
           <FloatingInput
-            label="Deskripsi Pelanggaran"
+            label="Deskripsi Kejadian"
             name="deskripsi"
             icon={FileText}
             value={formData.deskripsi}
             onChange={(e) => handleChange('deskripsi', e.target.value)}
             disabled={isSubmitting}
-            placeholder="Detail penjelasan pelanggaran..."
+            placeholder="Keterangan singkat kronologi pelanggaran..."
           />
 
           <FloatingInput
-            label="Sanksi yang Diberikan"
+            label="Tindakan / Sanksi"
             name="sanksi"
             icon={ShieldAlert}
             value={formData.sanksi}
             onChange={(e) => handleChange('sanksi', e.target.value)}
             disabled={isSubmitting}
-            placeholder="Catatan sanksi..."
+            placeholder="Contoh: Teguran lisan, Ro'an tambahan"
           />
         </form>
       </div>
     </CustomModal>
   );
 }
+export default PelanggaranModal;

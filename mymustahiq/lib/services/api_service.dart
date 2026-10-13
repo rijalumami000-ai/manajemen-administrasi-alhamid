@@ -177,10 +177,12 @@ class ApiService {
     }
   }
 
-  // Get Organization Structure (madrasah_diniyah / panitia_ujian)
-  Future<List<dynamic>> getStructure(String tipe) async {
+  // Get Organization Structure (madrasah_diniyah / panitia_ujian / pondok / etc.)
+  Future<List<dynamic>> getStructure(String tipe, {int? tahunAjaranId}) async {
     try {
-      final response = await _dio.get('/my-mustahiq/struktur?tipe=$tipe');
+      final Map<String, dynamic> qp = {'tipe': tipe};
+      if (tahunAjaranId != null) qp['tahun_ajaran_id'] = tahunAjaranId;
+      final response = await _dio.get('/my-mustahiq/struktur', queryParameters: qp);
       if (response.statusCode == 200) {
         return response.data as List<dynamic>;
       }
@@ -1009,9 +1011,11 @@ class ApiService {
   }
 
   // --- PELANGGARAN (from web data) ---
-  Future<List<dynamic>> getPelanggaran() async {
+  Future<List<dynamic>> getPelanggaran({int? tahunAjaranId}) async {
     try {
-      final response = await _dio.get('/my-mustahiq/pelanggaran');
+      final Map<String, dynamic> qp = {};
+      if (tahunAjaranId != null) qp['tahun_ajaran_id'] = tahunAjaranId;
+      final response = await _dio.get('/my-mustahiq/pelanggaran', queryParameters: qp);
       if (response.statusCode == 200) {
         return response.data as List<dynamic>;
       }
@@ -1025,9 +1029,11 @@ class ApiService {
   }
 
   // --- PRESTASI (from web data) ---
-  Future<List<dynamic>> getPrestasi() async {
+  Future<List<dynamic>> getPrestasi({int? tahunAjaranId}) async {
     try {
-      final response = await _dio.get('/my-mustahiq/prestasi');
+      final Map<String, dynamic> qp = {};
+      if (tahunAjaranId != null) qp['tahun_ajaran_id'] = tahunAjaranId;
+      final response = await _dio.get('/my-mustahiq/prestasi', queryParameters: qp);
       if (response.statusCode == 200) {
         return response.data as List<dynamic>;
       }
@@ -1077,9 +1083,10 @@ class ApiService {
   }
 
   // --- MATERI SIDANG ---
-  Future<List<dynamic>> getMateriSidang({String? tahunMasehi, String? kategori}) async {
+  Future<List<dynamic>> getMateriSidang({int? tahunAjaranId, String? tahunMasehi, String? kategori}) async {
     try {
       final Map<String, dynamic> qp = {};
+      if (tahunAjaranId != null) qp['tahun_ajaran_id'] = tahunAjaranId;
       if (tahunMasehi != null) qp['tahun_masehi'] = tahunMasehi;
       if (kategori != null) qp['kategori'] = kategori;
       final response = await _dio.get('/my-mustahiq/materi-sidang', queryParameters: qp);

@@ -21,14 +21,27 @@ const storage = multer.diskStorage({
 const upload = multer({
   storage,
   fileFilter: (req, file, cb) => {
-    if (file.mimetype === 'application/pdf') {
+    if (file.mimetype === 'application/pdf' || file.originalname.toLowerCase().endsWith('.pdf')) {
       cb(null, true);
     } else {
       cb(new Error('Hanya file PDF yang diizinkan.'), false);
     }
   },
-  limits: { fileSize: 20 * 1024 * 1024 } // 20MB max
+  limits: { fileSize: 30 * 1024 * 1024 } // 30MB max
 });
+
+// Middleware with friendly error response
+function uploadPdfMiddleware(req, res, next) {
+  upload.single('file')(req, res, (err) => {
+    if (err) {
+      if (err.code === 'LIMIT_FILE_SIZE') {
+        return res.status(400).json({ error: 'Ukuran file PDF terlalu besar. Maksimal 30MB.' });
+      }
+      return res.status(400).json({ error: err.message || 'Gagal mengunggah file PDF.' });
+    }
+    next();
+  });
+}
 
 function registerMateriSidangRoutes(app) {
 
@@ -47,7 +60,7 @@ function registerMateriSidangRoutes(app) {
 
       if (tahun_ajaran_id) {
         query += ` AND (m.tahun_ajaran_id = $${paramIdx++} OR m.tahun_masehi = (SELECT kode FROM tahun_ajaran WHERE id = $${paramIdx - 1}))`;
-        params.push(tahun_ajaran_id);
+        params.push(parseInt(tahun_ajaran_id, 10));
       } else if (tahun_masehi) {
         query += ` AND m.tahun_masehi = $${paramIdx++}`;
         params.push(tahun_masehi);
@@ -84,7 +97,7 @@ function registerMateriSidangRoutes(app) {
   });
 
   // POST – create new materi sidang with optional PDF upload
-  app.post('/api/materi-sidang', upload.single('file'), async (req, res) => {
+  app.post('/api/materi-sidang', uploadPdfMiddleware, async (req, res) => {
     let { tahun_ajaran_id, tahun_masehi, kategori, judul, no_surat, tanggal, halaman, ukuran, status, pengesah, ringkasan } = req.body;
 
     if (!kategori || !judul) {
@@ -97,25 +110,49 @@ function registerMateriSidangRoutes(app) {
         const taRow = await db.query('SELECT kode FROM tahun_ajaran WHERE id = $1', [tahun_ajaran_id]);
         if (taRow.rows.length) tahun_masehi = taRow.rows[0].kode;
       }
+    } else {
+      const activeTa = await db.query('SELECT id, kode FROM tahun_ajaran WHERE is_active = true LIMIT 1');
+      if (activeTa.rows.length) {
+        tahun_ajaran_id = activeTa.rows[0].id;
+        if (!tahun_masehi) tahun_masehi = activeTa.rows[0].kode;
+      }
     }
 
     const file_url = req.file ? `/uploads/sidang/${req.file.filename}` : null;
+    const finalUkuran = req.file 
+      ? `${(req.file.size / (1024 * 1024)).toFixed(1)} MB` 
+      : (ukuran || null);
+    const validTanggal = (tanggal && typeof tanggal === 'string' && tanggal.trim().length > 0) ? tanggal.trim() : null;
+    const validHalaman = (halaman ? parseInt(halaman, 10) : 0) || 0;
 
     try {
       const result = await db.query(
         `INSERT INTO materi_sidang (tahun_ajaran_id, tahun_masehi, kategori, judul, no_surat, tanggal, halaman, ukuran, status, pengesah, ringkasan, file_url)
          VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12) RETURNING *`,
-        [tahun_ajaran_id || null, tahun_masehi || null, kategori, normalizeText(judul), normalizeText(no_surat), tanggal || null, halaman ? parseInt(halaman, 10) : 0, ukuran, normalizeText(status), normalizeText(pengesah), normalizeText(ringkasan), file_url]
+        [
+          tahun_ajaran_id || null, 
+          tahun_masehi || null, 
+          kategori, 
+          normalizeText(judul), 
+          normalizeText(no_surat), 
+          validTanggal, 
+          validHalaman, 
+          finalUkuran, 
+          normalizeText(status), 
+          normalizeText(pengesah), 
+          normalizeText(ringkasan), 
+          file_url
+        ]
       );
       res.status(201).json(result.rows[0]);
     } catch (error) {
       console.error('Error adding materi sidang:', error);
-      res.status(500).json({ error: 'Gagal menambahkan materi sidang.' });
+      res.status(500).json({ error: 'Gagal menambahkan materi sidang: ' + (error.message || '') });
     }
   });
 
   // PUT – update materi sidang
-  app.put('/api/materi-sidang/:id', upload.single('file'), async (req, res) => {
+  app.put('/api/materi-sidang/:id', uploadPdfMiddleware, async (req, res) => {
     const { id } = req.params;
     let { tahun_ajaran_id, tahun_masehi, kategori, judul, no_surat, tanggal, halaman, ukuran, status, pengesah, ringkasan } = req.body;
 
@@ -129,21 +166,28 @@ function registerMateriSidangRoutes(app) {
 
     try {
       // Get existing record to check if there's an old file
-      const existing = await db.query('SELECT file_url, tahun_ajaran_id, tahun_masehi FROM materi_sidang WHERE id = $1', [id]);
+      const existing = await db.query('SELECT file_url, tahun_ajaran_id, tahun_masehi, ukuran FROM materi_sidang WHERE id = $1', [id]);
       if (!existing.rows.length) return res.status(404).json({ error: 'Data tidak ditemukan.' });
 
       let file_url = existing.rows[0].file_url;
+      let finalUkuran = ukuran || existing.rows[0].ukuran;
+
       if (req.file) {
         // Delete old file if exists
         if (file_url) {
           const oldPath = path.join(__dirname, '..', '..', 'public', file_url);
-          if (fs.existsSync(oldPath)) fs.unlinkSync(oldPath);
+          if (fs.existsSync(oldPath)) {
+            try { fs.unlinkSync(oldPath); } catch (_) {}
+          }
         }
         file_url = `/uploads/sidang/${req.file.filename}`;
+        finalUkuran = `${(req.file.size / (1024 * 1024)).toFixed(1)} MB`;
       }
 
       const finalTaId = tahun_ajaran_id || existing.rows[0].tahun_ajaran_id;
       const finalTaMasehi = tahun_masehi || existing.rows[0].tahun_masehi;
+      const validTanggal = (tanggal && typeof tanggal === 'string' && tanggal.trim().length > 0) ? tanggal.trim() : null;
+      const validHalaman = (halaman ? parseInt(halaman, 10) : 0) || 0;
 
       const result = await db.query(
         `UPDATE materi_sidang 
@@ -151,12 +195,26 @@ function registerMateriSidangRoutes(app) {
              halaman = $7, ukuran = $8, status = $9, pengesah = $10, ringkasan = $11, 
              file_url = $12, updated_at = NOW()
          WHERE id = $13 RETURNING *`,
-        [finalTaId, finalTaMasehi, kategori, normalizeText(judul), normalizeText(no_surat), tanggal || null, halaman ? parseInt(halaman, 10) : 0, ukuran, normalizeText(status), normalizeText(pengesah), normalizeText(ringkasan), file_url, id]
+        [
+          finalTaId, 
+          finalTaMasehi, 
+          kategori, 
+          normalizeText(judul), 
+          normalizeText(no_surat), 
+          validTanggal, 
+          validHalaman, 
+          finalUkuran, 
+          normalizeText(status), 
+          normalizeText(pengesah), 
+          normalizeText(ringkasan), 
+          file_url, 
+          id
+        ]
       );
       res.json(result.rows[0]);
     } catch (error) {
       console.error('Error updating materi sidang:', error);
-      res.status(500).json({ error: 'Gagal memperbarui materi sidang.' });
+      res.status(500).json({ error: 'Gagal memperbarui materi sidang: ' + (error.message || '') });
     }
   });
 
@@ -170,7 +228,9 @@ function registerMateriSidangRoutes(app) {
       // Delete file if exists
       if (existing.rows[0].file_url) {
         const filePath = path.join(__dirname, '..', '..', 'public', existing.rows[0].file_url);
-        if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
+        if (fs.existsSync(filePath)) {
+          try { fs.unlinkSync(filePath); } catch (_) {}
+        }
       }
 
       await db.query('DELETE FROM materi_sidang WHERE id = $1', [id]);

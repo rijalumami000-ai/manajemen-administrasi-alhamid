@@ -24,18 +24,37 @@ class _StrukturOrganisasiScreenState extends State<StrukturOrganisasiScreen> wit
   
   List<dynamic> _diniyahList = [];
   List<dynamic> _panitiaList = [];
+  List<dynamic> _tahunAjaranList = [];
+  int? _selectedTahunAjaranId;
 
   @override
   void initState() {
     super.initState();
     _tabController = TabController(length: 2, vsync: this, initialIndex: widget.initialIndex);
-    _fetchStructureData();
+    _initTahunAjaranAndFetch();
   }
 
   @override
   void dispose() {
     _tabController.dispose();
     super.dispose();
+  }
+
+  Future<void> _initTahunAjaranAndFetch() async {
+    try {
+      final taData = await _apiService.getTahunAjaranList();
+      if (taData['tahunAjaran'] != null && taData['tahunAjaran'] is List) {
+        final list = (taData['tahunAjaran'] as List);
+        _tahunAjaranList = list;
+        final active = list.firstWhere((t) => t['is_active'] == true, orElse: () => null);
+        if (active != null) {
+          _selectedTahunAjaranId = active['id'] as int;
+        } else if (list.isNotEmpty) {
+          _selectedTahunAjaranId = list.first['id'] as int;
+        }
+      }
+    } catch (_) {}
+    _fetchStructureData();
   }
 
   Future<void> _fetchStructureData() async {
@@ -53,8 +72,8 @@ class _StrukturOrganisasiScreenState extends State<StrukturOrganisasiScreen> wit
     }
 
     try {
-      final diniyah = await _apiService.getStructure('madrasah_diniyah');
-      final panitia = await _apiService.getStructure('panitia_ujian');
+      final diniyah = await _apiService.getStructure('madrasah_diniyah', tahunAjaranId: _selectedTahunAjaranId);
+      final panitia = await _apiService.getStructure('panitia_ujian', tahunAjaranId: _selectedTahunAjaranId);
 
       setState(() {
         _diniyahList = diniyah;
@@ -71,6 +90,8 @@ class _StrukturOrganisasiScreenState extends State<StrukturOrganisasiScreen> wit
 
   @override
   Widget build(BuildContext context) {
+    final isDark = context.isDarkMode;
+
     return Scaffold(
       backgroundColor: context.scaffoldBg,
       appBar: AppBar(
@@ -97,43 +118,131 @@ class _StrukturOrganisasiScreenState extends State<StrukturOrganisasiScreen> wit
           ],
         ),
       ),
-      body: _isLoading
-          ? const Center(child: CircularProgressIndicator(color: Color(0xFF10B981)))
-          : _errorMessage != null
-              ? (_errorMessage == 'NO_INTERNET'
-                  ? OfflineWidget(onRetry: _fetchStructureData)
-                  : Center(
-                      child: Padding(
-                        padding: const EdgeInsets.all(24.0),
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            const Icon(Icons.error_outline_rounded, color: Colors.amber, size: 48),
-                            const SizedBox(height: 16),
-                            Text(
-                              _errorMessage!,
-                              textAlign: TextAlign.center,
-                              style: GoogleFonts.outfit(color: context.titleColor, fontSize: 15),
-                            ),
-                            const SizedBox(height: 20),
-                            ElevatedButton(
-                              onPressed: _fetchStructureData,
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: const Color(0xFF064E3B),
+      body: Column(
+        children: [
+          _buildTahunAjaranFilter(context, isDark),
+          Expanded(
+            child: _isLoading
+                ? const Center(child: CircularProgressIndicator(color: Color(0xFF10B981)))
+                : _errorMessage != null
+                    ? (_errorMessage == 'NO_INTERNET'
+                        ? OfflineWidget(onRetry: _fetchStructureData)
+                        : Center(
+                            child: Padding(
+                              padding: const EdgeInsets.all(24.0),
+                              child: Column(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  const Icon(Icons.error_outline_rounded, color: Colors.amber, size: 48),
+                                  const SizedBox(height: 16),
+                                  Text(
+                                    _errorMessage!,
+                                    textAlign: TextAlign.center,
+                                    style: GoogleFonts.outfit(color: context.titleColor, fontSize: 15),
+                                  ),
+                                  const SizedBox(height: 20),
+                                  ElevatedButton(
+                                    onPressed: _fetchStructureData,
+                                    style: ElevatedButton.styleFrom(
+                                      backgroundColor: const Color(0xFF064E3B),
+                                    ),
+                                    child: Text('Coba Lagi', style: GoogleFonts.outfit(color: Colors.white)),
+                                  ),
+                                ],
                               ),
-                              child: Text('Coba Lagi', style: GoogleFonts.outfit(color: Colors.white)),
                             ),
-                          ],
-                        ),
+                          ))
+                    : TabBarView(
+                        controller: _tabController,
+                        children: [
+                          _buildStructureList(_diniyahList, const Color(0xFF10B981)),
+                          _buildStructureList(_panitiaList, const Color(0xFFD97706)),
+                        ],
                       ),
-                    ))
-              : TabBarView(
-                  controller: _tabController,
-                  children: [
-                    _buildStructureList(_diniyahList, const Color(0xFF10B981)),
-                    _buildStructureList(_panitiaList, const Color(0xFFD97706)),
-                  ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildTahunAjaranFilter(BuildContext context, bool isDark) {
+    if (_tahunAjaranList.isEmpty) return const SizedBox.shrink();
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      decoration: BoxDecoration(
+        color: isDark ? const Color(0xFF151F32) : const Color(0xFFF1F5F9),
+        border: Border(
+          bottom: BorderSide(
+            color: isDark ? Colors.white.withOpacity(0.06) : Colors.black.withOpacity(0.06),
+          ),
+        ),
+      ),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(6),
+            decoration: BoxDecoration(
+              color: const Color(0xFF10B981).withOpacity(0.12),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: const Icon(Icons.calendar_month_rounded, size: 16, color: Color(0xFF10B981)),
+          ),
+          const SizedBox(width: 10),
+          Text(
+            "Tahun Ajaran:",
+            style: GoogleFonts.outfit(
+              fontSize: 13,
+              fontWeight: FontWeight.w600,
+              color: context.titleColor,
+            ),
+          ),
+          const Spacer(),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 2),
+            decoration: BoxDecoration(
+              color: isDark ? const Color(0xFF0F172A) : Colors.white,
+              borderRadius: BorderRadius.circular(10),
+              border: Border.all(
+                color: isDark ? Colors.white12 : Colors.grey.shade300,
+              ),
+            ),
+            child: DropdownButtonHideUnderline(
+              child: DropdownButton<int?>(
+                value: _selectedTahunAjaranId,
+                isDense: true,
+                icon: Icon(Icons.arrow_drop_down_rounded, color: context.subTitleColor, size: 22),
+                style: GoogleFonts.outfit(
+                  color: context.titleColor,
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
                 ),
+                dropdownColor: isDark ? const Color(0xFF1E293B) : Colors.white,
+                borderRadius: BorderRadius.circular(12),
+                items: [
+                  const DropdownMenuItem<int?>(
+                    value: null,
+                    child: Text("Semua Tahun"),
+                  ),
+                  ..._tahunAjaranList.map((t) {
+                    final id = t['id'] as int;
+                    final kode = t['kode']?.toString() ?? '-';
+                    final isActive = t['is_active'] == true;
+                    return DropdownMenuItem<int?>(
+                      value: id,
+                      child: Text(isActive ? "$kode (Aktif)" : kode),
+                    );
+                  }),
+                ],
+                onChanged: (val) {
+                  setState(() => _selectedTahunAjaranId = val);
+                  _fetchStructureData();
+                },
+              ),
+            ),
+          ),
+        ],
+      ),
     );
   }
 

@@ -21,6 +21,8 @@ class _JadwalKhususScreenState extends State<JadwalKhususScreen>
 
   List<dynamic> _kajianList = [];
   List<dynamic> _tarawihList = [];
+  List<dynamic> _tahunAjaranList = [];
+  int? _selectedTahunAjaranId;
   bool _isLoading = true;
   String? _error;
 
@@ -32,7 +34,7 @@ class _JadwalKhususScreenState extends State<JadwalKhususScreen>
       vsync: this,
       initialIndex: widget.initialTabIndex,
     );
-    _loadData();
+    _initTahunAjaranAndLoad();
   }
 
   @override
@@ -41,23 +43,44 @@ class _JadwalKhususScreenState extends State<JadwalKhususScreen>
     super.dispose();
   }
 
+  Future<void> _initTahunAjaranAndLoad() async {
+    try {
+      final taData = await _apiService.getTahunAjaranList();
+      if (taData['tahunAjaran'] != null && taData['tahunAjaran'] is List) {
+        final list = (taData['tahunAjaran'] as List);
+        _tahunAjaranList = list;
+        final active = list.firstWhere((t) => t['is_active'] == true, orElse: () => null);
+        if (active != null) {
+          _selectedTahunAjaranId = active['id'] as int;
+        } else if (list.isNotEmpty) {
+          _selectedTahunAjaranId = list.first['id'] as int;
+        }
+      }
+    } catch (_) {}
+    _loadData();
+  }
+
   Future<void> _loadData() async {
     setState(() { _isLoading = true; _error = null; });
     try {
       final results = await Future.wait([
-        _apiService.getKajianBalagh(),
-        _apiService.getImamTarawih(),
+        _apiService.getKajianBalagh(tahunAjaranId: _selectedTahunAjaranId),
+        _apiService.getImamTarawih(tahunAjaranId: _selectedTahunAjaranId),
       ]);
-      setState(() {
-        _kajianList = results[0];
-        _tarawihList = results[1];
-        _isLoading = false;
-      });
+      if (mounted) {
+        setState(() {
+          _kajianList = results[0];
+          _tarawihList = results[1];
+          _isLoading = false;
+        });
+      }
     } catch (e) {
-      setState(() {
-        _error = e.toString().replaceAll('Exception: ', '');
-        _isLoading = false;
-      });
+      if (mounted) {
+        setState(() {
+          _error = e.toString().replaceAll('Exception: ', '');
+          _isLoading = false;
+        });
+      }
     }
   }
 
@@ -102,40 +125,128 @@ class _JadwalKhususScreenState extends State<JadwalKhususScreen>
           ],
         ),
       ),
-      body: _isLoading
-          ? const Center(child: CircularProgressIndicator(color: Color(0xFF10B981)))
-          : _error != null
-              ? Center(
-                  child: Padding(
-                    padding: const EdgeInsets.all(24),
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(Icons.cloud_off_rounded, size: 48, color: Colors.grey[400]),
-                        const SizedBox(height: 12),
-                        Text(_error!, textAlign: TextAlign.center, style: GoogleFonts.outfit(color: Colors.grey)),
-                        const SizedBox(height: 16),
-                        ElevatedButton.icon(
-                          onPressed: _loadData,
-                          icon: const Icon(Icons.refresh_rounded, size: 18),
-                          label: const Text("Coba Lagi"),
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: const Color(0xFF10B981),
-                            foregroundColor: Colors.white,
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      body: Column(
+        children: [
+          _buildTahunAjaranFilter(context, isDark),
+          Expanded(
+            child: _isLoading
+                ? const Center(child: CircularProgressIndicator(color: Color(0xFF10B981)))
+                : _error != null
+                    ? Center(
+                        child: Padding(
+                          padding: const EdgeInsets.all(24),
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(Icons.cloud_off_rounded, size: 48, color: Colors.grey[400]),
+                              const SizedBox(height: 12),
+                              Text(_error!, textAlign: TextAlign.center, style: GoogleFonts.outfit(color: Colors.grey)),
+                              const SizedBox(height: 16),
+                              ElevatedButton.icon(
+                                onPressed: _loadData,
+                                icon: const Icon(Icons.refresh_rounded, size: 18),
+                                label: const Text("Coba Lagi"),
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: const Color(0xFF10B981),
+                                  foregroundColor: Colors.white,
+                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                                ),
+                              ),
+                            ],
                           ),
                         ),
-                      ],
-                    ),
-                  ),
-                )
-              : TabBarView(
-                  controller: _tabController,
-                  children: [
-                    _buildBalaghTab(context, isDark),
-                    _buildTarawihTab(context, isDark),
-                  ],
+                      )
+                    : TabBarView(
+                        controller: _tabController,
+                        children: [
+                          _buildBalaghTab(context, isDark),
+                          _buildTarawihTab(context, isDark),
+                        ],
+                      ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildTahunAjaranFilter(BuildContext context, bool isDark) {
+    if (_tahunAjaranList.isEmpty) return const SizedBox.shrink();
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      decoration: BoxDecoration(
+        color: isDark ? const Color(0xFF151F32) : const Color(0xFFF1F5F9),
+        border: Border(
+          bottom: BorderSide(
+            color: isDark ? Colors.white.withOpacity(0.06) : Colors.black.withOpacity(0.06),
+          ),
+        ),
+      ),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(6),
+            decoration: BoxDecoration(
+              color: const Color(0xFF10B981).withOpacity(0.12),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: const Icon(Icons.calendar_month_rounded, size: 16, color: Color(0xFF10B981)),
+          ),
+          const SizedBox(width: 10),
+          Text(
+            "Tahun Ajaran:",
+            style: GoogleFonts.outfit(
+              fontSize: 13,
+              fontWeight: FontWeight.w600,
+              color: context.titleColor,
+            ),
+          ),
+          const Spacer(),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 2),
+            decoration: BoxDecoration(
+              color: isDark ? const Color(0xFF0F172A) : Colors.white,
+              borderRadius: BorderRadius.circular(10),
+              border: Border.all(
+                color: isDark ? Colors.white12 : Colors.grey.shade300,
+              ),
+            ),
+            child: DropdownButtonHideUnderline(
+              child: DropdownButton<int?>(
+                value: _selectedTahunAjaranId,
+                isDense: true,
+                icon: Icon(Icons.arrow_drop_down_rounded, color: context.subTitleColor, size: 22),
+                style: GoogleFonts.outfit(
+                  color: context.titleColor,
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
                 ),
+                dropdownColor: isDark ? const Color(0xFF1E293B) : Colors.white,
+                borderRadius: BorderRadius.circular(12),
+                items: [
+                  const DropdownMenuItem<int?>(
+                    value: null,
+                    child: Text("Semua Tahun"),
+                  ),
+                  ..._tahunAjaranList.map((t) {
+                    final id = t['id'] as int;
+                    final kode = t['kode']?.toString() ?? '-';
+                    final isActive = t['is_active'] == true;
+                    return DropdownMenuItem<int?>(
+                      value: id,
+                      child: Text(isActive ? "$kode (Aktif)" : kode),
+                    );
+                  }),
+                ],
+                onChanged: (val) {
+                  setState(() => _selectedTahunAjaranId = val);
+                  _loadData();
+                },
+              ),
+            ),
+          ),
+        ],
+      ),
     );
   }
 

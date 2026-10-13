@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Plus, AlertTriangle, Trophy } from 'lucide-react';
+import { Plus, AlertTriangle, Trophy, Filter, RefreshCw } from 'lucide-react';
 import { pelanggaranService } from '../services/pelanggaranService';
 import { PelanggaranTable } from '../components/features/PelanggaranTable';
 import { PrestasiTable } from '../components/features/PrestasiTable';
@@ -7,12 +7,17 @@ import { PelanggaranModal } from '../components/features/PelanggaranModal';
 import { PrestasiModal } from '../components/features/PrestasiModal';
 import { PageHeader, LoadingState, ErrorState } from '../components/common';
 import { CustomTabs } from '../components/ui/CustomTabs';
+import { CustomSelect } from '../components/ui/CustomSelect';
 import './PelanggaranPrestasi.scss';
 
 export function PelanggaranPrestasi() {
   const [pelanggaranList, setPelanggaranList] = useState([]);
   const [prestasiList, setPrestasiList] = useState([]);
   const [activeTab, setActiveTab] = useState('pelanggaran');
+
+  // Academic Year State
+  const [tahunAjaranList, setTahunAjaranList] = useState([]);
+  const [selectedTahunAjaran, setSelectedTahunAjaran] = useState(null);
 
   const [isPelanggaranModalOpen, setIsPelanggaranModalOpen] = useState(false);
   const [isPrestasiModalOpen, setIsPrestasiModalOpen] = useState(false);
@@ -26,29 +31,60 @@ export function PelanggaranPrestasi() {
   const [error, setError] = useState(null);
 
   useEffect(() => {
-    loadInitialData();
+    loadTahunAjaran();
   }, []);
 
-  const loadInitialData = async () => {
+  useEffect(() => {
+    if (selectedTahunAjaran !== null) {
+      loadData(selectedTahunAjaran);
+    }
+  }, [selectedTahunAjaran]);
+
+  const loadTahunAjaran = async () => {
+    try {
+      setLoading(true);
+      const list = await pelanggaranService.fetchTahunAjaran();
+      setTahunAjaranList(list);
+      const active = list.find(t => t.is_active);
+      if (active) {
+        setSelectedTahunAjaran(active.id);
+      } else if (list.length > 0) {
+        setSelectedTahunAjaran(list[0].id);
+      } else {
+        setSelectedTahunAjaran('');
+      }
+    } catch (err) {
+      console.error('Gagal memuat tahun ajaran:', err);
+      setError(err.message || 'Gagal memuat tahun ajaran');
+      setLoading(false);
+    }
+  };
+
+  const loadData = async (tahunId) => {
     try {
       setLoading(true);
       setError(null);
-      await Promise.all([loadPelanggaran(), loadPrestasi()]);
+      await Promise.all([
+        loadPelanggaran(tahunId),
+        loadPrestasi(tahunId)
+      ]);
     } catch (err) {
-      console.error('Gagal memuat data awal:', err);
-      setError(err.message || 'Gagal memuat data awal');
+      console.error('Gagal memuat data:', err);
+      setError(err.message || 'Gagal memuat data');
     } finally {
       setLoading(false);
     }
   };
 
-  const loadPelanggaran = async () => {
-    const data = await pelanggaranService.fetchPelanggaran();
+  const loadPelanggaran = async (tahunId) => {
+    const tid = tahunId === 'all' ? null : tahunId;
+    const data = await pelanggaranService.fetchPelanggaran(tid);
     setPelanggaranList(data);
   };
 
-  const loadPrestasi = async () => {
-    const data = await pelanggaranService.fetchPrestasi();
+  const loadPrestasi = async (tahunId) => {
+    const tid = tahunId === 'all' ? null : tahunId;
+    const data = await pelanggaranService.fetchPrestasi(tid);
     setPrestasiList(data);
   };
 
@@ -69,7 +105,7 @@ export function PelanggaranPrestasi() {
 
     try {
       await pelanggaranService.deletePelanggaran(id);
-      await loadPelanggaran();
+      await loadPelanggaran(selectedTahunAjaran);
     } catch (err) {
       alert(err.message || 'Gagal menghapus pelanggaran');
     }
@@ -86,7 +122,7 @@ export function PelanggaranPrestasi() {
         await pelanggaranService.createPelanggaran(data);
       }
       setIsPelanggaranModalOpen(false);
-      await loadPelanggaran();
+      await loadPelanggaran(selectedTahunAjaran);
     } catch (err) {
       setPelanggaranModalError(err.message || 'Gagal menyimpan data');
     } finally {
@@ -111,7 +147,7 @@ export function PelanggaranPrestasi() {
 
     try {
       await pelanggaranService.deletePrestasi(id);
-      await loadPrestasi();
+      await loadPrestasi(selectedTahunAjaran);
     } catch (err) {
       alert(err.message || 'Gagal menghapus prestasi');
     }
@@ -128,7 +164,7 @@ export function PelanggaranPrestasi() {
         await pelanggaranService.createPrestasi(data);
       }
       setIsPrestasiModalOpen(false);
-      await loadPrestasi();
+      await loadPrestasi(selectedTahunAjaran);
     } catch (err) {
       setPrestasiModalError(err.message || 'Gagal menyimpan data');
     } finally {
@@ -136,13 +172,21 @@ export function PelanggaranPrestasi() {
     }
   };
 
-  if (loading) {
+  if (loading && !selectedTahunAjaran && tahunAjaranList.length === 0) {
     return <LoadingState message="Memuat data pelanggaran & prestasi..." />;
   }
 
-  if (error) {
-    return <ErrorState message={error} onRetry={loadInitialData} />;
+  if (error && tahunAjaranList.length === 0) {
+    return <ErrorState message={error} onRetry={loadTahunAjaran} />;
   }
+
+  const tahunOptions = [
+    { value: 'all', label: 'Semua Tahun Ajaran' },
+    ...tahunAjaranList.map(t => ({
+      value: String(t.id),
+      label: `${t.kode} ${t.is_active ? '(Aktif)' : ''}`
+    }))
+  ];
 
   const tabItems = [
     {
@@ -177,17 +221,36 @@ export function PelanggaranPrestasi() {
     <div className="pelanggaran-prestasi-page">
       <PageHeader
         title="⚠️ Manajemen Pelanggaran & Prestasi"
-        subtitle="Kelola catatan pelanggaran dan prestasi santri dari satu tempat"
+        subtitle="Kelola catatan pelanggaran dan prestasi santri terintegrasi per tahun ajaran"
         extra={
-          activeTab === 'pelanggaran' ? (
-            <button type="button" className="btn-custom btn-primary" onClick={handleAddPelanggaranClick}>
-              <Plus size={16} /> Tambah Pelanggaran
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
+            <div style={{ width: '220px' }}>
+              <CustomSelect
+                value={selectedTahunAjaran ? String(selectedTahunAjaran) : 'all'}
+                onChange={(val) => setSelectedTahunAjaran(val === 'all' ? 'all' : Number(val))}
+                options={tahunOptions}
+                placeholder="Pilih Tahun Ajaran"
+              />
+            </div>
+            {activeTab === 'pelanggaran' ? (
+              <button type="button" className="btn-custom btn-primary" onClick={handleAddPelanggaranClick}>
+                <Plus size={16} /> Tambah Pelanggaran
+              </button>
+            ) : (
+              <button type="button" className="btn-custom btn-primary" onClick={handleAddPrestasiClick}>
+                <Plus size={16} /> Tambah Prestasi
+              </button>
+            )}
+            <button 
+              type="button" 
+              className="btn-custom btn-secondary" 
+              onClick={() => loadData(selectedTahunAjaran)}
+              disabled={loading}
+              title="Muat Ulang"
+            >
+              <RefreshCw size={16} className={loading ? 'spin-anim' : ''} />
             </button>
-          ) : (
-            <button type="button" className="btn-custom btn-primary" onClick={handleAddPrestasiClick}>
-              <Plus size={16} /> Tambah Prestasi
-            </button>
-          )
+          </div>
         }
       />
 
@@ -206,6 +269,8 @@ export function PelanggaranPrestasi() {
         editData={editingPelanggaran}
         isSubmitting={isSubmitting}
         error={pelanggaranModalError}
+        tahunAjaranList={tahunAjaranList}
+        defaultTahunAjaranId={selectedTahunAjaran === 'all' ? (tahunAjaranList.find(t => t.is_active)?.id || null) : selectedTahunAjaran}
       />
 
       <PrestasiModal
@@ -215,7 +280,10 @@ export function PelanggaranPrestasi() {
         editData={editingPrestasi}
         isSubmitting={isSubmitting}
         error={prestasiModalError}
+        tahunAjaranList={tahunAjaranList}
+        defaultTahunAjaranId={selectedTahunAjaran === 'all' ? (tahunAjaranList.find(t => t.is_active)?.id || null) : selectedTahunAjaran}
       />
     </div>
   );
 }
+export default PelanggaranPrestasi;
