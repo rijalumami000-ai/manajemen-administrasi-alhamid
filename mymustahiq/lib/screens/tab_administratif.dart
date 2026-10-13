@@ -6,6 +6,7 @@ import 'santri_explorer_screen.dart';
 import 'teacher_list_screen.dart';
 import 'alumni_list_screen.dart';
 import 'struktur_lembaga_screen.dart';
+import 'struktur_organisasi_screen.dart';
 import 'materi_sidang_screen.dart';
 
 class TabAdministratif extends StatefulWidget {
@@ -481,45 +482,39 @@ class _TabAdministratifState extends State<TabAdministratif> {
   Widget _buildStrukturCluster(BuildContext context, bool isDark) {
     final list = [
       {
-        'title': 'Struktur Madrasah Diniyah',
-        'desc': 'Struktur pimpinan, bagian kurikulum & pengawas KBM Diniyah.',
-        'badge': 'Madin',
-        'index': 0,
+        'title': 'Struktur Madrasah Diniyah & Panitia',
+        'desc': 'Struktur pimpinan, bagian kurikulum & panitia semester Madin.',
+        'isMadin': true,
         'color': const Color(0xFF3B82F6),
       },
       {
         'title': 'Struktur PMQ (Madin Al-Qur\'an)',
         'desc': 'Koordinator tahfidz 30 juz, tahsin metode Yanbu\'a & penguji.',
-        'badge': 'Al-Qur\'an',
-        'index': 1,
+        'index': 0,
         'color': const Color(0xFF10B981),
       },
       {
         'title': 'Struktur Pondok Pesantren',
         'desc': 'Lurah pondok, biro keamanan, biro ubudiyah, sanitasi & ro\'an.',
-        'badge': 'Pesantren',
-        'index': 2,
+        'index': 1,
         'color': const Color(0xFF8B5CF6),
       },
       {
         'title': 'Struktur Panitia Sambangan',
         'desc': 'Panitia kunjungan wali santri, alur perizinan, pos registrasi & bazar.',
-        'badge': 'Sambangan',
-        'index': 3,
+        'index': 2,
         'color': const Color(0xFFF59E0B),
       },
       {
         'title': 'Struktur Panitia Haflah',
         'desc': 'Kepanitiaan wisuda akbar santri, dekorasi, publikasi & panggung.',
-        'badge': 'Haflah',
-        'index': 4,
+        'index': 3,
         'color': const Color(0xFFEC4899),
       },
       {
         'title': 'Struktur Panitia PSB',
         'desc': 'Panitia penerimaan santri baru, tes baca kitab & administrasi pendaftaran.',
-        'badge': 'PSB',
-        'index': 5,
+        'index': 4,
         'color': const Color(0xFF06B6D4),
       },
     ];
@@ -536,14 +531,23 @@ class _TabAdministratifState extends State<TabAdministratif> {
           margin: const EdgeInsets.only(bottom: 12),
           child: GestureDetector(
             onTap: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => StrukturLembagaScreen(
-                    initialTabIndex: it['index'] as int,
+              if (it['isMadin'] == true) {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => const StrukturOrganisasiScreen(),
                   ),
-                ),
-              );
+                );
+              } else {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => StrukturLembagaScreen(
+                      initialTabIndex: it['index'] as int,
+                    ),
+                  ),
+                );
+              }
             },
             child: Container(
               padding: const EdgeInsets.all(16),
@@ -577,33 +581,13 @@ class _TabAdministratifState extends State<TabAdministratif> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Row(
-                          children: [
-                            Text(
-                              it['title'] as String,
-                              style: GoogleFonts.outfit(
-                                color: context.titleColor,
-                                fontSize: 14,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                            const SizedBox(width: 8),
-                            Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                              decoration: BoxDecoration(
-                                color: col.withOpacity(0.12),
-                                borderRadius: BorderRadius.circular(6),
-                              ),
-                              child: Text(
-                                it['badge'] as String,
-                                style: GoogleFonts.outfit(
-                                  color: col,
-                                  fontSize: 9,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                            ),
-                          ],
+                        Text(
+                          it['title'] as String,
+                          style: GoogleFonts.outfit(
+                            color: context.titleColor,
+                            fontSize: 14,
+                            fontWeight: FontWeight.bold,
+                          ),
                         ),
                         const SizedBox(height: 3),
                         Text(
@@ -792,33 +776,13 @@ class _TabAdministratifState extends State<TabAdministratif> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Row(
-                        children: [
-                          Text(
-                            "Portal Dokumen Sidang",
-                            style: GoogleFonts.outfit(
-                              color: isDark ? Colors.white : const Color(0xFF991B1B),
-                              fontSize: 16,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                          const SizedBox(width: 6),
-                          Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                            decoration: BoxDecoration(
-                              color: const Color(0xFFEF4444).withOpacity(0.18),
-                              borderRadius: BorderRadius.circular(6),
-                            ),
-                            child: Text(
-                              "PDF Viewer",
-                              style: GoogleFonts.outfit(
-                                color: const Color(0xFFEF4444),
-                                fontSize: 9,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                          ),
-                        ],
+                      Text(
+                        "Portal Dokumen Sidang",
+                        style: GoogleFonts.outfit(
+                          color: isDark ? Colors.white : const Color(0xFF991B1B),
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                        ),
                       ),
                       const SizedBox(height: 4),
                       Text(

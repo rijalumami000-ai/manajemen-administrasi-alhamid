@@ -4,6 +4,7 @@ import 'package:share_plus/share_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../services/api_service.dart';
 import '../services/theme_manager.dart';
+import 'pdf_viewer_screen.dart';
 
 class MateriSidangScreen extends StatefulWidget {
   final int initialTabIndex;
@@ -95,12 +96,17 @@ class _MateriSidangScreenState extends State<MateriSidangScreen>
     }
   }
 
-  Future<void> _openPdf(String url) async {
-    final fullUrl = 'https://alhamidcintamulya.my.id$url';
-    final uri = Uri.parse(fullUrl);
-    if (await canLaunchUrl(uri)) {
-      await launchUrl(uri, mode: LaunchMode.externalApplication);
-    }
+  void _openPdf(String url, {String? title, String? noSurat}) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => PdfViewerScreen(
+          pdfUrl: url,
+          title: title ?? "Dokumen PDF",
+          noSurat: noSurat,
+        ),
+      ),
+    );
   }
 
   void _sharePdf(String url, String title) {
@@ -363,9 +369,13 @@ class _MateriSidangScreenState extends State<MateriSidangScreen>
               children: [
                 Expanded(
                   child: OutlinedButton.icon(
-                    onPressed: () => _openPdf(doc['file_url']),
-                    icon: const Icon(Icons.open_in_new_rounded, size: 16),
-                    label: Text("Buka PDF", style: GoogleFonts.outfit(fontSize: 12, fontWeight: FontWeight.w600)),
+                    onPressed: () => _openPdf(
+                      doc['file_url'],
+                      title: doc['judul']?.toString(),
+                      noSurat: doc['no_surat']?.toString(),
+                    ),
+                    icon: const Icon(Icons.picture_as_pdf_rounded, size: 16),
+                    label: Text("Buka Dokumen PDF", style: GoogleFonts.outfit(fontSize: 12, fontWeight: FontWeight.w600)),
                     style: OutlinedButton.styleFrom(
                       foregroundColor: color,
                       side: BorderSide(color: color.withOpacity(0.4)),

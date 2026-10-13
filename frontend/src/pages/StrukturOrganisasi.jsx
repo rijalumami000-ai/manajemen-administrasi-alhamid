@@ -488,7 +488,7 @@ export function StrukturOrganisasi() {
           <Briefcase size={26} className="header-icon" />
           <div>
             <h1 className="page-title">Struktur Organisasi Madrasah Diniyah</h1>
-            <p className="page-subtitle">Kelola struktur kepengurusan Madrasah Diniyah dan Panitia Semester</p>
+            <p className="page-subtitle">Kelola struktur kepengurusan khusus Madrasah Diniyah dan Panitia Semester / Ujian Madrasah</p>
           </div>
         </div>
       </div>
@@ -523,7 +523,7 @@ export function StrukturOrganisasi() {
                     { value: '', label: 'Semua Tahun Ajaran' },
                     ...tahunAjaranList.map(t => ({
                       value: String(t.id),
-                      label: `${t.tahun} (${t.semester || '-'}) ${t.is_active ? '★ Aktif' : ''}`
+                      label: `${t.kode || t.tahun || '-'} ${t.is_active ? '★ Aktif' : ''}`
                     }))
                   ]}
                   placeholder="Pilih Tahun Ajaran"

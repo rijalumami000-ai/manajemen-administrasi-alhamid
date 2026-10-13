@@ -50,7 +50,7 @@ const MobileMenu = ({ open, onClose, onLogout }) => {
         { key: '/buku-induk', icon: <BookOpen size={18} />, label: 'Buku Induk' },
         { key: '/kamar', icon: <Home size={18} />, label: 'Data Kamar' },
         { key: '/pelanggaran-prestasi', icon: <Award size={18} />, label: 'Pelanggaran & Prestasi' },
-        { key: '/struktur-kepesantrenan', icon: <Landmark size={18} />, label: 'Struktur Organisasi' },
+        { key: '/struktur-kepesantrenan', icon: <Landmark size={18} />, label: 'Struktur Kepesantrenan' },
         { key: '/materi-sidang', icon: <FileArchive size={18} />, label: 'PDF Materi Sidang' },
       ]
     },
@@ -60,7 +60,7 @@ const MobileMenu = ({ open, onClose, onLogout }) => {
       items: [
         { key: '/kelas', icon: <School size={18} />, label: 'Data Kelas' },
         { key: '/guru', icon: <Contact size={18} />, label: 'Data Guru' },
-        { key: '/struktur-organisasi', icon: <Users size={18} />, label: 'Struktur Organisasi' },
+        { key: '/struktur-organisasi', icon: <Users size={18} />, label: 'Struktur Madrasah Diniyah' },
         { key: '/jadwal-pelajaran', icon: <Clock size={18} />, label: 'Jadwal Harian' },
         { key: '/nilai-pengaturan', icon: <Sliders size={18} />, label: 'Pengaturan & Jadwal' },
         { key: '/nilai', icon: <Edit size={18} />, label: 'Input Penilaian' },

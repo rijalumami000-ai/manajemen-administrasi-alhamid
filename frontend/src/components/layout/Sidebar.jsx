@@ -215,7 +215,7 @@ export function Sidebar({ collapsed, onCollapse }) {
         { key: '/buku-induk', icon: 'BookOpen', label: 'Buku Induk' },
         { key: '/kamar', icon: 'Home', label: 'Data Kamar' },
         { key: '/pelanggaran-prestasi', icon: 'Award', label: 'Pelanggaran & Prestasi' },
-        { key: '/struktur-kepesantrenan', icon: 'Landmark', label: 'Struktur Organisasi' },
+        { key: '/struktur-kepesantrenan', icon: 'Landmark', label: 'Struktur Kepesantrenan' },
         { key: '/materi-sidang', icon: 'FileArchive', label: 'PDF Materi Sidang' },
       ]
     },
@@ -228,7 +228,7 @@ export function Sidebar({ collapsed, onCollapse }) {
       items: [
         { key: '/kelas', icon: 'School', label: 'Data Kelas', disabled: isStaff() },
         { key: '/guru', icon: 'Contact', label: 'Data Guru', disabled: isStaff() },
-        { key: '/struktur-organisasi', icon: 'Users', label: 'Struktur Organisasi', disabled: isStaff() },
+        { key: '/struktur-organisasi', icon: 'Users', label: 'Struktur Madrasah Diniyah', disabled: isStaff() },
         { key: '/jadwal-pelajaran', icon: 'Clock', label: 'Jadwal Harian', disabled: isStaff() },
         { key: '/silabus-pembelajaran', icon: 'BookOpen', label: 'Silabus Pembelajaran', disabled: isStaff() },
         { key: '/nilai-pengaturan', icon: 'Sliders', label: 'Pengaturan & Jadwal', disabled: isStaff() },

@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import {
   Key, Trash2, Search, RefreshCw, Bell, CalendarClock,
   CheckCircle2, AlertCircle, X, Eye, EyeOff, Smartphone,
-  MessageSquare, ChevronDown, Download
+  MessageSquare, ChevronDown
 } from 'lucide-react';
 import { myMustahiqService } from '../services/myMustahiqService';
 import { PageHeader, LoadingState, ErrorState } from '../components/common';
@@ -540,29 +540,6 @@ export function MyMustahiqSettings() {
       <PageHeader
         title="Setelan & Utilitas MyMustahiq"
         subtitle="Kelola akun login ustadz dan kirim notifikasi manual ke aplikasi mobile"
-        extra={
-          <a
-            href="/downloads/mymustahiq-v1.3.0.apk"
-            download="mymustahiq-v1.3.0.apk"
-            className="mms-btn-download"
-            style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '8px',
-              padding: '8px 16px',
-              background: '#0ea5e9',
-              color: '#ffffff',
-              borderRadius: '8px',
-              fontWeight: 600,
-              textDecoration: 'none',
-              fontSize: '13px',
-              boxShadow: '0 2px 4px rgba(14, 165, 233, 0.25)'
-            }}
-          >
-            <Download size={16} />
-            <span>Unduh APK Terbaru (v1.3.0)</span>
-          </a>
-        }
       />
 
       {/* Tabs */}

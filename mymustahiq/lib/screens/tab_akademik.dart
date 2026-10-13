@@ -17,7 +17,6 @@ import 'kalender_akademik_screen.dart';
 import 'silabus_pembelajaran_screen.dart';
 import 'laporan_pelanggaran_prestasi_screen.dart';
 import 'jadwal_khusus_screen.dart';
-import 'struktur_organisasi_screen.dart';
 
 class TabAkademik extends StatefulWidget {
   const TabAkademik({super.key});
@@ -520,33 +519,13 @@ class _TabAkademikState extends State<TabAkademik> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Row(
-                          children: [
-                            Text(
-                              it['title'] as String,
-                              style: GoogleFonts.outfit(
-                                color: context.titleColor,
-                                fontSize: 14,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                            const SizedBox(width: 8),
-                            Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                              decoration: BoxDecoration(
-                                color: col.withOpacity(0.12),
-                                borderRadius: BorderRadius.circular(6),
-                              ),
-                              child: Text(
-                                it['badge'] as String,
-                                style: GoogleFonts.outfit(
-                                  color: col,
-                                  fontSize: 9,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                            ),
-                          ],
+                        Text(
+                          it['title'] as String,
+                          style: GoogleFonts.outfit(
+                            color: context.titleColor,
+                            fontSize: 14,
+                            fontWeight: FontWeight.bold,
+                          ),
                         ),
                         const SizedBox(height: 4),
                         Text(
@@ -651,33 +630,13 @@ class _TabAkademikState extends State<TabAkademik> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Row(
-                          children: [
-                            Text(
-                              it['title'] as String,
-                              style: GoogleFonts.outfit(
-                                color: context.titleColor,
-                                fontSize: 14,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                            const SizedBox(width: 8),
-                            Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                              decoration: BoxDecoration(
-                                color: col.withOpacity(0.12),
-                                borderRadius: BorderRadius.circular(6),
-                              ),
-                              child: Text(
-                                it['badge'] as String,
-                                style: GoogleFonts.outfit(
-                                  color: col,
-                                  fontSize: 9,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                            ),
-                          ],
+                        Text(
+                          it['title'] as String,
+                          style: GoogleFonts.outfit(
+                            color: context.titleColor,
+                            fontSize: 14,
+                            fontWeight: FontWeight.bold,
+                          ),
                         ),
                         const SizedBox(height: 4),
                         Text(
@@ -751,16 +710,6 @@ class _TabAkademikState extends State<TabAkademik> {
         'onTap': () => Navigator.push(
           context,
           MaterialPageRoute(builder: (context) => const SilabusPembelajaranScreen()),
-        ),
-      },
-      {
-        'title': 'Struktur Madrasah & Panitia',
-        'desc': 'Bagan kepengurusan Madrasah Diniyah dan panitia semester.',
-        'icon': Icons.account_tree_rounded,
-        'color': const Color(0xFF6366F1),
-        'onTap': () => Navigator.push(
-          context,
-          MaterialPageRoute(builder: (context) => const StrukturOrganisasiScreen()),
         ),
       },
     ];

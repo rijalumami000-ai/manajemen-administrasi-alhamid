@@ -420,8 +420,8 @@ export function StrukturKepesantrenan() {
   return (
     <div className="struktur-organisasi-page">
       <PageHeader
-        title="🏛️ Struktur Organisasi Kepesantrenan"
-        subtitle="Kelola struktur pengurus Pondok Pesantren, PMQ, Panitia Sambangan, Haflah, dan PSB"
+        title="🏛️ Struktur Kepengurusan Pesantren & Umum"
+        subtitle="Kelola susunan pengurus umum: Pondok Pesantren, PMQ, Panitia Sambangan, Haflah, dan PSB"
         extra={
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
             <div style={{ minWidth: '220px' }}>
@@ -432,7 +432,7 @@ export function StrukturKepesantrenan() {
                   { value: '', label: 'Semua Tahun Ajaran' },
                   ...tahunAjaranList.map(t => ({
                     value: String(t.id),
-                    label: `${t.tahun} (${t.semester || '-'}) ${t.is_active ? '★ Aktif' : ''}`
+                    label: `${t.kode || t.tahun || '-'} ${t.is_active ? '★ Aktif' : ''}`
                   }))
                 ]}
                 placeholder="Pilih Tahun Ajaran"

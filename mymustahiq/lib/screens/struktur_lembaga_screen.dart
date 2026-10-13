@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../services/theme_manager.dart';
 import '../services/api_service.dart';
-import 'struktur_organisasi_screen.dart';
 
 class StrukturLembagaScreen extends StatefulWidget {
   final int initialTabIndex;
@@ -215,9 +214,9 @@ class _StrukturLembagaScreenState extends State<StrukturLembagaScreen>
   void initState() {
     super.initState();
     _tabController = TabController(
-      length: 6,
+      length: 5,
       vsync: this,
-      initialIndex: widget.initialTabIndex.clamp(0, 5),
+      initialIndex: widget.initialTabIndex.clamp(0, 4),
     );
     _initTahunAjaranAndFetch();
   }
@@ -287,7 +286,7 @@ class _StrukturLembagaScreenState extends State<StrukturLembagaScreen>
           onPressed: () => Navigator.pop(context),
         ),
         title: Text(
-          "Struktur Kepengurusan & Panitia",
+          "Struktur Kepesantrenan",
           style: GoogleFonts.outfit(
             color: context.titleColor,
             fontWeight: FontWeight.bold,
@@ -304,7 +303,6 @@ class _StrukturLembagaScreenState extends State<StrukturLembagaScreen>
           labelStyle: GoogleFonts.outfit(fontWeight: FontWeight.bold, fontSize: 13),
           unselectedLabelStyle: GoogleFonts.outfit(fontWeight: FontWeight.w500, fontSize: 13),
           tabs: const [
-            Tab(text: "Madrasah Diniyah"),
             Tab(text: "Struktur PMQ"),
             Tab(text: "Struktur Pondok"),
             Tab(text: "Panitia Sambangan"),
@@ -320,17 +318,15 @@ class _StrukturLembagaScreenState extends State<StrukturLembagaScreen>
             child: TabBarView(
               controller: _tabController,
               children: [
-                // 1. Madrasah Diniyah (Embed existing StrukturOrganisasiScreen content cleanly)
-                _MadrasahTabWrapper(tahunAjaranId: _selectedTahunAjaranId),
-                // 2. PMQ
+                // 1. PMQ
                 _buildStructureList('pmq', 'Pendidikan Madin & Al-Qur\'an (PMQ)', 'Lembaga khusus tahfidz dan tahsin quran pesantren.', isDark),
-                // 3. Pondok
+                // 2. Pondok
                 _buildStructureList('pondok', 'Pondok Pesantren Al-Hamid', 'Kepengurusan pusat santri putra dan putri.', isDark),
-                // 4. Sambangan
+                // 3. Sambangan
                 _buildStructureList('sambangan', 'Panitia Sambangan Santri', 'Kepanitiaan acara kunjungan rutin wali santri bulanan.', isDark),
-                // 5. Haflah
+                // 4. Haflah
                 _buildStructureList('haflah', 'Panitia Haflah Akhirussanah', 'Kepanitiaan wisuda santri dan pengajian akbar tahunan.', isDark),
-                // 6. PSB
+                // 5. PSB
                 _buildStructureList('psb', 'Panitia Penerimaan Santri Baru (PSB)', 'Kepanitiaan pendaftaran, seleksi berkas & tes santri baru.', isDark),
               ],
             ),
@@ -597,125 +593,6 @@ class _StrukturLembagaScreenState extends State<StrukturLembagaScreen>
               ],
             ),
           ),
-        ],
-      ),
-    );
-  }
-}
-
-class _MadrasahTabWrapper extends StatefulWidget {
-  final int? tahunAjaranId;
-  const _MadrasahTabWrapper({this.tahunAjaranId});
-
-  @override
-  State<_MadrasahTabWrapper> createState() => _MadrasahTabWrapperState();
-}
-
-class _MadrasahTabWrapperState extends State<_MadrasahTabWrapper> {
-  final ApiService _apiService = ApiService();
-  bool _loading = true;
-  List<dynamic> _diniyahList = [];
-
-  @override
-  void initState() {
-    super.initState();
-    _load();
-  }
-
-  @override
-  void didUpdateWidget(covariant _MadrasahTabWrapper oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    if (oldWidget.tahunAjaranId != widget.tahunAjaranId) {
-      _load();
-    }
-  }
-
-  Future<void> _load() async {
-    try {
-      if (mounted) setState(() => _loading = true);
-      final res = await _apiService.getStructure('madrasah_diniyah', tahunAjaranId: widget.tahunAjaranId);
-      if (mounted) setState(() { _diniyahList = res; _loading = false; });
-    } catch (_) {
-      if (mounted) setState(() { _loading = false; });
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    if (_loading) {
-      return const Center(child: CircularProgressIndicator());
-    }
-
-    if (_diniyahList.isEmpty) {
-      // Fallback preview
-      return const Center(
-        child: Text("Data struktur madrasah aktif dimuat dari server"),
-      );
-    }
-
-    final isDark = context.isDarkMode;
-    return SingleChildScrollView(
-      physics: const BouncingScrollPhysics(),
-      padding: const EdgeInsets.all(20),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            "PENGURUS MADRASAH DINIYAH",
-            style: GoogleFonts.outfit(
-              color: context.subTitleColor,
-              fontSize: 11,
-              fontWeight: FontWeight.bold,
-              letterSpacing: 1.2,
-            ),
-          ),
-          const SizedBox(height: 12),
-          ..._diniyahList.map((item) {
-            return Container(
-              margin: const EdgeInsets.only(bottom: 12),
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: isDark ? const Color(0xFF131C2E) : Colors.white,
-                borderRadius: BorderRadius.circular(18),
-                border: Border.all(
-                  color: isDark ? Colors.white.withOpacity(0.06) : Colors.black.withOpacity(0.06),
-                ),
-              ),
-              child: Row(
-                children: [
-                  CircleAvatar(
-                    radius: 20,
-                    backgroundColor: const Color(0xFF10B981).withOpacity(0.12),
-                    child: const Icon(Icons.person_outline_rounded, color: Color(0xFF10B981)),
-                  ),
-                  const SizedBox(width: 14),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          item['jabatan'] ?? 'Pengurus',
-                          style: GoogleFonts.outfit(
-                            color: context.titleColor,
-                            fontSize: 13,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                        Text(
-                          (item['guru_nama'] ?? item['nama_custom'] ?? item['nama'] ?? '-').toString(),
-                          style: GoogleFonts.outfit(
-                            color: const Color(0xFF10B981),
-                            fontSize: 12,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-            );
-          }),
         ],
       ),
     );
