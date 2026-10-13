@@ -6,6 +6,11 @@ export const kamarService = {
     return apiGet('/kamar', { noCache: true });
   },
 
+  // Fetch kamar detail and members
+  async fetchKamarAnggota(id) {
+    return apiGet(`/kamar/${id}/anggota`, { noCache: true });
+  },
+
   // Create new kamar
   async createKamar(data) {
     return apiPost('/kamar', data);

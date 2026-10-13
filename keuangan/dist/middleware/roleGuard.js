@@ -51,7 +51,7 @@ function requireLaporanKeuangan(req, res, next) {
         res.status(401).json({ error: 'Autentikasi diperlukan.' });
         return;
     }
-    const allowed = ['admin', 'bendahara'];
+    const allowed = ['admin', 'bendahara', 'madrasah_diniyah', 'guru', 'staff', 'superadmin'];
     if (!allowed.includes(req.user.role)) {
         res.status(403).json({
             error: 'Akses ditolak untuk laporan keuangan.',

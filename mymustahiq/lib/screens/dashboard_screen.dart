@@ -6,6 +6,7 @@ import '../services/theme_manager.dart';
 import '../services/api_service.dart';
 import 'tab_akademik.dart';
 import 'tab_kelasku.dart';
+import 'tab_keuangan.dart';
 import 'tab_administratif.dart';
 import 'tab_akun.dart';
 import 'notifications_screen.dart';
@@ -29,6 +30,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
   final List<Widget> _tabs = const [
     TabAkademik(),
     TabKelasku(),
+    TabKeuangan(),
     TabAdministratif(),
     TabAkun(),
   ];
@@ -36,6 +38,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
   static const _tabTitles = [
     'Akademik',
     'Kelasku',
+    'Keuangan',
     'Administratif',
     'Akun Saya',
   ];
@@ -445,8 +448,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     children: [
                       _buildNavItem(0, Icons.school_rounded, 'Akademik'),
                       _buildNavItem(1, Icons.class_rounded, 'Kelasku'),
-                      _buildNavItem(2, Icons.admin_panel_settings_rounded, 'Administratif'),
-                      _buildNavItem(3, Icons.person_rounded, 'Akun'),
+                      _buildNavItem(2, Icons.account_balance_wallet_rounded, 'Keuangan'),
+                      _buildNavItem(3, Icons.admin_panel_settings_rounded, 'Administratif'),
+                      _buildNavItem(4, Icons.person_rounded, 'Akun'),
                     ],
                   ),
                 ),

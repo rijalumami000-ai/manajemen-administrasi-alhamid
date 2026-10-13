@@ -17,6 +17,7 @@ import 'kalender_akademik_screen.dart';
 import 'silabus_pembelajaran_screen.dart';
 import 'laporan_pelanggaran_prestasi_screen.dart';
 import 'jadwal_khusus_screen.dart';
+import 'statistik_diniyah_screen.dart';
 
 class TabAkademik extends StatefulWidget {
   const TabAkademik({super.key});
@@ -453,6 +454,14 @@ class _TabAkademikState extends State<TabAkademik> {
         'badge': 'Juara & Piagam',
         'color': const Color(0xFFF59E0B),
         'screen': const LaporanPelanggaranPrestasiScreen(initialTabIndex: 1),
+      },
+      {
+        'title': 'Statistik Siswa Diniyah',
+        'desc': 'Demografi santri per semester, per tingkat, dan tren tahun ajaran.',
+        'icon': Icons.bar_chart_rounded,
+        'badge': 'Statistik & Tren',
+        'color': const Color(0xFF10B981),
+        'screen': const StatistikDiniyahScreen(),
       },
     ];
 

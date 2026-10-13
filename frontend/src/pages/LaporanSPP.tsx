@@ -57,21 +57,35 @@ function RealisasiBar({ terkumpul, target }: { terkumpul: number; target: number
 function LaporanBulanan({ tahunId, token }: { tahunId: number; token: string }) {
   const [bulan, setBulan] = useState(new Date().getMonth() + 1);
   const [tahun, setTahun] = useState(new Date().getFullYear());
+  const [kelasList, setKelasList] = useState<{ id: number; nama: string }[]>([]);
+  const [selectedKelasId, setSelectedKelasId] = useState<string>('');
   const [data, setData] = useState<Record<string, unknown> | null>(null);
   const [loading, setLoading] = useState(false);
   const [expanded, setExpanded] = useState<Set<number>>(new Set());
 
+  useEffect(() => {
+    fetch('/api/kelas', { headers: { Authorization: `Bearer ${token}` } })
+      .then(r => r.json())
+      .then(d => {
+        if (Array.isArray(d)) {
+          setKelasList(d.filter((k: { jenis: string }) => k.jenis === 'Diniyah'));
+        }
+      })
+      .catch(() => {});
+  }, [token]);
+
   const fetch_ = useCallback(async () => {
     setLoading(true);
     try {
+      const kelasQuery = selectedKelasId ? `&kelas_id=${selectedKelasId}` : '';
       const res = await fetch(
-        `/api/keuangan/laporan/spp/bulanan?tahun_ajaran_id=${tahunId}&bulan=${bulan}&tahun=${tahun}`,
+        `/api/keuangan/laporan/spp/bulanan?tahun_ajaran_id=${tahunId}&bulan=${bulan}&tahun=${tahun}${kelasQuery}`,
         { headers: { Authorization: `Bearer ${token}` } }
       );
       setData(await res.json());
     } catch { /* silent */ }
     setLoading(false);
-  }, [tahunId, bulan, tahun, token]);
+  }, [tahunId, bulan, tahun, selectedKelasId, token]);
 
   useEffect(() => { fetch_(); }, [fetch_]);
 
@@ -97,6 +111,12 @@ function LaporanBulanan({ tahunId, token }: { tahunId: number; token: string }) 
         </select>
         <select className="k-select" value={tahun} onChange={e => setTahun(Number(e.target.value))}>
           {[2024, 2025, 2026, 2027].map(y => <option key={y} value={y}>{y}</option>)}
+        </select>
+        <select className="k-select" value={selectedKelasId} onChange={e => setSelectedKelasId(e.target.value)}>
+          <option value="">Semua Kelas</option>
+          {kelasList.map(k => (
+            <option key={k.id} value={k.id}>Kelas {k.nama}</option>
+          ))}
         </select>
         <button className="k-btn-primary" onClick={fetch_}>Tampilkan</button>
       </div>

@@ -8,6 +8,8 @@ import 'alumni_list_screen.dart';
 import 'struktur_lembaga_screen.dart';
 import 'struktur_organisasi_screen.dart';
 import 'materi_sidang_screen.dart';
+import 'inventaris_screen.dart';
+import 'statistik_diniyah_screen.dart';
 
 class TabAdministratif extends StatefulWidget {
   const TabAdministratif({super.key});
@@ -25,6 +27,7 @@ class _TabAdministratifState extends State<TabAdministratif> {
     'Struktur',
     'Mutakhorijin',
     'Materi Sidang',
+    'Inventaris',
   ];
 
   @override
@@ -158,6 +161,21 @@ class _TabAdministratifState extends State<TabAdministratif> {
               ),
               const SizedBox(height: 14),
               _buildMateriSidangCluster(context, isDark),
+              const SizedBox(height: 24),
+            ],
+
+            // 6. CLUSTER: INVENTARIS PESANTREN
+            if (_shouldShowCluster('Inventaris')) ...[
+              _buildSectionHeader(
+                title: "Inventaris Sarana & Prasarana",
+                subtitle: "Pencatatan aset Pondok, Madrasah Diniyah, dan PMQ",
+                badgeText: "3 Kategori",
+                icon: Icons.inventory_2_rounded,
+                color: const Color(0xFFF59E0B),
+                isDark: isDark,
+              ),
+              const SizedBox(height: 14),
+              _buildInventarisCluster(context, isDark),
               const SizedBox(height: 24),
             ],
           ],
@@ -297,82 +315,174 @@ class _TabAdministratifState extends State<TabAdministratif> {
 
     final filtered = items;
 
-    if (filtered.isEmpty) return _buildNoMatchText();
-
-    return Row(
-      children: filtered.map((it) {
-        final Color col = it['color'] as Color;
-        return Expanded(
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 5),
-            child: GestureDetector(
-              onTap: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (context) => it['screen'] as Widget),
-                );
-              },
-              child: Container(
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: isDark ? const Color(0xFF131C2E) : Colors.white,
-                  borderRadius: BorderRadius.circular(20),
-                  border: Border.all(
-                    color: col.withOpacity(isDark ? 0.35 : 0.2),
-                    width: 1.2,
-                  ),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withOpacity(isDark ? 0.25 : 0.03),
-                      blurRadius: 10,
-                      offset: const Offset(0, 4),
-                    ),
-                  ],
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Container(
-                          padding: const EdgeInsets.all(10),
-                          decoration: BoxDecoration(
-                            color: col.withOpacity(0.12),
-                            borderRadius: BorderRadius.circular(14),
-                          ),
-                          child: Icon(it['icon'] as IconData, color: col, size: 22),
+    return Column(
+      children: [
+        Row(
+          children: filtered.map((it) {
+            final Color col = it['color'] as Color;
+            return Expanded(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 5),
+                child: GestureDetector(
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (context) => it['screen'] as Widget),
+                    );
+                  },
+                  child: Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: isDark ? const Color(0xFF131C2E) : Colors.white,
+                      borderRadius: BorderRadius.circular(20),
+                      border: Border.all(
+                        color: col.withOpacity(isDark ? 0.35 : 0.2),
+                        width: 1.2,
+                      ),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(isDark ? 0.25 : 0.03),
+                          blurRadius: 10,
+                          offset: const Offset(0, 4),
                         ),
-                        Icon(Icons.arrow_forward_rounded, size: 16, color: col),
                       ],
                     ),
-                    const SizedBox(height: 14),
-                    Text(
-                      it['title'] as String,
-                      style: GoogleFonts.outfit(
-                        color: context.titleColor,
-                        fontSize: 15,
-                        fontWeight: FontWeight.bold,
-                      ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.all(10),
+                              decoration: BoxDecoration(
+                                color: col.withOpacity(0.12),
+                                borderRadius: BorderRadius.circular(14),
+                              ),
+                              child: Icon(it['icon'] as IconData, color: col, size: 22),
+                            ),
+                            Icon(Icons.arrow_forward_rounded, size: 16, color: col),
+                          ],
+                        ),
+                        const SizedBox(height: 14),
+                        Text(
+                          it['title'] as String,
+                          style: GoogleFonts.outfit(
+                            color: context.titleColor,
+                            fontSize: 15,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          it['desc'] as String,
+                          style: GoogleFonts.outfit(
+                            color: context.subTitleColor,
+                            fontSize: 10,
+                            height: 1.3,
+                          ),
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ],
                     ),
-                    const SizedBox(height: 4),
-                    Text(
-                      it['desc'] as String,
-                      style: GoogleFonts.outfit(
-                        color: context.subTitleColor,
-                        fontSize: 10,
-                        height: 1.3,
-                      ),
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ],
+                  ),
                 ),
+              ),
+            );
+          }).toList(),
+        ),
+        const SizedBox(height: 10),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 5),
+          child: GestureDetector(
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => const StatistikDiniyahScreen()),
+              );
+            },
+            child: Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: isDark ? const Color(0xFF131C2E) : Colors.white,
+                borderRadius: BorderRadius.circular(20),
+                border: Border.all(
+                  color: const Color(0xFF10B981).withOpacity(isDark ? 0.35 : 0.25),
+                  width: 1.2,
+                ),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(isDark ? 0.25 : 0.03),
+                    blurRadius: 10,
+                    offset: const Offset(0, 4),
+                  ),
+                ],
+              ),
+              child: Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(10),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF10B981).withOpacity(0.12),
+                      borderRadius: BorderRadius.circular(14),
+                    ),
+                    child: const Icon(Icons.bar_chart_rounded, color: Color(0xFF10B981), size: 22),
+                  ),
+                  const SizedBox(width: 14),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Text(
+                              "Statistik Siswa Madin",
+                              style: GoogleFonts.outfit(
+                                color: context.titleColor,
+                                fontSize: 15,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFF10B981).withOpacity(0.15),
+                                borderRadius: BorderRadius.circular(6),
+                              ),
+                              child: Text(
+                                "Demografi",
+                                style: GoogleFonts.outfit(
+                                  color: const Color(0xFF10B981),
+                                  fontSize: 9,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          "Rekapitulasi jumlah santri per semester, tingkat, & perbandingan tahun ajaran.",
+                          style: GoogleFonts.outfit(
+                            color: context.subTitleColor,
+                            fontSize: 10,
+                            height: 1.3,
+                          ),
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ],
+                    ),
+                  ),
+                  const Icon(Icons.arrow_forward_rounded, size: 16, color: Color(0xFF10B981)),
+                ],
               ),
             ),
           ),
-        );
-      }).toList(),
+        ),
+      ],
     );
   }
 
@@ -852,6 +962,134 @@ class _TabAdministratifState extends State<TabAdministratif> {
           }).toList(),
         ),
       ],
+    );
+  }
+
+  // ── 6. INVENTARIS CLUSTER ──────────────────────────────────────────────────
+  Widget _buildInventarisCluster(BuildContext context, bool isDark) {
+    return GestureDetector(
+      onTap: () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(builder: (context) => const InventarisScreen()),
+        );
+      },
+      child: Container(
+        padding: const EdgeInsets.all(18),
+        decoration: BoxDecoration(
+          color: isDark ? const Color(0xFF131C2E) : Colors.white,
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(
+            color: const Color(0xFFF59E0B).withOpacity(isDark ? 0.4 : 0.3),
+            width: 1.2,
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: const Color(0xFFF59E0B).withOpacity(0.06),
+              blurRadius: 12,
+              offset: const Offset(0, 4),
+            ),
+          ],
+        ),
+        child: Column(
+          children: [
+            Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(14),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFF59E0B).withOpacity(0.12),
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  child: const Icon(Icons.inventory_2_rounded, color: Color(0xFFF59E0B), size: 28),
+                ),
+                const SizedBox(width: 14),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Text(
+                            "Inventaris Pesantren",
+                            style: GoogleFonts.outfit(
+                              color: context.titleColor,
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFF59E0B).withOpacity(0.15),
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: Text(
+                              "3 Divisi",
+                              style: GoogleFonts.outfit(
+                                color: const Color(0xFFF59E0B),
+                                fontSize: 9,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        "Pencatatan sarana & prasarana Pondok, Madrasah Diniyah, dan PMQ.",
+                        style: GoogleFonts.outfit(
+                          color: context.subTitleColor,
+                          fontSize: 11,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const Icon(Icons.arrow_forward_ios_rounded, size: 14, color: Color(0xFFF59E0B)),
+              ],
+            ),
+            const SizedBox(height: 14),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              decoration: BoxDecoration(
+                color: isDark ? Colors.white.withOpacity(0.04) : const Color(0xFFF8FAFC),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceAround,
+                children: [
+                  Text(
+                    "🏛️ Pondok",
+                    style: GoogleFonts.outfit(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w600,
+                      color: isDark ? Colors.white70 : const Color(0xFF475569),
+                    ),
+                  ),
+                  Text(
+                    "📚 Madin",
+                    style: GoogleFonts.outfit(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w600,
+                      color: isDark ? Colors.white70 : const Color(0xFF475569),
+                    ),
+                  ),
+                  Text(
+                    "📖 PMQ",
+                    style: GoogleFonts.outfit(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w600,
+                      color: isDark ? Colors.white70 : const Color(0xFF475569),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 

@@ -317,6 +317,137 @@ function registerSantriRoutes(app) {
       res.status(500).json({ error: 'Gagal mengimpor data santri: ' + error.message });
     }
   });
+
+  // ===== STATISTIK SISWA MADRASAH DINIYAH =====
+  app.get('/api/santri/statistik-diniyah', async (req, res) => {
+    try {
+      let { tahun_ajaran_id, semester } = req.query;
+
+      let activeTa = null;
+      if (!tahun_ajaran_id) {
+        const taRes = await db.query('SELECT * FROM tahun_ajaran WHERE is_active = TRUE LIMIT 1');
+        if (taRes.rows.length > 0) {
+          activeTa = taRes.rows[0];
+          tahun_ajaran_id = activeTa.id;
+        } else {
+          const firstTa = await db.query('SELECT * FROM tahun_ajaran ORDER BY id DESC LIMIT 1');
+          if (firstTa.rows.length > 0) {
+            activeTa = firstTa.rows[0];
+            tahun_ajaran_id = activeTa.id;
+          }
+        }
+      } else {
+        const taRes = await db.query('SELECT * FROM tahun_ajaran WHERE id = $1', [tahun_ajaran_id]);
+        if (taRes.rows.length > 0) {
+          activeTa = taRes.rows[0];
+        }
+      }
+
+      if (!tahun_ajaran_id) {
+        return res.status(404).json({ error: 'Tahun ajaran belum tersedia.' });
+      }
+
+      let semesterCondition = '';
+      if (semester === 'ganjil') {
+        semesterCondition = 'AND sta.aktif_ganjil = TRUE';
+      } else if (semester === 'genap') {
+        semesterCondition = 'AND sta.aktif_genap = TRUE';
+      }
+
+      // Summary
+      const summaryRes = await db.query(`
+        SELECT
+          COUNT(s.id)::int AS total,
+          COUNT(CASE WHEN COALESCE(sta.jenis_kelamin, s.jenis_kelamin) IN ('L', 'Putra') THEN 1 END)::int AS putra,
+          COUNT(CASE WHEN COALESCE(sta.jenis_kelamin, s.jenis_kelamin) IN ('P', 'Putri') THEN 1 END)::int AS putri,
+          COUNT(CASE WHEN sta.aktif_ganjil = TRUE THEN 1 END)::int AS total_ganjil,
+          COUNT(CASE WHEN sta.aktif_genap = TRUE THEN 1 END)::int AS total_genap
+        FROM santri s
+        JOIN santri_tahun_ajaran sta ON sta.santri_id = s.id AND sta.tahun_ajaran_id = $1
+        WHERE COALESCE(sta.kelas_diniyah_id, s.kelas_diniyah_id) IS NOT NULL
+          AND COALESCE(sta.status, 'aktif') IN ('aktif', 'draft', 'tidak_naik')
+          AND NOT EXISTS (SELECT 1 FROM alumni a WHERE a.santri_id = s.id)
+          ${semesterCondition}
+      `, [tahun_ajaran_id]);
+
+      // Per Tingkat
+      const tingkatRes = await db.query(`
+        SELECT
+          k.tingkat,
+          CASE 
+            WHEN k.tingkat = 0 THEN 'Tingkat Sifir'
+            ELSE CONCAT('Tingkat ', k.tingkat)
+          END AS nama_tingkat,
+          COUNT(s.id)::int AS total,
+          COUNT(CASE WHEN COALESCE(sta.jenis_kelamin, s.jenis_kelamin) IN ('L', 'Putra') THEN 1 END)::int AS putra,
+          COUNT(CASE WHEN COALESCE(sta.jenis_kelamin, s.jenis_kelamin) IN ('P', 'Putri') THEN 1 END)::int AS putri
+        FROM kelas k
+        LEFT JOIN santri_tahun_ajaran sta ON sta.kelas_diniyah_id = k.id 
+          AND sta.tahun_ajaran_id = $1 
+          AND COALESCE(sta.status, 'aktif') IN ('aktif', 'draft', 'tidak_naik')
+          ${semesterCondition}
+        LEFT JOIN santri s ON s.id = sta.santri_id 
+          AND NOT EXISTS (SELECT 1 FROM alumni a WHERE a.santri_id = s.id)
+        WHERE k.jenis = 'Diniyah'
+        GROUP BY k.tingkat
+        ORDER BY k.tingkat ASC
+      `, [tahun_ajaran_id]);
+
+      // Per Kelas
+      const kelasRes = await db.query(`
+        SELECT
+          k.id AS kelas_id,
+          k.nama AS nama_kelas,
+          k.tingkat,
+          COUNT(s.id)::int AS total,
+          COUNT(CASE WHEN COALESCE(sta.jenis_kelamin, s.jenis_kelamin) IN ('L', 'Putra') THEN 1 END)::int AS putra,
+          COUNT(CASE WHEN COALESCE(sta.jenis_kelamin, s.jenis_kelamin) IN ('P', 'Putri') THEN 1 END)::int AS putri
+        FROM kelas k
+        LEFT JOIN santri_tahun_ajaran sta ON sta.kelas_diniyah_id = k.id 
+          AND sta.tahun_ajaran_id = $1 
+          AND COALESCE(sta.status, 'aktif') IN ('aktif', 'draft', 'tidak_naik')
+          ${semesterCondition}
+        LEFT JOIN santri s ON s.id = sta.santri_id 
+          AND NOT EXISTS (SELECT 1 FROM alumni a WHERE a.santri_id = s.id)
+        WHERE k.jenis = 'Diniyah'
+        GROUP BY k.id, k.nama, k.tingkat
+        ORDER BY k.tingkat ASC, k.nama ASC
+      `, [tahun_ajaran_id]);
+
+      // Tren Per Tahun Ajaran
+      const trenRes = await db.query(`
+        SELECT
+          ta.id AS tahun_ajaran_id,
+          ta.kode,
+          ta.is_active,
+          COUNT(sta.id)::int AS total_diniyah,
+          COUNT(CASE WHEN COALESCE(sta.jenis_kelamin, s.jenis_kelamin) IN ('L', 'Putra') THEN 1 END)::int AS putra,
+          COUNT(CASE WHEN COALESCE(sta.jenis_kelamin, s.jenis_kelamin) IN ('P', 'Putri') THEN 1 END)::int AS putri,
+          COUNT(CASE WHEN sta.aktif_ganjil = TRUE THEN 1 END)::int AS ganjil,
+          COUNT(CASE WHEN sta.aktif_genap = TRUE THEN 1 END)::int AS genap
+        FROM tahun_ajaran ta
+        LEFT JOIN santri_tahun_ajaran sta ON sta.tahun_ajaran_id = ta.id 
+          AND sta.kelas_diniyah_id IS NOT NULL 
+          AND COALESCE(sta.status, 'aktif') IN ('aktif', 'draft', 'tidak_naik')
+        LEFT JOIN santri s ON s.id = sta.santri_id 
+          AND NOT EXISTS (SELECT 1 FROM alumni a WHERE a.santri_id = s.id)
+        GROUP BY ta.id, ta.kode, ta.is_active, ta.tahun_mulai
+        ORDER BY ta.tahun_mulai ASC
+      `);
+
+      res.json({
+        tahun_ajaran: activeTa,
+        semester: semester || 'semua',
+        summary: summaryRes.rows[0] || { total: 0, putra: 0, putri: 0, total_ganjil: 0, total_genap: 0 },
+        per_tingkat: tingkatRes.rows,
+        per_kelas: kelasRes.rows,
+        tren_tahun_ajaran: trenRes.rows
+      });
+    } catch (error) {
+      console.error('Error fetching statistik diniyah:', error);
+      res.status(500).json({ error: 'Gagal memuat statistik siswa madrasah diniyah.' });
+    }
+  });
 }
 
 module.exports = registerSantriRoutes;

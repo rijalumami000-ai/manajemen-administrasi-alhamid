@@ -28,6 +28,7 @@ import {
   Clock,
   Landmark,
   FileArchive,
+  Boxes,
   Moon
 } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
@@ -49,6 +50,7 @@ const MobileMenu = ({ open, onClose, onLogout }) => {
         { key: '/santri', icon: <Users size={18} />, label: 'Data Santri' },
         { key: '/buku-induk', icon: <BookOpen size={18} />, label: 'Buku Induk' },
         { key: '/kamar', icon: <Home size={18} />, label: 'Data Kamar' },
+        { key: '/inventaris', icon: <Boxes size={18} />, label: 'Inventaris Pesantren' },
         { key: '/pelanggaran-prestasi', icon: <Award size={18} />, label: 'Pelanggaran & Prestasi' },
         { key: '/struktur-kepesantrenan', icon: <Landmark size={18} />, label: 'Struktur Kepesantrenan' },
         { key: '/materi-sidang', icon: <FileArchive size={18} />, label: 'PDF Materi Sidang' },
@@ -58,6 +60,7 @@ const MobileMenu = ({ open, onClose, onLogout }) => {
       title: 'Akademik Diniyah',
       roleFilter: () => isAdmin() || isDiniyah(),
       items: [
+        { key: '/statistik-diniyah', icon: <BarChart3 size={18} />, label: 'Statistik Siswa Diniyah' },
         { key: '/kelas', icon: <School size={18} />, label: 'Data Kelas' },
         { key: '/guru', icon: <Contact size={18} />, label: 'Data Guru' },
         { key: '/struktur-organisasi', icon: <Users size={18} />, label: 'Struktur Madrasah Diniyah' },

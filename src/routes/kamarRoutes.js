@@ -7,11 +7,66 @@ function registerKamarRoutes(app) {
   // ===== KAMAR API =====
   app.get('/api/kamar', async (req, res) => {
     try {
-      const result = await db.query('SELECT * FROM kamar ORDER BY nama');
-      res.json(result.rows);
+      const result = await db.query(`
+        SELECT 
+          k.*,
+          COALESCE((
+            SELECT COUNT(*)::int 
+            FROM santri s 
+            WHERE s.kamar_id = k.id 
+              AND NOT EXISTS (SELECT 1 FROM alumni a WHERE a.santri_id = s.id)
+          ), 0) AS terisi_real
+        FROM kamar k 
+        ORDER BY k.nama
+      `);
+      const rows = result.rows.map(r => ({
+        ...r,
+        terisi: r.terisi_real !== undefined ? r.terisi_real : r.terisi
+      }));
+      res.json(rows);
     } catch (error) {
       console.error(error);
       res.status(500).json({ error: 'Gagal memuat data kamar.' });
+    }
+  });
+
+  app.get('/api/kamar/:id/anggota', async (req, res) => {
+    try {
+      const { id } = req.params;
+      const kamarRes = await db.query('SELECT * FROM kamar WHERE id = $1', [id]);
+      if (kamarRes.rows.length === 0) {
+        return res.status(404).json({ error: 'Kamar tidak ditemukan.' });
+      }
+      const kamar = kamarRes.rows[0];
+
+      const santriRes = await db.query(`
+        SELECT 
+          s.id,
+          s.nama,
+          s.nis,
+          s.jenis_kelamin,
+          s.foto_url,
+          s.alamat,
+          kd.nama AS kelas_diniyah,
+          ks.nama AS kelas_sekolah
+        FROM santri s
+        LEFT JOIN kelas kd ON kd.id = s.kelas_diniyah_id
+        LEFT JOIN kelas ks ON ks.id = s.kelas_sekolah_id
+        WHERE s.kamar_id = $1
+          AND NOT EXISTS (SELECT 1 FROM alumni a WHERE a.santri_id = s.id)
+        ORDER BY s.nama ASC
+      `, [id]);
+
+      res.json({
+        kamar: {
+          ...kamar,
+          terisi: santriRes.rows.length
+        },
+        anggota: santriRes.rows
+      });
+    } catch (error) {
+      console.error('Error fetching kamar anggota:', error);
+      res.status(500).json({ error: 'Gagal memuat data penghuni kamar.' });
     }
   });
   

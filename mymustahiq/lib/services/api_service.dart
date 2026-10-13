@@ -295,6 +295,12 @@ class ApiService {
     }
   }
 
+  // Convenience helper returning List of academic years
+  Future<List<dynamic>> getTahunAjaran() async {
+    final res = await getTahunAjaranList();
+    return (res['tahunAjaran'] as List<dynamic>?) ?? [];
+  }
+
   // Get metadata (classes and courses) for Tim Soal
   Future<Map<String, dynamic>> getTimSoalData({int? tahunAjaranId}) async {
     try {
@@ -1112,6 +1118,87 @@ class ApiService {
     } catch (e) {
       if (e is DioException && e.response != null) {
         throw Exception(e.response?.data['error'] ?? 'Gagal mengambil opsi tahun.');
+      }
+      rethrow;
+    }
+  }
+
+  // --- KEUANGAN (SPP BULANAN) ---
+  Future<Map<String, dynamic>> getLaporanSPPBulanan({
+    required int tahunAjaranId,
+    required int bulan,
+    required int tahun,
+    int? kelasId,
+  }) async {
+    try {
+      final Map<String, dynamic> qp = {
+        'tahun_ajaran_id': tahunAjaranId,
+        'bulan': bulan,
+        'tahun': tahun,
+      };
+      if (kelasId != null) qp['kelas_id'] = kelasId;
+      final response = await _dio.get('/keuangan/laporan/spp/bulanan', queryParameters: qp);
+      if (response.statusCode == 200) {
+        return response.data as Map<String, dynamic>;
+      }
+      throw Exception('Gagal memuat laporan SPP bulanan.');
+    } catch (e) {
+      if (e is DioException && e.response != null) {
+        throw Exception(e.response?.data['error'] ?? 'Gagal memuat laporan SPP bulanan.');
+      }
+      rethrow;
+    }
+  }
+
+  // --- INVENTARIS ---
+  Future<List<dynamic>> getInventaris({String? kategori, String? kondisi, String? search}) async {
+    try {
+      final Map<String, dynamic> qp = {};
+      if (kategori != null) qp['kategori'] = kategori;
+      if (kondisi != null) qp['kondisi'] = kondisi;
+      if (search != null && search.isNotEmpty) qp['search'] = search;
+      final response = await _dio.get('/inventaris', queryParameters: qp);
+      if (response.statusCode == 200) {
+        return response.data as List<dynamic>;
+      }
+      throw Exception('Gagal memuat data inventaris.');
+    } catch (e) {
+      if (e is DioException && e.response != null) {
+        throw Exception(e.response?.data['error'] ?? 'Gagal memuat data inventaris.');
+      }
+      rethrow;
+    }
+  }
+
+  Future<Map<String, dynamic>> getInventarisRekap() async {
+    try {
+      final response = await _dio.get('/inventaris/rekap');
+      if (response.statusCode == 200) {
+        return response.data as Map<String, dynamic>;
+      }
+      throw Exception('Gagal memuat rekap inventaris.');
+    } catch (e) {
+      if (e is DioException && e.response != null) {
+        throw Exception(e.response?.data['error'] ?? 'Gagal memuat rekap inventaris.');
+      }
+      rethrow;
+    }
+  }
+
+  // --- STATISTIK SISWA MADRASAH DINIYAH ---
+  Future<Map<String, dynamic>> getStatistikDiniyah({int? tahunAjaranId, String? semester}) async {
+    try {
+      final Map<String, dynamic> qp = {};
+      if (tahunAjaranId != null) qp['tahun_ajaran_id'] = tahunAjaranId;
+      if (semester != null && semester.isNotEmpty) qp['semester'] = semester;
+      final response = await _dio.get('/santri/statistik-diniyah', queryParameters: qp);
+      if (response.statusCode == 200) {
+        return response.data as Map<String, dynamic>;
+      }
+      throw Exception('Gagal memuat statistik siswa diniyah.');
+    } catch (e) {
+      if (e is DioException && e.response != null) {
+        throw Exception(e.response?.data['error'] ?? 'Gagal memuat statistik siswa diniyah.');
       }
       rethrow;
     }

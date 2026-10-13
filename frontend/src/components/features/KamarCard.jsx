@@ -1,7 +1,8 @@
-import { Home, Users, Building, Layers, Wrench, Edit, Trash2, BedDouble } from 'lucide-react';
+import React from 'react';
+import { Users, Building, Layers, Wrench, Edit, Trash2, BedDouble } from 'lucide-react';
 import './KamarCard.scss';
 
-export function KamarCard({ kamar, onEdit, onDelete }) {
+export function KamarCard({ kamar, onEdit, onDelete, onSelect }) {
   const persenTerisi = kamar.kapasitas > 0
     ? Math.round((kamar.terisi / kamar.kapasitas) * 100)
     : 0;
@@ -24,7 +25,11 @@ export function KamarCard({ kamar, onEdit, onDelete }) {
   };
 
   return (
-    <div className={`premium-kamar-card ${themeClass}`}>
+    <div
+      className={`premium-kamar-card ${themeClass}`}
+      onClick={() => onSelect && onSelect(kamar)}
+      style={{ cursor: 'pointer' }}
+    >
       {/* Background glow */}
       <div className="card-glow-effect"></div>
 
@@ -106,7 +111,17 @@ export function KamarCard({ kamar, onEdit, onDelete }) {
       </div>
 
       {/* Action Buttons Footer */}
-      <div className="card-actions-section">
+      <div className="card-actions-section" onClick={e => e.stopPropagation()}>
+        <button
+          type="button"
+          className="action-btn view-btn"
+          onClick={() => onSelect && onSelect(kamar)}
+          title="Lihat daftar anggota kamar"
+          style={{ flex: 1.5, background: isPutra ? '#eff6ff' : '#fdf2f8', color: isPutra ? '#1d4ed8' : '#be185d', fontWeight: 600 }}
+        >
+          <Users size={13} />
+          <span>Anggota ({kamar.terisi || 0})</span>
+        </button>
         <button
           type="button"
           className="action-btn edit-btn"

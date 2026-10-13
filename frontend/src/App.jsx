@@ -40,6 +40,8 @@ const SilabusPembelajaran = lazy(() => import('./pages/SilabusPembelajaran').the
 const Romadhon = lazy(() => import('./pages/Romadhon').then(m => ({ default: m.Romadhon })));
 const MateriSidangPage = lazy(() => import('./pages/MateriSidang').then(m => ({ default: m.MateriSidang })));
 const StrukturKepesantrenan = lazy(() => import('./pages/StrukturKepesantrenan').then(m => ({ default: m.StrukturKepesantrenan })));
+const Inventaris = lazy(() => import('./pages/Inventaris'));
+const StatistikDiniyah = lazy(() => import('./pages/StatistikDiniyah'));
 
 // ── Modul Keuangan (lazy loaded) ──────────────────────────────────────────
 const KeuanganDashboard = lazy(() => import('./pages/KeuanganDashboard'));
@@ -116,6 +118,8 @@ function App() {
                   <Route path="romadhon" element={<Romadhon />} />
                   <Route path="materi-sidang" element={<MateriSidangPage />} />
                   <Route path="struktur-kepesantrenan" element={<StrukturKepesantrenan />} />
+                  <Route path="inventaris" element={<Inventaris />} />
+                  <Route path="statistik-diniyah" element={<StatistikDiniyah />} />
 
                   {/* ── Keuangan ─────────────────────────────────────── */}
                   <Route path="keuangan" element={<KeuanganDashboard />} />

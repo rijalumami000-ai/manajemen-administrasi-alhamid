@@ -20,11 +20,22 @@ function registerLaporanRoutes(app) {
             const taId = (0, validators_1.validatePositiveInt)(req.query.tahun_ajaran_id, 'tahun_ajaran_id');
             const bulan = (0, validators_1.validateBulan)(req.query.bulan);
             const tahun = (0, validators_1.validateTahun)(req.query.tahun);
+            const kelasId = req.query.kelas_id ? Number(req.query.kelas_id) : null;
+            const params = [taId, bulan, tahun];
+            let kelasFilter = '';
+            if (kelasId) {
+                params.push(kelasId);
+                kelasFilter = `AND (COALESCE(sta.kelas_diniyah_id, s.kelas_diniyah_id) = $${params.length} OR COALESCE(sta.kelas_sekolah_id, s.kelas_sekolah_id) = $${params.length})`;
+            }
             // Ambil semua santri dengan tagihan SPP bulan ini
             const result = await db_1.pool.query(`SELECT
              s.id AS santri_id,
              COALESCE(sta.nama, s.nama) AS nama,
              COALESCE(sta.nis, s.nis) AS nis,
+             COALESCE(sta.kelas_diniyah_id, s.kelas_diniyah_id) AS kelas_diniyah_id,
+             kd.nama AS nama_kelas_diniyah,
+             COALESCE(sta.kelas_sekolah_id, s.kelas_sekolah_id) AS kelas_sekolah_id,
+             ks.nama AS nama_kelas_sekolah,
              -- SPP MAKAN
              MAX(CASE WHEN ji.kode='SPP_MAKAN' THEN t.id END)                                   AS tagihan_makan_id,
              COALESCE(MAX(CASE WHEN ji.kode='SPP_MAKAN' THEN t.nominal_tagihan END), 0)         AS nominal_tagihan_makan,
@@ -37,14 +48,17 @@ function registerLaporanRoutes(app) {
              MAX(CASE WHEN ji.kode='SPP_MADIN' THEN t.status END)                               AS status_madin
            FROM santri s
            JOIN santri_tahun_ajaran sta ON sta.santri_id=s.id AND sta.tahun_ajaran_id=$1
+           LEFT JOIN kelas kd ON kd.id = COALESCE(sta.kelas_diniyah_id, s.kelas_diniyah_id)
+           LEFT JOIN kelas ks ON ks.id = COALESCE(sta.kelas_sekolah_id, s.kelas_sekolah_id)
            LEFT JOIN tagihan t
              ON t.santri_id=s.id AND t.tahun_ajaran_id=$1
              AND t.periode_bulan=$2 AND t.periode_tahun=$3
            LEFT JOIN jenis_iuran ji ON ji.id=t.jenis_iuran_id AND ji.kode IN ('SPP_MAKAN','SPP_MADIN')
            LEFT JOIN pembayaran p ON p.tagihan_id=t.id
            WHERE sta.status IN ('aktif','draft','tidak_naik')
-           GROUP BY s.id, sta.nama, sta.nis, s.nama, s.nis
-           ORDER BY COALESCE(sta.nama, s.nama)`, [taId, bulan, tahun]);
+             ${kelasFilter}
+           GROUP BY s.id, sta.nama, sta.nis, s.nama, s.nis, sta.kelas_diniyah_id, s.kelas_diniyah_id, kd.nama, sta.kelas_sekolah_id, s.kelas_sekolah_id, ks.nama
+           ORDER BY COALESCE(sta.nama, s.nama)`, params);
             const rows = result.rows;
             const summary = {
                 bulan, tahun,

@@ -37,7 +37,9 @@ import {
   ShieldAlert,
   Moon,
   Landmark,
-  FileArchive
+  FileArchive,
+  Boxes,
+  PieChart
 } from 'lucide-react';
 import './Sidebar.scss';
 
@@ -76,7 +78,9 @@ const IconMap = {
   ShieldAlert,
   Moon,
   Landmark,
-  FileArchive
+  FileArchive,
+  Boxes,
+  PieChart
 };
 
 const renderIcon = (name, props = {}) => {
@@ -214,6 +218,7 @@ export function Sidebar({ collapsed, onCollapse }) {
         { key: '/santri', icon: 'Users', label: 'Data Santri' },
         { key: '/buku-induk', icon: 'BookOpen', label: 'Buku Induk' },
         { key: '/kamar', icon: 'Home', label: 'Data Kamar' },
+        { key: '/inventaris', icon: 'Boxes', label: 'Inventaris Pesantren' },
         { key: '/pelanggaran-prestasi', icon: 'Award', label: 'Pelanggaran & Prestasi' },
         { key: '/struktur-kepesantrenan', icon: 'Landmark', label: 'Struktur Kepesantrenan' },
         { key: '/materi-sidang', icon: 'FileArchive', label: 'PDF Materi Sidang' },
@@ -226,6 +231,7 @@ export function Sidebar({ collapsed, onCollapse }) {
       collapsible: true,
       disabled: isStaff(),
       items: [
+        { key: '/statistik-diniyah', icon: 'BarChart3', label: 'Statistik Siswa Diniyah', disabled: isStaff() },
         { key: '/kelas', icon: 'School', label: 'Data Kelas', disabled: isStaff() },
         { key: '/guru', icon: 'Contact', label: 'Data Guru', disabled: isStaff() },
         { key: '/struktur-organisasi', icon: 'Users', label: 'Struktur Madrasah Diniyah', disabled: isStaff() },
