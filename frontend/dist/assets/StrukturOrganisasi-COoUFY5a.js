@@ -1,0 +1,1 @@
+import{i as t,n as r,t as u}from"./apiClient-XhU2rEv0.js";var s={fetchStruktur:async t=>r(`/struktur/${t}`,{noCache:!0}),updateStruktur:async r=>t("/struktur",r),addStruktur:async r=>t("/struktur/add",r),deleteStruktur:async t=>u(`/struktur/${t}`),resetStruktur:async r=>t("/struktur/reset",{tipe:r})};export{s as t};

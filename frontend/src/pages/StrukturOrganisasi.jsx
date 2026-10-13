@@ -464,8 +464,8 @@ export function StrukturOrganisasi() {
         <div className="header-left">
           <Briefcase size={26} className="header-icon" />
           <div>
-            <h1 className="page-title">Struktur Organisasi</h1>
-            <p className="page-subtitle">Kelola struktur kepengurusan Madrasah Diniyah dan Panitia Ujian</p>
+            <h1 className="page-title">Struktur Organisasi Madrasah Diniyah</h1>
+            <p className="page-subtitle">Kelola struktur kepengurusan Madrasah Diniyah dan Panitia Semester</p>
           </div>
         </div>
       </div>
@@ -487,7 +487,7 @@ export function StrukturOrganisasi() {
                 className={`custom-tabs-tab ${activeTab === 'panitia_ujian' ? 'active' : ''}`}
                 onClick={() => setActiveTab('panitia_ujian')}
               >
-                Panitia Ujian Madrasah
+                Panitia Semester / Ujian Madrasah
               </button>
             </div>
             

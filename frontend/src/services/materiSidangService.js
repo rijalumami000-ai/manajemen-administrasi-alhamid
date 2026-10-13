@@ -1,12 +1,16 @@
 import { apiGet, apiPost, apiPut, apiDelete } from './apiClient';
 
 export const materiSidangService = {
-  async fetchMateriSidang(tahunMasehi, kategori) {
+  async fetchMateriSidang(tahunAjaranId, kategori) {
     let params = [];
-    if (tahunMasehi) params.push(`tahun_masehi=${tahunMasehi}`);
+    if (tahunAjaranId) params.push(`tahun_ajaran_id=${tahunAjaranId}`);
     if (kategori) params.push(`kategori=${kategori}`);
     const qs = params.length ? `?${params.join('&')}` : '';
     return apiGet(`/materi-sidang${qs}`, { noCache: true });
+  },
+
+  async fetchTahunAjaran() {
+    return apiGet('/tahun-ajaran', { noCache: true });
   },
 
   async fetchTahunOptions() {

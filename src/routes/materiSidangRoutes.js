@@ -32,23 +32,31 @@ const upload = multer({
 
 function registerMateriSidangRoutes(app) {
 
-  // GET all materi sidang (filterable by tahun_masehi and kategori)
+  // GET all materi sidang (filterable by tahun_ajaran_id, tahun_masehi, and kategori)
   app.get('/api/materi-sidang', async (req, res) => {
     try {
-      const { tahun_masehi, kategori } = req.query;
-      let query = 'SELECT * FROM materi_sidang WHERE 1=1';
+      const { tahun_ajaran_id, tahun_masehi, kategori } = req.query;
+      let query = `
+        SELECT m.*, ta.kode AS tahun_ajaran_kode
+        FROM materi_sidang m
+        LEFT JOIN tahun_ajaran ta ON m.tahun_ajaran_id = ta.id
+        WHERE 1=1
+      `;
       const params = [];
       let paramIdx = 1;
 
-      if (tahun_masehi) {
-        query += ` AND tahun_masehi = $${paramIdx++}`;
+      if (tahun_ajaran_id) {
+        query += ` AND (m.tahun_ajaran_id = $${paramIdx++} OR m.tahun_masehi = (SELECT kode FROM tahun_ajaran WHERE id = $${paramIdx - 1}))`;
+        params.push(tahun_ajaran_id);
+      } else if (tahun_masehi) {
+        query += ` AND m.tahun_masehi = $${paramIdx++}`;
         params.push(tahun_masehi);
       }
       if (kategori) {
-        query += ` AND kategori = $${paramIdx++}`;
+        query += ` AND m.kategori = $${paramIdx++}`;
         params.push(kategori);
       }
-      query += ' ORDER BY kategori ASC, tanggal DESC, id DESC';
+      query += ' ORDER BY m.kategori ASC, m.tanggal DESC, m.id DESC';
 
       const result = await db.query(query, params);
       res.json(result.rows);
@@ -58,13 +66,17 @@ function registerMateriSidangRoutes(app) {
     }
   });
 
-  // GET distinct tahun_masehi options
+  // GET distinct tahun options
   app.get('/api/materi-sidang/tahun-options', async (req, res) => {
     try {
       const result = await db.query(
-        `SELECT DISTINCT tahun_masehi FROM materi_sidang ORDER BY tahun_masehi DESC`
+        `SELECT DISTINCT COALESCE(ta.kode, m.tahun_masehi) AS kode, m.tahun_ajaran_id 
+         FROM materi_sidang m
+         LEFT JOIN tahun_ajaran ta ON m.tahun_ajaran_id = ta.id
+         WHERE COALESCE(ta.kode, m.tahun_masehi) IS NOT NULL
+         ORDER BY kode DESC`
       );
-      res.json(result.rows.map(r => r.tahun_masehi));
+      res.json(result.rows.map(r => r.kode));
     } catch (error) {
       console.error('Error fetching tahun options:', error);
       res.status(500).json({ error: 'Gagal memuat opsi tahun.' });
@@ -73,19 +85,27 @@ function registerMateriSidangRoutes(app) {
 
   // POST – create new materi sidang with optional PDF upload
   app.post('/api/materi-sidang', upload.single('file'), async (req, res) => {
-    const { tahun_masehi, kategori, judul, no_surat, tanggal, halaman, ukuran, status, pengesah, ringkasan } = req.body;
+    let { tahun_ajaran_id, tahun_masehi, kategori, judul, no_surat, tanggal, halaman, ukuran, status, pengesah, ringkasan } = req.body;
 
-    if (!tahun_masehi || !kategori || !judul) {
-      return res.status(400).json({ error: 'Tahun, kategori, dan judul wajib diisi.' });
+    if (!kategori || !judul) {
+      return res.status(400).json({ error: 'Kategori dan judul wajib diisi.' });
+    }
+
+    if (tahun_ajaran_id) {
+      tahun_ajaran_id = parseInt(tahun_ajaran_id, 10);
+      if (!tahun_masehi) {
+        const taRow = await db.query('SELECT kode FROM tahun_ajaran WHERE id = $1', [tahun_ajaran_id]);
+        if (taRow.rows.length) tahun_masehi = taRow.rows[0].kode;
+      }
     }
 
     const file_url = req.file ? `/uploads/sidang/${req.file.filename}` : null;
 
     try {
       const result = await db.query(
-        `INSERT INTO materi_sidang (tahun_masehi, kategori, judul, no_surat, tanggal, halaman, ukuran, status, pengesah, ringkasan, file_url)
-         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11) RETURNING *`,
-        [tahun_masehi, kategori, normalizeText(judul), normalizeText(no_surat), tanggal || null, halaman || 0, ukuran, normalizeText(status), normalizeText(pengesah), normalizeText(ringkasan), file_url]
+        `INSERT INTO materi_sidang (tahun_ajaran_id, tahun_masehi, kategori, judul, no_surat, tanggal, halaman, ukuran, status, pengesah, ringkasan, file_url)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12) RETURNING *`,
+        [tahun_ajaran_id || null, tahun_masehi || null, kategori, normalizeText(judul), normalizeText(no_surat), tanggal || null, halaman ? parseInt(halaman, 10) : 0, ukuran, normalizeText(status), normalizeText(pengesah), normalizeText(ringkasan), file_url]
       );
       res.status(201).json(result.rows[0]);
     } catch (error) {
@@ -97,11 +117,19 @@ function registerMateriSidangRoutes(app) {
   // PUT – update materi sidang
   app.put('/api/materi-sidang/:id', upload.single('file'), async (req, res) => {
     const { id } = req.params;
-    const { tahun_masehi, kategori, judul, no_surat, tanggal, halaman, ukuran, status, pengesah, ringkasan } = req.body;
+    let { tahun_ajaran_id, tahun_masehi, kategori, judul, no_surat, tanggal, halaman, ukuran, status, pengesah, ringkasan } = req.body;
+
+    if (tahun_ajaran_id) {
+      tahun_ajaran_id = parseInt(tahun_ajaran_id, 10);
+      if (!tahun_masehi) {
+        const taRow = await db.query('SELECT kode FROM tahun_ajaran WHERE id = $1', [tahun_ajaran_id]);
+        if (taRow.rows.length) tahun_masehi = taRow.rows[0].kode;
+      }
+    }
 
     try {
       // Get existing record to check if there's an old file
-      const existing = await db.query('SELECT file_url FROM materi_sidang WHERE id = $1', [id]);
+      const existing = await db.query('SELECT file_url, tahun_ajaran_id, tahun_masehi FROM materi_sidang WHERE id = $1', [id]);
       if (!existing.rows.length) return res.status(404).json({ error: 'Data tidak ditemukan.' });
 
       let file_url = existing.rows[0].file_url;
@@ -114,13 +142,16 @@ function registerMateriSidangRoutes(app) {
         file_url = `/uploads/sidang/${req.file.filename}`;
       }
 
+      const finalTaId = tahun_ajaran_id || existing.rows[0].tahun_ajaran_id;
+      const finalTaMasehi = tahun_masehi || existing.rows[0].tahun_masehi;
+
       const result = await db.query(
         `UPDATE materi_sidang 
-         SET tahun_masehi = $1, kategori = $2, judul = $3, no_surat = $4, tanggal = $5, 
-             halaman = $6, ukuran = $7, status = $8, pengesah = $9, ringkasan = $10, 
-             file_url = $11, updated_at = NOW()
-         WHERE id = $12 RETURNING *`,
-        [tahun_masehi, kategori, normalizeText(judul), normalizeText(no_surat), tanggal || null, halaman || 0, ukuran, normalizeText(status), normalizeText(pengesah), normalizeText(ringkasan), file_url, id]
+         SET tahun_ajaran_id = $1, tahun_masehi = $2, kategori = $3, judul = $4, no_surat = $5, tanggal = $6, 
+             halaman = $7, ukuran = $8, status = $9, pengesah = $10, ringkasan = $11, 
+             file_url = $12, updated_at = NOW()
+         WHERE id = $13 RETURNING *`,
+        [finalTaId, finalTaMasehi, kategori, normalizeText(judul), normalizeText(no_surat), tanggal || null, halaman ? parseInt(halaman, 10) : 0, ukuran, normalizeText(status), normalizeText(pengesah), normalizeText(ringkasan), file_url, id]
       );
       res.json(result.rows[0]);
     } catch (error) {

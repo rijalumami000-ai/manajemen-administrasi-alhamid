@@ -18,26 +18,20 @@ const KATEGORI_OPTIONS = [
 const KATEGORI_LABELS = { madin: 'Sidang Madin', pmq: 'Sidang PMQ', pondok: 'Sidang Pondok', haflah: 'Sidang Haflah' };
 const KATEGORI_COLORS = { madin: '#10b981', pmq: '#3b82f6', pondok: '#8b5cf6', haflah: '#f59e0b' };
 
-const getCurrentTahunMasehi = () => {
-  const now = new Date();
-  const y = now.getFullYear();
-  const m = now.getMonth();
-  return m >= 6 ? `${y}-${y + 1}` : `${y - 1}-${y}`;
-};
-
 export function MateriSidang() {
   const toast = useToast();
   const [loading, setLoading] = useState(true);
   const [data, setData] = useState([]);
-  const [tahunOptions, setTahunOptions] = useState([]);
-  const [selectedTahun, setSelectedTahun] = useState(getCurrentTahunMasehi());
+  const [tahunAjaranList, setTahunAjaranList] = useState([]);
+  const [selectedTahunAjaran, setSelectedTahunAjaran] = useState(null);
   const [activeTab, setActiveTab] = useState('madin');
   const [modalOpen, setModalOpen] = useState(false);
   const [editing, setEditing] = useState(null);
   const [saving, setSaving] = useState(false);
   const [selectedFile, setSelectedFile] = useState(null);
   const [form, setForm] = useState({
-    tahun_masehi: getCurrentTahunMasehi(),
+    tahun_ajaran_id: null,
+    tahun_masehi: '',
     kategori: 'madin',
     judul: '',
     no_surat: '',
@@ -50,28 +44,35 @@ export function MateriSidang() {
   });
 
   useEffect(() => {
-    loadTahunOptions();
+    loadTahunAjaran();
   }, []);
 
   useEffect(() => {
-    loadData();
-  }, [selectedTahun]);
+    if (selectedTahunAjaran) {
+      loadData();
+    }
+  }, [selectedTahunAjaran]);
 
-  const loadTahunOptions = async () => {
+  const loadTahunAjaran = async () => {
     try {
-      const options = await materiSidangService.fetchTahunOptions();
-      const current = getCurrentTahunMasehi();
-      const uniqueOptions = [...new Set([current, ...options])];
-      setTahunOptions(uniqueOptions.map(t => ({ value: t, label: `Tahun ${t} M` })));
+      const list = await materiSidangService.fetchTahunAjaran();
+      setTahunAjaranList(list);
+      const active = list.find(t => t.is_active);
+      if (active) {
+        setSelectedTahunAjaran(active.id);
+      } else if (list.length) {
+        setSelectedTahunAjaran(list[0].id);
+      }
     } catch (err) {
       console.error(err);
+      toast.error('Gagal memuat tahun ajaran: ' + err.message);
     }
   };
 
   const loadData = async () => {
     setLoading(true);
     try {
-      const result = await materiSidangService.fetchMateriSidang(selectedTahun);
+      const result = await materiSidangService.fetchMateriSidang(selectedTahunAjaran);
       setData(result);
     } catch (err) {
       toast.error(err.message);
@@ -80,11 +81,20 @@ export function MateriSidang() {
     }
   };
 
+  const selectedYearObj = tahunAjaranList.find(t => t.id === selectedTahunAjaran);
+  const selectedYearKode = selectedYearObj ? selectedYearObj.kode : '';
+
+  const tahunOptions = tahunAjaranList.map(t => ({
+    value: t.id,
+    label: `${t.kode}${t.is_active ? ' (Aktif)' : ''}`
+  }));
+
   const openAdd = () => {
     setEditing(null);
     setSelectedFile(null);
     setForm({
-      tahun_masehi: selectedTahun,
+      tahun_ajaran_id: selectedTahunAjaran,
+      tahun_masehi: selectedYearKode,
       kategori: activeTab,
       judul: '', no_surat: '', tanggal: '', halaman: '', ukuran: '', status: '', pengesah: '', ringkasan: ''
     });
@@ -95,7 +105,8 @@ export function MateriSidang() {
     setEditing(item);
     setSelectedFile(null);
     setForm({
-      tahun_masehi: item.tahun_masehi,
+      tahun_ajaran_id: item.tahun_ajaran_id || selectedTahunAjaran,
+      tahun_masehi: item.tahun_masehi || selectedYearKode,
       kategori: item.kategori,
       judul: item.judul || '',
       no_surat: item.no_surat || '',
@@ -117,7 +128,9 @@ export function MateriSidang() {
     setSaving(true);
     try {
       const formData = new FormData();
-      Object.entries(form).forEach(([k, v]) => formData.append(k, v));
+      Object.entries(form).forEach(([k, v]) => {
+        if (v !== null && v !== undefined) formData.append(k, v);
+      });
       if (selectedFile) formData.append('file', selectedFile);
 
       if (editing) {
@@ -129,7 +142,6 @@ export function MateriSidang() {
       }
       setModalOpen(false);
       loadData();
-      loadTahunOptions();
     } catch (err) {
       toast.error(err.message);
     } finally {
@@ -166,7 +178,7 @@ export function MateriSidang() {
         {filteredData.length === 0 && !loading && (
           <div className="empty-state">
             <FileText size={48} />
-            <p>Belum ada dokumen {kat.label} untuk tahun {selectedTahun}.</p>
+            <p>Belum ada dokumen {kat.label} untuk tahun ajaran {selectedYearKode}.</p>
           </div>
         )}
 
@@ -211,9 +223,9 @@ export function MateriSidang() {
         extra={
           <CustomSelect
             options={tahunOptions}
-            value={selectedTahun}
-            onChange={setSelectedTahun}
-            placeholder="Pilih Tahun Masehi"
+            value={selectedTahunAjaran}
+            onChange={setSelectedTahunAjaran}
+            placeholder="Pilih Tahun Ajaran"
             style={{ minWidth: 220 }}
           />
         }

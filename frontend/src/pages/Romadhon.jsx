@@ -40,6 +40,14 @@ export function Romadhon() {
     }
   }, [selectedTahunAjaran]);
 
+  const selectedYearObj = tahunAjaranList.find(t => t.id === selectedTahunAjaran);
+  const selectedYearKode = selectedYearObj ? selectedYearObj.kode : '';
+
+  const tahunOptions = tahunAjaranList.map(t => ({
+    value: t.id,
+    label: `${t.kode}${t.is_active ? ' (Aktif)' : ''}`
+  }));
+
   const loadTahunAjaran = async () => {
     try {
       const data = await nilaiService.fetchTahunAjaran();
@@ -169,8 +177,6 @@ export function Romadhon() {
     return acc;
   }, {});
 
-  const tahunOptions = tahunAjaranList.map(t => ({ value: t.id, label: t.nama }));
-
   const tabItems = [
     {
       key: 'kajian',
@@ -188,7 +194,7 @@ export function Romadhon() {
           {Object.keys(groupedKajian).length === 0 && !loading && (
             <div className="empty-state">
               <Moon size={48} />
-              <p>Belum ada data jadwal kajian balagh untuk tahun ajaran ini.</p>
+              <p>Belum ada data jadwal kajian balagh untuk tahun ajaran {selectedYearKode || '-'}.</p>
             </div>
           )}
 

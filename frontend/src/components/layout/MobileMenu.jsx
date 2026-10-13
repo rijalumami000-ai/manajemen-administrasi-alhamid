@@ -25,7 +25,10 @@ import {
   Zap,
   ShieldAlert,
   Settings,
-  Clock
+  Clock,
+  Landmark,
+  FileArchive,
+  Moon
 } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
@@ -47,6 +50,8 @@ const MobileMenu = ({ open, onClose, onLogout }) => {
         { key: '/buku-induk', icon: <BookOpen size={18} />, label: 'Buku Induk' },
         { key: '/kamar', icon: <Home size={18} />, label: 'Data Kamar' },
         { key: '/pelanggaran-prestasi', icon: <Award size={18} />, label: 'Pelanggaran & Prestasi' },
+        { key: '/struktur-kepesantrenan', icon: <Landmark size={18} />, label: 'Struktur Organisasi' },
+        { key: '/materi-sidang', icon: <FileArchive size={18} />, label: 'PDF Materi Sidang' },
       ]
     },
     {
@@ -65,6 +70,7 @@ const MobileMenu = ({ open, onClose, onLogout }) => {
         { key: '/kartu-ujian-semester', icon: <IdCard size={18} />, label: 'Kartu Ujian Semester' },
         { key: '/lembar-ujian', icon: <FileText size={18} />, label: 'Lembar Ujian' },
         { key: '/alumni', icon: <GraduationCap size={18} />, label: 'Alumni' },
+        { key: '/romadhon', icon: <Moon size={18} />, label: 'Romadhon' },
       ]
     },
     {

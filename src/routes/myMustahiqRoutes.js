@@ -648,35 +648,7 @@ function registerMyMustahiqRoutes(app) {
     });
   }));
 
-  /**
-   * GET /api/my-mustahiq/struktur
-   * Returns organizational structure based on type (madrasah_diniyah / panitia_ujian)
-   */
-  router.get('/struktur', asyncHandler(async (req, res) => {
-    const tipe = req.query.tipe || 'madrasah_diniyah';
-    if (tipe !== 'madrasah_diniyah' && tipe !== 'panitia_ujian') {
-      return res.status(400).json({ error: 'Tipe struktur tidak valid. Gunakan: madrasah_diniyah atau panitia_ujian' });
-    }
 
-    const result = await db.query(`
-      SELECT 
-        s.id,
-        s.tipe,
-        s.jabatan,
-        s.nama_custom,
-        s.keterangan,
-        s.no_urut,
-        g.nama AS guru_nama,
-        g.no_hp AS guru_no_hp,
-        g.foto_url AS guru_foto_url
-      FROM struktur_organisasi s
-      LEFT JOIN guru g ON s.guru_id = g.id
-      WHERE s.tipe = $1
-      ORDER BY s.no_urut ASC, s.id ASC
-    `, [tipe]);
-
-    res.json(result.rows);
-  }));
 
   /**
    * POST /api/my-mustahiq/change-password
@@ -3042,10 +3014,12 @@ function registerMyMustahiqRoutes(app) {
   router.get('/pelanggaran', asyncHandler(async (req, res) => {
     const result = await db.query(`
       SELECT p.*, s.nis, s.nama AS nama_santri, 
-             k.nama AS kelas_nama
+             COALESCE(kd.nama, ks.nama, '-') AS kelas_nama
       FROM pelanggaran p
       LEFT JOIN santri s ON p.santri_id = s.id
-      LEFT JOIN kelas k ON s.kelas_id = k.id
+      LEFT JOIN santri_tahun_ajaran sta ON sta.santri_id = s.id AND sta.tahun_ajaran_id = (SELECT id FROM tahun_ajaran WHERE is_active = true LIMIT 1)
+      LEFT JOIN kelas kd ON sta.kelas_diniyah_id = kd.id
+      LEFT JOIN kelas ks ON sta.kelas_sekolah_id = ks.id
       ORDER BY p.tanggal DESC
       LIMIT 100
     `);
@@ -3055,10 +3029,12 @@ function registerMyMustahiqRoutes(app) {
   router.get('/prestasi', asyncHandler(async (req, res) => {
     const result = await db.query(`
       SELECT p.*, s.nis, s.nama AS nama_santri,
-             k.nama AS kelas_nama
+             COALESCE(kd.nama, ks.nama, '-') AS kelas_nama
       FROM prestasi p
       LEFT JOIN santri s ON p.santri_id = s.id
-      LEFT JOIN kelas k ON s.kelas_id = k.id
+      LEFT JOIN santri_tahun_ajaran sta ON sta.santri_id = s.id AND sta.tahun_ajaran_id = (SELECT id FROM tahun_ajaran WHERE is_active = true LIMIT 1)
+      LEFT JOIN kelas kd ON sta.kelas_diniyah_id = kd.id
+      LEFT JOIN kelas ks ON sta.kelas_sekolah_id = ks.id
       ORDER BY p.tanggal DESC
       LIMIT 100
     `);
@@ -3105,11 +3081,13 @@ function registerMyMustahiqRoutes(app) {
   // STRUKTUR ORGANISASI (all types for app)
   // ═══════════════════════════════════════════════════════════════
   router.get('/struktur', asyncHandler(async (req, res) => {
-    const { tipe, tahun_ajaran_id } = req.query;
-    
-    if (!tipe) {
-      return res.status(400).json({ error: 'Parameter tipe wajib disertakan.' });
-    }
+    let { tipe, tahun_ajaran_id } = req.query;
+    tipe = tipe || 'madrasah_diniyah';
+
+    // Map common aliases from app tabs
+    if (tipe === 'sambangan') tipe = 'panitia_sambangan';
+    if (tipe === 'haflah') tipe = 'panitia_haflah';
+    if (tipe === 'psb') tipe = 'panitia_psb';
 
     let query = `
       SELECT 
@@ -3117,12 +3095,19 @@ function registerMyMustahiqRoutes(app) {
         g.nama AS guru_nama, g.no_hp AS guru_no_hp, g.foto_url AS guru_foto_url
       FROM struktur_organisasi s
       LEFT JOIN guru g ON s.guru_id = g.id
-      WHERE s.tipe = $1
     `;
-    const params = [tipe];
+    const params = [];
+    let paramIdx = 1;
+
+    if (tipe === 'pondok') {
+      query += ` WHERE s.tipe IN ('pondok_putra', 'pondok_putri')`;
+    } else {
+      query += ` WHERE s.tipe = $${paramIdx++}`;
+      params.push(tipe);
+    }
 
     if (tahun_ajaran_id && tipe !== 'panitia_sambangan') {
-      query += ` AND (s.tahun_ajaran_id = $2 OR s.tahun_ajaran_id IS NULL)`;
+      query += ` AND (s.tahun_ajaran_id = $${paramIdx++} OR s.tahun_ajaran_id IS NULL)`;
       params.push(tahun_ajaran_id);
     }
 
@@ -3136,11 +3121,15 @@ function registerMyMustahiqRoutes(app) {
   // MATERI SIDANG (read-only for app)
   // ═══════════════════════════════════════════════════════════════
   router.get('/materi-sidang', asyncHandler(async (req, res) => {
-    const { tahun_masehi, kategori } = req.query;
+    const { tahun_ajaran_id, tahun_masehi, kategori } = req.query;
     let query = 'SELECT * FROM materi_sidang WHERE 1=1';
     const params = [];
     let idx = 1;
 
+    if (tahun_ajaran_id) {
+      query += ` AND tahun_ajaran_id = $${idx++}`;
+      params.push(tahun_ajaran_id);
+    }
     if (tahun_masehi) {
       query += ` AND tahun_masehi = $${idx++}`;
       params.push(tahun_masehi);
@@ -3157,9 +3146,12 @@ function registerMyMustahiqRoutes(app) {
 
   router.get('/materi-sidang/tahun-options', asyncHandler(async (req, res) => {
     const result = await db.query(
-      `SELECT DISTINCT tahun_masehi FROM materi_sidang ORDER BY tahun_masehi DESC`
+      `SELECT DISTINCT COALESCE(ta.kode, m.tahun_masehi) AS kode, m.tahun_ajaran_id 
+       FROM materi_sidang m
+       LEFT JOIN tahun_ajaran ta ON m.tahun_ajaran_id = ta.id
+       ORDER BY kode DESC`
     );
-    res.json(result.rows.map(r => r.tahun_masehi));
+    res.json(result.rows);
   }));
 
   app.use('/api/my-mustahiq', router);

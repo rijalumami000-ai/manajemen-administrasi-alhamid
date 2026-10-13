@@ -39,6 +39,7 @@ const JadwalPelajaran = lazy(() => import('./pages/JadwalPelajaran').then(m => (
 const SilabusPembelajaran = lazy(() => import('./pages/SilabusPembelajaran').then(m => ({ default: m.SilabusPembelajaran })));
 const Romadhon = lazy(() => import('./pages/Romadhon').then(m => ({ default: m.Romadhon })));
 const MateriSidangPage = lazy(() => import('./pages/MateriSidang').then(m => ({ default: m.MateriSidang })));
+const StrukturKepesantrenan = lazy(() => import('./pages/StrukturKepesantrenan').then(m => ({ default: m.StrukturKepesantrenan })));
 
 // ── Modul Keuangan (lazy loaded) ──────────────────────────────────────────
 const KeuanganDashboard = lazy(() => import('./pages/KeuanganDashboard'));
@@ -114,7 +115,7 @@ function App() {
                   <Route path="silabus-pembelajaran" element={<SilabusPembelajaran />} />
                   <Route path="romadhon" element={<Romadhon />} />
                   <Route path="materi-sidang" element={<MateriSidangPage />} />
-                  <Route path="struktur-kepesantrenan" element={<StrukturOrganisasi />} />
+                  <Route path="struktur-kepesantrenan" element={<StrukturKepesantrenan />} />
 
                   {/* ── Keuangan ─────────────────────────────────────── */}
                   <Route path="keuangan" element={<KeuanganDashboard />} />

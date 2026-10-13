@@ -165,16 +165,87 @@ class _StrukturLembagaScreenState extends State<StrukturLembagaScreen>
         'kontak': '+62 822-3344-5566',
       },
     ],
+    'psb': [
+      {
+        'jabatan': 'Ketua Panitia PSB (Penerimaan Santri Baru)',
+        'nama': 'Ust. Ahmad Syukron Rosyid',
+        'status': 'Ketua Panitia',
+        'bidang': 'Penanggung Jawab Penerimaan Santri Baru',
+        'kontak': '+62 812-3344-5566',
+        'isHeader': true,
+      },
+      {
+        'jabatan': 'Sekretaris PSB & Verifikasi Berkas',
+        'nama': 'Ust. Rijal Umami',
+        'status': 'Divisi Sekretariat',
+        'bidang': 'Administrasi & Verifikasi Dokumen Pendaftar',
+        'kontak': '+62 813-4455-6677',
+      },
+      {
+        'jabatan': 'Bendahara & Administrasi Pendaftaran',
+        'nama': 'Ustz. Restu Maharani',
+        'status': 'Divisi Keuangan',
+        'bidang': 'Pembayaran Formulir & Administrasi',
+        'kontak': '+62 856-1122-3344',
+      },
+      {
+        'jabatan': 'Koordinator Tes Seleksi & Wawancara',
+        'nama': 'Ust. Nurrohman',
+        'status': 'Divisi Penguji',
+        'bidang': 'Tes Baca Kitab, Qur\'an & Wawancara Wali',
+        'kontak': '+62 821-6677-8899',
+      },
+      {
+        'jabatan': 'Tim Publikasi, Brosur & Media Sosial',
+        'nama': 'Tim IT & Media Al-Hamid',
+        'status': 'Divisi Publikasi',
+        'bidang': 'Informasi Pendaftaran Online & Brosur',
+        'kontak': '+62 878-0011-2233',
+      },
+    ],
   };
+
+  final ApiService _apiService = ApiService();
+  final Map<String, List<Map<String, dynamic>>> _liveApiData = {};
+  bool _isLoadingApi = false;
 
   @override
   void initState() {
     super.initState();
     _tabController = TabController(
-      length: 5,
+      length: 6,
       vsync: this,
-      initialIndex: widget.initialTabIndex.clamp(0, 4),
+      initialIndex: widget.initialTabIndex.clamp(0, 5),
     );
+    _fetchLiveStructures();
+  }
+
+  Future<void> _fetchLiveStructures() async {
+    setState(() => _isLoadingApi = true);
+    final keys = ['pmq', 'pondok', 'sambangan', 'haflah', 'psb'];
+    for (final k in keys) {
+      try {
+        final res = await _apiService.getStructure(k);
+        if (res.isNotEmpty) {
+          final mapped = res.map<Map<String, dynamic>>((item) {
+            final displayName = (item['guru_nama'] ?? item['nama_custom'] ?? '-').toString();
+            final isHead = (item['no_urut'] == 1);
+            return {
+              'jabatan': item['jabatan']?.toString() ?? 'Pengurus',
+              'nama': displayName,
+              'status': isHead ? 'Pimpinan' : 'Pengurus',
+              'bidang': item['keterangan']?.toString() ?? '-',
+              'kontak': item['guru_no_hp']?.toString() ?? '-',
+              'isHeader': isHead,
+            };
+          }).toList();
+          if (mounted) {
+            _liveApiData[k] = mapped;
+          }
+        }
+      } catch (_) {}
+    }
+    if (mounted) setState(() => _isLoadingApi = false);
   }
 
   @override
@@ -219,6 +290,7 @@ class _StrukturLembagaScreenState extends State<StrukturLembagaScreen>
             Tab(text: "Struktur Pondok"),
             Tab(text: "Panitia Sambangan"),
             Tab(text: "Panitia Haflah"),
+            Tab(text: "Panitia PSB"),
           ],
         ),
       ),
@@ -235,13 +307,15 @@ class _StrukturLembagaScreenState extends State<StrukturLembagaScreen>
           _buildStructureList('sambangan', 'Panitia Sambangan Santri', 'Kepanitiaan acara kunjungan rutin wali santri bulanan.', isDark),
           // 5. Haflah
           _buildStructureList('haflah', 'Panitia Haflah Akhirussanah', 'Kepanitiaan wisuda santri dan pengajian akbar tahunan.', isDark),
+          // 6. PSB
+          _buildStructureList('psb', 'Panitia Penerimaan Santri Baru (PSB)', 'Kepanitiaan pendaftaran, seleksi berkas & tes santri baru.', isDark),
         ],
       ),
     );
   }
 
   Widget _buildStructureList(String key, String title, String subtitle, bool isDark) {
-    final list = _structuresData[key] ?? [];
+    final list = _liveApiData[key] ?? _structuresData[key] ?? [];
 
     return SingleChildScrollView(
       physics: const BouncingScrollPhysics(),
@@ -511,7 +585,7 @@ class _MadrasahTabWrapperState extends State<_MadrasahTabWrapper> {
                           ),
                         ),
                         Text(
-                          item['nama'] ?? '-',
+                          (item['guru_nama'] ?? item['nama_custom'] ?? item['nama'] ?? '-').toString(),
                           style: GoogleFonts.outfit(
                             color: const Color(0xFF10B981),
                             fontSize: 12,

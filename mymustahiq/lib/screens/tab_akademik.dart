@@ -17,6 +17,7 @@ import 'kalender_akademik_screen.dart';
 import 'silabus_pembelajaran_screen.dart';
 import 'laporan_pelanggaran_prestasi_screen.dart';
 import 'jadwal_khusus_screen.dart';
+import 'struktur_organisasi_screen.dart';
 
 class TabAkademik extends StatefulWidget {
   const TabAkademik({super.key});
@@ -750,6 +751,16 @@ class _TabAkademikState extends State<TabAkademik> {
         'onTap': () => Navigator.push(
           context,
           MaterialPageRoute(builder: (context) => const SilabusPembelajaranScreen()),
+        ),
+      },
+      {
+        'title': 'Struktur Madrasah & Panitia',
+        'desc': 'Bagan kepengurusan Madrasah Diniyah dan panitia semester.',
+        'icon': Icons.account_tree_rounded,
+        'color': const Color(0xFF6366F1),
+        'onTap': () => Navigator.push(
+          context,
+          MaterialPageRoute(builder: (context) => const StrukturOrganisasiScreen()),
         ),
       },
     ];

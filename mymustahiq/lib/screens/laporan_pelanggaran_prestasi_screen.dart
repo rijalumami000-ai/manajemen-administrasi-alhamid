@@ -149,7 +149,9 @@ class _LaporanPelanggaranPrestasiScreenState extends State<LaporanPelanggaranPre
     final filtered = _pelanggaranList.where((p) {
       final matchQuery = (p['nama_santri'] ?? '').toString().toLowerCase().contains(_searchQuery) ||
           (p['kelas_nama'] ?? '').toString().toLowerCase().contains(_searchQuery) ||
-          (p['deskripsi'] ?? '').toString().toLowerCase().contains(_searchQuery);
+          (p['deskripsi'] ?? '').toString().toLowerCase().contains(_searchQuery) ||
+          (p['jenis'] ?? '').toString().toLowerCase().contains(_searchQuery) ||
+          (p['sanksi'] ?? '').toString().toLowerCase().contains(_searchQuery);
       return matchQuery;
     }).toList();
 
@@ -207,7 +209,9 @@ class _LaporanPelanggaranPrestasiScreenState extends State<LaporanPelanggaranPre
     final filtered = _prestasiList.where((p) {
       final matchQuery = (p['nama_santri'] ?? '').toString().toLowerCase().contains(_searchQuery) ||
           (p['kelas_nama'] ?? '').toString().toLowerCase().contains(_searchQuery) ||
-          (p['deskripsi'] ?? '').toString().toLowerCase().contains(_searchQuery);
+          (p['deskripsi'] ?? '').toString().toLowerCase().contains(_searchQuery) ||
+          (p['jenis'] ?? '').toString().toLowerCase().contains(_searchQuery) ||
+          (p['penghargaan'] ?? '').toString().toLowerCase().contains(_searchQuery);
       return matchQuery;
     }).toList();
 
@@ -322,6 +326,7 @@ class _LaporanPelanggaranPrestasiScreenState extends State<LaporanPelanggaranPre
   }
 
   Widget _buildPelanggaranCard(dynamic item, bool isDark) {
+    final badgeText = (item['jenis'] ?? item['tingkat'])?.toString();
     return Container(
       margin: const EdgeInsets.only(bottom: 14),
       padding: const EdgeInsets.all(16),
@@ -359,7 +364,7 @@ class _LaporanPelanggaranPrestasiScreenState extends State<LaporanPelanggaranPre
                   ],
                 ),
               ),
-              if (item['tingkat'] != null)
+              if (badgeText != null && badgeText.isNotEmpty)
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                   decoration: BoxDecoration(
@@ -367,17 +372,32 @@ class _LaporanPelanggaranPrestasiScreenState extends State<LaporanPelanggaranPre
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: Text(
-                    item['tingkat']?.toString() ?? '',
+                    badgeText,
                     style: GoogleFonts.outfit(fontSize: 10, fontWeight: FontWeight.bold, color: const Color(0xFFEF4444)),
                   ),
                 ),
             ],
           ),
-          if (item['deskripsi'] != null) ...[
+          if (item['deskripsi'] != null && item['deskripsi'].toString().isNotEmpty) ...[
             const SizedBox(height: 10),
             Text(
               item['deskripsi']?.toString() ?? '',
               style: GoogleFonts.outfit(fontSize: 12, color: context.subTitleColor, height: 1.4),
+            ),
+          ],
+          if (item['sanksi'] != null && item['sanksi'].toString().isNotEmpty) ...[
+            const SizedBox(height: 8),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+              decoration: BoxDecoration(
+                color: const Color(0xFFEF4444).withOpacity(0.08),
+                borderRadius: BorderRadius.circular(6),
+                border: Border.all(color: const Color(0xFFEF4444).withOpacity(0.2)),
+              ),
+              child: Text(
+                'Sanksi: ${item['sanksi']}',
+                style: GoogleFonts.outfit(fontSize: 11, color: const Color(0xFFEF4444), fontWeight: FontWeight.w600),
+              ),
             ),
           ],
           const SizedBox(height: 8),
@@ -389,15 +409,6 @@ class _LaporanPelanggaranPrestasiScreenState extends State<LaporanPelanggaranPre
                 _formatTanggal(item['tanggal']),
                 style: GoogleFonts.outfit(fontSize: 11, color: Colors.grey[500]),
               ),
-              if (item['kategori'] != null) ...[
-                const SizedBox(width: 12),
-                Icon(Icons.category_rounded, size: 12, color: Colors.grey[400]),
-                const SizedBox(width: 4),
-                Text(
-                  item['kategori']?.toString() ?? '',
-                  style: GoogleFonts.outfit(fontSize: 11, color: Colors.grey[500]),
-                ),
-              ],
             ],
           ),
         ],
@@ -406,6 +417,7 @@ class _LaporanPelanggaranPrestasiScreenState extends State<LaporanPelanggaranPre
   }
 
   Widget _buildPrestasiCard(dynamic item, bool isDark) {
+    final presBadge = (item['penghargaan'] ?? item['jenis'] ?? item['tingkat'])?.toString();
     return Container(
       margin: const EdgeInsets.only(bottom: 14),
       padding: const EdgeInsets.all(16),
@@ -443,7 +455,7 @@ class _LaporanPelanggaranPrestasiScreenState extends State<LaporanPelanggaranPre
                   ],
                 ),
               ),
-              if (item['tingkat'] != null)
+              if (presBadge != null && presBadge.isNotEmpty)
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                   decoration: BoxDecoration(
@@ -451,17 +463,24 @@ class _LaporanPelanggaranPrestasiScreenState extends State<LaporanPelanggaranPre
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: Text(
-                    item['tingkat']?.toString() ?? '',
+                    presBadge,
                     style: GoogleFonts.outfit(fontSize: 10, fontWeight: FontWeight.bold, color: const Color(0xFFF59E0B)),
                   ),
                 ),
             ],
           ),
-          if (item['deskripsi'] != null) ...[
+          if (item['deskripsi'] != null && item['deskripsi'].toString().isNotEmpty) ...[
             const SizedBox(height: 10),
             Text(
               item['deskripsi']?.toString() ?? '',
               style: GoogleFonts.outfit(fontSize: 12, color: context.subTitleColor, height: 1.4),
+            ),
+          ],
+          if (item['jenis'] != null && item['jenis'].toString().isNotEmpty && item['penghargaan'] != null) ...[
+            const SizedBox(height: 6),
+            Text(
+              'Kategori: ${item['jenis']}',
+              style: GoogleFonts.outfit(fontSize: 11, color: context.subTitleColor),
             ),
           ],
           const SizedBox(height: 8),
@@ -473,15 +492,6 @@ class _LaporanPelanggaranPrestasiScreenState extends State<LaporanPelanggaranPre
                 _formatTanggal(item['tanggal']),
                 style: GoogleFonts.outfit(fontSize: 11, color: Colors.grey[500]),
               ),
-              if (item['kategori'] != null) ...[
-                const SizedBox(width: 12),
-                Icon(Icons.category_rounded, size: 12, color: Colors.grey[400]),
-                const SizedBox(width: 4),
-                Text(
-                  item['kategori']?.toString() ?? '',
-                  style: GoogleFonts.outfit(fontSize: 11, color: Colors.grey[500]),
-                ),
-              ],
             ],
           ),
         ],

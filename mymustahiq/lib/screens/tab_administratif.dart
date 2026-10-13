@@ -120,7 +120,7 @@ class _TabAdministratifState extends State<TabAdministratif> {
               _buildSectionHeader(
                 title: "Struktur Lembaga & Kepanitiaan",
                 subtitle: "Bagan susunan pengurus Madin, PMQ, Pondok, Sambangan & Haflah",
-                badgeText: "5 Struktur",
+                badgeText: "6 Struktur",
                 icon: Icons.account_tree_rounded,
                 color: const Color(0xFF8B5CF6),
                 isDark: isDark,
@@ -514,6 +514,13 @@ class _TabAdministratifState extends State<TabAdministratif> {
         'badge': 'Haflah',
         'index': 4,
         'color': const Color(0xFFEC4899),
+      },
+      {
+        'title': 'Struktur Panitia PSB',
+        'desc': 'Panitia penerimaan santri baru, tes baca kitab & administrasi pendaftaran.',
+        'badge': 'PSB',
+        'index': 5,
+        'color': const Color(0xFF06B6D4),
       },
     ];
 

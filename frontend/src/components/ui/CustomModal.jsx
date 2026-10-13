@@ -11,6 +11,11 @@ export function CustomModal({
   icon,
   children,
   footer,
+  onOk,
+  okText = 'Simpan',
+  okLoading = false,
+  onCancel,
+  cancelText = 'Batal',
   width = 560,
   size,
   destroyOnClose = false,
@@ -72,7 +77,33 @@ export function CustomModal({
         <div className="ui-modal-body">{children}</div>
 
         {/* Footer */}
-        {footer && <div className="ui-modal-footer">{footer}</div>}
+        {footer !== undefined ? (
+          footer && <div className="ui-modal-footer">{footer}</div>
+        ) : onOk ? (
+          <div className="ui-modal-footer" style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px', width: '100%' }}>
+            <button
+              type="button"
+              className="btn-custom btn-secondary"
+              onClick={onCancel || onClose}
+              disabled={okLoading}
+              style={{ minWidth: 84 }}
+            >
+              {cancelText}
+            </button>
+            <button
+              type="button"
+              className="btn-custom btn-primary"
+              onClick={onOk}
+              disabled={okLoading}
+              style={{ minWidth: 96, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}
+            >
+              {okLoading ? (
+                <span className="loading-spinner" style={{ width: 14, height: 14, borderWidth: 2 }}></span>
+              ) : null}
+              <span>{okText}</span>
+            </button>
+          </div>
+        ) : null}
       </div>
     </div>
   );
