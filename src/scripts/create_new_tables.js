@@ -47,6 +47,12 @@ async function migrate() {
         updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
       );
 
+      -- Ensure tables have tahun_ajaran_id
+      ALTER TABLE materi_sidang ADD COLUMN IF NOT EXISTS tahun_ajaran_id INTEGER REFERENCES tahun_ajaran(id) ON DELETE SET NULL;
+      ALTER TABLE materi_sidang ADD COLUMN IF NOT EXISTS tahun_masehi VARCHAR(50);
+      ALTER TABLE jadwal_kajian_balagh ADD COLUMN IF NOT EXISTS tahun_ajaran_id INTEGER REFERENCES tahun_ajaran(id) ON DELETE CASCADE;
+      ALTER TABLE jadwal_imam_tarawih ADD COLUMN IF NOT EXISTS tahun_ajaran_id INTEGER REFERENCES tahun_ajaran(id) ON DELETE CASCADE;
+
       -- Ensure struktur_organisasi has tahun_ajaran_id
       ALTER TABLE struktur_organisasi ADD COLUMN IF NOT EXISTS tahun_ajaran_id INTEGER REFERENCES tahun_ajaran(id) ON DELETE SET NULL;
 
