@@ -96,7 +96,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   ),
                   const SizedBox(height: 10),
                   Text(
-                    'Selamat datang di aplikasi MyMustahiq.',
+                    'Selamat datang di aplikasi Alhamid One.',
                     textAlign: TextAlign.center,
                     style: GoogleFonts.outfit(
                       color: const Color(0xFF10B981),
@@ -106,7 +106,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   ),
                   const SizedBox(height: 12),
                   Text(
-                    'Aplikasi ini dirancang khusus untuk mempermudah ustadz dan mustahiq dalam mengelola administrasi kelas, jadwal mengajar, input nilai santri, serta koordinasi obrolan secara terintegrasi.',
+                    'Portal terpadu seluruh ekosistem santri dan asatidz Pondok Pesantren Al-Hamid dalam mengelola administrasi kepesantrenan, madrasah diniyah, jadwal, nilai santri, serta koordinasi secara terintegrasi.',
                     textAlign: TextAlign.center,
                     style: GoogleFonts.outfit(
                       color: context.bodyColor,

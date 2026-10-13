@@ -104,7 +104,7 @@ class _TabAkunState extends State<TabAkun> {
     if (value) {
       try {
         final didAuth = await _auth.authenticate(
-          localizedReason: 'Aktifkan login biometrik untuk MyMustahiq',
+          localizedReason: 'Aktifkan login biometrik untuk Alhamid One',
           biometricOnly: true,
         );
         if (didAuth) {

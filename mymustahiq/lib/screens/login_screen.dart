@@ -92,7 +92,7 @@ class _LoginScreenState extends State<LoginScreen> {
   Future<void> _handleBiometricLogin() async {
     try {
       final didAuth = await _auth.authenticate(
-        localizedReason: 'Login ke MyMustahiq menggunakan biometrik',
+        localizedReason: 'Login ke Alhamid One menggunakan biometrik',
         biometricOnly: true,
       );
 
@@ -217,7 +217,7 @@ class _LoginScreenState extends State<LoginScreen> {
 
                         // Title & Subtitle
                         Text(
-                          'MyMustahiq',
+                          'Alhamid One',
                           textAlign: TextAlign.center,
                           style: GoogleFonts.outfit(
                             color: context.titleColor,
@@ -228,7 +228,7 @@ class _LoginScreenState extends State<LoginScreen> {
                         ),
                         const SizedBox(height: 6),
                         Text(
-                          'Portal Khusus Guru Diniyah Al-Hamid',
+                          'Portal Terpadu Pesantren & Diniyah Al-Hamid',
                           textAlign: TextAlign.center,
                           style: GoogleFonts.outfit(
                             color: context.subTitleColor,

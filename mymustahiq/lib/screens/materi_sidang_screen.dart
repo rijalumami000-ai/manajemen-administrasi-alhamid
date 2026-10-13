@@ -1,5 +1,9 @@
+import 'dart:io';
+import 'package:dio/dio.dart';
+import 'package:dio/io.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../services/api_service.dart';
@@ -109,9 +113,77 @@ class _MateriSidangScreenState extends State<MateriSidangScreen>
     );
   }
 
-  void _sharePdf(String url, String title) {
-    final fullUrl = 'https://alhamidcintamulya.my.id$url';
-    Share.share('$title\n\nUnduh PDF: $fullUrl', subject: title);
+  Future<void> _sharePdf(String url, String title) async {
+    final fullUrl = url.startsWith('http') ? url : 'https://alhamidcintamulya.my.id$url';
+
+    ScaffoldMessenger.of(context).hideCurrentSnackBar();
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Row(
+          children: [
+            const SizedBox(
+              width: 18,
+              height: 18,
+              child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                "Menyiapkan file PDF untuk dibagikan...",
+                style: GoogleFonts.outfit(color: Colors.white, fontSize: 13),
+              ),
+            ),
+          ],
+        ),
+        duration: const Duration(seconds: 4),
+        backgroundColor: const Color(0xFFEF4444),
+      ),
+    );
+
+    try {
+      final dir = await getTemporaryDirectory();
+      final uri = Uri.parse(fullUrl);
+      String fileName = uri.pathSegments.isNotEmpty ? uri.pathSegments.last : 'dokumen.pdf';
+      if (!fileName.toLowerCase().endsWith('.pdf')) {
+        fileName = '$fileName.pdf';
+      }
+      final file = File('${dir.path}/$fileName');
+
+      if (!await file.exists() || (await file.length()) <= 1024) {
+        final dio = Dio();
+        dio.httpClientAdapter = IOHttpClientAdapter()
+          ..createHttpClient = () {
+            final client = HttpClient();
+            client.badCertificateCallback = (X509Certificate cert, String host, int port) => true;
+            return client;
+          };
+        await dio.download(fullUrl, file.path);
+      }
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).hideCurrentSnackBar();
+      }
+
+      if (await file.exists()) {
+        await Share.shareXFiles(
+          [XFile(file.path)],
+          text: title,
+          subject: title,
+        );
+      } else {
+        await Share.share('$title\n\nUnduh PDF: $fullUrl', subject: title);
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).hideCurrentSnackBar();
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text("Gagal menyiapkan file PDF: $e", style: GoogleFonts.outfit(fontSize: 12)),
+            backgroundColor: Colors.redAccent,
+          ),
+        );
+      }
+    }
   }
 
   @override

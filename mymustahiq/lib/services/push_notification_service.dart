@@ -137,7 +137,7 @@ class PushNotificationService {
           AndroidNotificationSound? customSound;
 
           final category = message.data['category'] ?? '';
-          final title = notification.title ?? 'Notifikasi MyMustahiq';
+          final title = notification.title ?? 'Notifikasi Alhamid One';
 
           if (soundPref == 'chime') {
             targetChannelId = 'chime_importance_channel';
@@ -258,7 +258,7 @@ class PushNotificationService {
         String channelId = 'high_importance_channel';
         await _localNotifications.show(
           id: 999,
-          title: 'MyMustahiq',
+          title: 'Alhamid One',
           body: 'Tes Nada Notifikasi: Sistem (Default)',
           notificationDetails: NotificationDetails(
             android: AndroidNotificationDetails(

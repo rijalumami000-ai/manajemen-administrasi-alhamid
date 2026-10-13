@@ -488,8 +488,8 @@ class _TabAdministratifState extends State<TabAdministratif> {
         'color': const Color(0xFF3B82F6),
       },
       {
-        'title': 'Struktur PMQ (Madin Al-Qur\'an)',
-        'desc': 'Koordinator tahfidz 30 juz, tahsin metode Yanbu\'a & penguji.',
+        'title': 'Struktur PMQ',
+        'desc': 'Pendidikan Murottilil Qur\'an - Koordinator tahfidz 30 juz, metode Yanbu\'a & penguji.',
         'index': 0,
         'color': const Color(0xFF10B981),
       },

@@ -181,14 +181,14 @@ class _SplashScreenState extends State<SplashScreen> with TickerProviderStateMix
                   ),
                   const SizedBox(height: 32),
 
-                  // Title (MyMustahiq)
+                  // Title (Alhamid One)
                   FadeTransition(
                     opacity: _logoFade,
                     child: Text(
-                      'MyMustahiq',
+                      'Alhamid One',
                       style: GoogleFonts.outfit(
                         color: Colors.white,
-                        fontSize: 30,
+                        fontSize: 32,
                         fontWeight: FontWeight.bold,
                         letterSpacing: 0.5,
                       ),
@@ -196,7 +196,7 @@ class _SplashScreenState extends State<SplashScreen> with TickerProviderStateMix
                   ),
                   const SizedBox(height: 8),
 
-                  // Subtitle container (Manajemen Administrasi Pesantren)
+                  // Subtitle container (Portal Terpadu Pesantren)
                   FadeTransition(
                     opacity: _logoFade,
                     child: Container(
@@ -210,7 +210,7 @@ class _SplashScreenState extends State<SplashScreen> with TickerProviderStateMix
                         ),
                       ),
                       child: Text(
-                        'Manajemen Administrasi Pesantren',
+                        'Portal Terpadu Pesantren Al-Hamid',
                         style: GoogleFonts.outfit(
                           color: const Color(0xFF10B981),
                           fontSize: 11,

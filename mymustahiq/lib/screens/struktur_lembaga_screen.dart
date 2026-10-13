@@ -319,7 +319,7 @@ class _StrukturLembagaScreenState extends State<StrukturLembagaScreen>
               controller: _tabController,
               children: [
                 // 1. PMQ
-                _buildStructureList('pmq', 'Pendidikan Madin & Al-Qur\'an (PMQ)', 'Lembaga khusus tahfidz dan tahsin quran pesantren.', isDark),
+                _buildStructureList('pmq', 'Pendidikan Murottilil Qur\'an (PMQ)', 'Lembaga khusus tahfidz dan tahsin quran pesantren.', isDark),
                 // 2. Pondok
                 _buildStructureList('pondok', 'Pondok Pesantren Al-Hamid', 'Kepengurusan pusat santri putra dan putri.', isDark),
                 // 3. Sambangan

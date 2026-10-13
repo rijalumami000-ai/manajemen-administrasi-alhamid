@@ -32,7 +32,7 @@ class MyMustahiqApp extends StatelessWidget {
       builder: (context, _) {
         return MaterialApp(
           navigatorKey: navigatorKey,
-          title: 'MyMustahiq',
+          title: 'Alhamid One',
           debugShowCheckedModeBanner: false,
           themeMode: ThemeManager().themeMode,
           theme: ThemeData(
