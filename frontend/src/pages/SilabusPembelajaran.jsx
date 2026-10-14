@@ -24,12 +24,11 @@ export function SilabusPembelajaran() {
 
   // Reference lists
   const [tahunAjaranList, setTahunAjaranList] = useState([]);
-  const [kelasList, setKelasList] = useState([]);
 
   // Selected filters
   const [selectedTahunId, setSelectedTahunId] = useState(null);
   const [selectedSemester, setSelectedSemester] = useState('Ganjil');
-  const [selectedKelasId, setSelectedKelasId] = useState(null);
+  const [selectedTingkat, setSelectedTingkat] = useState(0);
 
   // Data states
   const [silabusList, setSilabusList] = useState([]);
@@ -60,36 +59,6 @@ export function SilabusPembelajaran() {
         } else if (years.length > 0) {
           setSelectedTahunId(years[0].id);
         }
-
-        // Fetch Diniyah Classes
-        const classes = await nilaiService.fetchKelas();
-        const diniyahClasses = classes.filter(k => k.jenis === 'Diniyah');
-        
-        // Sort classes
-        const getTingkatOrder = (k) => {
-          const name = (k.nama || '').toLowerCase();
-          if (name.includes('sifir')) return 0;
-          if (name.startsWith('1') || name.includes('kelas 1')) return 1;
-          if (name === 'sp' || name.startsWith('sp') || name.includes('sp ')) return 1.5;
-          if (name.startsWith('2') || name.includes('kelas 2')) return 2;
-          if (name.startsWith('3') || name.includes('kelas 3')) return 3;
-          if (name.startsWith('4') || name.includes('kelas 4')) return 4;
-          if (name.startsWith('5') || name.includes('kelas 5')) return 5;
-          if (name.startsWith('6') || name.includes('kelas 6')) return 6;
-          if (k.tingkat === 99) return 1.5;
-          return k.tingkat ?? 999;
-        };
-        const sortedClasses = diniyahClasses.sort((a, b) => {
-          const orderA = getTingkatOrder(a);
-          const orderB = getTingkatOrder(b);
-          if (orderA !== orderB) return orderA - orderB;
-          return a.nama.localeCompare(b.nama, 'id', { numeric: true, sensitivity: 'base' });
-        });
-
-        setKelasList(sortedClasses);
-        if (sortedClasses.length > 0) {
-          setSelectedKelasId(sortedClasses[0].id);
-        }
       } catch (err) {
         console.error(err);
         toast.error('Gagal memuat filter referensi.');
@@ -102,11 +71,11 @@ export function SilabusPembelajaran() {
 
   // Fetch Silabus data
   const fetchSilabus = async () => {
-    if (!selectedTahunId || !selectedKelasId || !selectedSemester) return;
+    if (!selectedTahunId || selectedTingkat === null || selectedTingkat === undefined || !selectedSemester) return;
     try {
       setDataLoading(true);
       setIsEditing(false);
-      const data = await nilaiService.fetchSilabus(selectedTahunId, selectedSemester, selectedKelasId);
+      const data = await nilaiService.fetchSilabus(selectedTahunId, selectedSemester, selectedTingkat);
       const list = Array.isArray(data) ? data : [];
       setSilabusList(list);
       setEditList(JSON.parse(JSON.stringify(list)));
@@ -120,7 +89,7 @@ export function SilabusPembelajaran() {
 
   useEffect(() => {
     fetchSilabus();
-  }, [selectedTahunId, selectedSemester, selectedKelasId]);
+  }, [selectedTahunId, selectedSemester, selectedTingkat]);
 
   // Actions
   const handleSave = async () => {
@@ -129,7 +98,7 @@ export function SilabusPembelajaran() {
       await nilaiService.saveSilabus({
         tahun_ajaran_id: selectedTahunId,
         semester: selectedSemester,
-        kelas_id: selectedKelasId,
+        tingkat: selectedTingkat,
         data: editList
       });
       toast.success('Silabus pembelajaran berhasil disimpan!');
@@ -237,10 +206,15 @@ export function SilabusPembelajaran() {
     label: `${ta.kode} ${ta.is_active ? '(Aktif)' : ''}`
   }));
 
-  const classOptions = kelasList.map(k => ({
-    value: String(k.id),
-    label: `${k.nama} (${k.mustahiq_nama || 'Wali belum diset'})`
-  }));
+  const tingkatOptions = [
+    { value: '0', label: 'Tingkat Sifir' },
+    { value: '1', label: 'Tingkat 1' },
+    { value: '2', label: 'Tingkat 2' },
+    { value: '3', label: 'Tingkat 3' },
+    { value: '4', label: 'Tingkat 4' },
+    { value: '5', label: 'Tingkat 5' },
+    { value: '6', label: 'Tingkat 6' },
+  ];
 
   const pengajarOptions = [
     { value: 'Mustahiq', label: 'Mustahiq' },
@@ -251,7 +225,7 @@ export function SilabusPembelajaran() {
     <div className="silabus-page">
       <PageHeader
         title="📚 Silabus Pembelajaran"
-        subtitle="Kelola target materi, pencapaian, ketentuan, serta muhafadzoh Madrasah Diniyyah"
+        subtitle="Kelola target materi, pencapaian, ketentuan, serta muhafadzoh Madrasah Diniyyah per tingkatan"
       />
 
       {/* Filters Card */}
@@ -287,12 +261,12 @@ export function SilabusPembelajaran() {
         </div>
 
         <div className="filter-group class-filter">
-          <label className="filter-label">Kelas Diniyah</label>
+          <label className="filter-label">Tingkat Diniyah</label>
           <CustomSelect
-            value={selectedKelasId ? String(selectedKelasId) : ''}
-            onChange={(val) => setSelectedKelasId(val ? Number(val) : null)}
-            options={classOptions}
-            placeholder="Pilih Kelas"
+            value={String(selectedTingkat)}
+            onChange={(val) => setSelectedTingkat(val !== null && val !== undefined ? Number(val) : 0)}
+            options={tingkatOptions}
+            placeholder="Pilih Tingkat"
           />
         </div>
       </div>
@@ -302,7 +276,7 @@ export function SilabusPembelajaran() {
         <div className="silabus-card-header">
           <div className="header-left">
             <BookOpen className="header-icon" />
-            <h2 className="header-title">Silabus Pembelajaran Kelas Diniyah</h2>
+            <h2 className="header-title">Silabus Pembelajaran Tingkat Diniyah</h2>
           </div>
           {isAdmin() && (
             <div className="header-actions">
@@ -559,7 +533,7 @@ export function SilabusPembelajaran() {
                 <BookOpen size={48} style={{ opacity: 0.5 }} />
               </div>
               <p style={{ margin: '0 0 16px 0', fontSize: '14px', fontWeight: 500, color: 'var(--lt-text-secondary, #64748b)' }}>
-                Belum ada data silabus pembelajaran kelas ini. Silakan klik 'Ubah Silabus' untuk mulai mengisi.
+                Belum ada data silabus pembelajaran tingkat ini. Silakan klik 'Ubah Silabus' untuk mulai mengisi.
               </p>
               {isAdmin() && (
                 <button

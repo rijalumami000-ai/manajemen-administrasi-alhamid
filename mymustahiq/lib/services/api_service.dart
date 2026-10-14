@@ -993,16 +993,20 @@ class ApiService {
   Future<List<dynamic>> getSilabus({
     required int tahunAjaranId,
     required String semester,
-    required int kelasId,
+    int? tingkat,
+    int? kelasId,
   }) async {
     try {
+      final Map<String, dynamic> qp = {
+        'tahun_ajaran_id': tahunAjaranId,
+        'semester': semester,
+      };
+      if (tingkat != null) qp['tingkat'] = tingkat;
+      if (kelasId != null) qp['kelas_id'] = kelasId;
+
       final response = await _dio.get(
         '/nilai/silabus',
-        queryParameters: {
-          'tahun_ajaran_id': tahunAjaranId,
-          'semester': semester,
-          'kelas_id': kelasId,
-        },
+        queryParameters: qp,
       );
       if (response.statusCode == 200) {
         return response.data as List<dynamic>;

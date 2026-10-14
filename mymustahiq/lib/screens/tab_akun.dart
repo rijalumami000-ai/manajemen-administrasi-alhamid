@@ -784,63 +784,111 @@ class _TabAkunState extends State<TabAkun> {
                 ),
               ),
               child: Row(
+                crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
-                  // Avatar
+                  // Portrait Profile Picture
                   Container(
-                    width: 64,
-                    height: 64,
+                    width: 82,
+                    height: 114,
                     decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      color: Colors.white.withOpacity(0.05),
-                      border: Border.all(color: const Color(0xFF10B981).withOpacity(0.3), width: 1.5),
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(
+                        color: const Color(0xFF10B981).withOpacity(context.isDarkMode ? 0.35 : 0.45),
+                        width: 1.5,
+                      ),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(context.isDarkMode ? 0.3 : 0.08),
+                          blurRadius: 8,
+                          offset: const Offset(0, 3),
+                        ),
+                      ],
                     ),
-                    child: ClipOval(
-                      child: photo != null
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(14.5),
+                      child: photo != null && photo.toString().isNotEmpty
                           ? Image.network(
                               _apiService.getFullImageUrl(photo),
                               fit: BoxFit.cover,
-                              errorBuilder: (context, error, stackTrace) =>
-                                  Icon(Icons.person_rounded, color: context.subTitleColor, size: 32),
+                              errorBuilder: (context, error, stackTrace) => Container(
+                                color: context.isDarkMode ? const Color(0xFF1E293B) : const Color(0xFFF1F5F9),
+                                child: Center(
+                                  child: Icon(Icons.person_rounded, color: context.subTitleColor, size: 40),
+                                ),
+                              ),
                             )
-                          : Icon(Icons.person_rounded, color: context.subTitleColor, size: 32),
+                          : Container(
+                              color: context.isDarkMode ? const Color(0xFF1E293B) : const Color(0xFFF1F5F9),
+                              child: Center(
+                                child: Icon(Icons.person_rounded, color: context.subTitleColor, size: 40),
+                              ),
+                            ),
                     ),
                   ),
                   const SizedBox(width: 16),
-                  // User Details
+                  // User Details (Nama, No HP, Mustahiq/Munawib)
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisAlignment: MainAxisAlignment.center,
                       children: [
                         Text(
                           name,
                           style: GoogleFonts.outfit(
                             color: context.titleColor,
-                            fontSize: 16,
+                            fontSize: 17,
                             fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                        const SizedBox(height: 3),
-                        Text(
-                          "NIP: $nip  •  HP: $phone",
-                          style: GoogleFonts.outfit(
-                            color: context.bodyColor,
-                            fontSize: 11,
+                            letterSpacing: -0.2,
                           ),
                         ),
                         const SizedBox(height: 6),
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                          decoration: BoxDecoration(
-                            color: const Color(0xFF10B981).withOpacity(0.1),
-                            borderRadius: BorderRadius.circular(6),
-                          ),
-                          child: Text(
-                            jabatan,
-                            style: GoogleFonts.outfit(
-                              color: const Color(0xFF10B981),
-                              fontSize: 10,
-                              fontWeight: FontWeight.bold,
+                        Row(
+                          children: [
+                            const Icon(Icons.phone_android_rounded, size: 14, color: Color(0xFF10B981)),
+                            const SizedBox(width: 5),
+                            Expanded(
+                              child: Text(
+                                phone.isNotEmpty && phone != '-' ? phone : (nip != '-' ? 'NIP: $nip' : 'No. HP: -'),
+                                style: GoogleFonts.outfit(
+                                  color: context.bodyColor,
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
                             ),
+                          ],
+                        ),
+                        const SizedBox(height: 9),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                          decoration: BoxDecoration(
+                            gradient: LinearGradient(
+                              colors: [
+                                const Color(0xFF064E3B).withOpacity(context.isDarkMode ? 0.35 : 0.12),
+                                const Color(0xFF10B981).withOpacity(context.isDarkMode ? 0.2 : 0.1),
+                              ],
+                            ),
+                            borderRadius: BorderRadius.circular(8),
+                            border: Border.all(
+                              color: const Color(0xFF10B981).withOpacity(0.3),
+                              width: 1,
+                            ),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              const Icon(Icons.verified_user_rounded, color: Color(0xFF10B981), size: 12),
+                              const SizedBox(width: 5),
+                              Text(
+                                jabatan.isNotEmpty && jabatan != '-' ? jabatan : "Mustahiq / Munawib",
+                                style: GoogleFonts.outfit(
+                                  color: const Color(0xFF10B981),
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.bold,
+                                  letterSpacing: 0.3,
+                                ),
+                              ),
+                            ],
                           ),
                         ),
                       ],

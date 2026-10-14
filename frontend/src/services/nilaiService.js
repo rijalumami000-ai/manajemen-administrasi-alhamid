@@ -185,8 +185,11 @@ export const nilaiService = {
     return apiPost('/nilai/kalender-akademik', data);
   },
 
-  fetchSilabus: async (tahunAjaranId, semester, kelasId) => {
-    return apiGet(`/nilai/silabus?tahun_ajaran_id=${tahunAjaranId}&semester=${encodeURIComponent(semester)}&kelas_id=${kelasId}`);
+  fetchSilabus: async (tahunAjaranId, semester, tingkat, kelasId) => {
+    let url = `/nilai/silabus?tahun_ajaran_id=${tahunAjaranId}&semester=${encodeURIComponent(semester)}`;
+    if (tingkat !== undefined && tingkat !== null) url += `&tingkat=${tingkat}`;
+    if (kelasId) url += `&kelas_id=${kelasId}`;
+    return apiGet(url);
   },
 
   saveSilabus: async (data) => {

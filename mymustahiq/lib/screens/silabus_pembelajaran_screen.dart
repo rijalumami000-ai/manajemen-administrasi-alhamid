@@ -15,12 +15,20 @@ class _SilabusPembelajaranScreenState extends State<SilabusPembelajaranScreen> {
 
   // Reference lists
   List<dynamic> _tahunAjaranList = [];
-  List<dynamic> _kelasList = [];
+  final List<Map<String, dynamic>> _tingkatList = [
+    {'tingkat': 0, 'nama': 'Tingkat Sifir'},
+    {'tingkat': 1, 'nama': 'Tingkat 1'},
+    {'tingkat': 2, 'nama': 'Tingkat 2'},
+    {'tingkat': 3, 'nama': 'Tingkat 3'},
+    {'tingkat': 4, 'nama': 'Tingkat 4'},
+    {'tingkat': 5, 'nama': 'Tingkat 5'},
+    {'tingkat': 6, 'nama': 'Tingkat 6'},
+  ];
 
   // Selected filters
   Map<String, dynamic>? _selectedTahunAjaran;
   String _selectedSemester = 'Ganjil';
-  Map<String, dynamic>? _selectedKelas;
+  int _selectedTingkat = 0;
 
   // Data states
   List<dynamic> _silabusList = [];
@@ -56,38 +64,10 @@ class _SilabusPembelajaranScreenState extends State<SilabusPembelajaranScreen> {
         _tahunAjaranList = taList;
         _selectedTahunAjaran = activeTa;
         _selectedSemester = activeSem;
+        _isLoadingFilters = false;
       });
 
-      // 3. Fetch Classes
       if (activeTa != null) {
-        await _loadClasses(activeTa['id']);
-      } else {
-        setState(() {
-          _isLoadingFilters = false;
-        });
-      }
-    } catch (e) {
-      if (!mounted) return;
-      setState(() {
-        _errorMessage = e.toString().replaceFirst('Exception: ', '');
-        _isLoadingFilters = false;
-      });
-    }
-  }
-
-  Future<void> _loadClasses(int tahunAjaranId) async {
-    try {
-      final res = await _apiService.getTimSoalData(tahunAjaranId: tahunAjaranId);
-      final classes = res['classes'] as List<dynamic>? ?? [];
-      
-      if (!mounted) return;
-      setState(() {
-        _kelasList = classes;
-        _selectedKelas = classes.isNotEmpty ? classes.first : null;
-        _isLoadingFilters = false;
-      });
-
-      if (_selectedKelas != null) {
         _fetchSilabus();
       }
     } catch (e) {
@@ -100,7 +80,7 @@ class _SilabusPembelajaranScreenState extends State<SilabusPembelajaranScreen> {
   }
 
   Future<void> _fetchSilabus() async {
-    if (_selectedTahunAjaran == null || _selectedKelas == null) return;
+    if (_selectedTahunAjaran == null) return;
     setState(() {
       _isLoadingData = true;
       _errorMessage = null;
@@ -109,7 +89,7 @@ class _SilabusPembelajaranScreenState extends State<SilabusPembelajaranScreen> {
       final data = await _apiService.getSilabus(
         tahunAjaranId: _selectedTahunAjaran!['id'],
         semester: _selectedSemester,
-        kelasId: _selectedKelas!['id'],
+        tingkat: _selectedTingkat,
       );
       if (!mounted) return;
       setState(() {
@@ -274,7 +254,7 @@ class _SilabusPembelajaranScreenState extends State<SilabusPembelajaranScreen> {
                         ],
                       ),
                       const SizedBox(height: 10),
-                      // Kelas Diniyah
+                      // Tingkat Diniyah
                       Container(
                         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 2),
                         decoration: BoxDecoration(
@@ -283,21 +263,21 @@ class _SilabusPembelajaranScreenState extends State<SilabusPembelajaranScreen> {
                           border: Border.all(color: context.borderColor),
                         ),
                         child: DropdownButtonHideUnderline(
-                          child: DropdownButton<Map<String, dynamic>>(
-                            value: _selectedKelas,
+                          child: DropdownButton<int>(
+                            value: _selectedTingkat,
                             isExpanded: true,
-                            hint: Text('Pilih Kelas Diniyah', style: GoogleFonts.outfit(color: context.subTitleColor, fontSize: 12)),
+                            hint: Text('Pilih Tingkat Diniyah', style: GoogleFonts.outfit(color: context.subTitleColor, fontSize: 12)),
                             dropdownColor: isDark ? const Color(0xFF1E293B) : Colors.white,
                             style: GoogleFonts.outfit(color: context.titleColor, fontSize: 12, fontWeight: FontWeight.w600),
-                            items: _kelasList.map((k) {
-                              return DropdownMenuItem<Map<String, dynamic>>(
-                                value: k as Map<String, dynamic>,
-                                child: Text(k['nama'] ?? '-'),
+                            items: _tingkatList.map((t) {
+                              return DropdownMenuItem<int>(
+                                value: t['tingkat'] as int,
+                                child: Text(t['nama'] as String),
                               );
                             }).toList(),
                             onChanged: (val) {
                               if (val != null) {
-                                setState(() => _selectedKelas = val);
+                                setState(() => _selectedTingkat = val);
                                 _fetchSilabus();
                               }
                             },
@@ -342,7 +322,7 @@ class _SilabusPembelajaranScreenState extends State<SilabusPembelajaranScreen> {
                                       ),
                                       const SizedBox(height: 16),
                                       Text(
-                                        'Belum ada silabus terekam\nuntuk kelas dan semester ini.',
+                                        'Belum ada silabus terekam\nuntuk tingkat dan semester ini.',
                                         textAlign: TextAlign.center,
                                         style: GoogleFonts.outfit(
                                           color: context.subTitleColor,

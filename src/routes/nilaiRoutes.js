@@ -811,16 +811,34 @@ Write-Host "SCAN_SUCCESS"
   // ── Silabus Pembelajaran ──────────────────────────────────────────────────
   router.get('/silabus', async (req, res, next) => {
     const db = require('../../db');
-    const { tahun_ajaran_id, semester, kelas_id } = req.query;
-    if (!tahun_ajaran_id || !semester || !kelas_id) {
-      return res.status(400).json({ error: 'tahun_ajaran_id, semester, dan kelas_id wajib diisi.' });
+    let { tahun_ajaran_id, semester, tingkat, kelas_id } = req.query;
+    if (!tahun_ajaran_id || !semester || (tingkat === undefined && !kelas_id)) {
+      return res.status(400).json({ error: 'tahun_ajaran_id, semester, dan tingkat (atau kelas_id) wajib diisi.' });
     }
     try {
-      const key = `silabus_${tahun_ajaran_id}_${semester.toLowerCase()}_${kelas_id}`;
-      const result = await db.query(
+      if (tingkat === undefined && kelas_id) {
+        const kRes = await db.query("SELECT tingkat FROM kelas WHERE id = $1", [kelas_id]);
+        if (kRes.rows.length > 0) {
+          tingkat = kRes.rows[0].tingkat;
+        }
+      }
+
+      // 1. Primary lookup by tingkat
+      let key = `silabus_${tahun_ajaran_id}_${semester.toLowerCase()}_tingkat_${tingkat}`;
+      let result = await db.query(
         "SELECT value FROM system_settings WHERE key = $1",
         [key]
       );
+
+      // 2. Fallback to legacy key (by kelas_id) if not found by tingkat
+      if (result.rows.length === 0 && kelas_id) {
+        const legacyKey = `silabus_${tahun_ajaran_id}_${semester.toLowerCase()}_${kelas_id}`;
+        result = await db.query(
+          "SELECT value FROM system_settings WHERE key = $1",
+          [legacyKey]
+        );
+      }
+
       if (result.rows.length > 0) {
         return res.json(JSON.parse(result.rows[0].value));
       }
@@ -832,16 +850,34 @@ Write-Host "SCAN_SUCCESS"
 
   router.post('/silabus', async (req, res, next) => {
     const db = require('../../db');
-    const { tahun_ajaran_id, semester, kelas_id, data } = req.body;
-    if (!tahun_ajaran_id || !semester || !kelas_id || !Array.isArray(data)) {
-      return res.status(400).json({ error: 'tahun_ajaran_id, semester, kelas_id, dan data (array) wajib diisi.' });
+    let { tahun_ajaran_id, semester, tingkat, kelas_id, data } = req.body;
+    if (!tahun_ajaran_id || !semester || (tingkat === undefined && !kelas_id) || !Array.isArray(data)) {
+      return res.status(400).json({ error: 'tahun_ajaran_id, semester, tingkat (atau kelas_id), dan data (array) wajib diisi.' });
     }
     try {
-      const key = `silabus_${tahun_ajaran_id}_${semester.toLowerCase()}_${kelas_id}`;
+      if (tingkat === undefined && kelas_id) {
+        const kRes = await db.query("SELECT tingkat FROM kelas WHERE id = $1", [kelas_id]);
+        if (kRes.rows.length > 0) {
+          tingkat = kRes.rows[0].tingkat;
+        }
+      }
+
+      // Save under tingkat key
+      const key = `silabus_${tahun_ajaran_id}_${semester.toLowerCase()}_tingkat_${tingkat}`;
       await db.query(
         "INSERT INTO system_settings (key, value) VALUES ($1, $2) ON CONFLICT (key) DO UPDATE SET value = $2",
         [key, JSON.stringify(data)]
       );
+
+      // Also maintain legacy key if kelas_id was passed
+      if (kelas_id) {
+        const legacyKey = `silabus_${tahun_ajaran_id}_${semester.toLowerCase()}_${kelas_id}`;
+        await db.query(
+          "INSERT INTO system_settings (key, value) VALUES ($1, $2) ON CONFLICT (key) DO UPDATE SET value = $2",
+          [legacyKey, JSON.stringify(data)]
+        );
+      }
+
       res.json({ success: true, message: 'Silabus pembelajaran berhasil diperbarui.' });
     } catch (error) {
       next(error);
