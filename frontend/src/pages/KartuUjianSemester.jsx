@@ -1032,7 +1032,7 @@ export function KartuUjianSemester() {
   return (
     <div className="kartu-ujian-page">
       <PageHeader 
-        title="🪪 Kartu Ujian Semester"
+        title="🪪 Kartu Ujian Tulis"
         subtitle="Generate nomor peserta, atur setting tata tertib, dan cetak kartu ujian santri"
         className="no-print"
       />

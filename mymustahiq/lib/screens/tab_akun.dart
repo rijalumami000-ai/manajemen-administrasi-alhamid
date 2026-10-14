@@ -5,6 +5,7 @@ import 'package:local_auth/local_auth.dart';
 import '../services/api_service.dart';
 import '../services/theme_manager.dart';
 import '../services/push_notification_service.dart';
+import '../widgets/quick_auth_widgets.dart';
 import 'login_screen.dart';
 
 class TabAkun extends StatefulWidget {
@@ -34,9 +35,13 @@ class _TabAkunState extends State<TabAkun> {
   bool _obscureNew = true;
   bool _obscureConfirm = true;
 
-  // Biometric & Dummy settings state
+  // Quick auth & Dummy settings state
   bool _biometricEnabled = false;
   bool _biometricAvailable = false;
+  bool _faceEnabled = false;
+  bool _pinEnabled = false;
+  bool _patternEnabled = false;
+  bool _passwordEnabled = false;
   bool _notificationsEnabled = true;
   String _selectedSound = 'default';
 
@@ -44,7 +49,7 @@ class _TabAkunState extends State<TabAkun> {
   void initState() {
     super.initState();
     _fetchProfile();
-    _checkBiometricStatus();
+    _checkQuickAuthStatus();
     _loadSoundPreference();
   }
 
@@ -85,16 +90,20 @@ class _TabAkunState extends State<TabAkun> {
     }
   }
 
-  Future<void> _checkBiometricStatus() async {
+  Future<void> _checkQuickAuthStatus() async {
     try {
       final canCheck = await _auth.canCheckBiometrics;
       final isSupported = await _auth.isDeviceSupported();
-      final biometricPref = await _storage.read(key: 'biometric_enabled');
+      final status = await QuickAuthService.getStatus();
 
       if (mounted) {
         setState(() {
           _biometricAvailable = canCheck && isSupported;
-          _biometricEnabled = biometricPref == 'true';
+          _biometricEnabled = status['biometric'] ?? false;
+          _faceEnabled = status['face'] ?? false;
+          _pinEnabled = status['pin'] ?? false;
+          _patternEnabled = status['pattern'] ?? false;
+          _passwordEnabled = status['password'] ?? false;
         });
       }
     } catch (_) {}
@@ -108,7 +117,7 @@ class _TabAkunState extends State<TabAkun> {
           biometricOnly: true,
         );
         if (didAuth) {
-          await _storage.write(key: 'biometric_enabled', value: 'true');
+          await QuickAuthService.setBiometric(true);
           setState(() => _biometricEnabled = true);
           _showToast('Login biometrik berhasil diaktifkan.', Colors.teal);
         }
@@ -116,10 +125,173 @@ class _TabAkunState extends State<TabAkun> {
         _showToast('Gagal mengaktifkan biometrik: ${e.toString()}', Colors.redAccent);
       }
     } else {
-      await _storage.delete(key: 'biometric_enabled');
+      await QuickAuthService.setBiometric(false);
       setState(() => _biometricEnabled = false);
       _showToast('Login biometrik dinonaktifkan.', Colors.amber);
     }
+  }
+
+  Future<void> _toggleFace(bool value) async {
+    if (value) {
+      try {
+        final didAuth = await _auth.authenticate(
+          localizedReason: 'Aktifkan login verifikasi wajah untuk Alhamid One',
+          biometricOnly: true,
+        );
+        if (didAuth) {
+          await QuickAuthService.setFace(true);
+          setState(() => _faceEnabled = true);
+          _showToast('Login Wajah berhasil diaktifkan.', Colors.teal);
+        }
+      } catch (e) {
+        _showToast('Gagal mengaktifkan login wajah: ${e.toString()}', Colors.redAccent);
+      }
+    } else {
+      await QuickAuthService.setFace(false);
+      setState(() => _faceEnabled = false);
+      _showToast('Login Wajah dinonaktifkan.', Colors.amber);
+    }
+  }
+
+  Future<void> _handleManagePin() async {
+    if (_pinEnabled) {
+      _showAuthOptionBottomSheet(
+        title: 'Kunci PIN 6-Digit',
+        onReset: () async {
+          final res = await PinAuthSheet.showSetup(context);
+          if (res == true) {
+            await _checkQuickAuthStatus();
+            _showToast('PIN berhasil diperbarui.', const Color(0xFF10B981));
+          }
+        },
+        onDelete: () async {
+          await QuickAuthService.removePin();
+          await _checkQuickAuthStatus();
+          _showToast('Kunci PIN berhasil dinonaktifkan.', Colors.amber);
+        },
+      );
+    } else {
+      final res = await PinAuthSheet.showSetup(context);
+      if (res == true) {
+        await _checkQuickAuthStatus();
+        _showToast('Kunci PIN berhasil diaktifkan!', const Color(0xFF10B981));
+      }
+    }
+  }
+
+  Future<void> _handleManagePattern() async {
+    if (_patternEnabled) {
+      _showAuthOptionBottomSheet(
+        title: 'Kunci Pola (Pattern)',
+        onReset: () async {
+          final res = await PatternLockSheet.showSetup(context);
+          if (res == true) {
+            await _checkQuickAuthStatus();
+            _showToast('Pola kunci berhasil diperbarui.', const Color(0xFF10B981));
+          }
+        },
+        onDelete: () async {
+          await QuickAuthService.removePattern();
+          await _checkQuickAuthStatus();
+          _showToast('Kunci pola berhasil dinonaktifkan.', Colors.amber);
+        },
+      );
+    } else {
+      final res = await PatternLockSheet.showSetup(context);
+      if (res == true) {
+        await _checkQuickAuthStatus();
+        _showToast('Kunci pola berhasil diaktifkan!', const Color(0xFF10B981));
+      }
+    }
+  }
+
+  Future<void> _handleManagePassword() async {
+    if (_passwordEnabled) {
+      _showAuthOptionBottomSheet(
+        title: 'Sandi Cepat (Passcode)',
+        onReset: () async {
+          final res = await PasswordAuthSheet.showSetup(context);
+          if (res == true) {
+            await _checkQuickAuthStatus();
+            _showToast('Sandi Cepat berhasil diperbarui.', const Color(0xFF10B981));
+          }
+        },
+        onDelete: () async {
+          await QuickAuthService.removePassword();
+          await _checkQuickAuthStatus();
+          _showToast('Sandi Cepat berhasil dinonaktifkan.', Colors.amber);
+        },
+      );
+    } else {
+      final res = await PasswordAuthSheet.showSetup(context);
+      if (res == true) {
+        await _checkQuickAuthStatus();
+        _showToast('Sandi Cepat berhasil diaktifkan!', const Color(0xFF10B981));
+      }
+    }
+  }
+
+  void _showAuthOptionBottomSheet({
+    required String title,
+    required VoidCallback onReset,
+    required VoidCallback onDelete,
+  }) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) => Container(
+        decoration: BoxDecoration(
+          color: context.scaffoldBg,
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+          border: Border.all(color: context.borderColor, width: 1.5),
+        ),
+        padding: const EdgeInsets.fromLTRB(20, 16, 20, 28),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Center(
+              child: Container(
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: context.borderColor,
+                  borderRadius: BorderRadius.circular(10),
+                ),
+              ),
+            ),
+            const SizedBox(height: 16),
+            Text(
+              title,
+              style: GoogleFonts.outfit(
+                color: context.titleColor,
+                fontSize: 16,
+                fontWeight: FontWeight.bold,
+              ),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 16),
+            ListTile(
+              leading: const Icon(Icons.sync_rounded, color: Color(0xFF10B981)),
+              title: Text('Ganti / Buat Baru', style: GoogleFonts.outfit(color: context.titleColor, fontWeight: FontWeight.w600)),
+              onTap: () {
+                Navigator.pop(ctx);
+                onReset();
+              },
+            ),
+            Divider(color: context.borderColor, height: 1),
+            ListTile(
+              leading: const Icon(Icons.delete_outline_rounded, color: Colors.redAccent),
+              title: Text('Nonaktifkan / Hapus', style: GoogleFonts.outfit(color: Colors.redAccent, fontWeight: FontWeight.w600)),
+              onTap: () {
+                Navigator.pop(ctx);
+                onDelete();
+              },
+            ),
+          ],
+        ),
+      ),
+    );
   }
 
   void _showToast(String msg, Color color) {
@@ -900,7 +1072,7 @@ class _TabAkunState extends State<TabAkun> {
             const SizedBox(height: 24),
 
             // ===== 2. GROUP 1: KEAMANAN & PENGATURAN AKUN =====
-            _buildSectionHeader("PENGATURAN AKUN"),
+            _buildSectionHeader("KEAMANAN & AKSES MASUK"),
             Container(
               decoration: BoxDecoration(
                 color: context.cardBg,
@@ -924,13 +1096,57 @@ class _TabAkunState extends State<TabAkun> {
                     _buildSwitchTile(
                       icon: Icons.fingerprint_rounded,
                       title: "Login Biometrik",
-                      subtitle: "Masuk aman dengan sidik jari/wajah",
+                      subtitle: "Masuk aman dengan sidik jari",
                       color: const Color(0xFF10B981),
                       value: _biometricEnabled,
                       onChanged: _toggleBiometric,
                     ),
                     _buildDivider(),
                   ],
+
+                  // Face Recognition Toggle Tile
+                  _buildSwitchTile(
+                    icon: Icons.face_rounded,
+                    title: "Login Wajah",
+                    subtitle: "Masuk cepat verifikasi wajah",
+                    color: const Color(0xFF06B6D4),
+                    value: _faceEnabled,
+                    onChanged: _toggleFace,
+                  ),
+                  _buildDivider(),
+
+                  // PIN Tile
+                  _buildListTile(
+                    icon: Icons.dialpad_rounded,
+                    title: "Kunci PIN 6-Digit",
+                    subtitle: _pinEnabled ? "Status: Aktif" : "Belum diatur",
+                    color: const Color(0xFFF59E0B),
+                    trailing: _buildStatusBadge(_pinEnabled),
+                    onTap: _handleManagePin,
+                  ),
+                  _buildDivider(),
+
+                  // Pattern Tile
+                  _buildListTile(
+                    icon: Icons.pattern_rounded,
+                    title: "Kunci Pola (Pattern)",
+                    subtitle: _patternEnabled ? "Status: Aktif" : "Belum diatur",
+                    color: const Color(0xFFEC4899),
+                    trailing: _buildStatusBadge(_patternEnabled),
+                    onTap: _handleManagePattern,
+                  ),
+                  _buildDivider(),
+
+                  // Quick Password Tile
+                  _buildListTile(
+                    icon: Icons.lock_person_rounded,
+                    title: "Sandi Cepat",
+                    subtitle: _passwordEnabled ? "Status: Aktif" : "Belum diatur",
+                    color: const Color(0xFF14B8A6),
+                    trailing: _buildStatusBadge(_passwordEnabled),
+                    onTap: _handleManagePassword,
+                  ),
+                  _buildDivider(),
 
                   // Theme Selection
                   _buildSwitchTile(
@@ -1048,6 +1264,7 @@ class _TabAkunState extends State<TabAkun> {
     required Color color,
     required VoidCallback onTap,
     bool isDestructive = false,
+    Widget? trailing,
   }) {
     return ListTile(
       onTap: onTap,
@@ -1072,9 +1289,47 @@ class _TabAkunState extends State<TabAkun> {
         subtitle,
         style: GoogleFonts.outfit(color: context.bodyColor, fontSize: 11),
       ),
-      trailing: isDestructive
+      trailing: trailing ?? (isDestructive
           ? null
-          : Icon(Icons.chevron_right_rounded, color: context.subTitleColor, size: 20),
+          : Icon(Icons.chevron_right_rounded, color: context.subTitleColor, size: 20)),
+    );
+  }
+
+  Widget _buildStatusBadge(bool isActive) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+      decoration: BoxDecoration(
+        color: isActive
+            ? const Color(0xFF10B981).withValues(alpha: 0.15)
+            : context.borderColor.withValues(alpha: 0.4),
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(
+          color: isActive ? const Color(0xFF10B981) : context.borderColor,
+          width: 1,
+        ),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            width: 6,
+            height: 6,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: isActive ? const Color(0xFF10B981) : context.subTitleColor,
+            ),
+          ),
+          const SizedBox(width: 5),
+          Text(
+            isActive ? 'Aktif' : 'Atur',
+            style: GoogleFonts.outfit(
+              color: isActive ? const Color(0xFF10B981) : context.subTitleColor,
+              fontSize: 11,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+        ],
+      ),
     );
   }
 

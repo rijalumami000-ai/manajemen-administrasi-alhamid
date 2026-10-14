@@ -4,6 +4,7 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:local_auth/local_auth.dart';
 import '../services/api_service.dart';
 import '../services/theme_manager.dart';
+import '../widgets/quick_auth_widgets.dart';
 import 'dashboard_screen.dart';
 
 class LoginScreen extends StatefulWidget {
@@ -25,11 +26,16 @@ class _LoginScreenState extends State<LoginScreen> {
   final _auth = LocalAuthentication();
   bool _biometricAvailable = false;
   bool _biometricEnabled = false;
+  bool _faceEnabled = false;
+  bool _pinEnabled = false;
+  bool _patternEnabled = false;
+  bool _passwordEnabled = false;
+  bool _hasSavedCredentials = false;
 
   @override
   void initState() {
     super.initState();
-    _checkBiometricLogin();
+    _checkQuickAuthStatus();
   }
 
   @override
@@ -39,16 +45,22 @@ class _LoginScreenState extends State<LoginScreen> {
     super.dispose();
   }
 
-  Future<void> _checkBiometricLogin() async {
+  Future<void> _checkQuickAuthStatus() async {
     try {
       final canCheck = await _auth.canCheckBiometrics;
       final isSupported = await _auth.isDeviceSupported();
-      final bioPref = await _storage.read(key: 'biometric_enabled');
+      final status = await QuickAuthService.getStatus();
+      final hasCreds = await QuickAuthService.hasSavedCredentials();
 
       if (mounted) {
         setState(() {
           _biometricAvailable = canCheck && isSupported;
-          _biometricEnabled = bioPref == 'true';
+          _biometricEnabled = status['biometric'] ?? false;
+          _faceEnabled = status['face'] ?? false;
+          _pinEnabled = status['pin'] ?? false;
+          _patternEnabled = status['pattern'] ?? false;
+          _passwordEnabled = status['password'] ?? false;
+          _hasSavedCredentials = hasCreds;
         });
       }
     } catch (_) {}
@@ -72,9 +84,49 @@ class _LoginScreenState extends State<LoginScreen> {
 
     try {
       await _apiService.login(username, password);
-      // Save credentials securely for biometric auto-login
+      // Save credentials securely for quick auto-login
       await _storage.write(key: 'saved_username', value: username);
       await _storage.write(key: 'saved_password', value: password);
+      if (mounted) {
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (context) => const DashboardScreen()),
+        );
+      }
+    } catch (e) {
+      setState(() {
+        _errorMessage = e.toString().replaceFirst('Exception: ', '');
+        _isLoading = false;
+      });
+    }
+  }
+
+  Future<void> _loginWithSavedCredentials() async {
+    final savedUser = await _storage.read(key: 'saved_username');
+    final savedPass = await _storage.read(key: 'saved_password');
+
+    if (savedUser == null || savedPass == null || savedUser.isEmpty || savedPass.isEmpty) {
+      final formUser = _usernameController.text.trim();
+      final formPass = _passwordController.text.trim();
+      if (formUser.isNotEmpty && formPass.isNotEmpty) {
+        await _storage.write(key: 'saved_username', value: formUser);
+        await _storage.write(key: 'saved_password', value: formPass);
+        await _handleLogin();
+        return;
+      }
+      setState(() {
+        _errorMessage = 'Silakan isi Username & Password sekali terlebih dahulu untuk mengaktifkan masuk cepat.';
+      });
+      return;
+    }
+
+    setState(() {
+      _isLoading = true;
+      _errorMessage = null;
+    });
+
+    try {
+      await _apiService.login(savedUser, savedPass);
       if (mounted) {
         Navigator.pushReplacement(
           context,
@@ -92,40 +144,106 @@ class _LoginScreenState extends State<LoginScreen> {
   Future<void> _handleBiometricLogin() async {
     try {
       final didAuth = await _auth.authenticate(
-        localizedReason: 'Login ke Alhamid One menggunakan biometrik',
+        localizedReason: 'Login ke Alhamid One menggunakan sidik jari/biometrik',
         biometricOnly: true,
       );
 
       if (!didAuth) return;
-
-      // Retrieve saved credentials
-      final savedUser = await _storage.read(key: 'saved_username');
-      final savedPass = await _storage.read(key: 'saved_password');
-
-      if (savedUser == null || savedPass == null) {
-        setState(() {
-          _errorMessage = 'Silakan login manual terlebih dahulu, lalu aktifkan biometrik di menu Akun.';
-        });
-        return;
-      }
-
-      setState(() {
-        _isLoading = true;
-        _errorMessage = null;
-      });
-
-      await _apiService.login(savedUser, savedPass);
-      if (mounted) {
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(builder: (context) => const DashboardScreen()),
-        );
-      }
+      await _loginWithSavedCredentials();
     } catch (e) {
       setState(() {
         _errorMessage = e.toString().replaceFirst('Exception: ', '');
         _isLoading = false;
       });
+    }
+  }
+
+  Future<void> _handleFaceLogin() async {
+    try {
+      final didAuth = await _auth.authenticate(
+        localizedReason: 'Login ke Alhamid One menggunakan verifikasi wajah',
+        biometricOnly: true,
+      );
+
+      if (!didAuth) return;
+      await _loginWithSavedCredentials();
+    } catch (e) {
+      setState(() {
+        _errorMessage = e.toString().replaceFirst('Exception: ', '');
+        _isLoading = false;
+      });
+    }
+  }
+
+  Future<void> _handlePinLogin() async {
+    final hasPin = await QuickAuthService.isPinSet();
+    if (!mounted) return;
+
+    if (hasPin) {
+      final res = await PinAuthSheet.showVerify(context);
+      if (res == true) {
+        await _loginWithSavedCredentials();
+      }
+    } else {
+      if (!_hasSavedCredentials && _usernameController.text.trim().isEmpty) {
+        setState(() {
+          _errorMessage = 'Silakan isi Username & Password terlebih dahulu untuk mengatur PIN.';
+        });
+        return;
+      }
+      final res = await PinAuthSheet.showSetup(context);
+      if (res == true) {
+        await _checkQuickAuthStatus();
+        await _loginWithSavedCredentials();
+      }
+    }
+  }
+
+  Future<void> _handlePatternLogin() async {
+    final hasPattern = await QuickAuthService.isPatternSet();
+    if (!mounted) return;
+
+    if (hasPattern) {
+      final res = await PatternLockSheet.showVerify(context);
+      if (res == true) {
+        await _loginWithSavedCredentials();
+      }
+    } else {
+      if (!_hasSavedCredentials && _usernameController.text.trim().isEmpty) {
+        setState(() {
+          _errorMessage = 'Silakan isi Username & Password terlebih dahulu untuk mengatur Kunci Pola.';
+        });
+        return;
+      }
+      final res = await PatternLockSheet.showSetup(context);
+      if (res == true) {
+        await _checkQuickAuthStatus();
+        await _loginWithSavedCredentials();
+      }
+    }
+  }
+
+  Future<void> _handlePasswordLogin() async {
+    final hasPass = await QuickAuthService.isPasswordSet();
+    if (!mounted) return;
+
+    if (hasPass || _hasSavedCredentials) {
+      final res = await PasswordAuthSheet.showVerify(context);
+      if (res == true) {
+        await _loginWithSavedCredentials();
+      }
+    } else {
+      if (!_hasSavedCredentials && _usernameController.text.trim().isEmpty) {
+        setState(() {
+          _errorMessage = 'Silakan isi Username & Password terlebih dahulu untuk mengatur Sandi Cepat.';
+        });
+        return;
+      }
+      final res = await PasswordAuthSheet.showSetup(context);
+      if (res == true) {
+        await _checkQuickAuthStatus();
+        await _loginWithSavedCredentials();
+      }
     }
   }
 
@@ -344,86 +462,114 @@ class _LoginScreenState extends State<LoginScreen> {
                         ),
                         const SizedBox(height: 35),
 
-                        // Login Button Row (+ Biometric)
-                        Row(
-                          children: [
-                            // Main Login Button
-                            Expanded(
-                              child: Container(
-                                height: 56,
-                                decoration: BoxDecoration(
-                                  borderRadius: BorderRadius.circular(16),
-                                  boxShadow: [
-                                    BoxShadow(
-                                      color: const Color(0xFF10B981).withOpacity(isDark ? 0.3 : 0.1),
-                                      blurRadius: 20,
-                                      offset: const Offset(0, 4),
-                                      spreadRadius: -5,
+                        // Main Login Button
+                        Container(
+                          width: double.infinity,
+                          height: 56,
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(16),
+                            boxShadow: [
+                              BoxShadow(
+                                color: const Color(0xFF10B981).withValues(alpha: isDark ? 0.3 : 0.1),
+                                blurRadius: 20,
+                                offset: const Offset(0, 4),
+                                spreadRadius: -5,
+                              ),
+                            ],
+                          ),
+                          child: ElevatedButton(
+                            onPressed: _isLoading ? null : _handleLogin,
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: const Color(0xFF064E3B),
+                              foregroundColor: Colors.white,
+                              elevation: 0,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(16),
+                              ),
+                              side: BorderSide(
+                                color: const Color(0xFF10B981).withValues(alpha: 0.5),
+                                width: 1.5,
+                              ),
+                            ),
+                            child: _isLoading
+                                ? const SizedBox(
+                                    width: 24,
+                                    height: 24,
+                                    child: CircularProgressIndicator(
+                                      color: Colors.white,
+                                      strokeWidth: 2.5,
                                     ),
-                                  ],
-                                ),
-                                child: ElevatedButton(
-                                  onPressed: _isLoading ? null : _handleLogin,
-                                  style: ElevatedButton.styleFrom(
-                                    backgroundColor: const Color(0xFF064E3B),
-                                    foregroundColor: Colors.white,
-                                    elevation: 0,
-                                    shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(16),
-                                    ),
-                                    side: BorderSide(
-                                      color: const Color(0xFF10B981).withOpacity(0.5),
-                                      width: 1.5,
+                                  )
+                                : Text(
+                                    'MASUK SISTEM',
+                                    style: GoogleFonts.outfit(
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.bold,
+                                      letterSpacing: 1.2,
                                     ),
                                   ),
-                                  child: _isLoading
-                                      ? const SizedBox(
-                                          width: 24,
-                                          height: 24,
-                                          child: CircularProgressIndicator(
-                                            color: Colors.white,
-                                            strokeWidth: 2.5,
-                                          ),
-                                        )
-                                      : Text(
-                                          'MASUK SISTEM',
-                                          style: GoogleFonts.outfit(
-                                            fontSize: 16,
-                                            fontWeight: FontWeight.bold,
-                                            letterSpacing: 1.2,
-                                          ),
-                                        ),
+                          ),
+                        ),
+                        const SizedBox(height: 26),
+
+                        // Opsi Masuk Cepat
+                        Row(
+                          children: [
+                            Expanded(child: Divider(color: context.borderColor, thickness: 1)),
+                            Padding(
+                              padding: const EdgeInsets.symmetric(horizontal: 10),
+                              child: Text(
+                                'OPSI MASUK CEPAT',
+                                style: GoogleFonts.outfit(
+                                  color: context.subTitleColor,
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.bold,
+                                  letterSpacing: 1.5,
                                 ),
                               ),
                             ),
-
-                            // Biometric Button
-                            if (_biometricAvailable && _biometricEnabled) ...[
-                              const SizedBox(width: 12),
-                              Container(
-                                height: 56,
-                                width: 56,
-                                decoration: BoxDecoration(
-                                  borderRadius: BorderRadius.circular(16),
-                                  border: Border.all(
-                                    color: const Color(0xFF10B981).withOpacity(isDark ? 0.4 : 0.2),
-                                    width: 1.5,
-                                  ),
-                                  color: context.inputBg,
-                                ),
-                                child: IconButton(
-                                  onPressed: _isLoading ? null : _handleBiometricLogin,
-                                  icon: const Icon(
-                                    Icons.fingerprint_rounded,
-                                    color: Color(0xFF10B981),
-                                    size: 28,
-                                  ),
-                                ),
-                              ),
-                            ],
+                            Expanded(child: Divider(color: context.borderColor, thickness: 1)),
                           ],
                         ),
-                        const SizedBox(height: 30),
+                        const SizedBox(height: 16),
+
+                        // 5 Quick Auth Buttons
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                          children: [
+                            _buildQuickAuthOption(
+                              icon: Icons.fingerprint_rounded,
+                              label: 'Biometrik',
+                              isActive: _biometricEnabled,
+                              onTap: _handleBiometricLogin,
+                            ),
+                            _buildQuickAuthOption(
+                              icon: Icons.face_rounded,
+                              label: 'Wajah',
+                              isActive: _faceEnabled,
+                              onTap: _handleFaceLogin,
+                            ),
+                            _buildQuickAuthOption(
+                              icon: Icons.dialpad_rounded,
+                              label: 'PIN',
+                              isActive: _pinEnabled,
+                              onTap: _handlePinLogin,
+                            ),
+                            _buildQuickAuthOption(
+                              icon: Icons.pattern_rounded,
+                              label: 'Pola',
+                              isActive: _patternEnabled,
+                              onTap: _handlePatternLogin,
+                            ),
+                            _buildQuickAuthOption(
+                              icon: Icons.lock_person_rounded,
+                              label: 'Sandi',
+                              isActive: _passwordEnabled,
+                              onTap: _handlePasswordLogin,
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 28),
 
                         // Footer Text
                         Text(
@@ -446,4 +592,88 @@ class _LoginScreenState extends State<LoginScreen> {
       ),
     );
   }
+
+  Widget _buildQuickAuthOption({
+    required IconData icon,
+    required String label,
+    required bool isActive,
+    required VoidCallback onTap,
+  }) {
+    final isDark = context.isDarkMode;
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: _isLoading ? null : onTap,
+        borderRadius: BorderRadius.circular(16),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 4.0, vertical: 2.0),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 50,
+                height: 50,
+                decoration: BoxDecoration(
+                  color: isActive
+                      ? const Color(0xFF064E3B).withValues(alpha: isDark ? 0.45 : 0.12)
+                      : context.inputBg,
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(
+                    color: isActive
+                        ? const Color(0xFF10B981)
+                        : context.borderColor,
+                    width: isActive ? 1.5 : 1.0,
+                  ),
+                  boxShadow: isActive
+                      ? [
+                          BoxShadow(
+                            color: const Color(0xFF10B981).withValues(alpha: 0.18),
+                            blurRadius: 8,
+                            offset: const Offset(0, 2),
+                          )
+                        ]
+                      : null,
+                ),
+                child: Stack(
+                  clipBehavior: Clip.none,
+                  children: [
+                    Center(
+                      child: Icon(
+                        icon,
+                        size: 24,
+                        color: isActive ? const Color(0xFF10B981) : context.subTitleColor,
+                      ),
+                    ),
+                    if (isActive)
+                      Positioned(
+                        top: 5,
+                        right: 5,
+                        child: Container(
+                          width: 7,
+                          height: 7,
+                          decoration: const BoxDecoration(
+                            color: Color(0xFF10B981),
+                            shape: BoxShape.circle,
+                          ),
+                        ),
+                      ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 5),
+              Text(
+                label,
+                style: GoogleFonts.outfit(
+                  fontSize: 10.5,
+                  fontWeight: isActive ? FontWeight.bold : FontWeight.w500,
+                  color: isActive ? const Color(0xFF10B981) : context.subTitleColor,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
 }
+

@@ -47,7 +47,6 @@ const MobileMenu = ({ open, onClose, onLogout }) => {
       items: [
         { key: '/', icon: <LayoutDashboard size={18} />, label: 'Dashboard' },
         { key: '/radio', icon: <Radio size={18} />, label: 'Radio & Musik' },
-        { key: '/santri', icon: <Users size={18} />, label: 'Data Santri' },
         { key: '/buku-induk', icon: <BookOpen size={18} />, label: 'Buku Induk' },
         { key: '/kamar', icon: <Home size={18} />, label: 'Data Kamar' },
         { key: '/inventaris', icon: <Boxes size={18} />, label: 'Inventaris Pesantren' },
@@ -60,6 +59,7 @@ const MobileMenu = ({ open, onClose, onLogout }) => {
       title: 'Akademik Diniyah',
       roleFilter: () => isAdmin() || isDiniyah(),
       items: [
+        { key: '/santri', icon: <Users size={18} />, label: 'Data Santri' },
         { key: '/statistik-diniyah', icon: <BarChart3 size={18} />, label: 'Statistik Siswa Diniyah' },
         { key: '/kelas', icon: <School size={18} />, label: 'Data Kelas' },
         { key: '/guru', icon: <Contact size={18} />, label: 'Data Guru' },
@@ -67,11 +67,11 @@ const MobileMenu = ({ open, onClose, onLogout }) => {
         { key: '/jadwal-pelajaran', icon: <Clock size={18} />, label: 'Jadwal Harian' },
         { key: '/nilai-pengaturan', icon: <Sliders size={18} />, label: 'Pengaturan & Jadwal' },
         { key: '/nilai', icon: <Edit size={18} />, label: 'Input Penilaian' },
-        { key: '/scan-nilai', icon: <Scan size={18} />, label: 'Scan Nilai' },
-        { key: '/nilai-rekap', icon: <FileSpreadsheet size={18} />, label: 'Rekap & Rapor' },
-        { key: '/laporan-ujian-khusus', icon: <FileText size={18} />, label: 'Laporan Ujian Khusus' },
-        { key: '/kartu-ujian-semester', icon: <IdCard size={18} />, label: 'Kartu Ujian Semester' },
+        { key: '/kartu-ujian-semester', icon: <IdCard size={18} />, label: 'Kartu Ujian Tulis' },
         { key: '/lembar-ujian', icon: <FileText size={18} />, label: 'Lembar Ujian' },
+        { key: '/scan-nilai', icon: <Scan size={18} />, label: 'Scan Nilai' },
+        { key: '/laporan-ujian-khusus', icon: <FileText size={18} />, label: 'Laporan Ujian Khusus' },
+        { key: '/nilai-rekap', icon: <FileSpreadsheet size={18} />, label: 'Rekap & Rapor' },
         { key: '/alumni', icon: <GraduationCap size={18} />, label: 'Alumni' },
         { key: '/romadhon', icon: <Moon size={18} />, label: 'Romadhon' },
       ]

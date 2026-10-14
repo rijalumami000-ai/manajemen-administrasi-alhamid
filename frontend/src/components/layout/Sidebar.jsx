@@ -215,7 +215,6 @@ export function Sidebar({ collapsed, onCollapse }) {
       icon: 'School',
       collapsible: true,
       items: [
-        { key: '/santri', icon: 'Users', label: 'Data Santri' },
         { key: '/buku-induk', icon: 'BookOpen', label: 'Buku Induk' },
         { key: '/kamar', icon: 'Home', label: 'Data Kamar' },
         { key: '/inventaris', icon: 'Boxes', label: 'Inventaris Pesantren' },
@@ -231,6 +230,7 @@ export function Sidebar({ collapsed, onCollapse }) {
       collapsible: true,
       disabled: isStaff(),
       items: [
+        { key: '/santri', icon: 'Users', label: 'Data Santri', disabled: isStaff() },
         { key: '/statistik-diniyah', icon: 'BarChart3', label: 'Statistik Siswa Diniyah', disabled: isStaff() },
         { key: '/kelas', icon: 'School', label: 'Data Kelas', disabled: isStaff() },
         { key: '/guru', icon: 'Contact', label: 'Data Guru', disabled: isStaff() },
@@ -240,11 +240,11 @@ export function Sidebar({ collapsed, onCollapse }) {
         { key: '/nilai-pengaturan', icon: 'Sliders', label: 'Pengaturan & Jadwal', disabled: isStaff() },
         { key: '/informasi-ujian', icon: 'FileText', label: 'Informasi Ujian', disabled: isStaff() },
         { key: '/nilai', icon: 'Edit', label: 'Input Penilaian', disabled: isStaff() },
-        { key: '/scan-nilai', icon: 'Scan', label: 'Scan Nilai', disabled: isStaff() },
-        { key: '/nilai-rekap', icon: 'FileSpreadsheet', label: 'Rekap & Rapor', disabled: isStaff() },
-        { key: '/laporan-ujian-khusus', icon: 'FileText', label: 'Laporan Ujian Khusus', disabled: isStaff() },
-        { key: '/kartu-ujian-semester', icon: 'IdCard', label: 'Kartu Ujian Semester', disabled: isStaff() },
+        { key: '/kartu-ujian-semester', icon: 'IdCard', label: 'Kartu Ujian Tulis', disabled: isStaff() },
         { key: '/lembar-ujian', icon: 'FileText', label: 'Lembar Ujian', disabled: isStaff() },
+        { key: '/scan-nilai', icon: 'Scan', label: 'Scan Nilai', disabled: isStaff() },
+        { key: '/laporan-ujian-khusus', icon: 'FileText', label: 'Laporan Ujian Khusus', disabled: isStaff() },
+        { key: '/nilai-rekap', icon: 'FileSpreadsheet', label: 'Rekap & Rapor', disabled: isStaff() },
         { key: '/alumni', icon: 'GraduationCap', label: 'Alumni', disabled: isStaff() },
         { key: '/romadhon', icon: 'Moon', label: 'Romadhon', disabled: isStaff() },
       ]
@@ -463,32 +463,6 @@ export function Sidebar({ collapsed, onCollapse }) {
           </div>
         )}
 
-        {/* RECENTS (🕘 Last Visited) - Only when expanded & no search query & has recents */}
-        {!collapsed && !isSearching && recents.length > 0 && (
-          <div className="nav-group-section recents-section">
-            <span className="group-header">
-              <Clock size={12} style={{ marginRight: '6px' }} />
-              Terakhir Diakses
-            </span>
-            <ul className="group-list">
-              {recents.map(key => {
-                const item = getMenuItemByKey(key);
-                if (!item) return null;
-                const isActive = location.pathname === item.key;
-                return (
-                  <li
-                    key={`recent-${item.key}`}
-                    className={`nav-item ${isActive ? 'active' : ''} ${item.disabled ? 'disabled' : ''}`}
-                    onClick={() => handleItemClick(item.key, item.disabled)}
-                  >
-                    <span className="nav-item-icon">{renderIcon(item.icon)}</span>
-                    <span className="nav-item-label">{item.label}</span>
-                  </li>
-                );
-              })}
-            </ul>
-          </div>
-        )}
 
         {/* MAIN GROUPS */}
         {activeFilteredGroups.map(group => {
