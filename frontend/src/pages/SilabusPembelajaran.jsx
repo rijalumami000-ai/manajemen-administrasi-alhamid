@@ -208,6 +208,7 @@ export function SilabusPembelajaran() {
 
   const tingkatOptions = [
     { value: '0', label: 'Tingkat Sifir' },
+    { value: '99', label: 'Tingkat SP' },
     { value: '1', label: 'Tingkat 1' },
     { value: '2', label: 'Tingkat 2' },
     { value: '3', label: 'Tingkat 3' },

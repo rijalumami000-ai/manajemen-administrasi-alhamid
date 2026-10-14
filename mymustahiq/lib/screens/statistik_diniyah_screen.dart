@@ -96,6 +96,10 @@ class _StatistikDiniyahScreenState extends State<StatistikDiniyahScreen> {
       'total_ganjil': 0,
       'total_genap': 0,
     };
+    final semStatus = (_data?['semester_status'] as Map<String, dynamic>?) ?? {};
+    final ganjilStatus = (semStatus['ganjil'] ?? summary['ganjil_status'] ?? 'selesai').toString();
+    final genapStatus = (semStatus['genap'] ?? summary['genap_status'] ?? 'selesai').toString();
+
     final perTingkat = (_data?['per_tingkat'] as List<dynamic>?) ?? [];
     final perKelas = (_data?['per_kelas'] as List<dynamic>?) ?? [];
     final tren = (_data?['tren_tahun_ajaran'] as List<dynamic>?) ?? [];
@@ -134,8 +138,22 @@ class _StatistikDiniyahScreenState extends State<StatistikDiniyahScreen> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               // Filter Card
-              _buildFilterSection(isDark),
-              const SizedBox(height: 18),
+              _buildFilterSection(ganjilStatus, genapStatus, isDark),
+              const SizedBox(height: 14),
+
+              // Upcoming Semester Notices
+              if (_selectedSemester == 'genap' && genapStatus == 'akan_datang')
+                _buildUpcomingAlert(
+                  title: "Semester Genap Belum Berjalan (Akan Datang)",
+                  description: "Saat ini posisi kalender berada di Semester Ganjil. Data valid santri aktif Semester Genap belum diverifikasi/berjalan resmi. Angka statistik valid akan tersaji saat memasuki Semester Genap.",
+                  isDark: isDark,
+                ),
+              if (_selectedSemester == 'ganjil' && ganjilStatus == 'akan_datang')
+                _buildUpcomingAlert(
+                  title: "Semester Ganjil Belum Berjalan (Akan Datang)",
+                  description: "Tahun ajaran ini merupakan periode masa depan dan belum aktif berjalan di sistem.",
+                  isDark: isDark,
+                ),
 
               if (_isLoading)
                 const Center(
@@ -180,8 +198,52 @@ class _StatistikDiniyahScreenState extends State<StatistikDiniyahScreen> {
     );
   }
 
+  // Upcoming Alert Card
+  Widget _buildUpcomingAlert({required String title, required String description, required bool isDark}) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 16),
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: isDark ? const Color(0xFF451A03).withOpacity(0.5) : const Color(0xFFFFFBEB),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: const Color(0xFFF59E0B).withOpacity(0.4)),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Icon(Icons.info_outline_rounded, color: Color(0xFFD97706), size: 20),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: GoogleFonts.outfit(
+                    fontSize: 12,
+                    fontWeight: FontWeight.bold,
+                    color: isDark ? const Color(0xFFFDE68A) : const Color(0xFF92400E),
+                  ),
+                ),
+                const SizedBox(height: 3),
+                Text(
+                  description,
+                  style: GoogleFonts.outfit(
+                    fontSize: 11,
+                    color: isDark ? Colors.white70 : const Color(0xFFB45309),
+                    height: 1.35,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   // Filter Section
-  Widget _buildFilterSection(bool isDark) {
+  Widget _buildFilterSection(String ganjilStatus, String genapStatus, bool isDark) {
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
@@ -236,9 +298,9 @@ class _StatistikDiniyahScreenState extends State<StatistikDiniyahScreen> {
             ),
             child: Row(
               children: [
-                _buildSemTab('Semua', 'semua', isDark),
-                _buildSemTab('Ganjil', 'ganjil', isDark),
-                _buildSemTab('Genap', 'genap', isDark),
+                _buildSemTab('Semua', 'semua', null, isDark),
+                _buildSemTab('Ganjil', 'ganjil', ganjilStatus, isDark),
+                _buildSemTab('Genap', 'genap', genapStatus, isDark),
               ],
             ),
           ),
@@ -247,8 +309,11 @@ class _StatistikDiniyahScreenState extends State<StatistikDiniyahScreen> {
     );
   }
 
-  Widget _buildSemTab(String label, String value, bool isDark) {
+  Widget _buildSemTab(String label, String value, String? status, bool isDark) {
     final isSelected = _selectedSemester == value;
+    final isUpcoming = status == 'akan_datang';
+    final isRunning = status == 'berjalan';
+
     return Expanded(
       child: GestureDetector(
         onTap: () {
@@ -259,7 +324,7 @@ class _StatistikDiniyahScreenState extends State<StatistikDiniyahScreen> {
         },
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 150),
-          padding: const EdgeInsets.symmetric(vertical: 8),
+          padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 4),
           alignment: Alignment.center,
           decoration: BoxDecoration(
             color: isSelected
@@ -270,15 +335,56 @@ class _StatistikDiniyahScreenState extends State<StatistikDiniyahScreen> {
                 ? [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 4, offset: const Offset(0, 1))]
                 : null,
           ),
-          child: Text(
-            label,
-            style: GoogleFonts.outfit(
-              fontSize: 12,
-              fontWeight: isSelected ? FontWeight.bold : FontWeight.w600,
-              color: isSelected
-                  ? (isDark ? Colors.white : const Color(0xFF064E3B))
-                  : (isDark ? Colors.white60 : const Color(0xFF64748B)),
-            ),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                label,
+                style: GoogleFonts.outfit(
+                  fontSize: 12,
+                  fontWeight: isSelected ? FontWeight.bold : FontWeight.w600,
+                  color: isSelected
+                      ? (isDark ? Colors.white : const Color(0xFF064E3B))
+                      : (isDark ? Colors.white60 : const Color(0xFF64748B)),
+                ),
+              ),
+              if (isUpcoming) ...[
+                const SizedBox(width: 4),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFF59E0B),
+                    borderRadius: BorderRadius.circular(4),
+                  ),
+                  child: Text(
+                    "Nanti",
+                    style: GoogleFonts.outfit(
+                      fontSize: 8,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white,
+                    ),
+                  ),
+                ),
+              ] else if (isRunning) ...[
+                const SizedBox(width: 4),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF10B981),
+                    borderRadius: BorderRadius.circular(4),
+                  ),
+                  child: Text(
+                    "Aktif",
+                    style: GoogleFonts.outfit(
+                      fontSize: 8,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white,
+                    ),
+                  ),
+                ),
+              ],
+            ],
           ),
         ),
       ),
@@ -452,6 +558,10 @@ class _StatistikDiniyahScreenState extends State<StatistikDiniyahScreen> {
 
   // Semester Activity Card
   Widget _buildSemesterActivityCard(Map<String, dynamic> summary, int total, bool isDark) {
+    final semStatus = (_data?['semester_status'] as Map<String, dynamic>?) ?? {};
+    final ganjilStatus = (semStatus['ganjil'] ?? summary['ganjil_status'] ?? 'selesai').toString();
+    final genapStatus = (semStatus['genap'] ?? summary['genap_status'] ?? 'selesai').toString();
+
     final ganjil = (summary['total_ganjil'] ?? 0) as int;
     final genap = (summary['total_genap'] ?? 0) as int;
 
@@ -485,45 +595,132 @@ class _StatistikDiniyahScreenState extends State<StatistikDiniyahScreen> {
           Row(
             children: [
               Expanded(
-                child: _buildSemBar("Semester Ganjil", ganjil, total, const Color(0xFF3B82F6), isDark),
+                child: _buildSemBar(
+                  "Semester Ganjil",
+                  ganjil,
+                  total,
+                  const Color(0xFF3B82F6),
+                  ganjilStatus,
+                  isDark,
+                ),
               ),
               const SizedBox(width: 14),
               Expanded(
-                child: _buildSemBar("Semester Genap", genap, total, const Color(0xFF10B981), isDark),
+                child: _buildSemBar(
+                  "Semester Genap",
+                  genap,
+                  total,
+                  const Color(0xFF10B981),
+                  genapStatus,
+                  isDark,
+                ),
               ),
             ],
+          ),
+          const SizedBox(height: 12),
+          Container(
+            padding: const EdgeInsets.only(top: 10),
+            decoration: BoxDecoration(
+              border: Border(
+                top: BorderSide(
+                  color: isDark ? Colors.white.withOpacity(0.08) : const Color(0xFFE2E8F0),
+                ),
+              ),
+            ),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text("💡 ", style: TextStyle(fontSize: 11)),
+                Expanded(
+                  child: Text(
+                    genapStatus == 'akan_datang'
+                        ? "Semester Genap belum berjalan resmi. Data santri aktif akan disajikan sah saat sistem memasuki Semester Genap."
+                        : "Data keaktifan santri dihitung dari santri terdaftar aktif di semester yang bersangkutan.",
+                    style: GoogleFonts.outfit(
+                      fontSize: 10,
+                      color: isDark ? Colors.white54 : const Color(0xFF64748B),
+                      fontStyle: FontStyle.italic,
+                    ),
+                  ),
+                ),
+              ],
+            ),
           ),
         ],
       ),
     );
   }
 
-  Widget _buildSemBar(String label, int count, int total, Color color, bool isDark) {
-    final pct = total > 0 ? ((count / total) * 100).round() : 0;
+  Widget _buildSemBar(String label, int count, int total, Color color, String status, bool isDark) {
+    final isUpcoming = status == 'akan_datang';
+    final isRunning = status == 'berjalan';
+    final pct = total > 0 && !isUpcoming ? ((count / total) * 100).round() : 0;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Text(label, style: GoogleFonts.outfit(fontSize: 11, color: isDark ? Colors.white60 : Colors.black54)),
-            Text("$count", style: GoogleFonts.outfit(fontSize: 12, fontWeight: FontWeight.bold, color: color)),
+            Expanded(
+              child: Text(
+                label,
+                style: GoogleFonts.outfit(
+                  fontSize: 11,
+                  fontWeight: FontWeight.w600,
+                  color: isDark ? Colors.white70 : Colors.black87,
+                ),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1.5),
+              decoration: BoxDecoration(
+                color: isUpcoming
+                    ? const Color(0xFFF59E0B).withOpacity(0.15)
+                    : (isRunning ? const Color(0xFF10B981).withOpacity(0.15) : (isDark ? Colors.white12 : const Color(0xFFE2E8F0))),
+                borderRadius: BorderRadius.circular(5),
+              ),
+              child: Text(
+                isUpcoming ? "Akan Datang" : (isRunning ? "Aktif" : "Selesai"),
+                style: GoogleFonts.outfit(
+                  fontSize: 9,
+                  fontWeight: FontWeight.bold,
+                  color: isUpcoming
+                      ? const Color(0xFFD97706)
+                      : (isRunning ? const Color(0xFF10B981) : (isDark ? Colors.white60 : const Color(0xFF64748B))),
+                ),
+              ),
+            ),
           ],
+        ),
+        const SizedBox(height: 4),
+        Text(
+          isUpcoming ? "Belum Berjalan" : "$count Santri",
+          style: GoogleFonts.outfit(
+            fontSize: 13,
+            fontWeight: FontWeight.bold,
+            color: isUpcoming ? (isDark ? Colors.white38 : Colors.black38) : color,
+          ),
         ),
         const SizedBox(height: 6),
         ClipRRect(
           borderRadius: BorderRadius.circular(6),
           child: LinearProgressIndicator(
-            value: total > 0 ? (count / total).clamp(0.0, 1.0) : 0.0,
+            value: total > 0 && !isUpcoming ? (count / total).clamp(0.0, 1.0) : 0.0,
             backgroundColor: isDark ? Colors.white12 : const Color(0xFFE2E8F0),
-            valueColor: AlwaysStoppedAnimation<Color>(color),
+            valueColor: AlwaysStoppedAnimation<Color>(isUpcoming ? const Color(0xFFF59E0B) : color),
             minHeight: 6,
           ),
         ),
-        const SizedBox(height: 2),
+        const SizedBox(height: 3),
         Align(
           alignment: Alignment.centerRight,
-          child: Text("$pct% aktif", style: GoogleFonts.outfit(fontSize: 10, color: isDark ? Colors.white38 : Colors.black38)),
+          child: Text(
+            isUpcoming ? "Menunggu semester" : "$pct% aktif",
+            style: GoogleFonts.outfit(fontSize: 10, color: isDark ? Colors.white38 : Colors.black38),
+          ),
         ),
       ],
     );
@@ -643,7 +840,7 @@ class _StatistikDiniyahScreenState extends State<StatistikDiniyahScreen> {
       physics: const NeverScrollableScrollPhysics(),
       gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
         crossAxisCount: 2,
-        childAspectRatio: 1.5,
+        childAspectRatio: 1.35,
         crossAxisSpacing: 10,
         mainAxisSpacing: 10,
       ),
@@ -653,6 +850,10 @@ class _StatistikDiniyahScreenState extends State<StatistikDiniyahScreen> {
         final kTotal = (k['total'] ?? 0) as int;
         final kPutra = (k['putra'] ?? 0) as int;
         final kPutri = (k['putri'] ?? 0) as int;
+        final int? tingkat = k['tingkat'] is int ? k['tingkat'] as int : int.tryParse(k['tingkat']?.toString() ?? '');
+        final tingkatLabel = tingkat == 99
+            ? 'Tingkat SP'
+            : (tingkat == 0 ? 'Tingkat Sifir' : (tingkat != null ? 'Tingkat $tingkat' : ''));
 
         return Container(
           padding: const EdgeInsets.all(12),
@@ -669,17 +870,36 @@ class _StatistikDiniyahScreenState extends State<StatistikDiniyahScreen> {
             children: [
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    "Kelas ${k['nama_kelas']}",
-                    style: GoogleFonts.outfit(
-                      fontSize: 13,
-                      fontWeight: FontWeight.bold,
-                      color: isDark ? Colors.white : const Color(0xFF0F172A),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          "Kelas ${k['nama_kelas']}",
+                          style: GoogleFonts.outfit(
+                            fontSize: 13,
+                            fontWeight: FontWeight.bold,
+                            color: isDark ? Colors.white : const Color(0xFF0F172A),
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                        if (tingkatLabel.isNotEmpty)
+                          Text(
+                            tingkatLabel,
+                            style: GoogleFonts.outfit(
+                              fontSize: 10,
+                              fontWeight: FontWeight.w500,
+                              color: isDark ? Colors.white54 : const Color(0xFF64748B),
+                            ),
+                          ),
+                      ],
                     ),
                   ),
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
+                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                     decoration: BoxDecoration(
                       color: const Color(0xFF10B981).withOpacity(0.12),
                       borderRadius: BorderRadius.circular(6),

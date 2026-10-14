@@ -817,9 +817,9 @@ Write-Host "SCAN_SUCCESS"
     }
     try {
       if (tingkat === undefined && kelas_id) {
-        const kRes = await db.query("SELECT tingkat FROM kelas WHERE id = $1", [kelas_id]);
+        const kRes = await db.query("SELECT nama, tingkat FROM kelas WHERE id = $1", [kelas_id]);
         if (kRes.rows.length > 0) {
-          tingkat = kRes.rows[0].tingkat;
+          tingkat = kRes.rows[0].nama === 'SP' ? 99 : kRes.rows[0].tingkat;
         }
       }
 
@@ -856,9 +856,9 @@ Write-Host "SCAN_SUCCESS"
     }
     try {
       if (tingkat === undefined && kelas_id) {
-        const kRes = await db.query("SELECT tingkat FROM kelas WHERE id = $1", [kelas_id]);
+        const kRes = await db.query("SELECT nama, tingkat FROM kelas WHERE id = $1", [kelas_id]);
         if (kRes.rows.length > 0) {
-          tingkat = kRes.rows[0].tingkat;
+          tingkat = kRes.rows[0].nama === 'SP' ? 99 : kRes.rows[0].tingkat;
         }
       }
 

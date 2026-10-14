@@ -17,6 +17,7 @@ class _SilabusPembelajaranScreenState extends State<SilabusPembelajaranScreen> {
   List<dynamic> _tahunAjaranList = [];
   final List<Map<String, dynamic>> _tingkatList = [
     {'tingkat': 0, 'nama': 'Tingkat Sifir'},
+    {'tingkat': 99, 'nama': 'Tingkat SP'},
     {'tingkat': 1, 'nama': 'Tingkat 1'},
     {'tingkat': 2, 'nama': 'Tingkat 2'},
     {'tingkat': 3, 'nama': 'Tingkat 3'},

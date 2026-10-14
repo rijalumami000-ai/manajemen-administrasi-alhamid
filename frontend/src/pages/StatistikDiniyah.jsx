@@ -11,7 +11,10 @@ import {
   Building,
   School,
   ArrowRight,
-  Filter
+  Filter,
+  AlertCircle,
+  Clock,
+  CheckCircle2
 } from 'lucide-react';
 import { PageHeader, LoadingState, ErrorState } from '../components/common';
 import { apiGet } from '../services/apiClient';
@@ -72,6 +75,9 @@ export function StatistikDiniyah() {
   const perTingkat = data?.per_tingkat || [];
   const perKelas = data?.per_kelas || [];
   const tren = data?.tren_tahun_ajaran || [];
+  const semesterStatus = data?.semester_status || {};
+  const ganjilStatus = semesterStatus.ganjil || summary.ganjil_status || 'selesai';
+  const genapStatus = semesterStatus.genap || summary.genap_status || 'selesai';
 
   const total = Number(summary.total) || 0;
   const putra = Number(summary.putra) || 0;
@@ -111,7 +117,7 @@ export function StatistikDiniyah() {
               className={selectedSemester === 'semua' ? 'active' : ''}
               onClick={() => setSelectedSemester('semua')}
             >
-              Semua Semester
+              Semua
             </button>
             <button
               type="button"
@@ -119,6 +125,8 @@ export function StatistikDiniyah() {
               onClick={() => setSelectedSemester('ganjil')}
             >
               Semester Ganjil
+              {ganjilStatus === 'berjalan' && <span className="tab-pill-active">Aktif</span>}
+              {ganjilStatus === 'akan_datang' && <span className="tab-pill-upcoming">Akan Datang</span>}
             </button>
             <button
               type="button"
@@ -126,10 +134,37 @@ export function StatistikDiniyah() {
               onClick={() => setSelectedSemester('genap')}
             >
               Semester Genap
+              {genapStatus === 'berjalan' && <span className="tab-pill-active">Aktif</span>}
+              {genapStatus === 'akan_datang' && <span className="tab-pill-upcoming">Akan Datang</span>}
             </button>
           </div>
         </div>
       </div>
+
+      {/* Upcoming / Not-yet-active semester notice */}
+      {selectedSemester === 'genap' && genapStatus === 'akan_datang' && (
+        <div className="semester-notice-card warning">
+          <div className="notice-icon"><AlertCircle size={22} /></div>
+          <div className="notice-text">
+            <strong>Semester Genap Belum Berjalan (Akan Datang)</strong>
+            <p>
+              Tahun ajaran ini saat ini berada pada posisi <strong>Semester Ganjil</strong>. Data valid santri aktif untuk Semester Genap belum diverifikasi/berjalan resmi. Data statistik resmi akan disajikan saat kalender akademik memasuki Semester Genap.
+            </p>
+          </div>
+        </div>
+      )}
+
+      {selectedSemester === 'ganjil' && ganjilStatus === 'akan_datang' && (
+        <div className="semester-notice-card info">
+          <div className="notice-icon"><Clock size={22} /></div>
+          <div className="notice-text">
+            <strong>Semester Ganjil Belum Berjalan (Akan Datang)</strong>
+            <p>
+              Tahun ajaran ini berstatus masa depan dan belum aktif/berjalan di sistem.
+            </p>
+          </div>
+        </div>
+      )}
 
       {loading ? (
         <LoadingState message="Menghitung statistik siswa madrasah diniyah..." />
@@ -221,38 +256,52 @@ export function StatistikDiniyah() {
               <div className="semester-summary-box">
                 <div className="semester-item">
                   <div className="sem-header">
-                    <span className="sem-name">Semester Ganjil</span>
-                    <span className="sem-number">{summary.total_ganjil || 0} Santri</span>
+                    <div className="sem-title-group">
+                      <span className="sem-name">Semester Ganjil</span>
+                      {ganjilStatus === 'berjalan' && <span className="status-badge running">Sedang Berjalan (Aktif)</span>}
+                      {ganjilStatus === 'selesai' && <span className="status-badge finished">Telah Selesai</span>}
+                      {ganjilStatus === 'akan_datang' && <span className="status-badge upcoming">Akan Datang</span>}
+                    </div>
+                    <span className="sem-number">{ganjilStatus === 'akan_datang' ? 'Akan Datang' : `${summary.total_ganjil || 0} Santri`}</span>
                   </div>
                   <div className="sem-progress-bar">
                     <div
                       className="sem-progress-fill ganjil"
-                      style={{ width: `${total > 0 ? Math.round(((summary.total_ganjil || 0) / total) * 100) : 0}%` }}
+                      style={{ width: `${total > 0 && ganjilStatus !== 'akan_datang' ? Math.round(((summary.total_ganjil || 0) / total) * 100) : 0}%` }}
                     />
                   </div>
                   <span className="sem-pct">
-                    {total > 0 ? Math.round(((summary.total_ganjil || 0) / total) * 100) : 0}% Keaktifan
+                    {ganjilStatus === 'akan_datang' ? 'Belum Berjalan' : `${total > 0 ? Math.round(((summary.total_ganjil || 0) / total) * 100) : 0}% Keaktifan`}
                   </span>
                 </div>
 
                 <div className="semester-item" style={{ marginTop: '20px' }}>
                   <div className="sem-header">
-                    <span className="sem-name">Semester Genap</span>
-                    <span className="sem-number">{summary.total_genap || 0} Santri</span>
+                    <div className="sem-title-group">
+                      <span className="sem-name">Semester Genap</span>
+                      {genapStatus === 'berjalan' && <span className="status-badge running">Sedang Berjalan (Aktif)</span>}
+                      {genapStatus === 'selesai' && <span className="status-badge finished">Telah Selesai</span>}
+                      {genapStatus === 'akan_datang' && <span className="status-badge upcoming">Akan Datang (Belum Berjalan)</span>}
+                    </div>
+                    <span className="sem-number">
+                      {genapStatus === 'akan_datang' ? 'Akan Datang' : `${summary.total_genap || 0} Santri`}
+                    </span>
                   </div>
                   <div className="sem-progress-bar">
                     <div
-                      className="sem-progress-fill genap"
-                      style={{ width: `${total > 0 ? Math.round(((summary.total_genap || 0) / total) * 100) : 0}%` }}
+                      className={`sem-progress-fill genap ${genapStatus === 'akan_datang' ? 'pending' : ''}`}
+                      style={{ width: `${total > 0 && genapStatus !== 'akan_datang' ? Math.round(((summary.total_genap || 0) / total) * 100) : 0}%` }}
                     />
                   </div>
                   <span className="sem-pct">
-                    {total > 0 ? Math.round(((summary.total_genap || 0) / total) * 100) : 0}% Keaktifan
+                    {genapStatus === 'akan_datang'
+                      ? 'Belum Berjalan • Menunggu Semester Genap'
+                      : `${total > 0 ? Math.round(((summary.total_genap || 0) / total) * 100) : 0}% Keaktifan`}
                   </span>
                 </div>
 
                 <div className="sem-note">
-                  💡 <em>Data keaktifan per semester diperoleh dari catatan pendaftaran aktif santri di semester ganjil dan genap.</em>
+                  💡 <em>Data keaktifan per semester disesuaikan dengan posisi Semester Aktif. Data Semester Genap akan disajikan secara valid saat kalender akademik resmi memasuki Semester Genap.</em>
                 </div>
               </div>
             </div>
@@ -286,7 +335,7 @@ export function StatistikDiniyah() {
                     return (
                       <tr key={k.kelas_id}>
                         <td className="col-kelas"><strong>Kelas {k.nama_kelas}</strong></td>
-                        <td>Tingkat {k.tingkat}</td>
+                        <td>{k.tingkat === 99 ? 'Tingkat SP' : (k.tingkat === 0 ? 'Tingkat Sifir' : `Tingkat ${k.tingkat}`)}</td>
                         <td className="col-total"><strong>{kTotal}</strong> Santri</td>
                         <td className="col-putra">{kPutra}</td>
                         <td className="col-putri">{kPutri}</td>

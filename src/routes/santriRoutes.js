@@ -319,39 +319,90 @@ function registerSantriRoutes(app) {
   });
 
   // ===== STATISTIK SISWA MADRASAH DINIYAH =====
+  // ===== STATISTIK SISWA MADRASAH DINIYAH =====
   app.get('/api/santri/statistik-diniyah', async (req, res) => {
     try {
       let { tahun_ajaran_id, semester } = req.query;
 
-      let activeTa = null;
+      // 1. Ambil active_semester dari system_settings (Ganjil / Genap)
+      const semSettingRes = await db.query("SELECT value FROM system_settings WHERE key = 'active_semester' LIMIT 1");
+      const systemActiveSemester = semSettingRes.rows.length > 0 && semSettingRes.rows[0].value
+        ? semSettingRes.rows[0].value
+        : 'Ganjil';
+
+      // 2. Ambil Tahun Ajaran Aktif
+      const activeTaRes = await db.query('SELECT * FROM tahun_ajaran WHERE is_active = TRUE LIMIT 1');
+      const activeTaRow = activeTaRes.rows[0] || null;
+
+      let selectedTa = null;
       if (!tahun_ajaran_id) {
-        const taRes = await db.query('SELECT * FROM tahun_ajaran WHERE is_active = TRUE LIMIT 1');
-        if (taRes.rows.length > 0) {
-          activeTa = taRes.rows[0];
-          tahun_ajaran_id = activeTa.id;
+        if (activeTaRow) {
+          selectedTa = activeTaRow;
+          tahun_ajaran_id = selectedTa.id;
         } else {
           const firstTa = await db.query('SELECT * FROM tahun_ajaran ORDER BY id DESC LIMIT 1');
           if (firstTa.rows.length > 0) {
-            activeTa = firstTa.rows[0];
-            tahun_ajaran_id = activeTa.id;
+            selectedTa = firstTa.rows[0];
+            tahun_ajaran_id = selectedTa.id;
           }
         }
       } else {
         const taRes = await db.query('SELECT * FROM tahun_ajaran WHERE id = $1', [tahun_ajaran_id]);
         if (taRes.rows.length > 0) {
-          activeTa = taRes.rows[0];
+          selectedTa = taRes.rows[0];
         }
       }
 
-      if (!tahun_ajaran_id) {
+      if (!tahun_ajaran_id || !selectedTa) {
         return res.status(404).json({ error: 'Tahun ajaran belum tersedia.' });
       }
 
+      const isCurrentActiveYear = activeTaRow && Number(activeTaRow.id) === Number(tahun_ajaran_id);
+
+      // Status tiap semester pada tahun ajaran yang dipilih:
+      // 'berjalan' | 'selesai' | 'akan_datang'
+      let ganjilStatus = 'selesai';
+      let genapStatus = 'selesai';
+
+      if (isCurrentActiveYear) {
+        if (systemActiveSemester.toLowerCase() === 'ganjil') {
+          ganjilStatus = 'berjalan';
+          genapStatus = 'akan_datang';
+        } else {
+          ganjilStatus = 'selesai';
+          genapStatus = 'berjalan';
+        }
+      } else if (activeTaRow && selectedTa.tahun_mulai) {
+        if (selectedTa.tahun_mulai > activeTaRow.tahun_mulai) {
+          ganjilStatus = 'akan_datang';
+          genapStatus = 'akan_datang';
+        } else {
+          ganjilStatus = 'selesai';
+          genapStatus = 'selesai';
+        }
+      }
+
+      // Filter query santri:
+      // Realita: Jika saat ini di Semester Ganjil, Semester Genap belum berjalan (akan datang).
+      // Data santri aktif di tahun ajaran aktif secara default mencerminkan Semester Ganjil.
       let semesterCondition = '';
       if (semester === 'ganjil') {
-        semesterCondition = 'AND sta.aktif_ganjil = TRUE';
+        semesterCondition = ganjilStatus === 'akan_datang' ? 'AND 1=0' : 'AND sta.aktif_ganjil = TRUE';
       } else if (semester === 'genap') {
-        semesterCondition = 'AND sta.aktif_genap = TRUE';
+        semesterCondition = genapStatus === 'akan_datang' ? 'AND 1=0' : 'AND sta.aktif_genap = TRUE';
+      } else {
+        // 'semua' atau default
+        if (isCurrentActiveYear) {
+          if (systemActiveSemester.toLowerCase() === 'ganjil') {
+            semesterCondition = 'AND sta.aktif_ganjil = TRUE';
+          } else {
+            semesterCondition = 'AND sta.aktif_genap = TRUE';
+          }
+        } else if (ganjilStatus === 'akan_datang') {
+          semesterCondition = 'AND 1=0';
+        } else {
+          semesterCondition = '';
+        }
       }
 
       // Summary
@@ -359,9 +410,7 @@ function registerSantriRoutes(app) {
         SELECT
           COUNT(s.id)::int AS total,
           COUNT(CASE WHEN COALESCE(sta.jenis_kelamin, s.jenis_kelamin) IN ('L', 'Putra') THEN 1 END)::int AS putra,
-          COUNT(CASE WHEN COALESCE(sta.jenis_kelamin, s.jenis_kelamin) IN ('P', 'Putri') THEN 1 END)::int AS putri,
-          COUNT(CASE WHEN sta.aktif_ganjil = TRUE THEN 1 END)::int AS total_ganjil,
-          COUNT(CASE WHEN sta.aktif_genap = TRUE THEN 1 END)::int AS total_genap
+          COUNT(CASE WHEN COALESCE(sta.jenis_kelamin, s.jenis_kelamin) IN ('P', 'Putri') THEN 1 END)::int AS putri
         FROM santri s
         JOIN santri_tahun_ajaran sta ON sta.santri_id = s.id AND sta.tahun_ajaran_id = $1
         WHERE COALESCE(sta.kelas_diniyah_id, s.kelas_diniyah_id) IS NOT NULL
@@ -370,11 +419,38 @@ function registerSantriRoutes(app) {
           ${semesterCondition}
       `, [tahun_ajaran_id]);
 
-      // Per Tingkat
+      // Hitung santri per semester (Ganjil & Genap) pada tahun ajaran ini
+      const semCountsRes = await db.query(`
+        SELECT
+          COUNT(CASE WHEN sta.aktif_ganjil = TRUE THEN 1 END)::int AS total_ganjil,
+          COUNT(CASE WHEN sta.aktif_genap = TRUE THEN 1 END)::int AS total_genap
+        FROM santri s
+        JOIN santri_tahun_ajaran sta ON sta.santri_id = s.id AND sta.tahun_ajaran_id = $1
+        WHERE COALESCE(sta.kelas_diniyah_id, s.kelas_diniyah_id) IS NOT NULL
+          AND COALESCE(sta.status, 'aktif') IN ('aktif', 'draft', 'tidak_naik')
+          AND NOT EXISTS (SELECT 1 FROM alumni a WHERE a.santri_id = s.id)
+      `, [tahun_ajaran_id]);
+
+      const semCounts = semCountsRes.rows[0] || { total_ganjil: 0, total_genap: 0 };
+      const summaryTotal = summaryRes.rows[0]?.total || 0;
+
+      const summaryData = {
+        total: summaryTotal,
+        putra: summaryRes.rows[0]?.putra || 0,
+        putri: summaryRes.rows[0]?.putri || 0,
+        total_ganjil: ganjilStatus === 'akan_datang' ? 0 : semCounts.total_ganjil,
+        total_genap: genapStatus === 'akan_datang' ? 0 : semCounts.total_genap,
+        raw_total_genap: semCounts.total_genap,
+        ganjil_status: ganjilStatus,
+        genap_status: genapStatus
+      };
+
+      // Per Tingkat (Termasuk Tingkat SP yang dipisahkan secara khusus dari Tingkat 1)
       const tingkatRes = await db.query(`
         SELECT
-          k.tingkat,
+          CASE WHEN k.nama = 'SP' THEN 99 ELSE k.tingkat END AS tingkat,
           CASE 
+            WHEN k.nama = 'SP' THEN 'Tingkat SP'
             WHEN k.tingkat = 0 THEN 'Tingkat Sifir'
             ELSE CONCAT('Tingkat ', k.tingkat)
           END AS nama_tingkat,
@@ -389,8 +465,19 @@ function registerSantriRoutes(app) {
         LEFT JOIN santri s ON s.id = sta.santri_id 
           AND NOT EXISTS (SELECT 1 FROM alumni a WHERE a.santri_id = s.id)
         WHERE k.jenis = 'Diniyah'
-        GROUP BY k.tingkat
-        ORDER BY k.tingkat ASC
+        GROUP BY 
+          CASE WHEN k.nama = 'SP' THEN 99 ELSE k.tingkat END,
+          CASE 
+            WHEN k.nama = 'SP' THEN 'Tingkat SP'
+            WHEN k.tingkat = 0 THEN 'Tingkat Sifir'
+            ELSE CONCAT('Tingkat ', k.tingkat)
+          END
+        ORDER BY 
+          CASE 
+            WHEN (CASE WHEN k.nama = 'SP' THEN 99 ELSE k.tingkat END) = 0 THEN 0
+            WHEN (CASE WHEN k.nama = 'SP' THEN 99 ELSE k.tingkat END) = 99 THEN 0.5
+            ELSE (CASE WHEN k.nama = 'SP' THEN 99 ELSE k.tingkat END)
+          END ASC
       `, [tahun_ajaran_id]);
 
       // Per Kelas
@@ -398,7 +485,7 @@ function registerSantriRoutes(app) {
         SELECT
           k.id AS kelas_id,
           k.nama AS nama_kelas,
-          k.tingkat,
+          CASE WHEN k.nama = 'SP' THEN 99 ELSE k.tingkat END AS tingkat,
           COUNT(s.id)::int AS total,
           COUNT(CASE WHEN COALESCE(sta.jenis_kelamin, s.jenis_kelamin) IN ('L', 'Putra') THEN 1 END)::int AS putra,
           COUNT(CASE WHEN COALESCE(sta.jenis_kelamin, s.jenis_kelamin) IN ('P', 'Putri') THEN 1 END)::int AS putri
@@ -411,7 +498,13 @@ function registerSantriRoutes(app) {
           AND NOT EXISTS (SELECT 1 FROM alumni a WHERE a.santri_id = s.id)
         WHERE k.jenis = 'Diniyah'
         GROUP BY k.id, k.nama, k.tingkat
-        ORDER BY k.tingkat ASC, k.nama ASC
+        ORDER BY 
+          CASE 
+            WHEN k.nama = 'SP' THEN 0.5
+            WHEN k.tingkat = 0 THEN 0
+            ELSE k.tingkat 
+          END ASC, 
+          k.nama ASC
       `, [tahun_ajaran_id]);
 
       // Tren Per Tahun Ajaran
@@ -436,9 +529,15 @@ function registerSantriRoutes(app) {
       `);
 
       res.json({
-        tahun_ajaran: activeTa,
+        tahun_ajaran: selectedTa,
+        active_semester: systemActiveSemester,
+        is_current_active_year: isCurrentActiveYear,
+        semester_status: {
+          ganjil: ganjilStatus,
+          genap: genapStatus
+        },
         semester: semester || 'semua',
-        summary: summaryRes.rows[0] || { total: 0, putra: 0, putri: 0, total_ganjil: 0, total_genap: 0 },
+        summary: summaryData,
         per_tingkat: tingkatRes.rows,
         per_kelas: kelasRes.rows,
         tren_tahun_ajaran: trenRes.rows
