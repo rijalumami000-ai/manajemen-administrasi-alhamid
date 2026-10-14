@@ -369,7 +369,14 @@ class _SantriDetailScreenState extends State<SantriDetailScreen> with SingleTick
               children: [
                 _buildInfoRow("NIK / No. KTP", profile['nik'] ?? '-'),
                 _buildDivider(),
-                _buildInfoRow("Jenis Kelamin", profile['jenis_kelamin'] ?? '-'),
+                _buildInfoRow(
+                  "Jenis Kelamin",
+                  (profile['jenis_kelamin'] == 'L' || profile['jenis_kelamin'] == 'Putra' || profile['jenis_kelamin'] == 'Laki-laki')
+                      ? 'Putra'
+                      : (profile['jenis_kelamin'] == 'P' || profile['jenis_kelamin'] == 'Putri' || profile['jenis_kelamin'] == 'Perempuan')
+                          ? 'Putri'
+                          : (profile['jenis_kelamin'] ?? '-'),
+                ),
                 _buildDivider(),
                 _buildInfoRow("Tempat Lahir", profile['tempat_lahir'] ?? '-'),
                 _buildDivider(),
