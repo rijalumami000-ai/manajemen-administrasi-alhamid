@@ -455,8 +455,8 @@ function registerSantriRoutes(app) {
             ELSE CONCAT('Tingkat ', k.tingkat)
           END AS nama_tingkat,
           COUNT(s.id)::int AS total,
-          COUNT(CASE WHEN COALESCE(sta.jenis_kelamin, s.jenis_kelamin) IN ('L', 'Putra', 'Laki-laki') THEN 1 END)::int AS putra,
-          COUNT(CASE WHEN COALESCE(sta.jenis_kelamin, s.jenis_kelamin) IN ('P', 'Putri', 'Perempuan') THEN 1 END)::int AS putri
+          COUNT(CASE WHEN s.id IS NOT NULL AND COALESCE(sta.jenis_kelamin, s.jenis_kelamin) IN ('L', 'Putra', 'Laki-laki') THEN 1 END)::int AS putra,
+          COUNT(CASE WHEN s.id IS NOT NULL AND COALESCE(sta.jenis_kelamin, s.jenis_kelamin) IN ('P', 'Putri', 'Perempuan') THEN 1 END)::int AS putri
         FROM kelas k
         LEFT JOIN santri_tahun_ajaran sta ON sta.kelas_diniyah_id = k.id 
           AND sta.tahun_ajaran_id = $1 
@@ -487,8 +487,8 @@ function registerSantriRoutes(app) {
           k.nama AS nama_kelas,
           CASE WHEN k.nama = 'SP' THEN 99 ELSE k.tingkat END AS tingkat,
           COUNT(s.id)::int AS total,
-          COUNT(CASE WHEN COALESCE(sta.jenis_kelamin, s.jenis_kelamin) IN ('L', 'Putra', 'Laki-laki') THEN 1 END)::int AS putra,
-          COUNT(CASE WHEN COALESCE(sta.jenis_kelamin, s.jenis_kelamin) IN ('P', 'Putri', 'Perempuan') THEN 1 END)::int AS putri
+          COUNT(CASE WHEN s.id IS NOT NULL AND COALESCE(sta.jenis_kelamin, s.jenis_kelamin) IN ('L', 'Putra', 'Laki-laki') THEN 1 END)::int AS putra,
+          COUNT(CASE WHEN s.id IS NOT NULL AND COALESCE(sta.jenis_kelamin, s.jenis_kelamin) IN ('P', 'Putri', 'Perempuan') THEN 1 END)::int AS putri
         FROM kelas k
         LEFT JOIN santri_tahun_ajaran sta ON sta.kelas_diniyah_id = k.id 
           AND sta.tahun_ajaran_id = $1 
@@ -513,11 +513,11 @@ function registerSantriRoutes(app) {
           ta.id AS tahun_ajaran_id,
           ta.kode,
           ta.is_active,
-          COUNT(sta.id)::int AS total_diniyah,
-          COUNT(CASE WHEN COALESCE(sta.jenis_kelamin, s.jenis_kelamin) IN ('L', 'Putra', 'Laki-laki') THEN 1 END)::int AS putra,
-          COUNT(CASE WHEN COALESCE(sta.jenis_kelamin, s.jenis_kelamin) IN ('P', 'Putri', 'Perempuan') THEN 1 END)::int AS putri,
-          COUNT(CASE WHEN sta.aktif_ganjil = TRUE THEN 1 END)::int AS ganjil,
-          COUNT(CASE WHEN sta.aktif_genap = TRUE THEN 1 END)::int AS genap
+          COUNT(s.id)::int AS total_diniyah,
+          COUNT(CASE WHEN s.id IS NOT NULL AND COALESCE(sta.jenis_kelamin, s.jenis_kelamin) IN ('L', 'Putra', 'Laki-laki') THEN 1 END)::int AS putra,
+          COUNT(CASE WHEN s.id IS NOT NULL AND COALESCE(sta.jenis_kelamin, s.jenis_kelamin) IN ('P', 'Putri', 'Perempuan') THEN 1 END)::int AS putri,
+          COUNT(CASE WHEN s.id IS NOT NULL AND sta.aktif_ganjil = TRUE THEN 1 END)::int AS ganjil,
+          COUNT(CASE WHEN s.id IS NOT NULL AND sta.aktif_genap = TRUE THEN 1 END)::int AS genap
         FROM tahun_ajaran ta
         LEFT JOIN santri_tahun_ajaran sta ON sta.tahun_ajaran_id = ta.id 
           AND sta.kelas_diniyah_id IS NOT NULL 
