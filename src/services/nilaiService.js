@@ -242,7 +242,7 @@ class NilaiService {
         isGenap = katNama.toLowerCase().includes('genap');
       }
 
-      query += ` WHERE sta.tahun_ajaran_id = $1 AND sta.kelas_diniyah_id = $2 AND sta.status = 'aktif'`;
+      query += ` WHERE sta.tahun_ajaran_id = $1 AND sta.kelas_diniyah_id = $2 AND COALESCE(sta.status, 'aktif') IN ('aktif', 'draft', 'tidak_naik', 'lulus', 'alumni')`;
       
       if (isGanjil) {
         query += ` AND sta.aktif_ganjil = true`;
@@ -279,7 +279,7 @@ class NilaiService {
         FROM santri_tahun_ajaran sta
         JOIN santri s ON sta.santri_id = s.id
         JOIN kelas k ON sta.kelas_diniyah_id = k.id
-        WHERE sta.tahun_ajaran_id = $1 AND sta.status = 'aktif'
+        WHERE sta.tahun_ajaran_id = $1 AND COALESCE(sta.status, 'aktif') IN ('aktif', 'draft', 'tidak_naik', 'lulus', 'alumni')
       `;
       
       const params = [tahunAjaranId];
@@ -342,7 +342,7 @@ class NilaiService {
              AND n.mata_pelajaran_id = $2 
              AND n.tahun_ajaran_id = $1
              AND n.kategori_evaluasi_id = $3
-        WHERE sta.tahun_ajaran_id = $1 AND sta.status = 'aktif'
+        WHERE sta.tahun_ajaran_id = $1 AND COALESCE(sta.status, 'aktif') IN ('aktif', 'draft', 'tidak_naik', 'lulus', 'alumni')
       `;
 
       if (isGanjil) {
@@ -387,7 +387,7 @@ class NilaiService {
         LEFT JOIN rapor_santri r ON r.santri_id = s.id AND r.tahun_ajaran_id = $1 AND r.kategori_evaluasi_id = $3
         WHERE sta.kelas_diniyah_id = $2
           AND sta.tahun_ajaran_id = $1
-          AND sta.status = 'aktif'
+          AND COALESCE(sta.status, 'aktif') IN ('aktif', 'draft', 'tidak_naik', 'lulus', 'alumni')
       `;
 
       if (isGanjil) {
@@ -485,7 +485,7 @@ class NilaiService {
           AND r.kategori_evaluasi_id = $3
         WHERE sta.kelas_diniyah_id = $2
           AND sta.tahun_ajaran_id = $1
-          AND sta.status = 'aktif'
+          AND COALESCE(sta.status, 'aktif') IN ('aktif', 'draft', 'tidak_naik', 'lulus', 'alumni')
       `;
 
       if (isGanjil) {
@@ -684,7 +684,7 @@ class NilaiService {
          AND abs.kategori_evaluasi_id = $2
          AND LOWER(abs.bulan) = LOWER($3)
         WHERE sta.tahun_ajaran_id = $1
-          AND sta.status = 'aktif'
+          AND COALESCE(sta.status, 'aktif') IN ('aktif', 'draft', 'tidak_naik', 'lulus', 'alumni')
       `;
 
       if (isGanjil) {

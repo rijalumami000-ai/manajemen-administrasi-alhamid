@@ -108,6 +108,30 @@ export function ScanNilai() {
     loadMasterData();
   }, []);
 
+  // Reload kelasList when Tahun Ajaran changes
+  useEffect(() => {
+    if (selectedTA) {
+      nilaiService.fetchKelas(selectedTA)
+        .then(data => {
+          const validClasses = Array.isArray(data)
+            ? data.filter(k => k.jenis === 'Diniyah' || !k.jenis).map(k => {
+                if (k.nama === 'SP' && k.tingkat === 1) return { ...k, tingkat: 99 };
+                return k;
+              })
+            : [];
+          setKelasList(validClasses);
+          if (validClasses.length > 0) {
+            setSelectedKelas(prev => validClasses.some(k => String(k.id) === String(prev)) ? prev : String(validClasses[0].id));
+          } else {
+            setSelectedKelas('');
+          }
+        })
+        .catch(err => {
+          console.error('Gagal mengambil kelas per tahun ajaran di ScanNilai:', err);
+        });
+    }
+  }, [selectedTA]);
+
   // Fetch Santri when Kelas or Tahun Ajaran changes
   useEffect(() => {
     if (selectedKelas && selectedTA) {

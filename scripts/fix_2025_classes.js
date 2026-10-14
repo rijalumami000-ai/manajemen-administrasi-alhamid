@@ -11,10 +11,10 @@ async function fix2025Classes() {
     
     // 5A (Tingkat 5, Mustahiq Ust. Muhson Tsatibi: id 20)
     const res5A = await client.query(`
-      INSERT INTO kelas (jenis, nama, tingkat, mustahiq_id)
-      VALUES ('Diniyah', '5A', 5, 20)
+      INSERT INTO kelas (jenis, nama, tingkat, mustahiq_id, muhafadzoh_mapel_id, qiroatul_mapel_id)
+      VALUES ('Diniyah', '5A', 5, 20, 3, 31)
       ON CONFLICT (jenis, nama) DO UPDATE 
-      SET tingkat = 5, mustahiq_id = 20
+      SET tingkat = 5, mustahiq_id = 20, muhafadzoh_mapel_id = 3, qiroatul_mapel_id = 31
       RETURNING id, nama, tingkat;
     `);
     const id5A = res5A.rows[0].id;
@@ -22,10 +22,10 @@ async function fix2025Classes() {
 
     // 5B (Tingkat 5, Mustahiq Ust. Muhammad Choirul Wafa: id 4)
     const res5B = await client.query(`
-      INSERT INTO kelas (jenis, nama, tingkat, mustahiq_id)
-      VALUES ('Diniyah', '5B', 5, 4)
+      INSERT INTO kelas (jenis, nama, tingkat, mustahiq_id, muhafadzoh_mapel_id, qiroatul_mapel_id)
+      VALUES ('Diniyah', '5B', 5, 4, 3, 31)
       ON CONFLICT (jenis, nama) DO UPDATE 
-      SET tingkat = 5, mustahiq_id = 4
+      SET tingkat = 5, mustahiq_id = 4, muhafadzoh_mapel_id = 3, qiroatul_mapel_id = 31
       RETURNING id, nama, tingkat;
     `);
     const id5B = res5B.rows[0].id;
@@ -33,10 +33,10 @@ async function fix2025Classes() {
 
     // 6 (Tingkat 6, Mustahiq Ust. Ahmad Syukron Rosyid: id 21)
     const res6 = await client.query(`
-      INSERT INTO kelas (jenis, nama, tingkat, mustahiq_id)
-      VALUES ('Diniyah', '6', 6, 21)
+      INSERT INTO kelas (jenis, nama, tingkat, mustahiq_id, muhafadzoh_mapel_id, qiroatul_mapel_id)
+      VALUES ('Diniyah', '6', 6, 21, 3, 31)
       ON CONFLICT (jenis, nama) DO UPDATE 
-      SET tingkat = 6, mustahiq_id = 21
+      SET tingkat = 6, mustahiq_id = 21, muhafadzoh_mapel_id = 3, qiroatul_mapel_id = 31
       RETURNING id, nama, tingkat;
     `);
     const id6 = res6.rows[0].id;
@@ -62,21 +62,21 @@ async function fix2025Classes() {
 
     // Upsert 5A, 5B, 6 for tahun_ajaran_id = 10
     await client.query(`
-      INSERT INTO kelas_tahun_ajaran (kelas_id, tahun_ajaran_id, mustahiq_id)
-      VALUES ($1, 10, 20)
-      ON CONFLICT (kelas_id, tahun_ajaran_id) DO UPDATE SET mustahiq_id = 20;
+      INSERT INTO kelas_tahun_ajaran (kelas_id, tahun_ajaran_id, mustahiq_id, muhafadzoh_mapel_id, qiroatul_mapel_id)
+      VALUES ($1, 10, 20, 3, 31)
+      ON CONFLICT (kelas_id, tahun_ajaran_id) DO UPDATE SET mustahiq_id = 20, muhafadzoh_mapel_id = 3, qiroatul_mapel_id = 31;
     `, [id5A]);
 
     await client.query(`
-      INSERT INTO kelas_tahun_ajaran (kelas_id, tahun_ajaran_id, mustahiq_id)
-      VALUES ($1, 10, 4)
-      ON CONFLICT (kelas_id, tahun_ajaran_id) DO UPDATE SET mustahiq_id = 4;
+      INSERT INTO kelas_tahun_ajaran (kelas_id, tahun_ajaran_id, mustahiq_id, muhafadzoh_mapel_id, qiroatul_mapel_id)
+      VALUES ($1, 10, 4, 3, 31)
+      ON CONFLICT (kelas_id, tahun_ajaran_id) DO UPDATE SET mustahiq_id = 4, muhafadzoh_mapel_id = 3, qiroatul_mapel_id = 31;
     `, [id5B]);
 
     await client.query(`
-      INSERT INTO kelas_tahun_ajaran (kelas_id, tahun_ajaran_id, mustahiq_id)
-      VALUES ($1, 10, 21)
-      ON CONFLICT (kelas_id, tahun_ajaran_id) DO UPDATE SET mustahiq_id = 21;
+      INSERT INTO kelas_tahun_ajaran (kelas_id, tahun_ajaran_id, mustahiq_id, muhafadzoh_mapel_id, qiroatul_mapel_id)
+      VALUES ($1, 10, 21, 3, 31)
+      ON CONFLICT (kelas_id, tahun_ajaran_id) DO UPDATE SET mustahiq_id = 21, muhafadzoh_mapel_id = 3, qiroatul_mapel_id = 31;
     `, [id6]);
     console.log('✅ kelas_tahun_ajaran updated for 5A, 5B, 6 in year 10.');
 

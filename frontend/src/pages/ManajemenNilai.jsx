@@ -221,6 +221,25 @@ export function ManajemenNilai({ mode = 'input' }) {
     }
   }, [tahunAjaran, selectedKategori]);
 
+  // Reload kelas per tahun ajaran
+  useEffect(() => {
+    if (tahunAjaran?.id) {
+      setSelectedKelasDetail(null);
+      setSantriList([]);
+      nilaiService.fetchKelas(tahunAjaran.id).then(kelasData => {
+        const diniyahKelas = Array.isArray(kelasData) ? kelasData.filter(k => k.jenis === 'Diniyah').map(k => {
+          if (k.nama === 'SP' && k.tingkat === 1) {
+            return { ...k, tingkat: 99 };
+          }
+          return k;
+        }) : [];
+        setKelas(diniyahKelas);
+      }).catch(err => {
+        console.error('Gagal memuat kelas per tahun ajaran:', err);
+      });
+    }
+  }, [tahunAjaran?.id]);
+
   const mapelCategories = useMemo(() => {
     if (!mataPelajaran || !mataPelajaran.length) return [];
     

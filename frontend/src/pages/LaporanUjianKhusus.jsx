@@ -262,6 +262,24 @@ export const LaporanUjianKhusus = () => {
     refetchSearch();
   }, [tahunAjaran, selectedKategori]);
 
+  // Reload kelas when tahunAjaran changes
+  useEffect(() => {
+    if (tahunAjaran?.id) {
+      nilaiService.fetchKelas(tahunAjaran.id).then(kelasData => {
+        const diniyahKelas = Array.isArray(kelasData) ? kelasData.filter(k => k.jenis === 'Diniyah').map(k => {
+          if (k.nama === 'SP' && k.tingkat === 1) return { ...k, tingkat: 1.5 };
+          return k;
+        }).sort((a, b) => {
+          if (a.tingkat !== b.tingkat) return a.tingkat - b.tingkat;
+          return a.nama.localeCompare(b.nama);
+        }) : [];
+        setKelas(diniyahKelas);
+      }).catch(err => {
+        console.error('Gagal memuat kelas per tahun ajaran di LaporanUjianKhusus:', err);
+      });
+    }
+  }, [tahunAjaran?.id]);
+
   const filteredKelas = useMemo(() => {
     return kelas.filter(k => k.tingkat === selectedTingkat);
   }, [kelas, selectedTingkat]);

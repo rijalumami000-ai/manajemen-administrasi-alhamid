@@ -98,8 +98,9 @@ export const nilaiService = {
   },
 
   // Master Data
-  fetchKelas: async () => {
-    return apiGet('/kelas');
+  fetchKelas: async (tahunAjaranId = null) => {
+    const query = tahunAjaranId ? `?tahun_ajaran_id=${tahunAjaranId}` : '';
+    return apiGet(`/kelas${query}`);
   },
 
   fetchMataPelajaran: async () => {

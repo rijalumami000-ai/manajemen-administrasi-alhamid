@@ -29,6 +29,18 @@ function registerSantriRoutes(app) {
         kelasWhere = `AND (COALESCE(sta.kelas_diniyah_id, s.kelas_diniyah_id) = $${params.length} OR COALESCE(sta.kelas_sekolah_id, s.kelas_sekolah_id) = $${params.length})`;
       }
 
+      let alumniWhere = '';
+      if (tahun_ajaran_id) {
+        alumniWhere = `WHERE COALESCE(sta.status, 'aktif') IN ('aktif', 'draft', 'tidak_naik', 'lulus', 'alumni')`;
+      } else {
+        alumniWhere = `
+          WHERE NOT EXISTS (
+            SELECT 1 FROM alumni a WHERE a.santri_id = s.id OR a.nis = COALESCE(sta.nis, s.nis)
+          )
+            AND COALESCE(sta.status, 'aktif') IN ('aktif', 'draft', 'tidak_naik')
+        `;
+      }
+
       const result = await db.query(`
         SELECT
           s.id,
@@ -89,10 +101,7 @@ function registerSantriRoutes(app) {
         LEFT JOIN kelas ks ON COALESCE(sta.kelas_sekolah_id, s.kelas_sekolah_id) = ks.id
         LEFT JOIN kamar k ON COALESCE(sta.kamar_id, s.kamar_id) = k.id
         LEFT JOIN orangtua o ON s.orangtua_id = o.id
-        WHERE NOT EXISTS (
-          SELECT 1 FROM alumni a WHERE a.santri_id = s.id OR a.nis = COALESCE(sta.nis, s.nis)
-        )
-          AND COALESCE(sta.status, 'aktif') IN ('aktif', 'draft', 'tidak_naik')
+        ${alumniWhere}
           ${kelasWhere}
         ORDER BY s.nama
       `, params);
