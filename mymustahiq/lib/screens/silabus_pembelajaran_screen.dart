@@ -153,9 +153,7 @@ class _SilabusPembelajaranScreenState extends State<SilabusPembelajaranScreen> {
           IconButton(
             icon: Icon(Icons.refresh_rounded, color: headingColor),
             onPressed: () {
-              if (_selectedKelas != null) {
-                _fetchSilabus();
-              }
+              _fetchSilabus();
             },
           ),
         ],
@@ -210,9 +208,8 @@ class _SilabusPembelajaranScreenState extends State<SilabusPembelajaranScreen> {
                                     if (val != null) {
                                       setState(() {
                                         _selectedTahunAjaran = val;
-                                        _isLoadingFilters = true;
                                       });
-                                      _loadClasses(val['id']);
+                                      _fetchSilabus();
                                     }
                                   },
                                 ),
