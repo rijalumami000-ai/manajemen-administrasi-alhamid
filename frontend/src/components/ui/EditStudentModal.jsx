@@ -3,6 +3,7 @@ import { CustomModal } from './CustomModal';
 import { FloatingInput } from './FloatingInput';
 import { CustomSelect } from './CustomSelect';
 import { UserPlus, User, Save, Building, Phone, GraduationCap, Award, FileText } from 'lucide-react';
+import { normalizeGender } from '../../utils/studentUtils';
 import './EditStudentModal.scss';
 
 export function EditStudentModal({ 
@@ -24,6 +25,7 @@ export function EditStudentModal({
       if (santri) {
         setFormData({
           ...santri,
+          jenis_kelamin: normalizeGender(santri.jenis_kelamin) || 'L',
           agama: santri.agama || 'Islam',
           status_keluarga: santri.status_keluarga || 'Kandung',
           status_masuk: santri.status_masuk || 'Baru',
@@ -31,7 +33,7 @@ export function EditStudentModal({
       } else {
         setFormData({
           masukkan_ke_ta_aktif: true,
-          jenis_kelamin: 'Laki-laki',
+          jenis_kelamin: 'L',
           agama: 'Islam',
           status_keluarga: 'Kandung',
           status_masuk: 'Baru',
@@ -115,8 +117,8 @@ export function EditStudentModal({
               value={formData.jenis_kelamin} 
               onChange={(v) => handleChange('jenis_kelamin', v)}
               options={[
-                { label: 'Laki-laki', value: 'Laki-laki' },
-                { label: 'Perempuan', value: 'Perempuan' }
+                { label: 'Putra', value: 'L' },
+                { label: 'Putri', value: 'P' }
               ]}
             />
             <FloatingInput 

@@ -2,6 +2,7 @@ const absensiSholatService = require('../services/absensiSholatService');
 const faceRecognitionService = require('../services/faceRecognitionService');
 const { asyncHandler } = require('../utils/errorHandler');
 const { authenticateToken } = require('../middleware/authMiddleware');
+const { normalizeGender } = require('../utils/normalizers');
 const https = require('https');
 const multer = require('multer');
 const upload = multer({ 
@@ -235,7 +236,8 @@ function registerAbsensiSholatRoutes(app) {
    */
   app.get('/api/absensi-sholat/rekap', authenticateToken, asyncHandler(async (req, res) => {
     const { startDate, endDate, kelasId, sholat, jenisKelamin, kamarId, status, tahunAjaranId, semester } = req.query;
-    const result = await absensiSholatService.getAttendanceRecap(startDate, endDate, kelasId, sholat, jenisKelamin, kamarId, status, tahunAjaranId, semester);
+    const normalizedJk = normalizeGender(jenisKelamin);
+    const result = await absensiSholatService.getAttendanceRecap(startDate, endDate, kelasId, sholat, normalizedJk, kamarId, status, tahunAjaranId, semester);
     res.json(result);
   }));
 }

@@ -1,7 +1,7 @@
 import { User, MapPin, Calendar, Phone, Briefcase, GraduationCap, FileText, Award, Building, CreditCard } from 'lucide-react';
 import { CustomDrawer } from './CustomDrawer';
 import { ProgressRing } from './ProgressRing';
-import { formatDateDMY, calculateProfileCompleteness } from '../../utils/studentUtils';
+import { formatDateDMY, calculateProfileCompleteness, formatGender } from '../../utils/studentUtils';
 import './StudentDetailDrawer.scss';
 
 export function StudentDetailDrawer({ open, onClose, santri }) {
@@ -61,7 +61,7 @@ export function StudentDetailDrawer({ open, onClose, santri }) {
             <h2 className="profile-name">{santri.nama}</h2>
             <div className="profile-meta">
               <span className="nis-badge">NIS: {santri.nis}</span>
-              <span className="gender-text">{santri.jenis_kelamin}</span>
+              <span className="gender-text">{formatGender(santri.jenis_kelamin)}</span>
               <span className="year-text">• Masuk: {santri.tahun_masuk || '-'}</span>
             </div>
           </div>
@@ -105,6 +105,13 @@ export function StudentDetailDrawer({ open, onClose, santri }) {
               <div>
                 <span className="info-label">NIK</span>
                 <span className="info-value">{santri.nik || '-'}</span>
+              </div>
+            </div>
+            <div className="info-row">
+              <User size={16} />
+              <div>
+                <span className="info-label">Jenis Kelamin</span>
+                <span className="info-value">{formatGender(santri.jenis_kelamin)}</span>
               </div>
             </div>
             <div className="info-row">

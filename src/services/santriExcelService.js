@@ -1,7 +1,7 @@
 const xlsx = require('xlsx');
 const db = require('../../db');
 const { syncSantriToSpecificTahunAjaran } = require('./tahunAjaranService');
-const { nullableInt } = require('../utils/normalizers');
+const { nullableInt, normalizeGender } = require('../utils/normalizers');
 
 class SantriExcelService {
   excelDateToJSDate(serial) {
@@ -78,7 +78,7 @@ class SantriExcelService {
         const NIS = row['NIS'] ? row['NIS'].toString().trim() : null;
         const NIK = row['NIK'] ? row['NIK'].toString().trim() : null;
         const Nama = row['Nama'] ? row['Nama'].toString().trim() : null;
-        const jk = row['Jenis Kelamin'] ? row['Jenis Kelamin'].toString().trim() : null;
+        const jk = normalizeGender(row['Jenis Kelamin']);
         const anakKe = row['Anak Ke'] !== undefined && row['Anak Ke'] !== null && row['Anak Ke'] !== '' ? parseInt(row['Anak Ke']) : null;
         const agama = row['Agama'] ? row['Agama'].toString().trim() : 'Islam';
         const statusKeluarga = row['Status Keluarga'] ? row['Status Keluarga'].toString().trim() : 'Kandung';

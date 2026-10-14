@@ -61,12 +61,49 @@ function nullableDate(value) {
   return value;
 }
 
+function normalizeGender(value) {
+  if (value === null || value === undefined) {
+    return null;
+  }
+  const str = String(value).trim().toLowerCase();
+  if (!str) return null;
+
+  if (
+    str === 'l' ||
+    str === 'laki-laki' ||
+    str === 'laki' ||
+    str === 'putra' ||
+    str === 'banin' ||
+    str === 'male' ||
+    str === 'pria' ||
+    str === '1'
+  ) {
+    return 'L';
+  }
+
+  if (
+    str === 'p' ||
+    str === 'perempuan' ||
+    str === 'putri' ||
+    str === 'banat' ||
+    str === 'female' ||
+    str === 'wanita' ||
+    str === '2'
+  ) {
+    return 'P';
+  }
+
+  return null;
+}
+
 module.exports = {
   normalizeText,
   normalizeKelasJenis,
   normalizeYearCode,
   normalizeSantriStatus,
+  normalizeGender,
   nullableInt,
   nullableDate,
 };
+
 

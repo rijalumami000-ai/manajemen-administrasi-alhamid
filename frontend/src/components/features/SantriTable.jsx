@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { CustomTag } from '../ui/CustomTag';
 import { EmptyState } from '../common/EmptyState';
 import { formatStatusTahunAjaran } from '../../utils/formatters';
-import { calculateProfileCompleteness } from '../../utils/studentUtils';
+import { calculateProfileCompleteness, isMaleGender, isFemaleGender, formatGender } from '../../utils/studentUtils';
 import { Edit2, AlertCircle, CheckCircle, Lock, Unlock, User } from 'lucide-react';
 import './SantriTable.scss';
 
@@ -119,7 +119,8 @@ export function SantriTable({
               const avatarStyle = getAvatarStyle(record.nama || '');
               const completenessScore = calculateProfileCompleteness(record);
               const isWarning = completenessScore < 100;
-              const isMale = record.jenis_kelamin === 'Laki-laki';
+              const isMale = isMaleGender(record.jenis_kelamin);
+              const isFemale = isFemaleGender(record.jenis_kelamin);
 
               return (
                 <tr key={record.id}>
@@ -208,8 +209,11 @@ export function SantriTable({
                     </div>
                   </td>
                   <td style={{ textAlign: 'center' }}>
-                    <span className={`gender-badge ${isMale ? 'male' : 'female'}`}>
-                      {isMale ? 'L' : record.jenis_kelamin === 'Perempuan' ? 'P' : '-'}
+                    <span 
+                      className={`gender-badge ${isMale ? 'male' : isFemale ? 'female' : 'empty'}`}
+                      title={formatGender(record.jenis_kelamin)}
+                    >
+                      {isMale ? 'L' : isFemale ? 'P' : '-'}
                     </span>
                   </td>
                   <td>

@@ -10,6 +10,7 @@ import { CustomModal } from '../components/ui/CustomModal';
 import { CustomSelect } from '../components/ui/CustomSelect';
 import { SmartAlert } from '../components/ui/SmartAlert';
 import { exportToExcel, exportToPDF } from '../utils/exportUtils';
+import { normalizeGender } from '../utils/studentUtils';
 import './Santri.scss';
 
 export function Santri() {
@@ -160,7 +161,7 @@ export function Santri() {
         (!keyword || searchable.includes(keyword)) &&
         (!filterDiniyah || santri.nama_diniyah === filterDiniyah) &&
         (!filterSekolah || santri.nama_sekolah === filterSekolah) &&
-        (!filterGender || santri.jenis_kelamin === filterGender) &&
+        (!filterGender || normalizeGender(santri.jenis_kelamin) === filterGender) &&
         (!filterStatus || santri.status_tahun_ajaran === filterStatus)
       );
     });

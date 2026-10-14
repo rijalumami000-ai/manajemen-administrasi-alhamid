@@ -144,8 +144,8 @@ export function SantriFilters({
                 className="custom-native-select"
               >
                 <option value="">Semua Gender</option>
-                <option value="Laki-laki">Laki-laki</option>
-                <option value="Perempuan">Perempuan</option>
+                <option value="L">Putra</option>
+                <option value="P">Putri</option>
               </select>
             </div>
 

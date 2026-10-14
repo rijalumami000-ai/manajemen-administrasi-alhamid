@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { ImportSantriModal } from '../components/features/ImportSantriModal';
 import { exportToExcel, exportToPDF } from '../utils/exportUtils';
-import { calculateProfileCompleteness, formatDateDMY } from '../utils/studentUtils';
+import { calculateProfileCompleteness, formatDateDMY, normalizeGender, formatGender, isMaleGender, isFemaleGender } from '../utils/studentUtils';
 
 // Custom UI Components
 import { StatCard } from '../components/ui/StatCard';
@@ -98,8 +98,8 @@ export function BukuInduk() {
   // Derived Statistics
   const stats = useMemo(() => {
     const total = santriList.length;
-    const putra = santriList.filter(s => s.jenis_kelamin === 'Laki-laki').length;
-    const putri = santriList.filter(s => s.jenis_kelamin === 'Perempuan').length;
+    const putra = santriList.filter(s => isMaleGender(s.jenis_kelamin)).length;
+    const putri = santriList.filter(s => isFemaleGender(s.jenis_kelamin)).length;
     const withPhoto = santriList.filter(s => s.foto_url).length;
     
     return { total, putra, putri, withPhoto };
@@ -150,7 +150,7 @@ export function BukuInduk() {
       const matchTahun = !filterTahun || String(s.tahun_masuk ?? '') === String(filterTahun);
       
       // Filter Kelamin
-      const matchKelamin = !filterKelamin || s.jenis_kelamin === filterKelamin;
+      const matchKelamin = !filterKelamin || normalizeGender(s.jenis_kelamin) === filterKelamin;
 
       return matchSearch && matchTahun && matchKelamin;
     });
@@ -248,7 +248,7 @@ export function BukuInduk() {
       'NIS': s.nis,
       'NIK': s.nik || '-',
       'Nama': s.nama,
-      'Jenis Kelamin': s.jenis_kelamin || '-',
+      'Jenis Kelamin': formatGender(s.jenis_kelamin),
       'Anak Ke': s.anak_ke ?? '-',
       'Agama': s.agama || 'Islam',
       'Status Keluarga': s.status_keluarga || 'Kandung',
@@ -354,11 +354,18 @@ export function BukuInduk() {
       title: 'Kelamin',
       dataIndex: 'jenis_kelamin',
       width: '8%',
-      render: (jk) => (
-        <span className={`gender-badge ${jk === 'Laki-laki' ? 'male' : 'female'}`}>
-          {jk === 'Laki-laki' ? 'Putra' : 'Putri'}
-        </span>
-      )
+      render: (jk) => {
+        const isMale = isMaleGender(jk);
+        const isFemale = isFemaleGender(jk);
+        if (!isMale && !isFemale) {
+          return <span className="gender-badge empty">-</span>;
+        }
+        return (
+          <span className={`gender-badge ${isMale ? 'male' : 'female'}`}>
+            {isMale ? 'Putra' : 'Putri'}
+          </span>
+        );
+      }
     },
     {
       title: 'Tahun Masuk',
@@ -474,8 +481,8 @@ export function BukuInduk() {
             value: filterKelamin,
             onChange: setFilterKelamin,
             options: [
-              { label: 'Putra', value: 'Laki-laki' },
-              { label: 'Putri', value: 'Perempuan' }
+              { label: 'Putra', value: 'L' },
+              { label: 'Putri', value: 'P' }
             ]
           }
         ]}

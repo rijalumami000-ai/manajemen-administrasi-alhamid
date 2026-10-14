@@ -1,7 +1,7 @@
 const db = require('../../db');
 const { getActiveTahunAjaran, syncSantriToActiveTahunAjaran, syncSantriToSpecificTahunAjaran } = require('../services/tahunAjaranService');
 const { isUniqueViolation } = require('../utils/databaseErrors');
-const { normalizeKelasJenis, normalizeText, normalizeYearCode, nullableInt } = require('../utils/normalizers');
+const { normalizeKelasJenis, normalizeText, normalizeYearCode, nullableInt, normalizeGender } = require('../utils/normalizers');
 const multer = require('multer');
 const santriExcelService = require('../services/santriExcelService');
 
@@ -153,7 +153,7 @@ function registerSantriRoutes(app) {
         `INSERT INTO santri (nis, nik, nama, jenis_kelamin, kelas_diniyah_id, kelas_sekolah_id, kamar_id, tempat_lahir, tanggal_lahir, alamat, orangtua_id)
          VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
          RETURNING *`,
-        [nis, nik || null, nama, jenis_kelamin || null, nullableInt(kelas_diniyah_id), nullableInt(kelas_sekolah_id), nullableInt(kamar_id), tempat_lahir || null, tanggal_lahir || null, alamat || null, orangtuaId]
+        [nis, nik || null, nama, normalizeGender(jenis_kelamin), nullableInt(kelas_diniyah_id), nullableInt(kelas_sekolah_id), nullableInt(kamar_id), tempat_lahir || null, tanggal_lahir || null, alamat || null, orangtuaId]
       );
 
       const santriId = result.rows[0].id;
@@ -231,7 +231,7 @@ function registerSantriRoutes(app) {
         `UPDATE santri SET nis = $1, nik = $2, nama = $3, jenis_kelamin = $4, kelas_diniyah_id = $5, kelas_sekolah_id = $6,
            kamar_id = $7, tempat_lahir = $8, tanggal_lahir = $9, alamat = $10, orangtua_id = $11
          WHERE id = $12 RETURNING *`,
-        [nis, nik || null, nama, jenis_kelamin || null, nullableInt(kelas_diniyah_id), nullableInt(kelas_sekolah_id), nullableInt(kamar_id), tempat_lahir || null, tanggal_lahir || null, alamat || null, orangtuaId, id]
+        [nis, nik || null, nama, normalizeGender(jenis_kelamin), nullableInt(kelas_diniyah_id), nullableInt(kelas_sekolah_id), nullableInt(kamar_id), tempat_lahir || null, tanggal_lahir || null, alamat || null, orangtuaId, id]
       );
       await syncSantriToActiveTahunAjaran(id, { status_tahun_ajaran, catatan_tahun_ajaran });
 
@@ -409,8 +409,8 @@ function registerSantriRoutes(app) {
       const summaryRes = await db.query(`
         SELECT
           COUNT(s.id)::int AS total,
-          COUNT(CASE WHEN COALESCE(sta.jenis_kelamin, s.jenis_kelamin) IN ('L', 'Putra') THEN 1 END)::int AS putra,
-          COUNT(CASE WHEN COALESCE(sta.jenis_kelamin, s.jenis_kelamin) IN ('P', 'Putri') THEN 1 END)::int AS putri
+          COUNT(CASE WHEN COALESCE(sta.jenis_kelamin, s.jenis_kelamin) IN ('L', 'Putra', 'Laki-laki') THEN 1 END)::int AS putra,
+          COUNT(CASE WHEN COALESCE(sta.jenis_kelamin, s.jenis_kelamin) IN ('P', 'Putri', 'Perempuan') THEN 1 END)::int AS putri
         FROM santri s
         JOIN santri_tahun_ajaran sta ON sta.santri_id = s.id AND sta.tahun_ajaran_id = $1
         WHERE COALESCE(sta.kelas_diniyah_id, s.kelas_diniyah_id) IS NOT NULL
@@ -455,8 +455,8 @@ function registerSantriRoutes(app) {
             ELSE CONCAT('Tingkat ', k.tingkat)
           END AS nama_tingkat,
           COUNT(s.id)::int AS total,
-          COUNT(CASE WHEN COALESCE(sta.jenis_kelamin, s.jenis_kelamin) IN ('L', 'Putra') THEN 1 END)::int AS putra,
-          COUNT(CASE WHEN COALESCE(sta.jenis_kelamin, s.jenis_kelamin) IN ('P', 'Putri') THEN 1 END)::int AS putri
+          COUNT(CASE WHEN COALESCE(sta.jenis_kelamin, s.jenis_kelamin) IN ('L', 'Putra', 'Laki-laki') THEN 1 END)::int AS putra,
+          COUNT(CASE WHEN COALESCE(sta.jenis_kelamin, s.jenis_kelamin) IN ('P', 'Putri', 'Perempuan') THEN 1 END)::int AS putri
         FROM kelas k
         LEFT JOIN santri_tahun_ajaran sta ON sta.kelas_diniyah_id = k.id 
           AND sta.tahun_ajaran_id = $1 
@@ -487,8 +487,8 @@ function registerSantriRoutes(app) {
           k.nama AS nama_kelas,
           CASE WHEN k.nama = 'SP' THEN 99 ELSE k.tingkat END AS tingkat,
           COUNT(s.id)::int AS total,
-          COUNT(CASE WHEN COALESCE(sta.jenis_kelamin, s.jenis_kelamin) IN ('L', 'Putra') THEN 1 END)::int AS putra,
-          COUNT(CASE WHEN COALESCE(sta.jenis_kelamin, s.jenis_kelamin) IN ('P', 'Putri') THEN 1 END)::int AS putri
+          COUNT(CASE WHEN COALESCE(sta.jenis_kelamin, s.jenis_kelamin) IN ('L', 'Putra', 'Laki-laki') THEN 1 END)::int AS putra,
+          COUNT(CASE WHEN COALESCE(sta.jenis_kelamin, s.jenis_kelamin) IN ('P', 'Putri', 'Perempuan') THEN 1 END)::int AS putri
         FROM kelas k
         LEFT JOIN santri_tahun_ajaran sta ON sta.kelas_diniyah_id = k.id 
           AND sta.tahun_ajaran_id = $1 
@@ -514,8 +514,8 @@ function registerSantriRoutes(app) {
           ta.kode,
           ta.is_active,
           COUNT(sta.id)::int AS total_diniyah,
-          COUNT(CASE WHEN COALESCE(sta.jenis_kelamin, s.jenis_kelamin) IN ('L', 'Putra') THEN 1 END)::int AS putra,
-          COUNT(CASE WHEN COALESCE(sta.jenis_kelamin, s.jenis_kelamin) IN ('P', 'Putri') THEN 1 END)::int AS putri,
+          COUNT(CASE WHEN COALESCE(sta.jenis_kelamin, s.jenis_kelamin) IN ('L', 'Putra', 'Laki-laki') THEN 1 END)::int AS putra,
+          COUNT(CASE WHEN COALESCE(sta.jenis_kelamin, s.jenis_kelamin) IN ('P', 'Putri', 'Perempuan') THEN 1 END)::int AS putri,
           COUNT(CASE WHEN sta.aktif_ganjil = TRUE THEN 1 END)::int AS ganjil,
           COUNT(CASE WHEN sta.aktif_genap = TRUE THEN 1 END)::int AS genap
         FROM tahun_ajaran ta

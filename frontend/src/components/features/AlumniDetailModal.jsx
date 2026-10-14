@@ -4,6 +4,7 @@ import { CustomTabs } from '../ui/CustomTabs';
 import { CustomTag } from '../ui/CustomTag';
 import { LoadingState } from '../common/LoadingState';
 import { formatDate } from '../../utils/formatters';
+import { formatGender } from '../../utils/studentUtils';
 import { alumniService } from '../../services/alumniService';
 import { User, BookOpen, Home, Trophy, AlertTriangle, GraduationCap } from 'lucide-react';
 import './AlumniDetailModal.scss';
@@ -50,7 +51,7 @@ export function AlumniDetailModal({ isOpen, onClose, alumniId }) {
             <div className="info-item"><span>Nama Lengkap:</span> <strong>{santri.nama || '-'}</strong></div>
             <div className="info-item"><span>NIS:</span> <strong>{santri.nis || '-'}</strong></div>
             <div className="info-item"><span>NIK:</span> <strong>{santri.nik || '-'}</strong></div>
-            <div className="info-item"><span>Jenis Kelamin:</span> <strong>{santri.jenis_kelamin || '-'}</strong></div>
+            <div className="info-item"><span>Jenis Kelamin:</span> <strong>{formatGender(santri.jenis_kelamin)}</strong></div>
             <div className="info-item"><span>TTL:</span> <strong>{santri.tempat_lahir ? `${santri.tempat_lahir}, ` : ''}{santri.tanggal_lahir ? formatDate(santri.tanggal_lahir) : '-'}</strong></div>
           </div>
 

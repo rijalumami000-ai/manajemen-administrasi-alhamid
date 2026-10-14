@@ -7,6 +7,7 @@ import { PrayerCard } from '../components/ui/PrayerCard';
 import { StatusPill } from '../components/ui/StatusPill';
 import { CustomSelect } from '../components/ui/CustomSelect';
 import { exportToExcel } from '../utils/exportUtils';
+import { isMaleGender, isFemaleGender } from '../utils/studentUtils';
 import './RekapAbsensiSholat.scss';
 
 export function RekapAbsensiSholat() {
@@ -82,7 +83,7 @@ export function RekapAbsensiSholat() {
         'Waktu': new Date(item.waktu_scan).toLocaleTimeString('id-ID'),
         'Nama Santri': item.santri_nama,
         'NIS': item.santri_nis,
-        'JK': item.jenis_kelamin === 'Laki-laki' ? 'L' : 'P',
+        'JK': isMaleGender(item.jenis_kelamin) ? 'L' : 'P',
         'Kelas': item.kelas_nama || '-',
         'Kamar': item.kamar_nama || '-',
         'Sholat': item.sholat,
@@ -129,7 +130,18 @@ export function RekapAbsensiSholat() {
     },
     { 
       header: 'Gender', 
-      accessor: (row) => <span className={`gender-badge ${row.jenis_kelamin === 'Laki-laki' ? 'm' : 'f'}`}>{row.jenis_kelamin === 'Laki-laki' ? 'L' : 'P'}</span>,
+      accessor: (row) => {
+        const isMale = isMaleGender(row.jenis_kelamin);
+        const isFemale = isFemaleGender(row.jenis_kelamin);
+        return (
+          <span 
+            className={`gender-badge ${isMale ? 'm' : isFemale ? 'f' : 'empty'}`}
+            title={isMale ? 'Putra' : isFemale ? 'Putri' : '-'}
+          >
+            {isMale ? 'L' : isFemale ? 'P' : '-'}
+          </span>
+        );
+      },
       width: '100px'
     },
     { header: 'Sholat', accessor: 'sholat', width: '120px' },
@@ -276,8 +288,8 @@ export function RekapAbsensiSholat() {
               onChange={setSelectedJenisKelamin}
               options={[
                 { label: 'Semua Gender', value: '' },
-                { label: 'Laki-laki', value: 'Laki-laki' },
-                { label: 'Perempuan', value: 'Perempuan' }
+                { label: 'Putra', value: 'L' },
+                { label: 'Putri', value: 'P' }
               ]}
             />
           </div>

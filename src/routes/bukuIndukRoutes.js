@@ -3,7 +3,7 @@ const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
 const { syncSantriToActiveTahunAjaran, syncSantriToSpecificTahunAjaran } = require('../services/tahunAjaranService');
-const { nullableInt, nullableDate } = require('../utils/normalizers');
+const { nullableInt, nullableDate, normalizeGender } = require('../utils/normalizers');
 const santriExcelService = require('../services/santriExcelService');
 
 // Konfigurasi storage multer untuk foto santri
@@ -66,13 +66,20 @@ function registerBukuIndukRoutes(app) {
   // === BUKU INDUK: GET semua santri dikelompokkan per tahun_masuk ===
   app.get('/api/buku-induk', async (req, res) => {
     try {
-      const { tahun_masuk, search } = req.query;
+      const { tahun_masuk, search, jenis_kelamin } = req.query;
       let whereClause = [];
       let params = [];
 
       if (tahun_masuk) {
         params.push(tahun_masuk);
         whereClause.push(`s.tahun_masuk = $${params.length}`);
+      }
+      if (jenis_kelamin) {
+        const normJk = normalizeGender(jenis_kelamin);
+        if (normJk) {
+          params.push(normJk);
+          whereClause.push(`s.jenis_kelamin = $${params.length}`);
+        }
       }
       if (search) {
         params.push(`%${search}%`);
@@ -201,7 +208,7 @@ function registerBukuIndukRoutes(app) {
          )
          RETURNING *`,
         [
-          nis, nik || null, nama, jenis_kelamin || null, tempat_lahir || null, nullableDate(tanggal_lahir),
+          nis, nik || null, nama, normalizeGender(jenis_kelamin), tempat_lahir || null, nullableDate(tanggal_lahir),
           alamat || null, orangtuaId, tahun_masuk || null,
           nullableInt(kelas_diniyah_id), nullableInt(kelas_sekolah_id), nullableInt(kamar_id),
           nullableInt(anak_ke), agama || 'Islam', status_keluarga || 'Kandung', status_masuk || 'Baru', pesantren_sebelumnya || null,
@@ -293,7 +300,7 @@ function registerBukuIndukRoutes(app) {
            keluar_sekolah_tingkat = $23, keluar_sekolah_tanggal = $24, keluar_sekolah_status = $25
          WHERE id = $26 RETURNING *`,
         [
-          nis, nik || null, nama, jenis_kelamin || null, tempat_lahir || null, nullableDate(tanggal_lahir),
+          nis, nik || null, nama, normalizeGender(jenis_kelamin), tempat_lahir || null, nullableDate(tanggal_lahir),
           alamat || null, orangtuaId, tahun_masuk || null,
           nullableInt(anak_ke), agama || 'Islam', status_keluarga || 'Kandung', status_masuk || 'Baru', pesantren_sebelumnya || null,
           sekolah_asal_nama || null, sekolah_asal_alamat || null,

@@ -4,6 +4,7 @@ const { getActiveTahunAjaran } = require('../services/tahunAjaranService');
 const { authenticateToken } = require('../middleware/authMiddleware');
 const { asyncHandler } = require('../utils/errorHandler');
 const NilaiService = require('../services/nilaiService');
+const { normalizeGender } = require('../utils/normalizers');
 
 function registerMyMustahiqRoutes(app) {
   const router = express.Router();
@@ -1370,8 +1371,11 @@ function registerMyMustahiqRoutes(app) {
     let params = [];
 
     if (jenis_kelamin) {
-      params.push(jenis_kelamin);
-      whereClause.push(`s.jenis_kelamin = $${params.length}`);
+      const normJk = normalizeGender(jenis_kelamin);
+      if (normJk) {
+        params.push(normJk);
+        whereClause.push(`s.jenis_kelamin = $${params.length}`);
+      }
     }
     if (search) {
       params.push(`%${search}%`);

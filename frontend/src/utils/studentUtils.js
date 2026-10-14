@@ -92,3 +92,43 @@ export function getProfileCompletenessDetails(santri) {
     isComplete: percentage === 100
   };
 }
+
+/**
+ * Normalisasi nilai jenis kelamin ke 'L' atau 'P'
+ */
+export function normalizeGender(val) {
+  if (!val) return '';
+  const s = String(val).trim().toUpperCase();
+  if (['L', 'LAKI-LAKI', 'LAKI', 'PUTRA', 'PRIA', 'MALE', 'M'].includes(s)) {
+    return 'L';
+  }
+  if (['P', 'PEREMPUAN', 'WANITA', 'PUTRI', 'FEMALE', 'F'].includes(s)) {
+    return 'P';
+  }
+  return '';
+}
+
+/**
+ * Format tampilan jenis kelamin ke 'Putra' atau 'Putri'
+ */
+export function formatGender(val) {
+  const norm = normalizeGender(val);
+  if (norm === 'L') return 'Putra';
+  if (norm === 'P') return 'Putri';
+  return '-';
+}
+
+/**
+ * Pengecekan apakah santri berjenis kelamin Putra / L
+ */
+export function isMaleGender(val) {
+  return normalizeGender(val) === 'L';
+}
+
+/**
+ * Pengecekan apakah santri berjenis kelamin Putri / P
+ */
+export function isFemaleGender(val) {
+  return normalizeGender(val) === 'P';
+}
+

@@ -5,6 +5,7 @@ import { CustomSelect } from '../ui/CustomSelect';
 import { CustomDatePicker } from '../ui/CustomDatePicker';
 import { SmartAlert } from '../ui/SmartAlert';
 import { User, IdCard, Home, Phone, Mail, Briefcase, Building, GraduationCap, Save } from 'lucide-react';
+import { normalizeGender } from '../../utils/studentUtils';
 import './AlumniEditModal.scss';
 
 export function AlumniEditModal({ isOpen, onClose, onSubmit, editData, isSubmitting, error }) {
@@ -33,7 +34,7 @@ export function AlumniEditModal({ isOpen, onClose, onSubmit, editData, isSubmitt
           nis: editData.nis || '',
           nik: editData.nik || '',
           nama: editData.nama || '',
-          jenis_kelamin: editData.jenis_kelamin || '',
+          jenis_kelamin: normalizeGender(editData.jenis_kelamin) || '',
           tempat_lahir: editData.tempat_lahir || '',
           tanggal_lahir: editData.tanggal_lahir ? editData.tanggal_lahir.split('T')[0] : '',
           tahun_lulus: editData.tahun_lulus ? String(editData.tahun_lulus) : '',
@@ -146,8 +147,8 @@ export function AlumniEditModal({ isOpen, onClose, onSubmit, editData, isSubmitt
                 value={formData.jenis_kelamin}
                 onChange={(v) => handleChange('jenis_kelamin', v)}
                 options={[
-                  { label: 'Laki-laki', value: 'Laki-laki' },
-                  { label: 'Perempuan', value: 'Perempuan' }
+                  { label: 'Putra', value: 'L' },
+                  { label: 'Putri', value: 'P' }
                 ]}
                 disabled={isSubmitting}
               />

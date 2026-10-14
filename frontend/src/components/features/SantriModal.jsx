@@ -5,6 +5,7 @@ import { CustomSelect } from '../ui/CustomSelect';
 import { CustomDatePicker } from '../ui/CustomDatePicker';
 import { SmartAlert } from '../ui/SmartAlert';
 import { User, IdCard, Home, Phone, Briefcase, FileText, Save } from 'lucide-react';
+import { normalizeGender } from '../../utils/studentUtils';
 import './SantriModal.scss';
 
 export function SantriModal({
@@ -46,7 +47,7 @@ export function SantriModal({
           nis: editData.nis || '',
           nik: editData.nik || '',
           nama: editData.nama || '',
-          jenis_kelamin: editData.jenis_kelamin || '',
+          jenis_kelamin: normalizeGender(editData.jenis_kelamin) || '',
           tempat_lahir: editData.tempat_lahir || '',
           tanggal_lahir: editData.tanggal_lahir ? editData.tanggal_lahir.split('T')[0] : '',
           kelas_diniyah_id: editData.kelas_diniyah_id ? String(editData.kelas_diniyah_id) : '',
@@ -211,8 +212,8 @@ export function SantriModal({
                 value={formData.jenis_kelamin}
                 onChange={(v) => handleChange('jenis_kelamin', v)}
                 options={[
-                  { label: 'Laki-laki', value: 'Laki-laki' },
-                  { label: 'Perempuan', value: 'Perempuan' }
+                  { label: 'Putra', value: 'L' },
+                  { label: 'Putri', value: 'P' }
                 ]}
                 disabled={isSubmitting}
               />
