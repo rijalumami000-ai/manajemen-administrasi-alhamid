@@ -61,6 +61,9 @@ export function Santri() {
   useEffect(() => {
     if (selectedTahunAjaranId) {
       loadSantriByTahunAjaran(selectedTahunAjaranId);
+      santriService.fetchKelas(selectedTahunAjaranId).then(data => {
+        if (Array.isArray(data)) setKelasList(data);
+      }).catch(console.error);
     }
   }, [selectedTahunAjaranId]);
 

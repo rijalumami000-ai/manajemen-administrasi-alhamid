@@ -132,6 +132,9 @@ export function SantriFilters({
               >
                 <option value="">Semua Status</option>
                 <option value="aktif">{formatStatusTahunAjaran('aktif')}</option>
+                <option value="tidak_naik">{formatStatusTahunAjaran('tidak_naik')}</option>
+                <option value="lulus">{formatStatusTahunAjaran('lulus')}</option>
+                <option value="alumni">{formatStatusTahunAjaran('alumni')}</option>
                 <option value="pindah">Pindah / Migrasi</option>
               </select>
             </div>

@@ -28,7 +28,21 @@ function registerKelasRoutes(app) {
           LEFT JOIN guru g ON COALESCE(kta.mustahiq_id, k.mustahiq_id) = g.id
           LEFT JOIN mata_pelajaran m ON COALESCE(kta.muhafadzoh_mapel_id, k.muhafadzoh_mapel_id) = m.id
           LEFT JOIN mata_pelajaran q ON COALESCE(kta.qiroatul_mapel_id, k.qiroatul_mapel_id) = q.id
-          ORDER BY k.jenis, k.nama
+          WHERE (
+            k.jenis = 'Sekolah'
+            OR kta.id IS NOT NULL
+            OR EXISTS (
+              SELECT 1 FROM santri_tahun_ajaran sta 
+              WHERE sta.kelas_diniyah_id = k.id AND sta.tahun_ajaran_id = $1
+            )
+          )
+          ORDER BY k.jenis, 
+            CASE 
+              WHEN k.nama = 'SP' THEN 0.5
+              WHEN k.tingkat = 0 THEN 0
+              ELSE k.tingkat 
+            END ASC, 
+            k.nama ASC
         `, [tahun_ajaran_id]);
       } else {
         result = await db.query(`

@@ -414,8 +414,7 @@ function registerSantriRoutes(app) {
         FROM santri s
         JOIN santri_tahun_ajaran sta ON sta.santri_id = s.id AND sta.tahun_ajaran_id = $1
         WHERE COALESCE(sta.kelas_diniyah_id, s.kelas_diniyah_id) IS NOT NULL
-          AND COALESCE(sta.status, 'aktif') IN ('aktif', 'draft', 'tidak_naik')
-          AND NOT EXISTS (SELECT 1 FROM alumni a WHERE a.santri_id = s.id)
+          AND COALESCE(sta.status, 'aktif') IN ('aktif', 'draft', 'tidak_naik', 'lulus', 'alumni')
           ${semesterCondition}
       `, [tahun_ajaran_id]);
 
@@ -427,8 +426,7 @@ function registerSantriRoutes(app) {
         FROM santri s
         JOIN santri_tahun_ajaran sta ON sta.santri_id = s.id AND sta.tahun_ajaran_id = $1
         WHERE COALESCE(sta.kelas_diniyah_id, s.kelas_diniyah_id) IS NOT NULL
-          AND COALESCE(sta.status, 'aktif') IN ('aktif', 'draft', 'tidak_naik')
-          AND NOT EXISTS (SELECT 1 FROM alumni a WHERE a.santri_id = s.id)
+          AND COALESCE(sta.status, 'aktif') IN ('aktif', 'draft', 'tidak_naik', 'lulus', 'alumni')
       `, [tahun_ajaran_id]);
 
       const semCounts = semCountsRes.rows[0] || { total_ganjil: 0, total_genap: 0 };
@@ -460,11 +458,14 @@ function registerSantriRoutes(app) {
         FROM kelas k
         LEFT JOIN santri_tahun_ajaran sta ON sta.kelas_diniyah_id = k.id 
           AND sta.tahun_ajaran_id = $1 
-          AND COALESCE(sta.status, 'aktif') IN ('aktif', 'draft', 'tidak_naik')
+          AND COALESCE(sta.status, 'aktif') IN ('aktif', 'draft', 'tidak_naik', 'lulus', 'alumni')
           ${semesterCondition}
         LEFT JOIN santri s ON s.id = sta.santri_id 
-          AND NOT EXISTS (SELECT 1 FROM alumni a WHERE a.santri_id = s.id)
         WHERE k.jenis = 'Diniyah'
+          AND (
+            EXISTS (SELECT 1 FROM kelas_tahun_ajaran kta WHERE kta.kelas_id = k.id AND kta.tahun_ajaran_id = $1)
+            OR EXISTS (SELECT 1 FROM santri_tahun_ajaran sta2 WHERE sta2.kelas_diniyah_id = k.id AND sta2.tahun_ajaran_id = $1)
+          )
         GROUP BY 
           CASE WHEN k.nama = 'SP' THEN 99 ELSE k.tingkat END,
           CASE 
@@ -492,11 +493,14 @@ function registerSantriRoutes(app) {
         FROM kelas k
         LEFT JOIN santri_tahun_ajaran sta ON sta.kelas_diniyah_id = k.id 
           AND sta.tahun_ajaran_id = $1 
-          AND COALESCE(sta.status, 'aktif') IN ('aktif', 'draft', 'tidak_naik')
+          AND COALESCE(sta.status, 'aktif') IN ('aktif', 'draft', 'tidak_naik', 'lulus', 'alumni')
           ${semesterCondition}
         LEFT JOIN santri s ON s.id = sta.santri_id 
-          AND NOT EXISTS (SELECT 1 FROM alumni a WHERE a.santri_id = s.id)
         WHERE k.jenis = 'Diniyah'
+          AND (
+            EXISTS (SELECT 1 FROM kelas_tahun_ajaran kta WHERE kta.kelas_id = k.id AND kta.tahun_ajaran_id = $1)
+            OR EXISTS (SELECT 1 FROM santri_tahun_ajaran sta2 WHERE sta2.kelas_diniyah_id = k.id AND sta2.tahun_ajaran_id = $1)
+          )
         GROUP BY k.id, k.nama, k.tingkat
         ORDER BY 
           CASE 
