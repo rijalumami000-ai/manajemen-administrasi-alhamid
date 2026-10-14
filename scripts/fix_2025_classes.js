@@ -60,6 +60,12 @@ async function fix2025Classes() {
     `);
     console.log(`Deleted ${delKta.rowCount} old/incorrect kelas_tahun_ajaran records for year 10.`);
 
+    // Delete any links to 5A, 5B, 6 in 2026-2027 (year 11)
+    await client.query(`
+      DELETE FROM kelas_tahun_ajaran 
+      WHERE tahun_ajaran_id = 11 AND kelas_id IN ($1, $2, $3);
+    `, [id5A, id5B, id6]);
+
     // Upsert 5A, 5B, 6 for tahun_ajaran_id = 10
     await client.query(`
       INSERT INTO kelas_tahun_ajaran (kelas_id, tahun_ajaran_id, mustahiq_id, muhafadzoh_mapel_id, qiroatul_mapel_id)
