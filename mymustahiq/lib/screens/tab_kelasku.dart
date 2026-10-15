@@ -651,8 +651,8 @@ class _TabKelaskuState extends State<TabKelasku> {
                 const SizedBox(height: 12),
                 _buildElongatedActionCard(
                   context: context,
-                  title: "Setoran Hafalan Nadzom",
-                  desc: "Monitoring ritme setoran nadzom & progres hafalan santri.",
+                  title: "Setoran Hafalan (Muhafadzoh)",
+                  desc: "Monitoring setoran nadzom / materi bab & progres hafalan santri.",
                   icon: Icons.menu_book_rounded,
                   color: const Color(0xFFD97706),
                   onTap: () {

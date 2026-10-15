@@ -151,13 +151,38 @@ class _SetoranHafalanScreenState extends State<SetoranHafalanScreen> {
     final int jayyidMin = (skalaAktif?['jayyid']?['min'] as num?)?.toInt() ?? 0;
     final int mutawassithMin = (skalaAktif?['mutawassith']?['min'] as num?)?.toInt() ?? 0;
 
-    // Sisa kapasitas sebelum mentok target genap
+    // Data spesifik Bab / Teks
+    final int currentBabIndex = (santri['bab_index'] as num?)?.toInt() ?? 0;
+    final String currentBabNama = santri['nama_bab_terakhir']?.toString() ?? '';
+    final int totalBabGanjil = (kriteriaInfo?['total_bab_ganjil'] as num?)?.toInt() ?? (santri['target_semester'] as num?)?.toInt() ?? 14;
+    final int totalBabGenap = (kriteriaInfo?['total_bab_genap'] as num?)?.toInt() ?? (santri['target_genap'] as num?)?.toInt() ?? 26;
+    final String targetGanjilNama = kriteriaInfo?['target_ganjil_nama']?.toString() ?? 'Bab Akhir Ganjil';
+    final String targetGenapNama = kriteriaInfo?['target_genap_nama']?.toString() ?? 'Khatam Seluruh Bab';
+    final List<dynamic> daftarBabSemua = (kriteriaInfo?['daftar_bab_semua'] as List<dynamic>?) ?? [];
+
+    // Tentukan bab rekomendasi awal
+    String initialSelectedBab = '';
+    if (daftarBabSemua.isNotEmpty) {
+      if (currentBabIndex > 0 && currentBabIndex < daftarBabSemua.length) {
+        initialSelectedBab = daftarBabSemua[currentBabIndex]['bab']?.toString() ?? '';
+      } else if (currentBabIndex >= daftarBabSemua.length) {
+        initialSelectedBab = daftarBabSemua.last['bab']?.toString() ?? '';
+      } else if (currentBabNama.isNotEmpty && daftarBabSemua.any((b) => b['bab'] == currentBabNama)) {
+        initialSelectedBab = currentBabNama;
+      } else {
+        initialSelectedBab = daftarBabSemua[0]['bab']?.toString() ?? '';
+      }
+    }
+    String? selectedBab = initialSelectedBab.isNotEmpty ? initialSelectedBab : null;
+    bool isManualInput = daftarBabSemua.isEmpty;
+
+    // Sisa kapasitas sebelum mentok target genap (Angka)
     final int maxAllowedDelta = (targetGenap - prevBait) > 0 ? (targetGenap - prevBait) : 0;
     final int initialDelta = maxAllowedDelta >= 10 ? 10 : maxAllowedDelta;
 
     // Controllers
     final deltaController = TextEditingController(text: initialDelta.toString());
-    final babController = TextEditingController(text: santri['nama_bab_terakhir'] ?? '');
+    final babController = TextEditingController(text: (!isAngka && selectedBab != null) ? selectedBab : (santri['nama_bab_terakhir'] ?? ''));
     final catatanController = TextEditingController();
 
     String statusKelancaran = 'Lancar';
@@ -177,29 +202,59 @@ class _SetoranHafalanScreenState extends State<SetoranHafalanScreen> {
             final isExceedMax = isAngka && hasilAkhir > targetGenap;
             final isMelampauiGanjil = isAngka && hasilAkhir > targetGanjil && hasilAkhir <= targetGenap;
 
-            // Live predikat prediction
+            // Live predikat prediction (Angka & Bab)
             String livePredikat = "-";
             Color livePredColor = const Color(0xFF64748B);
-            if (hasilAkhir >= targetGenap) {
-              livePredikat = "Mumtaz (Tuntas Genap)";
-              livePredColor = const Color(0xFF10B981);
-            } else if (hasilAkhir > targetGanjil) {
-              livePredikat = "Mumtaz (Melampaui Target Ganjil)";
-              livePredColor = const Color(0xFF8B5CF6);
-            } else if (hasilAkhir >= mumtazMin) {
-              livePredikat = "Mumtaz";
-              livePredColor = const Color(0xFF10B981);
-            } else if (hasilAkhir >= jayyidMin) {
-              livePredikat = "Jayyid";
-              livePredColor = const Color(0xFF3B82F6);
-            } else if (hasilAkhir >= mutawassithMin) {
-              livePredikat = "Mutawassith";
-              livePredColor = const Color(0xFFD97706);
-            } else if (hasilAkhir > 0) {
-              livePredikat = "Rodi'";
-              livePredColor = const Color(0xFFEF4444);
+            int matchedBabUrutan = 0;
+            String matchedPredikat = "-";
+
+            if (isAngka) {
+              if (hasilAkhir >= targetGenap) {
+                livePredikat = "Mumtaz (Tuntas Genap)";
+                livePredColor = const Color(0xFF10B981);
+              } else if (hasilAkhir > targetGanjil) {
+                livePredikat = "Mumtaz (Melampaui Target Ganjil)";
+                livePredColor = const Color(0xFF8B5CF6);
+              } else if (hasilAkhir >= mumtazMin) {
+                livePredikat = "Mumtaz";
+                livePredColor = const Color(0xFF10B981);
+              } else if (hasilAkhir >= jayyidMin) {
+                livePredikat = "Jayyid";
+                livePredColor = const Color(0xFF3B82F6);
+              } else if (hasilAkhir >= mutawassithMin) {
+                livePredikat = "Mutawassith";
+                livePredColor = const Color(0xFFD97706);
+              } else if (hasilAkhir > 0) {
+                livePredikat = "Rodi'";
+                livePredColor = const Color(0xFFEF4444);
+              } else {
+                livePredikat = "Belum Setor";
+              }
             } else {
-              livePredikat = "Belum Setor";
+              final activeBabText = babController.text.trim();
+              if (activeBabText.isNotEmpty && daftarBabSemua.isNotEmpty) {
+                final match = daftarBabSemua.firstWhere(
+                  (b) => b['bab']?.toString().toLowerCase().trim() == activeBabText.toLowerCase().trim(),
+                  orElse: () => null,
+                );
+                if (match != null) {
+                  matchedBabUrutan = (match['urutan'] as num?)?.toInt() ?? 0;
+                  matchedPredikat = match['predikat']?.toString() ?? '-';
+                  if (matchedBabUrutan >= totalBabGenap && totalBabGenap > 0) {
+                    livePredikat = "Mumtaz (Khatam Seluruh Bab)";
+                    livePredColor = const Color(0xFF10B981);
+                  } else if (matchedBabUrutan > totalBabGanjil && totalBabGanjil > 0) {
+                    livePredikat = "Mumtaz (Akselerasi Genap • Bab $matchedBabUrutan)";
+                    livePredColor = const Color(0xFF8B5CF6);
+                  } else {
+                    livePredikat = matchedPredikat;
+                    livePredColor = _getPredikatColor(matchedPredikat);
+                  }
+                } else {
+                  livePredikat = "Bab Custom / Bebas";
+                  livePredColor = const Color(0xFF3B82F6);
+                }
+              }
             }
 
             return Container(
@@ -506,28 +561,294 @@ class _SetoranHafalanScreenState extends State<SetoranHafalanScreen> {
                       ),
                     ] else ...[
                       // Model Bab / Teks
-                      Text(
-                        "NAMA BAB / CAPAIAN TERAKHIR",
-                        style: GoogleFonts.outfit(
-                          color: context.subTitleColor,
-                          fontSize: 11,
-                          fontWeight: FontWeight.bold,
-                          letterSpacing: 1.0,
+                      // 1. Info Statis Capaian Terakhir Saat Ini
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                        decoration: BoxDecoration(
+                          color: isDark ? const Color(0xFF1E293B) : const Color(0xFFF1F5F9),
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(color: context.borderColor),
+                        ),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    "POSISI CAPAIAN SAAT INI (STATIS)",
+                                    style: GoogleFonts.outfit(
+                                      color: context.subTitleColor,
+                                      fontSize: 10,
+                                      fontWeight: FontWeight.bold,
+                                      letterSpacing: 0.8,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 2),
+                                  Text(
+                                    currentBabIndex > 0
+                                        ? "Bab ke-$currentBabIndex: $currentBabNama"
+                                        : (currentBabNama.isNotEmpty ? currentBabNama : "Belum pernah setor"),
+                                    style: GoogleFonts.outfit(
+                                      color: context.titleColor,
+                                      fontSize: 14,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ],
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            Column(
+                              crossAxisAlignment: CrossAxisAlignment.end,
+                              children: [
+                                Text(
+                                  "Target: Bab ke-$totalBabGanjil",
+                                  style: GoogleFonts.outfit(
+                                    color: const Color(0xFF3B82F6),
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                                Text(
+                                  "Maks: Bab ke-$totalBabGenap",
+                                  style: GoogleFonts.outfit(
+                                    color: const Color(0xFF8B5CF6),
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ],
                         ),
                       ),
-                      const SizedBox(height: 6),
-                      TextField(
-                        controller: babController,
-                        style: GoogleFonts.outfit(color: context.titleColor),
-                        decoration: InputDecoration(
-                          hintText: "Contoh: Bab Kalam / Bab I'rab...",
-                          filled: true,
-                          fillColor: isDark ? const Color(0xFF1E293B) : const Color(0xFFF8FAFC),
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(12),
-                            borderSide: BorderSide(color: context.borderColor),
+                      const SizedBox(height: 16),
+
+                      // 2. Selector atau Input Bab
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text(
+                            "PILIH BAB CAPAIAN SETORAN",
+                            style: GoogleFonts.outfit(
+                              color: context.subTitleColor,
+                              fontSize: 11,
+                              fontWeight: FontWeight.bold,
+                              letterSpacing: 1.0,
+                            ),
                           ),
-                          contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                          if (daftarBabSemua.isNotEmpty)
+                            GestureDetector(
+                              onTap: () {
+                                setSheetState(() {
+                                  isManualInput = !isManualInput;
+                                });
+                              },
+                              child: Text(
+                                isManualInput ? "← Gunakan Daftar Bab" : "Tulis Manual ✎",
+                                style: GoogleFonts.outfit(
+                                  color: const Color(0xFF3B82F6),
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ),
+                        ],
+                      ),
+                      const SizedBox(height: 6),
+
+                      if (!isManualInput && daftarBabSemua.isNotEmpty) ...[
+                        DropdownButtonFormField<String>(
+                          value: daftarBabSemua.any((b) => b['bab'] == selectedBab) ? selectedBab : null,
+                          isExpanded: true,
+                          decoration: InputDecoration(
+                            filled: true,
+                            fillColor: isDark ? const Color(0xFF1E293B) : const Color(0xFFF8FAFC),
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                              borderSide: BorderSide(color: context.borderColor),
+                            ),
+                            contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                          ),
+                          hint: Text("Pilih Bab Setoran...", style: GoogleFonts.outfit(color: context.subTitleColor, fontSize: 13)),
+                          items: daftarBabSemua.map<DropdownMenuItem<String>>((b) {
+                            final int urutan = (b['urutan'] as num?)?.toInt() ?? 0;
+                            final String babNama = b['bab']?.toString() ?? '';
+                            final String pred = b['predikat']?.toString() ?? '';
+                            final bool isTargetGanjil = urutan == totalBabGanjil;
+                            final bool isKhatam = urutan == totalBabGenap;
+                            final bool isAkselerasi = urutan > totalBabGanjil;
+
+                            return DropdownMenuItem<String>(
+                              value: babNama,
+                              child: Row(
+                                children: [
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                    margin: const EdgeInsets.only(right: 8),
+                                    decoration: BoxDecoration(
+                                      color: isKhatam
+                                          ? const Color(0xFF10B981).withOpacity(0.15)
+                                          : isAkselerasi
+                                              ? const Color(0xFF8B5CF6).withOpacity(0.15)
+                                              : isTargetGanjil
+                                                  ? const Color(0xFF3B82F6).withOpacity(0.15)
+                                                  : context.borderColor.withOpacity(0.3),
+                                      borderRadius: BorderRadius.circular(6),
+                                    ),
+                                    child: Text(
+                                      "Bab $urutan",
+                                      style: GoogleFonts.outfit(
+                                        color: isKhatam
+                                            ? const Color(0xFF10B981)
+                                            : isAkselerasi
+                                                ? const Color(0xFF8B5CF6)
+                                                : isTargetGanjil
+                                                    ? const Color(0xFF3B82F6)
+                                                    : context.titleColor,
+                                        fontSize: 10,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                  ),
+                                  Expanded(
+                                    child: Text(
+                                      babNama,
+                                      style: GoogleFonts.outfit(
+                                        color: context.titleColor,
+                                        fontSize: 13,
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                  ),
+                                  const SizedBox(width: 4),
+                                  Text(
+                                    isKhatam
+                                        ? "🏆 Khatam"
+                                        : isAkselerasi
+                                            ? "✨ Akselerasi"
+                                            : isTargetGanjil
+                                                ? "🎯 Mumtaz"
+                                                : pred,
+                                    style: GoogleFonts.outfit(
+                                      color: isKhatam
+                                          ? const Color(0xFF10B981)
+                                          : isAkselerasi
+                                              ? const Color(0xFF8B5CF6)
+                                              : isTargetGanjil
+                                                  ? const Color(0xFF3B82F6)
+                                                  : _getPredikatColor(pred),
+                                      fontSize: 10,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            );
+                          }).toList(),
+                          onChanged: (val) {
+                            if (val != null) {
+                              setSheetState(() {
+                                selectedBab = val;
+                                babController.text = val;
+                              });
+                            }
+                          },
+                        ),
+                      ] else ...[
+                        TextField(
+                          controller: babController,
+                          style: GoogleFonts.outfit(color: context.titleColor),
+                          onChanged: (val) => setSheetState(() {}),
+                          decoration: InputDecoration(
+                            hintText: "Ketik nama bab (contoh: باب الكلام / Bab I'rab)...",
+                            filled: true,
+                            fillColor: isDark ? const Color(0xFF1E293B) : const Color(0xFFF8FAFC),
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                              borderSide: BorderSide(color: context.borderColor),
+                            ),
+                            contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                          ),
+                        ),
+                      ],
+                      const SizedBox(height: 12),
+
+                      // 3. Preview Predikat & Keterangan untuk Teks
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                        decoration: BoxDecoration(
+                          color: (matchedBabUrutan > totalBabGanjil && totalBabGanjil > 0)
+                              ? const Color(0xFF8B5CF6).withOpacity(0.12)
+                              : const Color(0xFF10B981).withOpacity(0.08),
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(
+                            color: (matchedBabUrutan > totalBabGanjil && totalBabGanjil > 0)
+                                ? const Color(0xFF8B5CF6).withOpacity(0.3)
+                                : const Color(0xFF10B981).withOpacity(0.2),
+                          ),
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Expanded(
+                                  child: Text(
+                                    matchedBabUrutan > 0
+                                        ? "Hasil: Bab ke-$matchedBabUrutan: ${babController.text}"
+                                        : "Hasil: ${babController.text.isEmpty ? '-' : babController.text}",
+                                    style: GoogleFonts.outfit(
+                                      color: context.titleColor,
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 13,
+                                    ),
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ),
+                                if (livePredikat != "-")
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                                    decoration: BoxDecoration(
+                                      color: livePredColor.withOpacity(0.15),
+                                      borderRadius: BorderRadius.circular(6),
+                                    ),
+                                    child: Text(
+                                      livePredikat,
+                                      style: GoogleFonts.outfit(
+                                        color: livePredColor,
+                                        fontSize: 11,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                  ),
+                              ],
+                            ),
+                            const SizedBox(height: 6),
+                            if (matchedBabUrutan >= totalBabGenap && totalBabGenap > 0)
+                              Text(
+                                "🏆 Selamat! Santri telah menuntaskan seluruh target materi bab kitab untuk tahun ajaran ini.",
+                                style: GoogleFonts.outfit(color: const Color(0xFF059669), fontSize: 11, fontWeight: FontWeight.w600),
+                              )
+                            else if (matchedBabUrutan > totalBabGanjil && totalBabGanjil > 0)
+                              Text(
+                                "✨ Capaian melampaui target Ganjil (Bab ke-$matchedBabUrutan masuk bablas materi Genap). Batas mentok genap: Bab ke-$totalBabGenap.",
+                                style: GoogleFonts.outfit(color: const Color(0xFF8B5CF6), fontSize: 11, fontWeight: FontWeight.w600),
+                              )
+                            else
+                              Text(
+                                "Target Semester Ganjil: Bab ke-$totalBabGanjil ($targetGanjilNama) • Batas Maks Genap: Bab ke-$totalBabGenap",
+                                style: GoogleFonts.outfit(color: context.subTitleColor, fontSize: 11),
+                              ),
+                          ],
                         ),
                       ),
                     ],
@@ -611,7 +932,7 @@ class _SetoranHafalanScreenState extends State<SetoranHafalanScreen> {
                           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
                           elevation: 0,
                         ),
-                        onPressed: (isSaving || isExceedMax || (isAngka && deltaInt <= 0))
+                        onPressed: (isSaving || isExceedMax || (isAngka && deltaInt <= 0) || (!isAngka && babController.text.trim().isEmpty))
                             ? null
                             : () async {
                                 setSheetState(() => isSaving = true);
@@ -988,6 +1309,7 @@ class _SetoranHafalanScreenState extends State<SetoranHafalanScreen> {
     final int targetGenap = (santri['target_genap'] as num?)?.toInt() ?? 254;
 
     final editJumlahController = TextEditingController(text: currentJumlah.toString());
+    final editBabController = TextEditingController(text: item['nama_bab'] ?? '');
     final editCatatanController = TextEditingController(text: item['catatan'] ?? '');
     String editKelancaran = item['status_kelancaran'] ?? 'Lancar';
     bool isSaving = false;
@@ -1040,6 +1362,16 @@ class _SetoranHafalanScreenState extends State<SetoranHafalanScreen> {
                             style: GoogleFonts.outfit(fontSize: 10, color: Colors.red),
                           ),
                         ),
+                    ] else ...[
+                      Text("Nama Bab / Materi:", style: GoogleFonts.outfit(fontSize: 12, fontWeight: FontWeight.w600)),
+                      const SizedBox(height: 6),
+                      TextField(
+                        controller: editBabController,
+                        decoration: InputDecoration(
+                          hintText: "Contoh: باب الكلام / Bab Kalam",
+                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+                        ),
+                      ),
                     ],
                     const SizedBox(height: 12),
                     Text("Status Kelancaran:", style: GoogleFonts.outfit(fontSize: 12, fontWeight: FontWeight.w600)),
@@ -1074,13 +1406,14 @@ class _SetoranHafalanScreenState extends State<SetoranHafalanScreen> {
                 ),
                 ElevatedButton(
                   style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF10B981)),
-                  onPressed: (isSaving || isOverMax)
+                  onPressed: (isSaving || isOverMax || (!isAngka && editBabController.text.trim().isEmpty))
                       ? null
                       : () async {
                           setDialogState(() => isSaving = true);
                           try {
                             await _apiService.updateSetoran(item['id'], {
                               'jumlah_bait': isAngka ? jumlahInt : 0,
+                              'nama_bab': isAngka ? null : editBabController.text.trim(),
                               'status_kelancaran': editKelancaran,
                               'catatan': editCatatanController.text.trim(),
                             });
@@ -1304,6 +1637,11 @@ class _SetoranHafalanScreenState extends State<SetoranHafalanScreen> {
     final int targetGanjil = (kriteriaInfo?['target_ganjil'] as num?)?.toInt() ?? 100;
     final int targetGenap = (kriteriaInfo?['target_genap'] as num?)?.toInt() ?? 200;
     final skalaAktif = kriteriaInfo?['skala_aktif'] as Map<String, dynamic>?;
+    final int totalBabGanjil = (kriteriaInfo?['total_bab_ganjil'] as num?)?.toInt() ?? 14;
+    final int totalBabGenap = (kriteriaInfo?['total_bab_genap'] as num?)?.toInt() ?? 26;
+    final String targetGanjilNama = kriteriaInfo?['target_ganjil_nama']?.toString() ?? 'Bab Akhir Ganjil';
+    final String targetGenapNama = kriteriaInfo?['target_genap_nama']?.toString() ?? 'Khatam Seluruh Bab';
+    final skalaBab = kriteriaInfo?['skala_bab'] as Map<String, dynamic>?;
 
     return Container(
       padding: const EdgeInsets.all(16),
@@ -1389,8 +1727,12 @@ class _SetoranHafalanScreenState extends State<SetoranHafalanScreen> {
                       ),
                       const SizedBox(height: 2),
                       Text(
-                        isAngka ? "$targetGanjil Nadzom" : "Bab Akhir Ganjil",
+                        isAngka
+                            ? "$targetGanjil Nadzom"
+                            : "Bab ke-$totalBabGanjil: $targetGanjilNama",
                         style: GoogleFonts.outfit(color: context.titleColor, fontSize: 13, fontWeight: FontWeight.bold),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
                       ),
                     ],
                   ),
@@ -1414,8 +1756,12 @@ class _SetoranHafalanScreenState extends State<SetoranHafalanScreen> {
                       ),
                       const SizedBox(height: 2),
                       Text(
-                        isAngka ? "$targetGenap Nadzom" : "Khatam Seluruh Bab",
+                        isAngka
+                            ? "$targetGenap Nadzom"
+                            : "Bab ke-$totalBabGenap: $targetGenapNama",
                         style: GoogleFonts.outfit(color: context.titleColor, fontSize: 13, fontWeight: FontWeight.bold),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
                       ),
                     ],
                   ),
@@ -1437,6 +1783,26 @@ class _SetoranHafalanScreenState extends State<SetoranHafalanScreen> {
                   _buildScaleBadge("⚡ Mutawassith", "${skalaAktif['mutawassith']?['min']} - ${skalaAktif['mutawassith']?['max']}", const Color(0xFFD97706)),
                   const SizedBox(width: 6),
                   _buildScaleBadge("📖 Rodi'", "${skalaAktif['rodi']?['min']} - ${skalaAktif['rodi']?['max']}", const Color(0xFFEF4444)),
+                ],
+              ),
+            ),
+          ] else if (!isAngka && skalaBab != null) ...[
+            const SizedBox(height: 10),
+            SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: Row(
+                children: [
+                  if (skalaBab['mumtaz'] != null)
+                    _buildScaleBadge("🏆 Mumtaz", "${skalaBab['mumtaz']?['range_text'] ?? ''} (${skalaBab['mumtaz']?['bab_nama'] ?? ''})", const Color(0xFF10B981)),
+                  const SizedBox(width: 6),
+                  if (skalaBab['jayyid'] != null)
+                    _buildScaleBadge("🌟 Jayyid", "${skalaBab['jayyid']?['range_text'] ?? ''}", const Color(0xFF3B82F6)),
+                  const SizedBox(width: 6),
+                  if (skalaBab['mutawassith'] != null)
+                    _buildScaleBadge("⚡ Mutawassith", "${skalaBab['mutawassith']?['range_text'] ?? ''}", const Color(0xFFD97706)),
+                  const SizedBox(width: 6),
+                  if (skalaBab['rodi'] != null)
+                    _buildScaleBadge("📖 Rodi'", "${skalaBab['rodi']?['range_text'] ?? ''}", const Color(0xFFEF4444)),
                 ],
               ),
             ),
@@ -1673,10 +2039,58 @@ class _SetoranHafalanScreenState extends State<SetoranHafalanScreen> {
                               style: GoogleFonts.outfit(color: context.subTitleColor, fontSize: 11),
                             ),
                         ] else ...[
-                          Text(
-                            "Capaian: ${santri['nama_bab_terakhir'] ?? 'Belum ada'}",
-                            style: GoogleFonts.outfit(color: context.subTitleColor, fontSize: 11),
-                          ),
+                          if (santri['bab_index'] != null && (santri['bab_index'] as num) > 0) ...[
+                            Text(
+                              "Capaian: Bab ke-${santri['bab_index']}: ${santri['nama_bab_terakhir'] ?? ''}",
+                              style: GoogleFonts.outfit(
+                                color: context.titleColor,
+                                fontSize: 12,
+                                fontWeight: FontWeight.bold,
+                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                            if ((santri['bab_index'] as num) >= (santri['target_genap'] ?? 26))
+                              Text(
+                                "🏆 Khatam Kitab (Bab ke-${santri['target_genap'] ?? 26})",
+                                style: GoogleFonts.outfit(
+                                  color: const Color(0xFF10B981),
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              )
+                            else if (isMelampaui)
+                              Text(
+                                "✨ Melampaui Ganjil (Bab ke-${santri['bab_index']}/${santri['target_genap'] ?? 26})",
+                                style: GoogleFonts.outfit(
+                                  color: const Color(0xFF8B5CF6),
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              )
+                            else
+                              Text(
+                                "Target Ganjil: Bab ke-${santri['target_semester'] ?? 14} (${santri['target_ganjil_nama'] ?? ''})",
+                                style: GoogleFonts.outfit(color: context.subTitleColor, fontSize: 11),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                          ] else ...[
+                            Text(
+                              "Capaian: Belum setor bab",
+                              style: GoogleFonts.outfit(
+                                color: context.subTitleColor,
+                                fontSize: 12,
+                                fontStyle: FontStyle.italic,
+                              ),
+                            ),
+                            Text(
+                              "Target Ganjil: Bab ke-${santri['target_semester'] ?? 14} (${santri['target_ganjil_nama'] ?? ''})",
+                              style: GoogleFonts.outfit(color: context.subTitleColor, fontSize: 11),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ],
                         ],
                       ],
                     ),
@@ -1714,7 +2128,11 @@ class _SetoranHafalanScreenState extends State<SetoranHafalanScreen> {
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   Text(
-                    "$persentase% dari target",
+                    isAngka
+                        ? "$persentase% dari target"
+                        : ((santri['bab_index'] != null && (santri['bab_index'] as num) > 0)
+                            ? "$persentase% dari target Ganjil (Bab ${santri['bab_index']}/${santri['target_semester'] ?? 14})"
+                            : "0% dari target (${santri['target_semester'] ?? 14} Bab)"),
                     style: GoogleFonts.outfit(color: context.subTitleColor, fontSize: 10, fontWeight: FontWeight.bold),
                   ),
                   if (isMelampaui)

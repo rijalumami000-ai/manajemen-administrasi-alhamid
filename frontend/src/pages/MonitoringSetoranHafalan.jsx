@@ -388,12 +388,25 @@ export default function MonitoringSetoranHafalan() {
                   <h4>Standar Target & Kriteria Predikat — Kelas {kelasDetail?.nama || ''}</h4>
                 </div>
                 <div className="guide-target-badges">
-                  <span className="badge-target ganjil">
-                    Target {overviewData.kriteriaInfo.is_ganjil ? 'Semester Ini' : 'Ganjil'} (Mumtaz): <strong>{overviewData.kriteriaInfo.target_ganjil} Nadzom</strong>
-                  </span>
-                  <span className="badge-target genap">
-                    Batas Maksimal Genap: <strong>{overviewData.kriteriaInfo.target_genap} Nadzom</strong>
-                  </span>
+                  {overviewData.tipeInput === 'Teks' ? (
+                    <>
+                      <span className="badge-target ganjil">
+                        Target {overviewData.kriteriaInfo.is_ganjil ? 'Semester Ini' : 'Ganjil'} (Mumtaz): <strong>Bab ke-{overviewData.kriteriaInfo.total_bab_ganjil || 14} ({overviewData.kriteriaInfo.target_ganjil_nama || 'Bab Akhir'})</strong>
+                      </span>
+                      <span className="badge-target genap">
+                        Batas Maksimal Genap: <strong>Bab ke-{overviewData.kriteriaInfo.total_bab_genap || 26} ({overviewData.kriteriaInfo.target_genap_nama || 'Khatam'})</strong>
+                      </span>
+                    </>
+                  ) : (
+                    <>
+                      <span className="badge-target ganjil">
+                        Target {overviewData.kriteriaInfo.is_ganjil ? 'Semester Ini' : 'Ganjil'} (Mumtaz): <strong>{overviewData.kriteriaInfo.target_ganjil} Nadzom</strong>
+                      </span>
+                      <span className="badge-target genap">
+                        Batas Maksimal Genap: <strong>{overviewData.kriteriaInfo.target_genap} Nadzom</strong>
+                      </span>
+                    </>
+                  )}
                 </div>
               </div>
 
@@ -438,9 +451,47 @@ export default function MonitoringSetoranHafalan() {
               )}
 
               {overviewData.tipeInput === 'Teks' && (
-                <div className="teks-guide-note">
-                  <span>Format model materi bab. Target puncak Mumtaz di Semester Ganjil adalah <strong>{overviewData.kriteriaInfo.daftar_bab_ganjil?.[overviewData.kriteriaInfo.daftar_bab_ganjil.length - 1]?.bab || 'Bab Akhir Ganjil'}</strong>. Santri dapat melanjutkan setoran ke materi semester genap hingga tuntas.</span>
-                </div>
+                <>
+                  <div className="predikat-scales-grid">
+                    <div className="scale-item mumtaz">
+                      <div className="scale-badge">🏆 Mumtaz (Target Puncak)</div>
+                      <div className="scale-range">
+                        <strong>Bab ke-{overviewData.kriteriaInfo.total_bab_ganjil || 14}</strong>
+                      </div>
+                      <div className="scale-desc">
+                        {overviewData.kriteriaInfo.target_ganjil_nama} • Melampaui: s/d Bab ke-{overviewData.kriteriaInfo.total_bab_genap || 26}
+                      </div>
+                    </div>
+
+                    <div className="scale-item jayyid">
+                      <div className="scale-badge">🌟 Jayyid</div>
+                      <div className="scale-range">
+                        <strong>{overviewData.kriteriaInfo.skala_bab?.jayyid?.range_text || 'Bab 12 - 13'}</strong>
+                      </div>
+                      <div className="scale-desc">Tingkat Baik</div>
+                    </div>
+
+                    <div className="scale-item mutawassith">
+                      <div className="scale-badge">⚡ Mutawassith</div>
+                      <div className="scale-range">
+                        <strong>{overviewData.kriteriaInfo.skala_bab?.mutawassith?.range_text || 'Bab 10 - 11'}</strong>
+                      </div>
+                      <div className="scale-desc">Tingkat Cukup</div>
+                    </div>
+
+                    <div className="scale-item rodi">
+                      <div className="scale-badge">📖 Rodi'</div>
+                      <div className="scale-range">
+                        <strong>{overviewData.kriteriaInfo.skala_bab?.rodi?.range_text || 'Bab 1 - 9'}</strong>
+                      </div>
+                      <div className="scale-desc">Tahap Awal / Bimbingan</div>
+                    </div>
+                  </div>
+
+                  <div className="teks-guide-note" style={{ marginTop: '12px' }}>
+                    <span>Model materi bab. Target puncak Mumtaz di Semester Ganjil adalah <strong>Bab ke-{overviewData.kriteriaInfo.total_bab_ganjil || 14} ({overviewData.kriteriaInfo.target_ganjil_nama || 'Bab Akhir'})</strong>. Santri dapat melanjutkan setoran ke materi semester genap hingga <strong>Bab ke-{overviewData.kriteriaInfo.total_bab_genap || 26} ({overviewData.kriteriaInfo.target_genap_nama || 'Khatam'})</strong>.</span>
+                  </div>
+                </>
               )}
             </div>
           )}
@@ -598,7 +649,26 @@ export default function MonitoringSetoranHafalan() {
                               </div>
                             ) : (
                               <div className="capaian-cell">
-                                <span className="capaian-main"><strong>{santri.nama_bab_terakhir || 'Belum ada'}</strong></span>
+                                {santri.nama_bab_terakhir ? (
+                                  <>
+                                    <span className="capaian-main" style={{ fontSize: '13px', fontWeight: 'bold' }}>
+                                      {santri.bab_index ? `Bab ke-${santri.bab_index}: ` : ''}{santri.nama_bab_terakhir}
+                                    </span>
+                                    {santri.is_melampaui_ganjil ? (
+                                      <span className="capaian-extra-tag" style={{ color: '#8b5cf6', fontSize: '11px', fontWeight: 'bold' }}>
+                                        ✨ Melampaui Ganjil (Materi Genap) • Batas Maks: Bab ke-{santri.target_genap}
+                                      </span>
+                                    ) : (
+                                      <span className="capaian-sub" style={{ fontSize: '11px', color: '#64748b' }}>
+                                        Target Ganjil: Bab ke-{santri.target_semester} • Maks: Bab ke-{santri.target_genap}
+                                      </span>
+                                    )}
+                                  </>
+                                ) : (
+                                  <span className="capaian-empty" style={{ color: '#94a3b8', fontStyle: 'italic', fontSize: '12px' }}>
+                                    Belum setor bab
+                                  </span>
+                                )}
                               </div>
                             )}
                           </td>
