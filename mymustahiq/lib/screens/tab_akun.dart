@@ -114,11 +114,8 @@ class _TabAkunState extends State<TabAkun> {
       try {
         final didAuth = await _auth.authenticate(
           localizedReason: 'Aktifkan login biometrik untuk Alhamid One',
-          options: const AuthenticationOptions(
-            biometricOnly: false,
-            stickyAuth: true,
-            useErrorDialogs: true,
-          ),
+          biometricOnly: false,
+          persistAcrossBackgrounding: true,
         );
         if (didAuth) {
           await QuickAuthService.setBiometric(true);
@@ -140,11 +137,8 @@ class _TabAkunState extends State<TabAkun> {
       try {
         final didAuth = await _auth.authenticate(
           localizedReason: 'Aktifkan login verifikasi wajah untuk Alhamid One',
-          options: const AuthenticationOptions(
-            biometricOnly: false,
-            stickyAuth: true,
-            useErrorDialogs: true,
-          ),
+          biometricOnly: false,
+          persistAcrossBackgrounding: true,
         );
         if (didAuth) {
           await QuickAuthService.setFace(true);

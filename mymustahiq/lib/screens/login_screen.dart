@@ -158,11 +158,8 @@ class _LoginScreenState extends State<LoginScreen> {
 
       final didAuth = await _auth.authenticate(
         localizedReason: 'Konfirmasi sidik jari atau biometrik untuk masuk ke Alhamid One',
-        options: const AuthenticationOptions(
-          biometricOnly: false,
-          stickyAuth: true,
-          useErrorDialogs: true,
-        ),
+        biometricOnly: false,
+        persistAcrossBackgrounding: true,
       );
 
       if (!didAuth) return;
@@ -188,11 +185,8 @@ class _LoginScreenState extends State<LoginScreen> {
 
       final didAuth = await _auth.authenticate(
         localizedReason: 'Konfirmasi verifikasi wajah untuk masuk ke Alhamid One',
-        options: const AuthenticationOptions(
-          biometricOnly: false,
-          stickyAuth: true,
-          useErrorDialogs: true,
-        ),
+        biometricOnly: false,
+        persistAcrossBackgrounding: true,
       );
 
       if (!didAuth) return;
