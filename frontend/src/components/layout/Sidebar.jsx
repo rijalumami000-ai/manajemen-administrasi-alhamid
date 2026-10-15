@@ -285,7 +285,7 @@ export function Sidebar({ collapsed, onCollapse }) {
         ...(isAdmin() ? [{
           key: '/mymustahiq-settings',
           icon: 'Settings',
-          label: 'Setelan MyMustahiq',
+          label: 'Setelan Alhamid One',
           disabled: false
         }] : []),
         { key: '/profile', icon: 'User', label: 'Profile', disabled: isStaff() }

@@ -97,7 +97,7 @@ const MobileMenu = ({ open, onClose, onLogout }) => {
       roleFilter: () => isAdmin(),
       items: [
         { key: '/users', icon: <ShieldCheck size={18} />, label: 'User Management' },
-        { key: '/mymustahiq-settings', icon: <Settings size={18} />, label: 'Setelan MyMustahiq' },
+        { key: '/mymustahiq-settings', icon: <Settings size={18} />, label: 'Setelan Alhamid One' },
         { key: '/profile', icon: <User size={18} />, label: 'Profile' },
       ]
     }

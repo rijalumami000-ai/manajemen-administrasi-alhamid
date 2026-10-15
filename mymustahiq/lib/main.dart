@@ -19,11 +19,11 @@ void main() async {
   await ThemeManager().init();
   await PushNotificationService().initialize();
   await NetworkService().initialize();
-  runApp(const MyMustahiqApp());
+  runApp(const AlhamidOneApp());
 }
 
-class MyMustahiqApp extends StatelessWidget {
-  const MyMustahiqApp({super.key});
+class AlhamidOneApp extends StatelessWidget {
+  const AlhamidOneApp({super.key});
 
   @override
   Widget build(BuildContext context) {

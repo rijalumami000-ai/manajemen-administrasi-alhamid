@@ -1,6 +1,6 @@
-# mymustahiq
+# Alhamid One
 
-A new Flutter project.
+Aplikasi Mobile Resmi Pondok Pesantren Al-Hamid (Alhamid One).
 
 ## Getting Started
 

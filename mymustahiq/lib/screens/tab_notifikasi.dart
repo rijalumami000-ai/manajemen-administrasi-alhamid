@@ -40,8 +40,8 @@ class _TabNotifikasiState extends State<TabNotifikasi> {
     },
     {
       'id': 4,
-      'title': 'Pembaruan Aplikasi MyMustahiq v1.2',
-      'body': 'Aplikasi Anda telah diperbarui ke versi v1.2. Pembaruan ini mencakup navigasi menu baru (Bottom Navbar), fitur ganti password langsung dari HP, login sidik jari (biometrik), dan perbaikan pemuatan foto santri.',
+      'title': 'Pembaruan Aplikasi Alhamid One v1.4.1',
+      'body': 'Aplikasi Anda telah diperbarui ke versi v1.4.1. Pembaruan ini mencakup navigasi menu baru (Bottom Navbar), fitur ganti password langsung dari HP, login sidik jari (biometrik), dan perbaikan pemuatan foto santri.',
       'category': 'Sistem',
       'time': '3 hari yang lalu',
       'isRead': true,

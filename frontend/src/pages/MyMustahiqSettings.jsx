@@ -59,7 +59,7 @@ function CredentialsModal({ guru, onClose, onSave, onRemove, submitting }) {
         <div className="mms-modal__header">
           <div className="mms-modal__title">
             <Key size={18} />
-            <span>Setel Kredensial MyMustahiq</span>
+            <span>Setel Kredensial Alhamid One</span>
           </div>
           <button className="mms-modal__close" onClick={onClose}><X size={18} /></button>
         </div>
@@ -280,7 +280,7 @@ function GuruTable({ gurus, onSetAccess }) {
               <th>NIP</th>
               <th>No. HP</th>
               <th>Status Guru</th>
-              <th>Username MyMustahiq</th>
+              <th>Username Alhamid One</th>
               <th>Akses Mobile</th>
               <th>Aksi</th>
             </tr>
@@ -358,7 +358,7 @@ function SuggestionsTable({ suggestions, onDelete, onRefresh }) {
         <MessageSquare size={20} className="mms-card__icon mms-icon-purple" />
         <div>
           <h3>Saran & Masukan Pengguna</h3>
-          <p>{suggestions.length} saran diterima dari aplikasi MyMustahiq</p>
+          <p>{suggestions.length} saran diterima dari aplikasi Alhamid One</p>
         </div>
         <button className="mms-btn mms-btn--ghost mms-btn--icon" onClick={onRefresh} title="Muat ulang">
           <RefreshCw size={15} />
@@ -482,7 +482,7 @@ export function MyMustahiqSettings() {
     setSubmitting(true);
     try {
       const response = await myMustahiqService.updateCredentials(selectedGuru.id, null, null);
-      addToast(response.message || 'Akses MyMustahiq berhasil dinonaktifkan.');
+      addToast(response.message || 'Akses Alhamid One berhasil dinonaktifkan.');
       setGurus((prev) =>
         prev.map((g) => g.id === selectedGuru.id ? { ...g, mymustahiq_username: null } : g)
       );
@@ -538,7 +538,7 @@ export function MyMustahiqSettings() {
       <Toast toasts={toasts} onDismiss={dismissToast} />
 
       <PageHeader
-        title="Setelan & Utilitas MyMustahiq"
+        title="Setelan & Utilitas Alhamid One"
         subtitle="Kelola akun login ustadz dan kirim notifikasi manual ke aplikasi mobile"
       />
 

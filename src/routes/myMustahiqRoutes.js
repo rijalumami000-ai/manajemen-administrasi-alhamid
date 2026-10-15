@@ -35,9 +35,9 @@ function registerMyMustahiqRoutes(app) {
       return res.status(403).json({ error: 'Akses ditolak. Status guru tidak aktif.' });
     }
 
-    // Cek apakah kredensial login MyMustahiq sudah dibuat
+    // Cek apakah kredensial login Alhamid One sudah dibuat
     if (!guru.mymustahiq_password) {
-      return res.status(403).json({ error: 'Akses login MyMustahiq belum diaktifkan oleh Administrator.' });
+      return res.status(403).json({ error: 'Akses login Alhamid One belum diaktifkan oleh Administrator.' });
     }
 
     // Bandingkan password menggunakan bcrypt
@@ -739,7 +739,7 @@ function registerMyMustahiqRoutes(app) {
         'UPDATE guru SET mymustahiq_username = NULL, mymustahiq_password = NULL WHERE id = $1',
         [guruId]
       );
-      return res.json({ success: true, message: 'Akses MyMustahiq berhasil dinonaktifkan.' });
+      return res.json({ success: true, message: 'Akses Alhamid One berhasil dinonaktifkan.' });
     }
 
     // 2. Check if username is already taken by another teacher
@@ -772,7 +772,7 @@ function registerMyMustahiqRoutes(app) {
       );
     }
 
-    res.json({ success: true, message: 'Kredensial login MyMustahiq berhasil diperbarui.' });
+    res.json({ success: true, message: 'Kredensial login Alhamid One berhasil diperbarui.' });
   }));
 
   /**
