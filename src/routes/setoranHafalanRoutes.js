@@ -81,6 +81,74 @@ function registerSetoranHafalanRoutes(app) {
     };
   }
 
+  // Helper: Normalisasi teks Arab untuk pencocokan Bab
+  function normalizeArabicText(text) {
+    if (!text) return '';
+    return text
+      .toString()
+      .trim()
+      .toLowerCase()
+      .replace(/[\u064B-\u065F\u0670]/g, '') // remove tashkeel/harakat
+      .replace(/\u0640/g, '') // remove tatweel/kashida
+      .replace(/[أإآ]/g, 'ا') // normalize alif hamzah
+      .replace(/[ى]/g, 'ي')
+      .replace(/ة/g, 'ه')
+      .replace(/\s+/g, ' ');
+  }
+
+  // Helper: Pencocokan nama bab secara cerdas (string, normalized, nomor bab, substring)
+  function findBabMatch(queryBab, babList) {
+    if (!queryBab || !Array.isArray(babList) || babList.length === 0) return null;
+    const qStr = queryBab.toString().trim();
+    const qNorm = normalizeArabicText(qStr);
+
+    // 1. Direct or normalized match
+    for (let i = 0; i < babList.length; i++) {
+      const item = babList[i];
+      const bStr = (item.bab || '').trim();
+      if (bStr.toLowerCase() === qStr.toLowerCase()) {
+        return { item, index: i + 1 };
+      }
+      if (normalizeArabicText(bStr) === qNorm) {
+        return { item, index: i + 1 };
+      }
+    }
+
+    // 2. Numeric / index match: "Bab 14", "14", "Bab ke-14"
+    const numMatch = qStr.match(/\b(\d+)\b/);
+    if (numMatch) {
+      const num = parseInt(numMatch[1], 10);
+      if (num >= 1 && num <= babList.length) {
+        return { item: babList[num - 1], index: num };
+      }
+    }
+
+    // 3. Substring match
+    for (let i = 0; i < babList.length; i++) {
+      const item = babList[i];
+      const bNorm = normalizeArabicText(item.bab || '');
+      if (bNorm.includes(qNorm) || qNorm.includes(bNorm)) {
+        return { item, index: i + 1 };
+      }
+    }
+
+    return null;
+  }
+
+  // Helper: Rentang bab teks per predikat
+  function getBabRangeText(list, predikat) {
+    if (!Array.isArray(list) || list.length === 0) return '-';
+    const indices = [];
+    list.forEach((b, idx) => {
+      if ((b.predikat || '').toLowerCase() === predikat.toLowerCase()) {
+        indices.push(idx + 1);
+      }
+    });
+    if (indices.length === 0) return '-';
+    if (indices.length === 1) return `Bab ke-${indices[0]}`;
+    return `Bab ke-${indices[0]} s/d ${indices[indices.length - 1]}`;
+  }
+
   // Helper: Evaluasi Predikat dan Pencapaian Santri
   function evaluateProgress(currentBait, currentBab, tipeInput, kriteriaGanjil, kriteriaGenap, isGanjilActive) {
     let predikat = '-';
@@ -88,6 +156,7 @@ function registerSetoranHafalanRoutes(app) {
     let isMelampauiGanjil = false;
     let targetSemesterAktif = 100;
     let targetGenap = 200;
+    let babIndex = null;
 
     const parsedGanjil = parseConfigAngka(kriteriaGanjil?.konfigurasi);
     const parsedGenap = parseConfigAngka(kriteriaGenap?.konfigurasi);
@@ -107,7 +176,7 @@ function registerSetoranHafalanRoutes(app) {
       if (baitVal <= 0) {
         predikat = 'Belum Setor';
         persentase = 0;
-        return { predikat, persentase, isMelampauiGanjil: false, targetSemesterAktif, targetGenap };
+        return { predikat, persentase, isMelampauiGanjil: false, targetSemesterAktif, targetGenap, babIndex: null };
       }
 
       if (isGanjilActive) {
@@ -148,42 +217,69 @@ function registerSetoranHafalanRoutes(app) {
       }
     } else {
       // Model Bab / Teks
+      const listGanjil = Array.isArray(kriteriaGanjil?.konfigurasi) ? kriteriaGanjil.konfigurasi : [];
+      const listGenap = Array.isArray(kriteriaGenap?.konfigurasi) ? kriteriaGenap.konfigurasi : [];
+      const totalBabGanjil = listGanjil.length || 14;
+      const totalBabGenap = listGenap.length || totalBabGanjil || 26;
+
+      targetSemesterAktif = isGanjilActive ? totalBabGanjil : totalBabGenap;
+      targetGenap = totalBabGenap;
+
       if (!currentBab) {
         predikat = 'Belum Setor';
         persentase = 0;
-      } else {
-        const listGanjil = Array.isArray(kriteriaGanjil?.konfigurasi) ? kriteriaGanjil.konfigurasi : [];
-        const listGenap = Array.isArray(kriteriaGenap?.konfigurasi) ? kriteriaGenap.konfigurasi : [];
+        return { predikat, persentase, isMelampauiGanjil: false, targetSemesterAktif, targetGenap, babIndex: null };
+      }
 
-        // Cek apakah bab ada di daftar
-        const matchG = listGanjil.find(item => (item.bab || '').trim().toLowerCase() === currentBab.trim().toLowerCase());
-        const matchGe = listGenap.find(item => (item.bab || '').trim().toLowerCase() === currentBab.trim().toLowerCase());
+      // Cari di list Genap terlebih dahulu karena memuat daftar lengkap
+      const matchGe = findBabMatch(currentBab, listGenap);
+      const matchG = findBabMatch(currentBab, listGanjil);
 
-        if (isGanjilActive && matchGe && !matchG) {
+      if (matchGe) {
+        babIndex = matchGe.index;
+      } else if (matchG) {
+        babIndex = matchG.index;
+      }
+
+      if (isGanjilActive) {
+        if (babIndex && babIndex >= totalBabGenap) {
           isMelampauiGanjil = true;
-          predikat = matchGe.predikat ? `${matchGe.predikat} (Genap)` : 'Melampaui Target Ganjil';
+          predikat = 'Mumtaz (Tuntas Genap)';
+          persentase = 100;
+        } else if (babIndex && babIndex > totalBabGanjil) {
+          isMelampauiGanjil = true;
+          predikat = 'Mumtaz (Melampaui Target Ganjil)';
+          persentase = 100;
         } else if (matchG) {
-          predikat = matchG.predikat || 'Tuntas';
+          predikat = matchG.item.predikat || 'Tuntas';
+          persentase = Math.min(100, Math.round((matchG.index / totalBabGanjil) * 100));
         } else if (matchGe) {
-          predikat = matchGe.predikat || 'Tuntas';
-        } else {
-          predikat = 'Tercatat';
-        }
-
-        // Estimasi persentase index bab
-        const totalBabGanjil = listGanjil.length || 1;
-        const idx = listGanjil.findIndex(item => (item.bab || '').trim().toLowerCase() === currentBab.trim().toLowerCase());
-        if (idx >= 0) {
-          persentase = Math.round(((idx + 1) / totalBabGanjil) * 100);
-        } else if (isMelampauiGanjil) {
+          isMelampauiGanjil = true;
+          predikat = matchGe.item.predikat ? `${matchGe.item.predikat} (Genap)` : 'Mumtaz (Melampaui Target Ganjil)';
           persentase = 100;
         } else {
+          predikat = 'Tercatat';
+          persentase = 50;
+        }
+      } else {
+        // Genap aktif
+        if (babIndex && babIndex >= totalBabGenap) {
+          predikat = 'Mumtaz (Tuntas Genap)';
+          persentase = 100;
+        } else if (matchGe) {
+          predikat = matchGe.item.predikat || 'Tuntas';
+          persentase = Math.min(100, Math.round((matchGe.index / totalBabGenap) * 100));
+        } else if (matchG) {
+          predikat = matchG.item.predikat || 'Tercatat';
+          persentase = Math.min(100, Math.round((matchG.index / totalBabGenap) * 100));
+        } else {
+          predikat = 'Tercatat';
           persentase = 50;
         }
       }
     }
 
-    return { predikat, persentase, isMelampauiGanjil, targetSemesterAktif, targetGenap };
+    return { predikat, persentase, isMelampauiGanjil, targetSemesterAktif, targetGenap, babIndex };
   }
 
   /**
@@ -322,6 +418,68 @@ function registerSetoranHafalanRoutes(app) {
     let countMelampaui = 0;
     let countBelumSetorPekanIni = 0;
 
+    // Konfigurasi target Bab untuk model Teks
+    const isTeks = tipeInput === 'Teks';
+    const listBabGanjil = Array.isArray(kriteriaGanjil?.konfigurasi) ? kriteriaGanjil.konfigurasi : [];
+    const listBabGenap = Array.isArray(kriteriaGenap?.konfigurasi) ? kriteriaGenap.konfigurasi : [];
+
+    const totalBabGanjil = listBabGanjil.length || 14;
+    const totalBabGenap = listBabGenap.length || totalBabGanjil || 26;
+
+    const mumtazBabGanjil = listBabGanjil.find(b => (b.predikat || '').toLowerCase() === 'mumtaz') || listBabGanjil[listBabGanjil.length - 1];
+    const mumtazBabGenap = listBabGenap.find(b => (b.predikat || '').toLowerCase() === 'mumtaz') || listBabGenap[listBabGenap.length - 1];
+
+    const fullBabList = listBabGenap.length >= listBabGanjil.length ? listBabGenap : listBabGanjil;
+    const daftarBabSemua = fullBabList.map((item, idx) => {
+      const babNo = idx + 1;
+      const isGanjilScope = babNo <= totalBabGanjil;
+      const gItem = isGanjilScope && listBabGanjil[idx] ? listBabGanjil[idx] : null;
+      const predGanjil = gItem ? gItem.predikat : (isGanjilScope ? 'Mumtaz' : 'Melampaui Target Ganjil');
+      const predGenap = item.predikat || 'Tercatat';
+      return {
+        index: babNo,
+        bab: item.bab,
+        predikat: isGanjilActive ? (isGanjilScope ? predGanjil : 'Mumtaz (Melampaui Target Ganjil)') : predGenap,
+        predikat_ganjil: predGanjil,
+        predikat_genap: predGenap,
+        is_target_ganjil: babNo === totalBabGanjil,
+        is_target_genap: babNo === totalBabGenap,
+        is_genap_scope: !isGanjilScope
+      };
+    });
+
+    const skalaBab = {
+      mumtaz: {
+        label: 'Mumtaz (Target Puncak)',
+        target_bab: isGanjilActive ? (mumtazBabGanjil?.bab || 'Bab Akhir') : (mumtazBabGenap?.bab || 'Khatam'),
+        target_index: isGanjilActive ? totalBabGanjil : totalBabGenap,
+        range_text: isGanjilActive 
+          ? `Bab ke-${totalBabGanjil} (${mumtazBabGanjil?.bab || 'Bab Akhir'})` 
+          : `Bab ke-${totalBabGenap} (${mumtazBabGenap?.bab || 'Khatam'})`,
+        desc: isGanjilActive 
+          ? `Tuntas Target Ganjil (Melampaui: Bab ${totalBabGanjil + 1} s/d ${totalBabGenap})` 
+          : 'Tuntas Target Akhir (Khatam)'
+      },
+      jayyid: {
+        label: 'Jayyid',
+        items: listBabGanjil.filter(b => (b.predikat || '').toLowerCase() === 'jayyid').map(b => b.bab),
+        range_text: getBabRangeText(listBabGanjil, 'Jayyid'),
+        desc: 'Tingkat Baik'
+      },
+      mutawassith: {
+        label: 'Mutawassith',
+        items: listBabGanjil.filter(b => (b.predikat || '').toLowerCase() === 'mutawassith').map(b => b.bab),
+        range_text: getBabRangeText(listBabGanjil, 'Mutawassith'),
+        desc: 'Tingkat Cukup'
+      },
+      rodi: {
+        label: "Rodi'",
+        items: listBabGanjil.filter(b => (b.predikat || '').toLowerCase() === "rodi'").map(b => b.bab),
+        range_text: getBabRangeText(listBabGanjil, "Rodi'"),
+        desc: 'Tahap Awal / Bimbingan'
+      }
+    };
+
     const santriList = santriRes.rows.map(s => {
       const agg = aggMap.get(s.id) || {
         total_sesi_setoran: 0,
@@ -329,6 +487,7 @@ function registerSetoranHafalanRoutes(app) {
         total_nadzom_disetor: 0,
         tanggal_setor_terakhir: null
       };
+
       const latest = latestMap.get(s.id) || null;
 
       const evalResult = evaluateProgress(
@@ -357,6 +516,7 @@ function registerSetoranHafalanRoutes(app) {
         bait_terakhir: parseInt(agg.bait_terakhir, 10),
         total_nadzom_disetor: parseInt(agg.total_nadzom_disetor, 10),
         nama_bab_terakhir: latest?.nama_bab || null,
+        bab_index: evalResult.babIndex || null,
         status_kelancaran_terakhir: latest?.status_kelancaran || null,
         catatan_terakhir: latest?.catatan || null,
         tanggal_setor_terakhir: agg.tanggal_setor_terakhir,
@@ -364,16 +524,18 @@ function registerSetoranHafalanRoutes(app) {
         predikat: evalResult.predikat,
         persentase: evalResult.persentase,
         is_melampaui_ganjil: evalResult.isMelampauiGanjil,
-        target_semester: evalResult.targetSemesterAktif,
-        target_genap: evalResult.targetGenap
+        target_semester: isTeks ? (isGanjilActive ? totalBabGanjil : totalBabGenap) : evalResult.targetSemesterAktif,
+        target_semester_nama: isTeks ? (isGanjilActive ? mumtazBabGanjil?.bab : mumtazBabGenap?.bab) : null,
+        target_genap: isTeks ? totalBabGenap : evalResult.targetGenap,
+        target_genap_nama: isTeks ? mumtazBabGenap?.bab : null
       };
     });
 
     const parsedGanjil = parseConfigAngka(kriteriaGanjil?.konfigurasi);
     const parsedGenap = parseConfigAngka(kriteriaGenap?.konfigurasi);
     const activeParsed = isGanjilActive ? parsedGanjil : (parsedGenap || parsedGanjil);
-    const ganjilMumtaz = parsedGanjil?.mumtaz?.max || 100;
-    const genapMumtaz = parsedGenap?.mumtaz?.max || ganjilMumtaz;
+    const ganjilMumtaz = isTeks ? totalBabGanjil : (parsedGanjil?.mumtaz?.max || 100);
+    const genapMumtaz = isTeks ? totalBabGenap : (parsedGenap?.mumtaz?.max || ganjilMumtaz);
     const activeTarget = isGanjilActive ? ganjilMumtaz : genapMumtaz;
 
     res.json({
@@ -390,16 +552,23 @@ function registerSetoranHafalanRoutes(app) {
       },
       kriteriaInfo: {
         tipe: tipeInput,
-        target_semester_aktif: activeTarget,
-        target_ganjil: ganjilMumtaz,
-        target_genap: genapMumtaz,
-        batas_maksimal: genapMumtaz,
+        target_semester_aktif: isTeks ? (isGanjilActive ? totalBabGanjil : totalBabGenap) : activeTarget,
+        target_ganjil: isTeks ? totalBabGanjil : ganjilMumtaz,
+        target_genap: isTeks ? totalBabGenap : genapMumtaz,
+        target_ganjil_nama: mumtazBabGanjil?.bab || '',
+        target_genap_nama: mumtazBabGenap?.bab || '',
+        target_semester_nama: isGanjilActive ? (mumtazBabGanjil?.bab || '') : (mumtazBabGenap?.bab || ''),
+        total_bab_ganjil: totalBabGanjil,
+        total_bab_genap: totalBabGenap,
+        batas_maksimal: isTeks ? totalBabGenap : genapMumtaz,
         is_ganjil: isGanjilActive,
-        skala_aktif: activeParsed,
-        skala_ganjil: parsedGanjil,
-        skala_genap: parsedGenap,
-        daftar_bab_ganjil: Array.isArray(kriteriaGanjil?.konfigurasi) ? kriteriaGanjil.konfigurasi : [],
-        daftar_bab_genap: Array.isArray(kriteriaGenap?.konfigurasi) ? kriteriaGenap.konfigurasi : []
+        skala_aktif: isTeks ? null : activeParsed,
+        skala_ganjil: isTeks ? null : parsedGanjil,
+        skala_genap: isTeks ? null : parsedGenap,
+        skala_bab: skalaBab,
+        daftar_bab_ganjil: listBabGanjil,
+        daftar_bab_genap: listBabGenap,
+        daftar_bab_semua: daftarBabSemua
       },
       stats: {
         totalSantri: santriList.length,
