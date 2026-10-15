@@ -137,7 +137,7 @@ function registerMyMustahiqRoutes(app) {
         let countQuery = `
           SELECT COUNT(*) AS total
           FROM santri_tahun_ajaran
-          WHERE kelas_diniyah_id = $1 AND tahun_ajaran_id = $2 AND status = 'aktif'
+          WHERE kelas_diniyah_id = $1 AND tahun_ajaran_id = $2 AND status IN ('aktif', 'alumni')
         `;
         if (isGenap) {
           countQuery += ` AND aktif_genap = TRUE`;
@@ -276,7 +276,7 @@ function registerMyMustahiqRoutes(app) {
       FROM santri_tahun_ajaran sta
       JOIN santri s ON sta.santri_id = s.id
       LEFT JOIN kamar k ON sta.kamar_id = k.id
-      WHERE sta.kelas_diniyah_id = $1 AND sta.tahun_ajaran_id = $2 AND sta.status = 'aktif'
+      WHERE sta.kelas_diniyah_id = $1 AND sta.tahun_ajaran_id = $2 AND sta.status IN ('aktif', 'alumni')
     `;
     if (isGenap) {
       queryStr += ` AND sta.aktif_genap = TRUE`;
@@ -474,7 +474,7 @@ function registerMyMustahiqRoutes(app) {
       try {
         const classSantriRes = await db.query(`
           SELECT santri_id FROM santri_tahun_ajaran
-          WHERE kelas_diniyah_id = $1 AND tahun_ajaran_id = $2 AND status = 'aktif'
+          WHERE kelas_diniyah_id = $1 AND tahun_ajaran_id = $2 AND status IN ('aktif', 'alumni')
         `, [profile.kelas_diniyah_id, activeYear.id]);
         
         const classSantriIds = classSantriRes.rows.map(r => r.santri_id);
@@ -1178,7 +1178,7 @@ function registerMyMustahiqRoutes(app) {
       SELECT sta.santri_id AS id, sta.nama, sta.nis, s.foto_url, sta.jenis_kelamin
       FROM santri_tahun_ajaran sta
       JOIN santri s ON sta.santri_id = s.id
-      WHERE sta.kelas_diniyah_id = $1 AND sta.tahun_ajaran_id = $2 AND sta.status = 'aktif'
+      WHERE sta.kelas_diniyah_id = $1 AND sta.tahun_ajaran_id = $2 AND sta.status IN ('aktif', 'alumni')
     `;
     if (isGenap) {
       studentsQuery += ` AND sta.aktif_genap = TRUE`;
@@ -2547,7 +2547,7 @@ function registerMyMustahiqRoutes(app) {
       SELECT sta.santri_id AS id, sta.nis, sta.nama, s.foto_url
       FROM santri_tahun_ajaran sta
       JOIN santri s ON s.id = sta.santri_id
-      WHERE sta.kelas_diniyah_id = $1 AND sta.tahun_ajaran_id = $2 AND sta.status = 'aktif'
+      WHERE sta.kelas_diniyah_id = $1 AND sta.tahun_ajaran_id = $2 AND sta.status IN ('aktif', 'alumni')
     `;
     if (isGenap) santriQuery += ' AND sta.aktif_genap = TRUE';
     else santriQuery += ' AND sta.aktif_ganjil = TRUE';
@@ -2797,7 +2797,7 @@ function registerMyMustahiqRoutes(app) {
     let santriQuery = `
       SELECT sta.santri_id AS id, sta.nis, sta.nama
       FROM santri_tahun_ajaran sta
-      WHERE sta.kelas_diniyah_id = $1 AND sta.tahun_ajaran_id = $2 AND sta.status = 'aktif'
+      WHERE sta.kelas_diniyah_id = $1 AND sta.tahun_ajaran_id = $2 AND sta.status IN ('aktif', 'alumni')
     `;
     if (isGenap) santriQuery += ' AND sta.aktif_genap = TRUE';
     else santriQuery += ' AND sta.aktif_ganjil = TRUE';

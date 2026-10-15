@@ -239,7 +239,7 @@ function registerSetoranHafalanRoutes(app) {
       SELECT sta.santri_id AS id, sta.nis, sta.nama, s.foto_url
       FROM santri_tahun_ajaran sta
       JOIN santri s ON s.id = sta.santri_id
-      WHERE sta.kelas_diniyah_id = $1 AND sta.tahun_ajaran_id = $2 AND sta.status = 'aktif'
+      WHERE sta.kelas_diniyah_id = $1 AND sta.tahun_ajaran_id = $2 AND sta.status IN ('aktif', 'alumni')
     `;
     if (isGenap) santriQuery += ' AND sta.aktif_genap = TRUE';
     else santriQuery += ' AND sta.aktif_ganjil = TRUE';

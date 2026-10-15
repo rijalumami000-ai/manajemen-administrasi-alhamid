@@ -30,7 +30,7 @@ function registerSantriRoutes(app) {
       }
 
       let alumniWhere = '';
-      if (tahun_ajaran_id) {
+      if (kelas_id || tahun_ajaran_id) {
         alumniWhere = `WHERE COALESCE(sta.status, 'aktif') IN ('aktif', 'draft', 'tidak_naik', 'lulus', 'alumni')`;
       } else {
         alumniWhere = `

@@ -13,17 +13,17 @@ function registerTahunAjaranRoutes(app) {
       const result = await db.query(`
         SELECT
           ta.*,
-          COUNT(sta.id) FILTER (WHERE sta.status = 'aktif')::INTEGER AS jumlah_santri,
+          COUNT(sta.id) FILTER (WHERE sta.status IN ('aktif', 'alumni'))::INTEGER AS jumlah_santri,
           (
             SELECT COALESCE(COUNT(DISTINCT class_id), 0)::INTEGER
             FROM (
               SELECT kelas_diniyah_id AS class_id
               FROM santri_tahun_ajaran
-              WHERE tahun_ajaran_id = ta.id AND status = 'aktif' AND kelas_diniyah_id IS NOT NULL
+              WHERE tahun_ajaran_id = ta.id AND status IN ('aktif', 'alumni') AND kelas_diniyah_id IS NOT NULL
               UNION
               SELECT kelas_sekolah_id AS class_id
               FROM santri_tahun_ajaran
-              WHERE tahun_ajaran_id = ta.id AND status = 'aktif' AND kelas_sekolah_id IS NOT NULL
+              WHERE tahun_ajaran_id = ta.id AND status IN ('aktif', 'alumni') AND kelas_sekolah_id IS NOT NULL
             ) uc
           ) AS jumlah_kelas
         FROM tahun_ajaran ta

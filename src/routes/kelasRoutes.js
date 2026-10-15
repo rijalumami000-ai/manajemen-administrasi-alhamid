@@ -222,25 +222,34 @@ function registerKelasRoutes(app) {
       }
       const targetKelas = kelasRes.rows[0];
 
-      // 2. Check if active students are currently assigned to this class in active academic year
-      const activeYear = await getActiveTahunAjaran();
-      const activeYearId = activeYear ? activeYear.id : null;
-
+      // 2. Check if ANY students (aktif, alumni, lulus) are assigned to this class in any academic year
       const studentCheck = await db.query(`
         SELECT COUNT(*) 
         FROM santri_tahun_ajaran sta
         WHERE (sta.kelas_diniyah_id = $1 OR sta.kelas_sekolah_id = $1)
-          AND ($2::INTEGER IS NULL OR sta.tahun_ajaran_id = $2::INTEGER)
-          AND sta.status = 'aktif'
-      `, [id, activeYearId]);
+      `, [id]);
 
-      const activeStudentCount = parseInt(studentCheck.rows[0].count, 10);
+      const totalStudentCount = parseInt(studentCheck.rows[0].count, 10);
 
-      // If active students exist in this class, BLOCK deletion!
-      if (activeStudentCount > 0) {
+      // If students exist in this class, BLOCK deletion to protect historical integrity!
+      if (totalStudentCount > 0) {
         await db.query('ROLLBACK');
         return res.status(400).json({
-          error: `Kelas "${targetKelas.nama}" tidak dapat dihapus karena masih digunakan oleh ${activeStudentCount} santri aktif. Pindahkan santri ke kelas lain terlebih dahulu.`
+          error: `Kelas "${targetKelas.nama}" tidak dapat dihapus karena masih memiliki riwayat ${totalStudentCount} santri (aktif, alumni, atau riwayat tahun ajaran lain). Pindahkan atau bersihkan relasi santri terlebih dahulu.`
+        });
+      }
+
+      // 3. Check if exam participants are tied to this class
+      const examCheck = await db.query(`
+        SELECT COUNT(*) 
+        FROM peserta_ujian 
+        WHERE kelas_diniyah_id = $1
+      `, [id]);
+      const examCount = parseInt(examCheck.rows[0].count, 10);
+      if (examCount > 0) {
+        await db.query('ROLLBACK');
+        return res.status(400).json({
+          error: `Kelas "${targetKelas.nama}" tidak dapat dihapus karena masih digunakan dalam riwayat peserta ujian (${examCount} record).`
         });
       }
 
