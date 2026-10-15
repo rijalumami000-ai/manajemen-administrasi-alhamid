@@ -90,12 +90,12 @@ BEGIN
         BLOCK "040904e4"
         BEGIN
             VALUE "CompanyName", "com.alhamid.mymustahiq" "\0"
-            VALUE "FileDescription", "mymustahiq" "\0"
+            VALUE "FileDescription", "Alhamid One" "\0"
             VALUE "FileVersion", VERSION_AS_STRING "\0"
-            VALUE "InternalName", "mymustahiq" "\0"
-            VALUE "LegalCopyright", "Copyright (C) 2026 com.alhamid.mymustahiq. All rights reserved." "\0"
-            VALUE "OriginalFilename", "mymustahiq.exe" "\0"
-            VALUE "ProductName", "mymustahiq" "\0"
+            VALUE "InternalName", "alhamid_one" "\0"
+            VALUE "LegalCopyright", "Copyright (C) 2026 com.alhamid. All rights reserved." "\0"
+            VALUE "OriginalFilename", "alhamid_one.exe" "\0"
+            VALUE "ProductName", "Alhamid One" "\0"
             VALUE "ProductVersion", VERSION_AS_STRING "\0"
         END
     END
