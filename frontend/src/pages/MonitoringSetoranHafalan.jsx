@@ -379,6 +379,72 @@ export default function MonitoringSetoranHafalan() {
             </div>
           </div>
 
+          {/* Standar Target & Skala Predikat Kelas */}
+          {overviewData?.kriteriaInfo && (
+            <div className="kriteria-guide-card frosted-card">
+              <div className="guide-header">
+                <div className="guide-title-box">
+                  <Award size={18} style={{ color: '#3b82f6' }} />
+                  <h4>Standar Target & Kriteria Predikat — Kelas {kelasDetail?.nama || ''}</h4>
+                </div>
+                <div className="guide-target-badges">
+                  <span className="badge-target ganjil">
+                    Target {overviewData.kriteriaInfo.is_ganjil ? 'Semester Ini' : 'Ganjil'} (Mumtaz): <strong>{overviewData.kriteriaInfo.target_ganjil} Nadzom</strong>
+                  </span>
+                  <span className="badge-target genap">
+                    Batas Maksimal Genap: <strong>{overviewData.kriteriaInfo.target_genap} Nadzom</strong>
+                  </span>
+                </div>
+              </div>
+
+              {overviewData.tipeInput !== 'Teks' && overviewData.kriteriaInfo.skala_aktif && (
+                <div className="predikat-scales-grid">
+                  <div className="scale-item mumtaz">
+                    <div className="scale-badge">🏆 Mumtaz (Maksimal)</div>
+                    <div className="scale-range">
+                      <strong>{overviewData.kriteriaInfo.skala_aktif.mumtaz?.min || '-'} - {overviewData.kriteriaInfo.skala_aktif.mumtaz?.max || '-'}</strong> Nadzom
+                    </div>
+                    <div className="scale-desc">
+                      {overviewData.kriteriaInfo.is_ganjil 
+                        ? `Melampaui: >${overviewData.kriteriaInfo.target_ganjil} s/d ${overviewData.kriteriaInfo.target_genap}` 
+                        : 'Tuntas Target Akhir'}
+                    </div>
+                  </div>
+
+                  <div className="scale-item jayyid">
+                    <div className="scale-badge">🌟 Jayyid</div>
+                    <div className="scale-range">
+                      <strong>{overviewData.kriteriaInfo.skala_aktif.jayyid?.min || '-'} - {overviewData.kriteriaInfo.skala_aktif.jayyid?.max || '-'}</strong> Nadzom
+                    </div>
+                    <div className="scale-desc">Tingkat Baik</div>
+                  </div>
+
+                  <div className="scale-item mutawassith">
+                    <div className="scale-badge">⚡ Mutawassith</div>
+                    <div className="scale-range">
+                      <strong>{overviewData.kriteriaInfo.skala_aktif.mutawassith?.min || '-'} - {overviewData.kriteriaInfo.skala_aktif.mutawassith?.max || '-'}</strong> Nadzom
+                    </div>
+                    <div className="scale-desc">Tingkat Cukup</div>
+                  </div>
+
+                  <div className="scale-item rodi">
+                    <div className="scale-badge">📖 Rodi'</div>
+                    <div className="scale-range">
+                      <strong>{overviewData.kriteriaInfo.skala_aktif.rodi?.min || '1'} - {overviewData.kriteriaInfo.skala_aktif.rodi?.max || '-'}</strong> Nadzom
+                    </div>
+                    <div className="scale-desc">Perlu Bimbingan</div>
+                  </div>
+                </div>
+              )}
+
+              {overviewData.tipeInput === 'Teks' && (
+                <div className="teks-guide-note">
+                  <span>Format model materi bab. Target puncak Mumtaz di Semester Ganjil adalah <strong>{overviewData.kriteriaInfo.daftar_bab_ganjil?.[overviewData.kriteriaInfo.daftar_bab_ganjil.length - 1]?.bab || 'Bab Akhir Ganjil'}</strong>. Santri dapat melanjutkan setoran ke materi semester genap hingga tuntas.</span>
+                </div>
+              )}
+            </div>
+          )}
+
           {/* Quick Metrics Statistics */}
           <div className="metrics-grid">
             <div className="metric-box">
@@ -516,9 +582,13 @@ export default function MonitoringSetoranHafalan() {
                                 <span className="capaian-main">
                                   Bait ke-<strong>{santri.bait_terakhir}</strong> / {santri.target_semester}
                                 </span>
-                                {santri.is_melampaui_ganjil ? (
+                                {santri.bait_terakhir >= santri.target_genap ? (
+                                  <span className="capaian-extra-tag" style={{ color: '#059669', fontSize: '11px', fontWeight: 'bold' }}>
+                                    🏆 Tuntas Maksimal Kelas ({santri.target_genap})
+                                  </span>
+                                ) : santri.is_melampaui_ganjil ? (
                                   <span className="capaian-extra-tag" style={{ color: '#8b5cf6', fontSize: '11px', fontWeight: 'bold' }}>
-                                    ✨ Melampaui Ganjil (+{santri.bait_terakhir - santri.target_semester}) • Maks: {santri.target_genap}
+                                    ✨ Melampaui Ganjil (+{santri.bait_terakhir - santri.target_semester} nadzom) • Maks: {santri.target_genap}
                                   </span>
                                 ) : (
                                   <span className="capaian-sub" style={{ fontSize: '11px', color: '#64748b' }}>

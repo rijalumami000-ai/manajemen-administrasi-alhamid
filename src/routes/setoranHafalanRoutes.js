@@ -46,7 +46,30 @@ function registerSetoranHafalanRoutes(app) {
     };
   }
 
-  // Helper: Evaluasi Predikat dan Pencapaian Santri
+  // Helper: Parse konfigurasi skala angka secara aman
+  function parseConfigAngka(konfigurasi) {
+    if (!konfigurasi || typeof konfigurasi !== 'object' || Array.isArray(konfigurasi)) {
+      return null;
+    }
+    const mumtazMax = Number(konfigurasi.Mumtaz?.max) || 0;
+    const jayyidMin = Number(konfigurasi.Jayyid?.min) || 0;
+    const jayyidMax = Number(konfigurasi.Jayyid?.max) || 0;
+    const mutawassithMin = Number(konfigurasi.Mutawassith?.min) || 0;
+    const mutawassithMax = Number(konfigurasi.Mutawassith?.max) || 0;
+    const rodiMin = Number(konfigurasi["Rodi'"]?.min) || 1;
+    const rodiMax = Number(konfigurasi["Rodi'"]?.max) || 0;
+
+    // Batas bawah Mumtaz otomatis tepat di atas nilai maksimum Jayyid
+    const mumtazMin = jayyidMax > 0 ? (jayyidMax + 1) : (mumtazMax || 1);
+
+    return {
+      mumtaz: { min: mumtazMin, max: mumtazMax, label: 'Mumtaz' },
+      jayyid: { min: jayyidMin, max: jayyidMax, label: 'Jayyid' },
+      mutawassith: { min: mutawassithMin, max: mutawassithMax, label: 'Mutawassith' },
+      rodi: { min: rodiMin, max: rodiMax, label: "Rodi'" }
+    };
+  }
+
   // Helper: Evaluasi Predikat dan Pencapaian Santri
   function evaluateProgress(currentBait, currentBab, tipeInput, kriteriaGanjil, kriteriaGenap, isGanjilActive) {
     let predikat = '-';
@@ -55,63 +78,61 @@ function registerSetoranHafalanRoutes(app) {
     let targetSemesterAktif = 100;
     let targetGenap = 200;
 
+    const parsedGanjil = parseConfigAngka(kriteriaGanjil?.konfigurasi);
+    const parsedGenap = parseConfigAngka(kriteriaGenap?.konfigurasi);
+
     if (tipeInput === 'Angka') {
       const baitVal = Number(currentBait) || 0;
 
-      // Cari target Mumtaz ganjil & genap dengan mengambil nilai tertinggi dari konfigurasi Mumtaz
-      const ganjilMumtaz = Math.max(
-        Number(kriteriaGanjil?.konfigurasi?.Mumtaz?.max) || 0,
-        Number(kriteriaGanjil?.konfigurasi?.Mumtaz?.min) || 0
-      ) || 100;
+      // Target Mumtaz untuk Ganjil dan Genap
+      const ganjilMumtaz = parsedGanjil?.mumtaz?.max || 100;
+      const genapMumtaz = parsedGenap?.mumtaz?.max || ganjilMumtaz;
 
-      const genapMumtaz = Math.max(
-        Number(kriteriaGenap?.konfigurasi?.Mumtaz?.max) || 0,
-        Number(kriteriaGenap?.konfigurasi?.Mumtaz?.min) || 0
-      ) || ganjilMumtaz;
-      
       targetSemesterAktif = isGanjilActive ? ganjilMumtaz : genapMumtaz;
       targetGenap = genapMumtaz;
 
       persentase = targetSemesterAktif > 0 ? Math.round((baitVal / targetSemesterAktif) * 100) : 0;
 
+      if (baitVal <= 0) {
+        predikat = 'Belum Setor';
+        persentase = 0;
+        return { predikat, persentase, isMelampauiGanjil: false, targetSemesterAktif, targetGenap };
+      }
+
       if (isGanjilActive) {
-        if (baitVal >= ganjilMumtaz) {
-          isMelampauiGanjil = baitVal > ganjilMumtaz;
-          if (baitVal >= genapMumtaz) {
-            predikat = 'Mumtaz (Tuntas Genap)';
-          } else if (baitVal > ganjilMumtaz) {
-            predikat = 'Mumtaz (Melampaui)';
-          } else {
-            predikat = 'Mumtaz';
-          }
+        // Semester Ganjil aktif
+        if (baitVal >= genapMumtaz) {
+          isMelampauiGanjil = true;
+          predikat = 'Mumtaz (Tuntas Genap)';
+        } else if (baitVal > ganjilMumtaz) {
+          isMelampauiGanjil = true;
+          predikat = 'Mumtaz (Melampaui Target Ganjil)';
+        } else if (baitVal >= (parsedGanjil?.mumtaz?.min || ganjilMumtaz)) {
+          predikat = 'Mumtaz';
+        } else if (parsedGanjil?.jayyid && baitVal >= parsedGanjil.jayyid.min && baitVal <= (parsedGanjil.jayyid.max || 999999)) {
+          predikat = 'Jayyid';
+        } else if (parsedGanjil?.mutawassith && baitVal >= parsedGanjil.mutawassith.min && baitVal <= (parsedGanjil.mutawassith.max || 999999)) {
+          predikat = 'Mutawassith';
+        } else if (parsedGanjil?.rodi && baitVal >= parsedGanjil.rodi.min) {
+          predikat = "Rodi'";
         } else {
-          // Bandingkan dengan skala Ganjil
-          const cfg = kriteriaGanjil?.konfigurasi;
-          if (cfg && cfg.Jayyid && baitVal >= (cfg.Jayyid.min || 0)) {
-            predikat = 'Jayyid';
-          } else if (cfg && cfg.Mutawassith && baitVal >= (cfg.Mutawassith.min || 0)) {
-            predikat = 'Mutawassith';
-          } else if (baitVal > 0) {
-            predikat = "Rodi'";
-          } else {
-            predikat = 'Belum Setor';
-          }
+          predikat = "Rodi'";
         }
       } else {
         // Semester Genap aktif
+        const cfgGenap = parsedGenap || parsedGanjil;
         if (baitVal >= genapMumtaz) {
+          predikat = 'Mumtaz (Tuntas Genap)';
+        } else if (baitVal >= (cfgGenap?.mumtaz?.min || genapMumtaz)) {
           predikat = 'Mumtaz';
+        } else if (cfgGenap?.jayyid && baitVal >= cfgGenap.jayyid.min && baitVal <= (cfgGenap.jayyid.max || 999999)) {
+          predikat = 'Jayyid';
+        } else if (cfgGenap?.mutawassith && baitVal >= cfgGenap.mutawassith.min && baitVal <= (cfgGenap.mutawassith.max || 999999)) {
+          predikat = 'Mutawassith';
+        } else if (cfgGenap?.rodi && baitVal >= cfgGenap.rodi.min) {
+          predikat = "Rodi'";
         } else {
-          const cfg = kriteriaGenap?.konfigurasi || kriteriaGanjil?.konfigurasi;
-          if (cfg && cfg.Jayyid && baitVal >= (cfg.Jayyid.min || 0)) {
-            predikat = 'Jayyid';
-          } else if (cfg && cfg.Mutawassith && baitVal >= (cfg.Mutawassith.min || 0)) {
-            predikat = 'Mutawassith';
-          } else if (baitVal > 0) {
-            predikat = "Rodi'";
-          } else {
-            predikat = 'Belum Setor';
-          }
+          predikat = "Rodi'";
         }
       }
     } else {
@@ -129,7 +150,7 @@ function registerSetoranHafalanRoutes(app) {
 
         if (isGanjilActive && matchGe && !matchG) {
           isMelampauiGanjil = true;
-          predikat = matchGe.predikat ? `${matchGe.predikat} (Genap)` : 'Melampaui Target';
+          predikat = matchGe.predikat ? `${matchGe.predikat} (Genap)` : 'Melampaui Target Ganjil';
         } else if (matchG) {
           predikat = matchG.predikat || 'Tuntas';
         } else if (matchGe) {
@@ -331,6 +352,13 @@ function registerSetoranHafalanRoutes(app) {
       };
     });
 
+    const parsedGanjil = parseConfigAngka(kriteriaGanjil?.konfigurasi);
+    const parsedGenap = parseConfigAngka(kriteriaGenap?.konfigurasi);
+    const activeParsed = isGanjilActive ? parsedGanjil : (parsedGenap || parsedGanjil);
+    const ganjilMumtaz = parsedGanjil?.mumtaz?.max || 100;
+    const genapMumtaz = parsedGenap?.mumtaz?.max || ganjilMumtaz;
+    const activeTarget = isGanjilActive ? ganjilMumtaz : genapMumtaz;
+
     res.json({
       kelas: classDetail,
       tahunAjaran: activeYear,
@@ -342,6 +370,19 @@ function registerSetoranHafalanRoutes(app) {
       kriteria: {
         ganjil: kriteriaGanjil,
         genap: kriteriaGenap
+      },
+      kriteriaInfo: {
+        tipe: tipeInput,
+        target_semester_aktif: activeTarget,
+        target_ganjil: ganjilMumtaz,
+        target_genap: genapMumtaz,
+        batas_maksimal: genapMumtaz,
+        is_ganjil: isGanjilActive,
+        skala_aktif: activeParsed,
+        skala_ganjil: parsedGanjil,
+        skala_genap: parsedGenap,
+        daftar_bab_ganjil: Array.isArray(kriteriaGanjil?.konfigurasi) ? kriteriaGanjil.konfigurasi : [],
+        daftar_bab_genap: Array.isArray(kriteriaGenap?.konfigurasi) ? kriteriaGenap.konfigurasi : []
       },
       stats: {
         totalSantri: santriList.length,
@@ -484,12 +525,9 @@ function registerSetoranHafalanRoutes(app) {
       const { ganjilId, genapId } = await getSemesterCategories();
       const kriteriaGenap = await getKriteriaMuhafadzoh(tingkat, mapelId, tahun_ajaran_id, genapId);
       const kriteriaGanjil = await getKriteriaMuhafadzoh(tingkat, mapelId, tahun_ajaran_id, ganjilId);
-      const genapMumtaz = Math.max(
-        Number(kriteriaGenap?.konfigurasi?.Mumtaz?.max) || 0,
-        Number(kriteriaGenap?.konfigurasi?.Mumtaz?.min) || 0,
-        Number(kriteriaGanjil?.konfigurasi?.Mumtaz?.max) || 0,
-        Number(kriteriaGanjil?.konfigurasi?.Mumtaz?.min) || 0
-      ) || 100;
+      const parsedGenap = parseConfigAngka(kriteriaGenap?.konfigurasi);
+      const parsedGanjil = parseConfigAngka(kriteriaGanjil?.konfigurasi);
+      const genapMumtaz = parsedGenap?.mumtaz?.max || parsedGanjil?.mumtaz?.max || 100;
 
       // Logika cerdas: Jika diberikan jumlah_bait, hitung bait_akhir = prevBait + jumlah_bait
       if (jumlah_bait !== undefined && jumlah_bait !== null) {
@@ -645,12 +683,9 @@ function registerSetoranHafalanRoutes(app) {
     const { ganjilId, genapId } = await getSemesterCategories();
     const kriteriaGenap = await getKriteriaMuhafadzoh(tingkat, mapelId, existing.tahun_ajaran_id, genapId);
     const kriteriaGanjil = await getKriteriaMuhafadzoh(tingkat, mapelId, existing.tahun_ajaran_id, ganjilId);
-    const genapMumtaz = Math.max(
-      Number(kriteriaGenap?.konfigurasi?.Mumtaz?.max) || 0,
-      Number(kriteriaGenap?.konfigurasi?.Mumtaz?.min) || 0,
-      Number(kriteriaGanjil?.konfigurasi?.Mumtaz?.max) || 0,
-      Number(kriteriaGanjil?.konfigurasi?.Mumtaz?.min) || 0
-    ) || 100;
+    const parsedGenap = parseConfigAngka(kriteriaGenap?.konfigurasi);
+    const parsedGanjil = parseConfigAngka(kriteriaGanjil?.konfigurasi);
+    const genapMumtaz = parsedGenap?.mumtaz?.max || parsedGanjil?.mumtaz?.max || 100;
 
     const effectiveBaitAwal = bait_awal !== undefined ? Number(bait_awal) : existing.bait_awal;
     let effectiveBaitAkhir = bait_akhir !== undefined ? Number(bait_akhir) : existing.bait_akhir;

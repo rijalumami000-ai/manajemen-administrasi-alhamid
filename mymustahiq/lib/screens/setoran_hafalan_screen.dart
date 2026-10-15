@@ -142,9 +142,14 @@ class _SetoranHafalanScreenState extends State<SetoranHafalanScreen> {
     final taId = _overviewData!['tahunAjaran']?['id'];
     final katId = _overviewData!['kategoriEvaluasiId'];
 
+    final kriteriaInfo = _overviewData?['kriteriaInfo'] as Map<String, dynamic>?;
     final int prevBait = (santri['bait_terakhir'] as num?)?.toInt() ?? 0;
-    final int targetGanjil = (santri['target_semester'] as num?)?.toInt() ?? 100;
-    final int targetGenap = (santri['target_genap'] as num?)?.toInt() ?? targetGanjil;
+    final int targetGanjil = (kriteriaInfo?['target_ganjil'] as num?)?.toInt() ?? (santri['target_semester'] as num?)?.toInt() ?? 100;
+    final int targetGenap = (kriteriaInfo?['target_genap'] as num?)?.toInt() ?? (santri['target_genap'] as num?)?.toInt() ?? targetGanjil;
+    final skalaAktif = kriteriaInfo?['skala_aktif'] as Map<String, dynamic>?;
+    final int mumtazMin = (skalaAktif?['mumtaz']?['min'] as num?)?.toInt() ?? targetGanjil;
+    final int jayyidMin = (skalaAktif?['jayyid']?['min'] as num?)?.toInt() ?? 0;
+    final int mutawassithMin = (skalaAktif?['mutawassith']?['min'] as num?)?.toInt() ?? 0;
 
     // Sisa kapasitas sebelum mentok target genap
     final int maxAllowedDelta = (targetGenap - prevBait) > 0 ? (targetGenap - prevBait) : 0;
@@ -171,6 +176,31 @@ class _SetoranHafalanScreenState extends State<SetoranHafalanScreen> {
 
             final isExceedMax = isAngka && hasilAkhir > targetGenap;
             final isMelampauiGanjil = isAngka && hasilAkhir > targetGanjil && hasilAkhir <= targetGenap;
+
+            // Live predikat prediction
+            String livePredikat = "-";
+            Color livePredColor = const Color(0xFF64748B);
+            if (hasilAkhir >= targetGenap) {
+              livePredikat = "Mumtaz (Tuntas Genap)";
+              livePredColor = const Color(0xFF10B981);
+            } else if (hasilAkhir > targetGanjil) {
+              livePredikat = "Mumtaz (Melampaui Target Ganjil)";
+              livePredColor = const Color(0xFF8B5CF6);
+            } else if (hasilAkhir >= mumtazMin) {
+              livePredikat = "Mumtaz";
+              livePredColor = const Color(0xFF10B981);
+            } else if (hasilAkhir >= jayyidMin) {
+              livePredikat = "Jayyid";
+              livePredColor = const Color(0xFF3B82F6);
+            } else if (hasilAkhir >= mutawassithMin) {
+              livePredikat = "Mutawassith";
+              livePredColor = const Color(0xFFD97706);
+            } else if (hasilAkhir > 0) {
+              livePredikat = "Rodi'";
+              livePredColor = const Color(0xFFEF4444);
+            } else {
+              livePredikat = "Belum Setor";
+            }
 
             return Container(
               padding: EdgeInsets.only(
@@ -385,74 +415,95 @@ class _SetoranHafalanScreenState extends State<SetoranHafalanScreen> {
                       ),
                       const SizedBox(height: 12),
 
-                      // Preview Hasil & Notifikasi Batas
-                      if (isExceedMax)
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                          decoration: BoxDecoration(
-                            color: const Color(0xFFEF4444).withOpacity(0.12),
-                            borderRadius: BorderRadius.circular(8),
-                            border: Border.all(color: const Color(0xFFEF4444).withOpacity(0.3)),
-                          ),
-                          child: Row(
-                            children: [
-                              const Icon(Icons.error_outline_rounded, color: Color(0xFFEF4444), size: 16),
-                              const SizedBox(width: 8),
-                              Expanded(
-                                child: Text(
-                                  "Melebihi batas maksimal target kelas (Bait ke-$targetGenap). Penambahan maksimal adalah +$maxAllowedDelta nadzom.",
-                                  style: GoogleFonts.outfit(
-                                    color: const Color(0xFFEF4444),
-                                    fontSize: 11,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                        )
-                      else if (isMelampauiGanjil)
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                          decoration: BoxDecoration(
-                            color: const Color(0xFF8B5CF6).withOpacity(0.12),
-                            borderRadius: BorderRadius.circular(8),
-                            border: Border.all(color: const Color(0xFF8B5CF6).withOpacity(0.3)),
-                          ),
-                          child: Row(
-                            children: [
-                              const Icon(Icons.auto_awesome, color: Color(0xFF8B5CF6), size: 16),
-                              const SizedBox(width: 8),
-                              Expanded(
-                                child: Text(
-                                  "Hasil Akhir: Bait ke-$hasilAkhir. Capaian melampaui target Ganjil (+${hasilAkhir - targetGanjil} nadzom bablas target Genap).",
-                                  style: GoogleFonts.outfit(
-                                    color: const Color(0xFF8B5CF6),
-                                    fontSize: 11,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                        )
-                      else
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                          decoration: BoxDecoration(
-                            color: const Color(0xFF10B981).withOpacity(0.08),
-                            borderRadius: BorderRadius.circular(8),
-                            border: Border.all(color: const Color(0xFF10B981).withOpacity(0.2)),
-                          ),
-                          child: Text(
-                            "Hasil Akhir: Bait ke-$hasilAkhir (Target Ganjil: $targetGanjil • Maks Genap: $targetGenap)",
-                            style: GoogleFonts.outfit(
-                              color: const Color(0xFF047857),
-                              fontSize: 11,
-                              fontWeight: FontWeight.w600,
-                            ),
+                      // Preview Hasil & Notifikasi Batas dengan Live Predikat
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                        decoration: BoxDecoration(
+                          color: isExceedMax 
+                              ? const Color(0xFFEF4444).withOpacity(0.12)
+                              : isMelampauiGanjil
+                                  ? const Color(0xFF8B5CF6).withOpacity(0.12)
+                                  : const Color(0xFF10B981).withOpacity(0.08),
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(
+                            color: isExceedMax 
+                                ? const Color(0xFFEF4444).withOpacity(0.3)
+                                : isMelampauiGanjil
+                                    ? const Color(0xFF8B5CF6).withOpacity(0.3)
+                                    : const Color(0xFF10B981).withOpacity(0.2),
                           ),
                         ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Text(
+                                  "Hasil: Bait ke-$hasilAkhir",
+                                  style: GoogleFonts.outfit(
+                                    color: isExceedMax ? const Color(0xFFEF4444) : context.titleColor,
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 14,
+                                  ),
+                                ),
+                                if (!isExceedMax)
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                                    decoration: BoxDecoration(
+                                      color: livePredColor.withOpacity(0.15),
+                                      borderRadius: BorderRadius.circular(6),
+                                    ),
+                                    child: Text(
+                                      livePredikat,
+                                      style: GoogleFonts.outfit(
+                                        color: livePredColor,
+                                        fontSize: 11,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                  ),
+                              ],
+                            ),
+                            const SizedBox(height: 6),
+                            if (isExceedMax)
+                              Text(
+                                "❌ Melebihi batas maksimal target kelas ($targetGenap nadzom)! Penambahan maksimal adalah +$maxAllowedDelta nadzom.",
+                                style: GoogleFonts.outfit(
+                                  color: const Color(0xFFEF4444),
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              )
+                            else if (hasilAkhir >= targetGenap)
+                              Text(
+                                "🏆 Selamat! Santri telah menuntaskan seluruh target hafalan kelas untuk tahun ajaran ini.",
+                                style: GoogleFonts.outfit(
+                                  color: const Color(0xFF059669),
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              )
+                            else if (isMelampauiGanjil)
+                              Text(
+                                "✨ Capaian melampaui target Ganjil (+${hasilAkhir - targetGanjil} nadzom bablas target Genap). Batas mentok maksimal: $targetGenap.",
+                                style: GoogleFonts.outfit(
+                                  color: const Color(0xFF8B5CF6),
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              )
+                            else
+                              Text(
+                                "Target Semester Ganjil: $targetGanjil Nadzom • Batas Maks Genap: $targetGenap Nadzom",
+                                style: GoogleFonts.outfit(
+                                  color: context.subTitleColor,
+                                  fontSize: 11,
+                                ),
+                              ),
+                          ],
+                        ),
+                      ),
                     ] else ...[
                       // Model Bab / Teks
                       Text(
@@ -1249,6 +1300,10 @@ class _SetoranHafalanScreenState extends State<SetoranHafalanScreen> {
     final ta = _overviewData?['tahunAjaran'] ?? {};
     final semester = _overviewData?['semester'] ?? _selectedSemester;
     final isAngka = _overviewData?['tipeInput'] != 'Teks';
+    final kriteriaInfo = _overviewData?['kriteriaInfo'] as Map<String, dynamic>?;
+    final int targetGanjil = (kriteriaInfo?['target_ganjil'] as num?)?.toInt() ?? 100;
+    final int targetGenap = (kriteriaInfo?['target_genap'] as num?)?.toInt() ?? 200;
+    final skalaAktif = kriteriaInfo?['skala_aktif'] as Map<String, dynamic>?;
 
     return Container(
       padding: const EdgeInsets.all(16),
@@ -1298,6 +1353,113 @@ class _SetoranHafalanScreenState extends State<SetoranHafalanScreen> {
             "Model: ${isAngka ? 'Skala Angka (Nadzom)' : 'Materi Bab'}",
             style: GoogleFonts.outfit(color: context.subTitleColor, fontSize: 11),
           ),
+
+          const SizedBox(height: 14),
+          const Divider(height: 1),
+          const SizedBox(height: 12),
+
+          // Standar Target Mumtaz & Batas Maksimal Genap
+          Text(
+            "STANDAR TARGET & BATAS MAKSIMAL KELAS",
+            style: GoogleFonts.outfit(
+              color: context.subTitleColor,
+              fontSize: 10,
+              fontWeight: FontWeight.bold,
+              letterSpacing: 0.8,
+            ),
+          ),
+          const SizedBox(height: 8),
+
+          Row(
+            children: [
+              Expanded(
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF3B82F6).withOpacity(0.08),
+                    borderRadius: BorderRadius.circular(10),
+                    border: Border.all(color: const Color(0xFF3B82F6).withOpacity(0.2)),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        "Target Ganjil (Mumtaz)",
+                        style: GoogleFonts.outfit(color: const Color(0xFF2563EB), fontSize: 10, fontWeight: FontWeight.bold),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        isAngka ? "$targetGanjil Nadzom" : "Bab Akhir Ganjil",
+                        style: GoogleFonts.outfit(color: context.titleColor, fontSize: 13, fontWeight: FontWeight.bold),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF8B5CF6).withOpacity(0.08),
+                    borderRadius: BorderRadius.circular(10),
+                    border: Border.all(color: const Color(0xFF8B5CF6).withOpacity(0.2)),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        "Batas Maksimal Genap",
+                        style: GoogleFonts.outfit(color: const Color(0xFF7C3AED), fontSize: 10, fontWeight: FontWeight.bold),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        isAngka ? "$targetGenap Nadzom" : "Khatam Seluruh Bab",
+                        style: GoogleFonts.outfit(color: context.titleColor, fontSize: 13, fontWeight: FontWeight.bold),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
+
+          if (isAngka && skalaAktif != null) ...[
+            const SizedBox(height: 10),
+            SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: Row(
+                children: [
+                  _buildScaleBadge("🏆 Mumtaz", "${skalaAktif['mumtaz']?['min']} - ${skalaAktif['mumtaz']?['max']}", const Color(0xFF10B981)),
+                  const SizedBox(width: 6),
+                  _buildScaleBadge("🌟 Jayyid", "${skalaAktif['jayyid']?['min']} - ${skalaAktif['jayyid']?['max']}", const Color(0xFF3B82F6)),
+                  const SizedBox(width: 6),
+                  _buildScaleBadge("⚡ Mutawassith", "${skalaAktif['mutawassith']?['min']} - ${skalaAktif['mutawassith']?['max']}", const Color(0xFFD97706)),
+                  const SizedBox(width: 6),
+                  _buildScaleBadge("📖 Rodi'", "${skalaAktif['rodi']?['min']} - ${skalaAktif['rodi']?['max']}", const Color(0xFFEF4444)),
+                ],
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _buildScaleBadge(String label, String range, Color color) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      decoration: BoxDecoration(
+        color: color.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: color.withOpacity(0.25)),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(label, style: GoogleFonts.outfit(color: color, fontSize: 10, fontWeight: FontWeight.bold)),
+          const SizedBox(width: 4),
+          Text("($range)", style: GoogleFonts.outfit(color: context.titleColor, fontSize: 10, fontWeight: FontWeight.w600)),
         ],
       ),
     );
@@ -1487,7 +1649,16 @@ class _SetoranHafalanScreenState extends State<SetoranHafalanScreen> {
                               fontWeight: FontWeight.bold,
                             ),
                           ),
-                          if (isMelampaui)
+                          if (baitTerakhir >= targetGenap)
+                            Text(
+                              "🏆 Tuntas Target Kelas (Maks: $targetGenap Nadzom)",
+                              style: GoogleFonts.outfit(
+                                color: const Color(0xFF10B981),
+                                fontSize: 11,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            )
+                          else if (isMelampaui)
                             Text(
                               "✨ Melampaui Ganjil (+${baitTerakhir - targetSem} nadzom) • Maks: $targetGenap",
                               style: GoogleFonts.outfit(
