@@ -47,6 +47,7 @@ function registerSetoranHafalanRoutes(app) {
   }
 
   // Helper: Evaluasi Predikat dan Pencapaian Santri
+  // Helper: Evaluasi Predikat dan Pencapaian Santri
   function evaluateProgress(currentBait, currentBab, tipeInput, kriteriaGanjil, kriteriaGenap, isGanjilActive) {
     let predikat = '-';
     let persentase = 0;
@@ -57,9 +58,16 @@ function registerSetoranHafalanRoutes(app) {
     if (tipeInput === 'Angka') {
       const baitVal = Number(currentBait) || 0;
 
-      // Cari target Mumtaz ganjil & genap
-      const ganjilMumtaz = kriteriaGanjil?.konfigurasi?.Mumtaz?.min || kriteriaGanjil?.konfigurasi?.Mumtaz?.max || 100;
-      const genapMumtaz = kriteriaGenap?.konfigurasi?.Mumtaz?.min || kriteriaGenap?.konfigurasi?.Mumtaz?.max || (ganjilMumtaz * 2);
+      // Cari target Mumtaz ganjil & genap dengan mengambil nilai tertinggi dari konfigurasi Mumtaz
+      const ganjilMumtaz = Math.max(
+        Number(kriteriaGanjil?.konfigurasi?.Mumtaz?.max) || 0,
+        Number(kriteriaGanjil?.konfigurasi?.Mumtaz?.min) || 0
+      ) || 100;
+
+      const genapMumtaz = Math.max(
+        Number(kriteriaGenap?.konfigurasi?.Mumtaz?.max) || 0,
+        Number(kriteriaGenap?.konfigurasi?.Mumtaz?.min) || 0
+      ) || ganjilMumtaz;
       
       targetSemesterAktif = isGanjilActive ? ganjilMumtaz : genapMumtaz;
       targetGenap = genapMumtaz;
@@ -165,7 +173,9 @@ function registerSetoranHafalanRoutes(app) {
     if (!activeYear) return res.status(404).json({ error: 'Tahun ajaran tidak ditemukan.' });
 
     const semResult = await db.query("SELECT value FROM system_settings WHERE key = 'active_semester' LIMIT 1");
-    const activeSemester = semester || (semResult.rows[0] ? semResult.rows[0].value : 'Ganjil');
+    const systemActiveSemester = semResult.rows[0] ? semResult.rows[0].value : 'Ganjil';
+    const activeSemester = semester || systemActiveSemester;
+    const isSemesterActive = activeSemester.toLowerCase().trim() === systemActiveSemester.toLowerCase().trim();
     const isGanjilActive = activeSemester.toLowerCase().includes('ganjil');
 
     const { ganjilId, genapId } = await getSemesterCategories();
@@ -211,20 +221,6 @@ function registerSetoranHafalanRoutes(app) {
     }
     const classDetail = classRes.rows[0];
 
-    // Konfigurasi Ritme Kelas oleh Mustahiq
-    const configRes = await db.query(
-      `SELECT * FROM konfigurasi_setoran_kelas 
-       WHERE kelas_id = $1 AND tahun_ajaran_id = $2 AND kategori_evaluasi_id = $3
-       LIMIT 1`,
-      [targetKelasId, activeYear.id, currentKategoriId]
-    );
-    const classConfig = configRes.rows[0] || {
-      mode_frekuensi: 'mingguan',
-      interval_hari: 7,
-      target_per_setoran: 10,
-      catatan: ''
-    };
-
     // Ambil Kriteria Penilaian Muhafadzoh dari Web (Pengaturan Kriteria)
     const kriteriaGanjil = await getKriteriaMuhafadzoh(classDetail.tingkat, classDetail.muhafadzoh_mapel_id, activeYear.id, ganjilId);
     const kriteriaGenap = await getKriteriaMuhafadzoh(classDetail.tingkat, classDetail.muhafadzoh_mapel_id, activeYear.id, genapId);
@@ -246,18 +242,18 @@ function registerSetoranHafalanRoutes(app) {
     santriQuery += ' ORDER BY sta.nama ASC';
     const santriRes = await db.query(santriQuery, [targetKelasId, activeYear.id]);
 
-    // Agregasi Riwayat Setoran Santri
+    // Agregasi Riwayat Setoran Santri per semester yang dipilih
     const setoranAggRes = await db.query(
       `SELECT 
          santri_id,
-         COUNT(id) AS total_sesi_setoran,
+         COUNT(CASE WHEN kategori_evaluasi_id = $3 THEN id END) AS total_sesi_setoran,
          COALESCE(MAX(bait_akhir), 0) AS bait_terakhir,
-         COALESCE(SUM(jumlah_bait), 0) AS total_nadzom_disetor,
-         MAX(tanggal_setor) AS tanggal_setor_terakhir
+         COALESCE(SUM(CASE WHEN kategori_evaluasi_id = $3 THEN jumlah_bait ELSE 0 END), 0) AS total_nadzom_disetor,
+         MAX(CASE WHEN kategori_evaluasi_id = $3 THEN tanggal_setor END) AS tanggal_setor_terakhir
        FROM riwayat_setoran_nadzom
        WHERE kelas_id = $1 AND tahun_ajaran_id = $2
        GROUP BY santri_id`,
-      [targetKelasId, activeYear.id]
+      [targetKelasId, activeYear.id, currentKategoriId]
     );
 
     const aggMap = new Map();
@@ -265,14 +261,14 @@ function registerSetoranHafalanRoutes(app) {
       aggMap.set(row.santri_id, row);
     }
 
-    // Ambil info setoran terakhir santri untuk status kelancaran & nama bab terakhir
+    // Ambil info setoran terakhir santri untuk status kelancaran & nama bab terakhir (sesuai semester)
     const latestSetoranRes = await db.query(
       `SELECT DISTINCT ON (santri_id) 
          santri_id, nama_bab, status_kelancaran, catatan, tanggal_setor, bait_akhir
        FROM riwayat_setoran_nadzom
-       WHERE kelas_id = $1 AND tahun_ajaran_id = $2
+       WHERE kelas_id = $1 AND tahun_ajaran_id = $2 AND kategori_evaluasi_id = $3
        ORDER BY santri_id, tanggal_setor DESC, id DESC`,
-      [targetKelasId, activeYear.id]
+      [targetKelasId, activeYear.id, currentKategoriId]
     );
 
     const latestMap = new Map();
@@ -339,9 +335,10 @@ function registerSetoranHafalanRoutes(app) {
       kelas: classDetail,
       tahunAjaran: activeYear,
       semester: activeSemester,
+      is_semester_active: isSemesterActive,
+      system_active_semester: systemActiveSemester,
       kategoriEvaluasiId: currentKategoriId,
       tipeInput,
-      konfigurasiRitme: classConfig,
       kriteria: {
         ganjil: kriteriaGanjil,
         genap: kriteriaGenap
@@ -480,24 +477,38 @@ function registerSetoranHafalanRoutes(app) {
     const isAngka = tipe_setoran !== 'Bab';
 
     if (isAngka) {
-      // Logika cerdas sinkronisasi otomatis dua arah:
-      // Jika diberikan bait_akhir tapi tidak ada jumlah_bait:
-      if (bait_akhir !== undefined && bait_akhir !== null && (jumlah_bait === undefined || jumlah_bait === null)) {
-        bait_awal = bait_awal !== undefined ? Number(bait_awal) : prevBait;
-        jumlah_bait = Math.max(0, Number(bait_akhir) - bait_awal);
-      }
-      // Jika diberikan jumlah_bait tapi tidak ada bait_akhir:
-      else if (jumlah_bait !== undefined && jumlah_bait !== null && (bait_akhir === undefined || bait_akhir === null)) {
-        bait_awal = bait_awal !== undefined ? Number(bait_awal) : prevBait;
-        bait_akhir = bait_awal + Number(jumlah_bait);
-      }
-      // Jika keduanya ada:
-      else if (bait_akhir !== undefined && jumlah_bait !== undefined) {
-        bait_awal = bait_awal !== undefined ? Number(bait_awal) : Math.max(0, Number(bait_akhir) - Number(jumlah_bait));
+      // Dapatkan batas maksimal (Genap) untuk kelas ini
+      const classInfo = await db.query('SELECT tingkat, muhafadzoh_mapel_id FROM kelas WHERE id = $1', [kelas_id]);
+      const tingkat = classInfo.rows[0]?.tingkat;
+      const mapelId = classInfo.rows[0]?.muhafadzoh_mapel_id;
+      const { ganjilId, genapId } = await getSemesterCategories();
+      const kriteriaGenap = await getKriteriaMuhafadzoh(tingkat, mapelId, tahun_ajaran_id, genapId);
+      const kriteriaGanjil = await getKriteriaMuhafadzoh(tingkat, mapelId, tahun_ajaran_id, ganjilId);
+      const genapMumtaz = Math.max(
+        Number(kriteriaGenap?.konfigurasi?.Mumtaz?.max) || 0,
+        Number(kriteriaGenap?.konfigurasi?.Mumtaz?.min) || 0,
+        Number(kriteriaGanjil?.konfigurasi?.Mumtaz?.max) || 0,
+        Number(kriteriaGanjil?.konfigurasi?.Mumtaz?.min) || 0
+      ) || 100;
+
+      // Logika cerdas: Jika diberikan jumlah_bait, hitung bait_akhir = prevBait + jumlah_bait
+      if (jumlah_bait !== undefined && jumlah_bait !== null) {
+        bait_awal = prevBait;
+        bait_akhir = prevBait + Number(jumlah_bait);
+      } else if (bait_akhir !== undefined && bait_akhir !== null) {
+        bait_awal = prevBait;
+        jumlah_bait = Math.max(0, Number(bait_akhir) - prevBait);
       } else {
         bait_awal = prevBait;
         bait_akhir = prevBait;
         jumlah_bait = 0;
+      }
+
+      // Validasi batas maksimal kitab/kelas
+      if (Number(bait_akhir) > genapMumtaz) {
+        return res.status(400).json({
+          error: `Penambahan tidak boleh melebihi batas maksimal target kitab/kelas (maksimal bait ke-${genapMumtaz}).`
+        });
       }
     }
 
@@ -621,16 +632,49 @@ function registerSetoranHafalanRoutes(app) {
    */
   router.put('/setoran/:id', asyncHandler(async (req, res) => {
     const id = parseInt(req.params.id, 10);
-    const { bait_awal, bait_akhir, jumlah_bait, nama_bab, status_kelancaran, catatan, tanggal_setor } = req.body;
+    let { bait_awal, bait_akhir, jumlah_bait, nama_bab, status_kelancaran, catatan, tanggal_setor } = req.body;
 
     const existingRes = await db.query('SELECT * FROM riwayat_setoran_nadzom WHERE id = $1', [id]);
     if (existingRes.rows.length === 0) return res.status(404).json({ error: 'Data setoran tidak ditemukan.' });
+    const existing = existingRes.rows[0];
+
+    // Cek target maksimal kitab/kelas
+    const classInfo = await db.query('SELECT tingkat, muhafadzoh_mapel_id FROM kelas WHERE id = $1', [existing.kelas_id]);
+    const tingkat = classInfo.rows[0]?.tingkat;
+    const mapelId = classInfo.rows[0]?.muhafadzoh_mapel_id;
+    const { ganjilId, genapId } = await getSemesterCategories();
+    const kriteriaGenap = await getKriteriaMuhafadzoh(tingkat, mapelId, existing.tahun_ajaran_id, genapId);
+    const kriteriaGanjil = await getKriteriaMuhafadzoh(tingkat, mapelId, existing.tahun_ajaran_id, ganjilId);
+    const genapMumtaz = Math.max(
+      Number(kriteriaGenap?.konfigurasi?.Mumtaz?.max) || 0,
+      Number(kriteriaGenap?.konfigurasi?.Mumtaz?.min) || 0,
+      Number(kriteriaGanjil?.konfigurasi?.Mumtaz?.max) || 0,
+      Number(kriteriaGanjil?.konfigurasi?.Mumtaz?.min) || 0
+    ) || 100;
+
+    const effectiveBaitAwal = bait_awal !== undefined ? Number(bait_awal) : existing.bait_awal;
+    let effectiveBaitAkhir = bait_akhir !== undefined ? Number(bait_akhir) : existing.bait_akhir;
+    let effectiveJumlahBait = jumlah_bait !== undefined ? Number(jumlah_bait) : existing.jumlah_bait;
+
+    if (existing.tipe_setoran !== 'Bab') {
+      if (jumlah_bait !== undefined && bait_akhir === undefined) {
+        effectiveBaitAkhir = effectiveBaitAwal + Number(jumlah_bait);
+      } else if (bait_akhir !== undefined && jumlah_bait === undefined) {
+        effectiveJumlahBait = Math.max(0, Number(bait_akhir) - effectiveBaitAwal);
+      }
+
+      if (effectiveBaitAkhir > genapMumtaz) {
+        return res.status(400).json({
+          error: `Penambahan tidak boleh melebihi batas maksimal target kitab/kelas (maksimal bait ke-${genapMumtaz}).`
+        });
+      }
+    }
 
     const updatedRes = await db.query(
       `UPDATE riwayat_setoran_nadzom
-       SET bait_awal = COALESCE($1, bait_awal),
-           bait_akhir = COALESCE($2, bait_akhir),
-           jumlah_bait = COALESCE($3, jumlah_bait),
+       SET bait_awal = $1,
+           bait_akhir = $2,
+           jumlah_bait = $3,
            nama_bab = COALESCE($4, nama_bab),
            status_kelancaran = COALESCE($5, status_kelancaran),
            catatan = COALESCE($6, catatan),
@@ -638,7 +682,7 @@ function registerSetoranHafalanRoutes(app) {
            updated_at = CURRENT_TIMESTAMP
        WHERE id = $8
        RETURNING *;`,
-      [bait_awal, bait_akhir, jumlah_bait, nama_bab, status_kelancaran, catatan, tanggal_setor, id]
+      [effectiveBaitAwal, effectiveBaitAkhir, effectiveJumlahBait, nama_bab, status_kelancaran, catatan, tanggal_setor, id]
     );
 
     res.json({

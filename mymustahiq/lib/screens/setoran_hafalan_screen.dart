@@ -5,6 +5,22 @@ import '../services/theme_manager.dart';
 import '../services/network_service.dart';
 import '../widgets/offline_widget.dart';
 
+// Helper Format Tanggal DD/MM/YYYY
+String formatDateDMY(String? dateStr) {
+  if (dateStr == null || dateStr.isEmpty) return '-';
+  try {
+    final clean = dateStr.split('T')[0];
+    final parts = clean.split('-');
+    if (parts.length == 3) {
+      return "${parts[2]}/${parts[1]}/${parts[0]}";
+    }
+    final dt = DateTime.parse(dateStr);
+    return "${dt.day.toString().padLeft(2, '0')}/${dt.month.toString().padLeft(2, '0')}/${dt.year}";
+  } catch (_) {
+    return dateStr;
+  }
+}
+
 class SetoranHafalanScreen extends StatefulWidget {
   final Map<String, dynamic> kelasMustahiq;
 
@@ -26,6 +42,7 @@ class _SetoranHafalanScreenState extends State<SetoranHafalanScreen> {
   List<dynamic> _santriList = [];
   String _searchQuery = '';
   String _filterStatus = 'all'; // 'all', 'tuntas', 'melampaui', 'belum_setor'
+  String _selectedSemester = 'Ganjil';
 
   @override
   void initState() {
@@ -49,11 +66,17 @@ class _SetoranHafalanScreenState extends State<SetoranHafalanScreen> {
 
     try {
       final kelasId = widget.kelasMustahiq['id'] as int?;
-      final res = await _apiService.getSetoranOverview(kelasId: kelasId);
+      final res = await _apiService.getSetoranOverview(
+        kelasId: kelasId,
+        semester: _selectedSemester,
+      );
       if (mounted) {
         setState(() {
           _overviewData = res;
           _santriList = res['santriList'] as List<dynamic>? ?? [];
+          if (res['semester'] != null) {
+            _selectedSemester = res['semester'];
+          }
           _isLoading = false;
         });
       }
@@ -94,334 +117,46 @@ class _SetoranHafalanScreenState extends State<SetoranHafalanScreen> {
     }).toList();
   }
 
-  // --- BOTTOM SHEET: ATUR RITME PENARIKAN KELAS ---
-  void _openAturRitmeSheet() {
-    if (_overviewData == null) return;
-    final ritme = _overviewData!['konfigurasiRitme'] as Map<String, dynamic>? ?? {};
-    final kelasId = _overviewData!['kelas']?['id'];
-    final taId = _overviewData!['tahunAjaran']?['id'];
-    final katId = _overviewData!['kategoriEvaluasiId'];
-
-    String selectedMode = ritme['mode_frekuensi'] ?? 'mingguan';
-    final targetController = TextEditingController(text: (ritme['target_per_setoran'] ?? 10).toString());
-    final intervalController = TextEditingController(text: (ritme['interval_hari'] ?? 7).toString());
-    final catatanController = TextEditingController(text: ritme['catatan'] ?? '');
-    bool isSaving = false;
-
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (ctx) {
-        return StatefulBuilder(
-          builder: (context, setSheetState) {
-            final isDark = context.isDarkMode;
-            return Container(
-              padding: EdgeInsets.only(
-                left: 20,
-                right: 20,
-                top: 20,
-                bottom: MediaQuery.of(context).viewInsets.bottom + 24,
-              ),
-              decoration: BoxDecoration(
-                color: context.cardBg,
-                borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
-                border: Border.all(color: context.borderColor),
-              ),
-              child: SingleChildScrollView(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Center(
-                      child: Container(
-                        width: 40,
-                        height: 4,
-                        decoration: BoxDecoration(
-                          color: context.borderColor,
-                          borderRadius: BorderRadius.circular(2),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-                    Row(
-                      children: [
-                        const Icon(Icons.tune_rounded, color: Color(0xFFD97706), size: 22),
-                        const SizedBox(width: 10),
-                        Text(
-                          "Pengaturan Ritme Setoran",
-                          style: GoogleFonts.outfit(
-                            color: context.titleColor,
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 6),
-                    Text(
-                      "Tentukan ritme target hafalan kelas binaan Anda.",
-                      style: GoogleFonts.outfit(color: context.subTitleColor, fontSize: 12),
-                    ),
-                    const SizedBox(height: 20),
-
-                    // Mode Frekuensi
-                    Text(
-                      "MODE FREKUENSI PENARIKAN",
-                      style: GoogleFonts.outfit(
-                        color: context.subTitleColor,
-                        fontSize: 11,
-                        fontWeight: FontWeight.bold,
-                        letterSpacing: 1.2,
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    Wrap(
-                      spacing: 8,
-                      runSpacing: 8,
-                      children: [
-                        _buildModeChip(
-                          label: "Setiap Hari",
-                          mode: "harian",
-                          current: selectedMode,
-                          onSelect: (m) => setSheetState(() {
-                            selectedMode = m;
-                            intervalController.text = "1";
-                          }),
-                        ),
-                        _buildModeChip(
-                          label: "Per N Hari",
-                          mode: "interval_hari",
-                          current: selectedMode,
-                          onSelect: (m) => setSheetState(() => selectedMode = m),
-                        ),
-                        _buildModeChip(
-                          label: "1 Pekan Sekali",
-                          mode: "mingguan",
-                          current: selectedMode,
-                          onSelect: (m) => setSheetState(() {
-                            selectedMode = m;
-                            intervalController.text = "7";
-                          }),
-                        ),
-                        _buildModeChip(
-                          label: "Fleksibel / Bebas",
-                          mode: "bebas",
-                          current: selectedMode,
-                          onSelect: (m) => setSheetState(() => selectedMode = m),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 16),
-
-                    if (selectedMode == 'interval_hari') ...[
-                      Text(
-                        "INTERVAL HARI",
-                        style: GoogleFonts.outfit(
-                          color: context.subTitleColor,
-                          fontSize: 11,
-                          fontWeight: FontWeight.bold,
-                          letterSpacing: 1.2,
-                        ),
-                      ),
-                      const SizedBox(height: 6),
-                      TextField(
-                        controller: intervalController,
-                        keyboardType: TextInputType.number,
-                        style: GoogleFonts.outfit(color: context.titleColor),
-                        decoration: InputDecoration(
-                          hintText: "Contoh: 3 untuk setiap 3 hari sekali",
-                          filled: true,
-                          fillColor: isDark ? const Color(0xFF1E293B) : const Color(0xFFF8FAFC),
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(12),
-                            borderSide: BorderSide(color: context.borderColor),
-                          ),
-                          contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-                        ),
-                      ),
-                      const SizedBox(height: 16),
-                    ],
-
-                    // Target per Sesi
-                    Text(
-                      "TARGET NADZOM PER SETORAN",
-                      style: GoogleFonts.outfit(
-                        color: context.subTitleColor,
-                        fontSize: 11,
-                        fontWeight: FontWeight.bold,
-                        letterSpacing: 1.2,
-                      ),
-                    ),
-                    const SizedBox(height: 6),
-                    TextField(
-                      controller: targetController,
-                      keyboardType: TextInputType.number,
-                      style: GoogleFonts.outfit(color: context.titleColor),
-                      decoration: InputDecoration(
-                        hintText: "Jumlah nadzom target per setor (contoh: 10)",
-                        suffixText: "Nadzom",
-                        filled: true,
-                        fillColor: isDark ? const Color(0xFF1E293B) : const Color(0xFFF8FAFC),
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(12),
-                          borderSide: BorderSide(color: context.borderColor),
-                        ),
-                        contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-
-                    // Catatan
-                    Text(
-                      "CATATAN / PESAN PEMBINAAN",
-                      style: GoogleFonts.outfit(
-                        color: context.subTitleColor,
-                        fontSize: 11,
-                        fontWeight: FontWeight.bold,
-                        letterSpacing: 1.2,
-                      ),
-                    ),
-                    const SizedBox(height: 6),
-                    TextField(
-                      controller: catatanController,
-                      maxLines: 2,
-                      style: GoogleFonts.outfit(color: context.titleColor),
-                      decoration: InputDecoration(
-                        hintText: "Contoh: Setoran dilaksanakan ba'da Maghrib...",
-                        filled: true,
-                        fillColor: isDark ? const Color(0xFF1E293B) : const Color(0xFFF8FAFC),
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(12),
-                          borderSide: BorderSide(color: context.borderColor),
-                        ),
-                        contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-                      ),
-                    ),
-                    const SizedBox(height: 24),
-
-                    // Tombol Simpan
-                    SizedBox(
-                      width: double.infinity,
-                      height: 48,
-                      child: ElevatedButton(
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFFD97706),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-                          elevation: 0,
-                        ),
-                        onPressed: isSaving
-                            ? null
-                            : () async {
-                                setSheetState(() => isSaving = true);
-                                try {
-                                  await _apiService.saveSetoranKonfigurasi({
-                                    'kelas_id': kelasId,
-                                    'tahun_ajaran_id': taId,
-                                    'kategori_evaluasi_id': katId,
-                                    'mode_frekuensi': selectedMode,
-                                    'interval_hari': int.tryParse(intervalController.text) ?? 7,
-                                    'target_per_setoran': int.tryParse(targetController.text) ?? 10,
-                                    'catatan': catatanController.text.trim(),
-                                  });
-                                  if (mounted) {
-                                    Navigator.pop(ctx);
-                                    _fetchOverview();
-                                    ScaffoldMessenger.of(context).showSnackBar(
-                                      const SnackBar(content: Text('Ritme setoran berhasil disimpan.')),
-                                    );
-                                  }
-                                } catch (e) {
-                                  setSheetState(() => isSaving = false);
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    SnackBar(content: Text('Gagal: ${e.toString().replaceFirst("Exception: ", "")}')),
-                                  );
-                                }
-                              },
-                        child: isSaving
-                            ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
-                            : Text("Simpan Pengaturan", style: GoogleFonts.outfit(fontSize: 15, fontWeight: FontWeight.bold, color: Colors.white)),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            );
-          },
-        );
-      },
-    );
-  }
-
-  Widget _buildModeChip({
-    required String label,
-    required String mode,
-    required String current,
-    required Function(String) onSelect,
-  }) {
-    final isSelected = current == mode;
-    return GestureDetector(
-      onTap: () => onSelect(mode),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-        decoration: BoxDecoration(
-          color: isSelected ? const Color(0xFFD97706) : context.borderColor.withOpacity(0.3),
-          borderRadius: BorderRadius.circular(20),
-          border: Border.all(
-            color: isSelected ? const Color(0xFFD97706) : context.borderColor,
-          ),
-        ),
-        child: Text(
-          label,
-          style: GoogleFonts.outfit(
-            color: isSelected ? Colors.white : context.titleColor,
-            fontSize: 12,
-            fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
-          ),
-        ),
-      ),
-    );
-  }
-
-  // --- BOTTOM SHEET: INPUT SETORAN SANTRI (DUAL LINKED INPUT) ---
+  // --- BOTTOM SHEET: INPUT SETORAN SANTRI ---
+  // Sesuai requirement: Hanya opsi 1 (Jumlah Nadzom +) yang bisa diedit.
+  // Batas terakhir adalah info statis yang tidak bisa diedit.
+  // Tidak bisa menginput penambahan yang melebihi batas maksimal kelas (targetGenap).
   void _openInputSetoranSheet(Map<String, dynamic> santri) {
     if (_overviewData == null) return;
+
+    final bool isSemesterActive = _overviewData?['is_semester_active'] != false;
+    if (!isSemesterActive) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            "Semester $_selectedSemester belum aktif. Setoran saat ini berjalan pada Semester ${_overviewData?['system_active_semester'] ?? 'Ganjil'}.",
+          ),
+          backgroundColor: Colors.amber[800],
+        ),
+      );
+      return;
+    }
+
     final isAngka = _overviewData!['tipeInput'] != 'Teks';
     final kelasId = _overviewData!['kelas']?['id'];
     final taId = _overviewData!['tahunAjaran']?['id'];
     final katId = _overviewData!['kategoriEvaluasiId'];
 
-    final int prevBait = santri['bait_terakhir'] ?? 0;
-    final targetBaitSemester = santri['target_semester'] ?? 100;
+    final int prevBait = (santri['bait_terakhir'] as num?)?.toInt() ?? 0;
+    final int targetGanjil = (santri['target_semester'] as num?)?.toInt() ?? 100;
+    final int targetGenap = (santri['target_genap'] as num?)?.toInt() ?? targetGanjil;
+
+    // Sisa kapasitas sebelum mentok target genap
+    final int maxAllowedDelta = (targetGenap - prevBait) > 0 ? (targetGenap - prevBait) : 0;
+    final int initialDelta = maxAllowedDelta >= 10 ? 10 : maxAllowedDelta;
 
     // Controllers
-    final baitAkhirController = TextEditingController(text: (prevBait + 10).toString());
-    final deltaController = TextEditingController(text: "10");
+    final deltaController = TextEditingController(text: initialDelta.toString());
     final babController = TextEditingController(text: santri['nama_bab_terakhir'] ?? '');
     final catatanController = TextEditingController();
 
     String statusKelancaran = 'Lancar';
     bool isSaving = false;
-    bool isSyncing = false;
-
-    // Dual-direction auto-sync
-    void syncFromBaitAkhir(String val) {
-      if (isSyncing) return;
-      isSyncing = true;
-      final akhir = int.tryParse(val) ?? prevBait;
-      final delta = akhir - prevBait;
-      deltaController.text = (delta > 0 ? delta : 0).toString();
-      isSyncing = false;
-    }
-
-    void syncFromDelta(String val) {
-      if (isSyncing) return;
-      isSyncing = true;
-      final delta = int.tryParse(val) ?? 0;
-      final akhir = prevBait + delta;
-      baitAkhirController.text = akhir.toString();
-      isSyncing = false;
-    }
 
     showModalBottomSheet(
       context: context,
@@ -431,8 +166,11 @@ class _SetoranHafalanScreenState extends State<SetoranHafalanScreen> {
         return StatefulBuilder(
           builder: (context, setSheetState) {
             final isDark = context.isDarkMode;
-            final akhirInt = int.tryParse(baitAkhirController.text) ?? prevBait;
-            final isMelampaui = akhirInt > targetBaitSemester;
+            final deltaInt = int.tryParse(deltaController.text) ?? 0;
+            final hasilAkhir = prevBait + deltaInt;
+
+            final isExceedMax = isAngka && hasilAkhir > targetGenap;
+            final isMelampauiGanjil = isAngka && hasilAkhir > targetGanjil && hasilAkhir <= targetGenap;
 
             return Container(
               padding: EdgeInsets.only(
@@ -471,8 +209,10 @@ class _SetoranHafalanScreenState extends State<SetoranHafalanScreen> {
                           backgroundColor: const Color(0xFF3B82F6),
                           backgroundImage: santri['foto_url'] != null ? NetworkImage(santri['foto_url']) : null,
                           child: santri['foto_url'] == null
-                              ? Text((santri['nama'] ?? 'S').substring(0, 1).toUpperCase(),
-                                  style: GoogleFonts.outfit(color: Colors.white, fontWeight: FontWeight.bold))
+                              ? Text(
+                                  (santri['nama'] ?? 'S').substring(0, 1).toUpperCase(),
+                                  style: GoogleFonts.outfit(color: Colors.white, fontWeight: FontWeight.bold),
+                                )
                               : null,
                         ),
                         const SizedBox(width: 12),
@@ -489,95 +229,189 @@ class _SetoranHafalanScreenState extends State<SetoranHafalanScreen> {
                                 ),
                               ),
                               Text(
-                                isAngka
-                                    ? "Capaian sebelumnya: Bait ke-$prevBait (Target: $targetBaitSemester)"
-                                    : "Capaian sebelumnya: ${santri['nama_bab_terakhir'] ?? 'Belum ada'}",
-                                style: GoogleFonts.outfit(color: const Color(0xFFD97706), fontSize: 11, fontWeight: FontWeight.w600),
+                                "NIS: ${santri['nis'] ?? '-'}",
+                                style: GoogleFonts.outfit(color: context.subTitleColor, fontSize: 11),
                               ),
                             ],
                           ),
                         ),
                       ],
                     ),
-                    const SizedBox(height: 20),
+                    const SizedBox(height: 16),
 
                     if (isAngka) ...[
-                      // Dual Interactive Input: Bait Terakhir Disetor & Jumlah Nadzom
-                      Row(
-                        crossAxisAlignment: CrossAxisAlignment.start,
+                      // 1. Info Statis: Capaian Terakhir Saat Ini
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                        decoration: BoxDecoration(
+                          color: isDark ? const Color(0xFF1E293B) : const Color(0xFFF1F5F9),
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(color: context.borderColor),
+                        ),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  "POSISI CAPAIAN TERAKHIR (STATIS)",
+                                  style: GoogleFonts.outfit(
+                                    color: context.subTitleColor,
+                                    fontSize: 10,
+                                    fontWeight: FontWeight.bold,
+                                    letterSpacing: 0.8,
+                                  ),
+                                ),
+                                const SizedBox(height: 2),
+                                Text(
+                                  "Bait ke-$prevBait",
+                                  style: GoogleFonts.outfit(
+                                    color: context.titleColor,
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              ],
+                            ),
+                            Column(
+                              crossAxisAlignment: CrossAxisAlignment.end,
+                              children: [
+                                Text(
+                                  "Target: $targetGanjil Nadzom",
+                                  style: GoogleFonts.outfit(
+                                    color: const Color(0xFF3B82F6),
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                                Text(
+                                  "Maks Genap: $targetGenap Nadzom",
+                                  style: GoogleFonts.outfit(
+                                    color: const Color(0xFF8B5CF6),
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+
+                      // 2. Input Editable: Hanya Jumlah Nadzom (+)
+                      Text(
+                        "TAMBAH JUMLAH NADZOM (+)",
+                        style: GoogleFonts.outfit(
+                          color: context.subTitleColor,
+                          fontSize: 11,
+                          fontWeight: FontWeight.bold,
+                          letterSpacing: 1.0,
+                        ),
+                      ),
+                      const SizedBox(height: 6),
+                      TextField(
+                        controller: deltaController,
+                        keyboardType: TextInputType.number,
+                        autofocus: true,
+                        onChanged: (val) => setSheetState(() {}),
+                        style: GoogleFonts.outfit(
+                          color: isExceedMax ? const Color(0xFFEF4444) : const Color(0xFF10B981),
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                        ),
+                        decoration: InputDecoration(
+                          filled: true,
+                          fillColor: isDark ? const Color(0xFF1E293B) : const Color(0xFFF8FAFC),
+                          prefixText: "+ ",
+                          prefixStyle: GoogleFonts.outfit(
+                            color: isExceedMax ? const Color(0xFFEF4444) : const Color(0xFF10B981),
+                            fontWeight: FontWeight.bold,
+                            fontSize: 18,
+                          ),
+                          suffixText: "Nadzom",
+                          suffixStyle: GoogleFonts.outfit(color: context.subTitleColor, fontSize: 13),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: BorderSide(color: context.borderColor),
+                          ),
+                          enabledBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: BorderSide(
+                              color: isExceedMax ? const Color(0xFFEF4444) : context.borderColor,
+                            ),
+                          ),
+                          focusedBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: BorderSide(
+                              color: isExceedMax ? const Color(0xFFEF4444) : const Color(0xFF10B981),
+                              width: 2,
+                            ),
+                          ),
+                          contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+
+                      // Quick Addition Chips
+                      Wrap(
+                        spacing: 6,
+                        runSpacing: 6,
                         children: [
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  "BAIT TERAKHIR",
-                                  style: GoogleFonts.outfit(
-                                    color: context.subTitleColor,
-                                    fontSize: 11,
-                                    fontWeight: FontWeight.bold,
-                                    letterSpacing: 1.0,
-                                  ),
-                                ),
-                                const SizedBox(height: 6),
-                                TextField(
-                                  controller: baitAkhirController,
-                                  keyboardType: TextInputType.number,
-                                  onChanged: (val) => setSheetState(() => syncFromBaitAkhir(val)),
-                                  style: GoogleFonts.outfit(color: context.titleColor, fontSize: 16, fontWeight: FontWeight.bold),
-                                  decoration: InputDecoration(
-                                    filled: true,
-                                    fillColor: isDark ? const Color(0xFF1E293B) : const Color(0xFFF8FAFC),
-                                    border: OutlineInputBorder(
-                                      borderRadius: BorderRadius.circular(12),
-                                      borderSide: BorderSide(color: context.borderColor),
-                                    ),
-                                    contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-                                  ),
-                                ),
-                              ],
+                          _buildQuickDeltaChip("+5", 5, prevBait, targetGenap, deltaController, setSheetState),
+                          _buildQuickDeltaChip("+10", 10, prevBait, targetGenap, deltaController, setSheetState),
+                          _buildQuickDeltaChip("+15", 15, prevBait, targetGenap, deltaController, setSheetState),
+                          _buildQuickDeltaChip("+20", 20, prevBait, targetGenap, deltaController, setSheetState),
+                          if (prevBait < targetGanjil)
+                            _buildQuickDeltaChip(
+                              "Target Ganjil (${targetGanjil - prevBait})",
+                              targetGanjil - prevBait,
+                              prevBait,
+                              targetGenap,
+                              deltaController,
+                              setSheetState,
                             ),
-                          ),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  "JUMLAH NADZOM (+)",
-                                  style: GoogleFonts.outfit(
-                                    color: context.subTitleColor,
-                                    fontSize: 11,
-                                    fontWeight: FontWeight.bold,
-                                    letterSpacing: 1.0,
-                                  ),
-                                ),
-                                const SizedBox(height: 6),
-                                TextField(
-                                  controller: deltaController,
-                                  keyboardType: TextInputType.number,
-                                  onChanged: (val) => setSheetState(() => syncFromDelta(val)),
-                                  style: GoogleFonts.outfit(color: const Color(0xFF10B981), fontSize: 16, fontWeight: FontWeight.bold),
-                                  decoration: InputDecoration(
-                                    filled: true,
-                                    fillColor: isDark ? const Color(0xFF1E293B) : const Color(0xFFF8FAFC),
-                                    prefixText: "+",
-                                    prefixStyle: GoogleFonts.outfit(color: const Color(0xFF10B981), fontWeight: FontWeight.bold),
-                                    border: OutlineInputBorder(
-                                      borderRadius: BorderRadius.circular(12),
-                                      borderSide: BorderSide(color: context.borderColor),
-                                    ),
-                                    contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-                                  ),
-                                ),
-                              ],
+                          if (prevBait < targetGenap)
+                            _buildQuickDeltaChip(
+                              "Mentok Genap (${targetGenap - prevBait})",
+                              targetGenap - prevBait,
+                              prevBait,
+                              targetGenap,
+                              deltaController,
+                              setSheetState,
                             ),
-                          ),
                         ],
                       ),
-                      const SizedBox(height: 10),
+                      const SizedBox(height: 12),
 
-                      if (isMelampaui)
+                      // Preview Hasil & Notifikasi Batas
+                      if (isExceedMax)
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFEF4444).withOpacity(0.12),
+                            borderRadius: BorderRadius.circular(8),
+                            border: Border.all(color: const Color(0xFFEF4444).withOpacity(0.3)),
+                          ),
+                          child: Row(
+                            children: [
+                              const Icon(Icons.error_outline_rounded, color: Color(0xFFEF4444), size: 16),
+                              const SizedBox(width: 8),
+                              Expanded(
+                                child: Text(
+                                  "Melebihi batas maksimal target kelas (Bait ke-$targetGenap). Penambahan maksimal adalah +$maxAllowedDelta nadzom.",
+                                  style: GoogleFonts.outfit(
+                                    color: const Color(0xFFEF4444),
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        )
+                      else if (isMelampauiGanjil)
                         Container(
                           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                           decoration: BoxDecoration(
@@ -591,11 +425,32 @@ class _SetoranHafalanScreenState extends State<SetoranHafalanScreen> {
                               const SizedBox(width: 8),
                               Expanded(
                                 child: Text(
-                                  "Capaian melampaui target Semester Ganjil! Setoran akan dihitung masuk ke materi Semester Genap.",
-                                  style: GoogleFonts.outfit(color: const Color(0xFF8B5CF6), fontSize: 11, fontWeight: FontWeight.bold),
+                                  "Hasil Akhir: Bait ke-$hasilAkhir. Capaian melampaui target Ganjil (+${hasilAkhir - targetGanjil} nadzom bablas target Genap).",
+                                  style: GoogleFonts.outfit(
+                                    color: const Color(0xFF8B5CF6),
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.bold,
+                                  ),
                                 ),
                               ),
                             ],
+                          ),
+                        )
+                      else
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFF10B981).withOpacity(0.08),
+                            borderRadius: BorderRadius.circular(8),
+                            border: Border.all(color: const Color(0xFF10B981).withOpacity(0.2)),
+                          ),
+                          child: Text(
+                            "Hasil Akhir: Bait ke-$hasilAkhir (Target Ganjil: $targetGanjil • Maks Genap: $targetGenap)",
+                            style: GoogleFonts.outfit(
+                              color: const Color(0xFF047857),
+                              fontSize: 11,
+                              fontWeight: FontWeight.w600,
+                            ),
                           ),
                         ),
                     ] else ...[
@@ -701,11 +556,11 @@ class _SetoranHafalanScreenState extends State<SetoranHafalanScreen> {
                       height: 48,
                       child: ElevatedButton(
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFF10B981),
+                          backgroundColor: isExceedMax ? const Color(0xFF94A3B8) : const Color(0xFF10B981),
                           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
                           elevation: 0,
                         ),
-                        onPressed: isSaving
+                        onPressed: (isSaving || isExceedMax || (isAngka && deltaInt <= 0))
                             ? null
                             : () async {
                                 setSheetState(() => isSaving = true);
@@ -717,8 +572,8 @@ class _SetoranHafalanScreenState extends State<SetoranHafalanScreen> {
                                     'kategori_evaluasi_id': katId,
                                     'tipe_setoran': isAngka ? 'Angka' : 'Bab',
                                     'bait_awal': prevBait,
-                                    'bait_akhir': isAngka ? (int.tryParse(baitAkhirController.text) ?? prevBait) : 0,
-                                    'jumlah_bait': isAngka ? (int.tryParse(deltaController.text) ?? 0) : 0,
+                                    'jumlah_bait': isAngka ? deltaInt : 0,
+                                    'bait_akhir': isAngka ? hasilAkhir : 0,
                                     'nama_bab': isAngka ? null : babController.text.trim(),
                                     'status_kelancaran': statusKelancaran,
                                     'catatan': catatanController.text.trim(),
@@ -742,7 +597,10 @@ class _SetoranHafalanScreenState extends State<SetoranHafalanScreen> {
                               },
                         child: isSaving
                             ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
-                            : Text("Simpan Setoran", style: GoogleFonts.outfit(fontSize: 15, fontWeight: FontWeight.bold, color: Colors.white)),
+                            : Text(
+                                "Simpan Setoran",
+                                style: GoogleFonts.outfit(fontSize: 15, fontWeight: FontWeight.bold, color: Colors.white),
+                              ),
                       ),
                     ),
                   ],
@@ -752,6 +610,44 @@ class _SetoranHafalanScreenState extends State<SetoranHafalanScreen> {
           },
         );
       },
+    );
+  }
+
+  Widget _buildQuickDeltaChip(
+    String label,
+    int deltaVal,
+    int prevBait,
+    int targetGenap,
+    TextEditingController controller,
+    StateSetter setSheetState,
+  ) {
+    final isDisabled = (prevBait + deltaVal) > targetGenap;
+    return GestureDetector(
+      onTap: isDisabled
+          ? null
+          : () {
+              setSheetState(() {
+                controller.text = deltaVal.toString();
+              });
+            },
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+        decoration: BoxDecoration(
+          color: isDisabled ? Colors.grey.withOpacity(0.15) : const Color(0xFF10B981).withOpacity(0.1),
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(
+            color: isDisabled ? Colors.grey.withOpacity(0.3) : const Color(0xFF10B981).withOpacity(0.3),
+          ),
+        ),
+        child: Text(
+          label,
+          style: GoogleFonts.outfit(
+            color: isDisabled ? Colors.grey : const Color(0xFF059669),
+            fontSize: 11,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+      ),
     );
   }
 
@@ -790,7 +686,7 @@ class _SetoranHafalanScreenState extends State<SetoranHafalanScreen> {
     );
   }
 
-  // --- BOTTOM SHEET: RIWAYAT TIMELINE SANTRI ---
+  // --- BOTTOM SHEET: RIWAYAT TIMELINE SANTRI (DENGAN FITUR EDIT / PERBAIKI) ---
   void _openRiwayatTimelineSheet(Map<String, dynamic> santri) async {
     final kelasId = _overviewData?['kelas']?['id'];
     final taId = _overviewData?['tahunAjaran']?['id'];
@@ -800,187 +696,364 @@ class _SetoranHafalanScreenState extends State<SetoranHafalanScreen> {
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
       builder: (ctx) {
-        return FutureBuilder<Map<String, dynamic>>(
-          future: _apiService.getSantriSetoranHistory(santri['id'], tahunAjaranId: taId, kelasId: kelasId),
-          builder: (context, snapshot) {
-            final isDark = context.isDarkMode;
+        return StatefulBuilder(
+          builder: (context, setTimelineState) {
+            return FutureBuilder<Map<String, dynamic>>(
+              future: _apiService.getSantriSetoranHistory(santri['id'], tahunAjaranId: taId, kelasId: kelasId),
+              builder: (context, snapshot) {
+                final isDark = context.isDarkMode;
 
-            return Container(
-              height: MediaQuery.of(context).size.height * 0.75,
-              padding: const EdgeInsets.all(20),
-              decoration: BoxDecoration(
-                color: context.cardBg,
-                borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
-                border: Border.all(color: context.borderColor),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Center(
-                    child: Container(
-                      width: 40,
-                      height: 4,
-                      decoration: BoxDecoration(
-                        color: context.borderColor,
-                        borderRadius: BorderRadius.circular(2),
-                      ),
-                    ),
+                return Container(
+                  height: MediaQuery.of(context).size.height * 0.8,
+                  padding: const EdgeInsets.all(20),
+                  decoration: BoxDecoration(
+                    color: context.cardBg,
+                    borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+                    border: Border.all(color: context.borderColor),
                   ),
-                  const SizedBox(height: 16),
-                  Row(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Icon(Icons.history_rounded, color: Color(0xFF3B82F6), size: 22),
-                      const SizedBox(width: 10),
-                      Expanded(
-                        child: Text(
-                          "Riwayat: ${santri['nama']}",
-                          style: GoogleFonts.outfit(
-                            color: context.titleColor,
-                            fontSize: 17,
-                            fontWeight: FontWeight.bold,
+                      Center(
+                        child: Container(
+                          width: 40,
+                          height: 4,
+                          decoration: BoxDecoration(
+                            color: context.borderColor,
+                            borderRadius: BorderRadius.circular(2),
                           ),
-                          overflow: TextOverflow.ellipsis,
                         ),
                       ),
-                    ],
-                  ),
-                  const SizedBox(height: 16),
-
-                  if (snapshot.connectionState == ConnectionState.waiting)
-                    const Expanded(child: Center(child: CircularProgressIndicator()))
-                  else if (snapshot.hasError)
-                    Expanded(child: Center(child: Text("Gagal: ${snapshot.error}", style: GoogleFonts.outfit(color: context.bodyColor))))
-                  else ...[
-                    Builder(builder: (context) {
-                      final history = snapshot.data?['riwayat'] as List<dynamic>? ?? [];
-                      if (history.isEmpty) {
-                        return Expanded(
-                          child: Center(
-                            child: Column(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                const Icon(Icons.menu_book_outlined, size: 40, color: Color(0xFF94A3B8)),
-                                const SizedBox(height: 8),
-                                Text("Belum ada riwayat setoran.", style: GoogleFonts.outfit(color: context.subTitleColor)),
-                              ],
+                      const SizedBox(height: 16),
+                      Row(
+                        children: [
+                          const Icon(Icons.history_rounded, color: Color(0xFF3B82F6), size: 22),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: Text(
+                              "Riwayat Setoran: ${santri['nama']}",
+                              style: GoogleFonts.outfit(
+                                color: context.titleColor,
+                                fontSize: 17,
+                                fontWeight: FontWeight.bold,
+                              ),
+                              overflow: TextOverflow.ellipsis,
                             ),
                           ),
-                        );
-                      }
+                        ],
+                      ),
+                      const SizedBox(height: 16),
 
-                      return Expanded(
-                        child: ListView.separated(
-                          itemCount: history.length,
-                          separatorBuilder: (_, __) => const SizedBox(height: 10),
-                          itemBuilder: (context, idx) {
-                            final item = history[idx];
-                            final dateStr = item['tanggal_setor'] ?? '';
-                            final isBab = item['tipe_setoran'] == 'Bab';
-
-                            return Container(
-                              padding: const EdgeInsets.all(12),
-                              decoration: BoxDecoration(
-                                color: isDark ? const Color(0xFF1E293B) : const Color(0xFFF8FAFC),
-                                borderRadius: BorderRadius.circular(12),
-                                border: Border.all(color: context.borderColor),
-                              ),
-                              child: Row(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Container(
-                                    width: 32,
-                                    height: 32,
-                                    decoration: BoxDecoration(
-                                      color: const Color(0xFF3B82F6).withOpacity(0.12),
-                                      shape: BoxShape.circle,
-                                    ),
-                                    alignment: Alignment.center,
-                                    child: Text(
-                                      "${history.length - idx}",
-                                      style: GoogleFonts.outfit(color: const Color(0xFF3B82F6), fontWeight: FontWeight.bold, fontSize: 12),
-                                    ),
-                                  ),
-                                  const SizedBox(width: 12),
-                                  Expanded(
-                                    child: Column(
-                                      crossAxisAlignment: CrossAxisAlignment.start,
-                                      children: [
-                                        Row(
-                                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                          children: [
-                                            Text(
-                                              dateStr,
-                                              style: GoogleFonts.outfit(color: context.subTitleColor, fontSize: 11, fontWeight: FontWeight.bold),
-                                            ),
-                                            Container(
-                                              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                                              decoration: BoxDecoration(
-                                                color: _getStatusColor(item['status_kelancaran']).withOpacity(0.15),
-                                                borderRadius: BorderRadius.circular(6),
-                                              ),
-                                              child: Text(
-                                                item['status_kelancaran'] ?? 'Lancar',
-                                                style: GoogleFonts.outfit(
-                                                  color: _getStatusColor(item['status_kelancaran']),
-                                                  fontSize: 10,
-                                                  fontWeight: FontWeight.bold,
-                                                ),
-                                              ),
-                                            ),
-                                          ],
-                                        ),
-                                        const SizedBox(height: 4),
-                                        Text(
-                                          isBab
-                                              ? "Bab: ${item['nama_bab'] ?? '-'}"
-                                              : "Bait ${item['bait_awal'] ?? 0} s/d ${item['bait_akhir'] ?? 0} (+${item['jumlah_bait'] ?? 0} Nadzom)",
-                                          style: GoogleFonts.outfit(color: context.titleColor, fontSize: 13, fontWeight: FontWeight.bold),
-                                        ),
-                                        if (item['catatan'] != null && item['catatan'].toString().isNotEmpty) ...[
-                                          const SizedBox(height: 4),
-                                          Text(
-                                            "\"${item['catatan']}\"",
-                                            style: GoogleFonts.outfit(color: context.subTitleColor, fontSize: 11, fontStyle: FontStyle.italic),
-                                          ),
-                                        ],
-                                      ],
-                                    ),
-                                  ),
-                                  IconButton(
-                                    icon: const Icon(Icons.delete_outline, size: 18, color: Color(0xFFEF4444)),
-                                    onPressed: () async {
-                                      final confirm = await showDialog<bool>(
-                                        context: context,
-                                        builder: (c) => AlertDialog(
-                                          title: const Text("Hapus Catatan?"),
-                                          content: const Text("Catatan setoran ini akan dihapus dari riwayat."),
-                                          actions: [
-                                            TextButton(onPressed: () => Navigator.pop(c, false), child: const Text("Batal")),
-                                            ElevatedButton(
-                                              style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFFEF4444)),
-                                              onPressed: () => Navigator.pop(c, true),
-                                              child: const Text("Hapus", style: TextStyle(color: Colors.white)),
-                                            ),
-                                          ],
-                                        ),
-                                      );
-                                      if (confirm == true) {
-                                        await _apiService.deleteSetoran(item['id']);
-                                        Navigator.pop(ctx);
-                                        _fetchOverview();
-                                      }
-                                    },
-                                  ),
-                                ],
+                      if (snapshot.connectionState == ConnectionState.waiting)
+                        const Expanded(child: Center(child: CircularProgressIndicator()))
+                      else if (snapshot.hasError)
+                        Expanded(
+                          child: Center(
+                            child: Text("Gagal: ${snapshot.error}", style: GoogleFonts.outfit(color: context.bodyColor)),
+                          ),
+                        )
+                      else ...[
+                        Builder(builder: (context) {
+                          final history = snapshot.data?['riwayat'] as List<dynamic>? ?? [];
+                          if (history.isEmpty) {
+                            return Expanded(
+                              child: Center(
+                                child: Column(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    const Icon(Icons.menu_book_outlined, size: 40, color: Color(0xFF94A3B8)),
+                                    const SizedBox(height: 8),
+                                    Text("Belum ada riwayat setoran.", style: GoogleFonts.outfit(color: context.subTitleColor)),
+                                  ],
+                                ),
                               ),
                             );
-                          },
+                          }
+
+                          return Expanded(
+                            child: ListView.separated(
+                              itemCount: history.length,
+                              separatorBuilder: (_, _) => const SizedBox(height: 10),
+                              itemBuilder: (context, idx) {
+                                final item = history[idx];
+                                final dateStr = formatDateDMY(item['tanggal_setor']);
+                                final isBab = item['tipe_setoran'] == 'Bab';
+
+                                return Container(
+                                  padding: const EdgeInsets.all(12),
+                                  decoration: BoxDecoration(
+                                    color: isDark ? const Color(0xFF1E293B) : const Color(0xFFF8FAFC),
+                                    borderRadius: BorderRadius.circular(12),
+                                    border: Border.all(color: context.borderColor),
+                                  ),
+                                  child: Row(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Container(
+                                        width: 32,
+                                        height: 32,
+                                        decoration: BoxDecoration(
+                                          color: const Color(0xFF3B82F6).withOpacity(0.12),
+                                          shape: BoxShape.circle,
+                                        ),
+                                        alignment: Alignment.center,
+                                        child: Text(
+                                          "${history.length - idx}",
+                                          style: GoogleFonts.outfit(
+                                            color: const Color(0xFF3B82F6),
+                                            fontWeight: FontWeight.bold,
+                                            fontSize: 12,
+                                          ),
+                                        ),
+                                      ),
+                                      const SizedBox(width: 12),
+                                      Expanded(
+                                        child: Column(
+                                          crossAxisAlignment: CrossAxisAlignment.start,
+                                          children: [
+                                            Row(
+                                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                              children: [
+                                                Text(
+                                                  dateStr,
+                                                  style: GoogleFonts.outfit(
+                                                    color: context.subTitleColor,
+                                                    fontSize: 11,
+                                                    fontWeight: FontWeight.bold,
+                                                  ),
+                                                ),
+                                                Container(
+                                                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                                  decoration: BoxDecoration(
+                                                    color: _getStatusColor(item['status_kelancaran']).withOpacity(0.15),
+                                                    borderRadius: BorderRadius.circular(6),
+                                                  ),
+                                                  child: Text(
+                                                    item['status_kelancaran'] ?? 'Lancar',
+                                                    style: GoogleFonts.outfit(
+                                                      color: _getStatusColor(item['status_kelancaran']),
+                                                      fontSize: 10,
+                                                      fontWeight: FontWeight.bold,
+                                                    ),
+                                                  ),
+                                                ),
+                                              ],
+                                            ),
+                                            const SizedBox(height: 4),
+                                            Text(
+                                              isBab
+                                                  ? "Bab: ${item['nama_bab'] ?? '-'}"
+                                                  : "Bait ${item['bait_awal'] ?? 0} s/d ${item['bait_akhir'] ?? 0} (+${item['jumlah_bait'] ?? 0} Nadzom)",
+                                              style: GoogleFonts.outfit(
+                                                color: context.titleColor,
+                                                fontSize: 13,
+                                                fontWeight: FontWeight.bold,
+                                              ),
+                                            ),
+                                            if (item['catatan'] != null && item['catatan'].toString().isNotEmpty) ...[
+                                              const SizedBox(height: 4),
+                                              Text(
+                                                "\"${item['catatan']}\"",
+                                                style: GoogleFonts.outfit(
+                                                  color: context.subTitleColor,
+                                                  fontSize: 11,
+                                                  fontStyle: FontStyle.italic,
+                                                ),
+                                              ),
+                                            ],
+                                          ],
+                                        ),
+                                      ),
+                                      Row(
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          // Tombol Edit / Perbaiki
+                                          IconButton(
+                                            icon: const Icon(Icons.edit_outlined, size: 18, color: Color(0xFF3B82F6)),
+                                            padding: EdgeInsets.zero,
+                                            constraints: const BoxConstraints(),
+                                            onPressed: () {
+                                              _openEditSetoranDialog(item, santri, () {
+                                                setTimelineState(() {});
+                                                _fetchOverview();
+                                              });
+                                            },
+                                          ),
+                                          const SizedBox(width: 8),
+                                          // Tombol Hapus
+                                          IconButton(
+                                            icon: const Icon(Icons.delete_outline, size: 18, color: Color(0xFFEF4444)),
+                                            padding: EdgeInsets.zero,
+                                            constraints: const BoxConstraints(),
+                                            onPressed: () async {
+                                              final confirm = await showDialog<bool>(
+                                                context: context,
+                                                builder: (c) => AlertDialog(
+                                                  title: const Text("Hapus Catatan?"),
+                                                  content: const Text("Catatan setoran ini akan dihapus dari riwayat."),
+                                                  actions: [
+                                                    TextButton(onPressed: () => Navigator.pop(c, false), child: const Text("Batal")),
+                                                    ElevatedButton(
+                                                      style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFFEF4444)),
+                                                      onPressed: () => Navigator.pop(c, true),
+                                                      child: const Text("Hapus", style: TextStyle(color: Colors.white)),
+                                                    ),
+                                                  ],
+                                                ),
+                                              );
+                                              if (confirm == true) {
+                                                await _apiService.deleteSetoran(item['id']);
+                                                setTimelineState(() {});
+                                                _fetchOverview();
+                                              }
+                                            },
+                                          ),
+                                        ],
+                                      ),
+                                    ],
+                                  ),
+                                );
+                              },
+                            ),
+                          );
+                        }),
+                      ],
+                    ],
+                  ),
+                );
+              },
+            );
+          },
+        );
+      },
+    );
+  }
+
+  // --- DIALOG EDIT / PERBAIKI SETORAN ---
+  void _openEditSetoranDialog(Map<String, dynamic> item, Map<String, dynamic> santri, VoidCallback onSaved) {
+    final isAngka = item['tipe_setoran'] != 'Bab';
+    final int baitAwal = item['bait_awal'] ?? 0;
+    final int currentJumlah = item['jumlah_bait'] ?? 0;
+    final int targetGenap = (santri['target_genap'] as num?)?.toInt() ?? 254;
+
+    final editJumlahController = TextEditingController(text: currentJumlah.toString());
+    final editCatatanController = TextEditingController(text: item['catatan'] ?? '');
+    String editKelancaran = item['status_kelancaran'] ?? 'Lancar';
+    bool isSaving = false;
+
+    showDialog(
+      context: context,
+      builder: (ctx) {
+        return StatefulBuilder(
+          builder: (context, setDialogState) {
+            final jumlahInt = int.tryParse(editJumlahController.text) ?? 0;
+            final calculatedAkhir = baitAwal + jumlahInt;
+            final isOverMax = isAngka && calculatedAkhir > targetGenap;
+
+            return AlertDialog(
+              title: Text("Perbaiki Catatan Setoran", style: GoogleFonts.outfit(fontWeight: FontWeight.bold, fontSize: 16)),
+              content: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text("Santri: ${santri['nama']}", style: GoogleFonts.outfit(fontWeight: FontWeight.w600, fontSize: 13)),
+                    const SizedBox(height: 12),
+                    if (isAngka) ...[
+                      Text("Bait Awal: Bait ke-$baitAwal", style: GoogleFonts.outfit(fontSize: 12, color: context.subTitleColor)),
+                      const SizedBox(height: 6),
+                      TextField(
+                        controller: editJumlahController,
+                        keyboardType: TextInputType.number,
+                        onChanged: (val) => setDialogState(() {}),
+                        decoration: InputDecoration(
+                          labelText: "Jumlah Nadzom (+)",
+                          prefixText: "+ ",
+                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
                         ),
-                      );
-                    }),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        "Hasil Akhir: Bait ke-$calculatedAkhir (Batas Maks: $targetGenap)",
+                        style: GoogleFonts.outfit(
+                          fontSize: 11,
+                          color: isOverMax ? Colors.red : const Color(0xFF10B981),
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      if (isOverMax)
+                        Padding(
+                          padding: const EdgeInsets.only(top: 4),
+                          child: Text(
+                            "Melebihi target batas maksimal kitab ($targetGenap)!",
+                            style: GoogleFonts.outfit(fontSize: 10, color: Colors.red),
+                          ),
+                        ),
+                    ],
+                    const SizedBox(height: 12),
+                    Text("Status Kelancaran:", style: GoogleFonts.outfit(fontSize: 12, fontWeight: FontWeight.w600)),
+                    const SizedBox(height: 4),
+                    DropdownButtonFormField<String>(
+                      value: editKelancaran,
+                      decoration: InputDecoration(border: OutlineInputBorder(borderRadius: BorderRadius.circular(10))),
+                      items: const [
+                        DropdownMenuItem(value: 'Lancar', child: Text('Lancar')),
+                        DropdownMenuItem(value: 'Kurang Lancar', child: Text('Kurang Lancar')),
+                        DropdownMenuItem(value: 'Mengulang', child: Text('Mengulang')),
+                      ],
+                      onChanged: (val) {
+                        if (val != null) setDialogState(() => editKelancaran = val);
+                      },
+                    ),
+                    const SizedBox(height: 12),
+                    TextField(
+                      controller: editCatatanController,
+                      decoration: InputDecoration(
+                        labelText: "Catatan Tambahan",
+                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+                      ),
+                    ),
                   ],
-                ],
+                ),
               ),
+              actions: [
+                TextButton(
+                  onPressed: isSaving ? null : () => Navigator.pop(ctx),
+                  child: const Text("Batal"),
+                ),
+                ElevatedButton(
+                  style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF10B981)),
+                  onPressed: (isSaving || isOverMax)
+                      ? null
+                      : () async {
+                          setDialogState(() => isSaving = true);
+                          try {
+                            await _apiService.updateSetoran(item['id'], {
+                              'jumlah_bait': isAngka ? jumlahInt : 0,
+                              'status_kelancaran': editKelancaran,
+                              'catatan': editCatatanController.text.trim(),
+                            });
+                            Navigator.pop(ctx);
+                            onSaved();
+                            if (mounted) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(content: Text('Catatan setoran berhasil diperbaiki!')),
+                              );
+                            }
+                          } catch (e) {
+                            setDialogState(() => isSaving = false);
+                            if (mounted) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(content: Text('Gagal: ${e.toString().replaceFirst("Exception: ", "")}')),
+                              );
+                            }
+                          }
+                        },
+                  child: isSaving
+                      ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+                      : const Text("Simpan Perubahan", style: TextStyle(color: Colors.white)),
+                ),
+              ],
             );
           },
         );
@@ -1053,6 +1126,34 @@ class _SetoranHafalanScreenState extends State<SetoranHafalanScreen> {
                         _buildClassHeaderCard(),
                         const SizedBox(height: 16),
 
+                        // Switcher Semester Ganjil / Genap
+                        _buildSemesterSwitcher(),
+                        const SizedBox(height: 16),
+
+                        // Inactive Semester Banner
+                        if (_overviewData?['is_semester_active'] == false)
+                          Container(
+                            margin: const EdgeInsets.only(bottom: 16),
+                            padding: const EdgeInsets.all(12),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFF59E0B).withOpacity(0.12),
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(color: const Color(0xFFF59E0B).withOpacity(0.4)),
+                            ),
+                            child: Row(
+                              children: [
+                                const Icon(Icons.info_outline_rounded, color: Color(0xFFD97706), size: 20),
+                                const SizedBox(width: 10),
+                                Expanded(
+                                  child: Text(
+                                    "Semester $_selectedSemester belum aktif di pondok. Periode aktif saat ini adalah Semester ${_overviewData?['system_active_semester'] ?? 'Ganjil'}. Input setoran baru dikunci untuk semester ini.",
+                                    style: GoogleFonts.outfit(color: context.titleColor, fontSize: 12),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+
                         // Stats Summary Row
                         _buildMetricsRow(),
                         const SizedBox(height: 16),
@@ -1093,19 +1194,61 @@ class _SetoranHafalanScreenState extends State<SetoranHafalanScreen> {
     );
   }
 
-  // --- WIDGET: HEADER KELAS & RITME ---
+  // --- WIDGET: SEMESTER SWITCHER (GANJIL / GENAP) ---
+  Widget _buildSemesterSwitcher() {
+    return Container(
+      padding: const EdgeInsets.all(4),
+      decoration: BoxDecoration(
+        color: context.cardBg,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: context.borderColor),
+      ),
+      child: Row(
+        children: [
+          _buildSemesterTab("Semester Ganjil", "Ganjil"),
+          const SizedBox(width: 4),
+          _buildSemesterTab("Semester Genap", "Genap"),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSemesterTab(String label, String key) {
+    final isSelected = _selectedSemester == key;
+    return Expanded(
+      child: GestureDetector(
+        onTap: () {
+          if (_selectedSemester != key) {
+            setState(() => _selectedSemester = key);
+            _fetchOverview();
+          }
+        },
+        child: Container(
+          padding: const EdgeInsets.symmetric(vertical: 8),
+          decoration: BoxDecoration(
+            color: isSelected ? const Color(0xFF3B82F6) : Colors.transparent,
+            borderRadius: BorderRadius.circular(8),
+          ),
+          alignment: Alignment.center,
+          child: Text(
+            label,
+            style: GoogleFonts.outfit(
+              color: isSelected ? Colors.white : context.subTitleColor,
+              fontSize: 12,
+              fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  // --- WIDGET: HEADER KELAS (TANPA FITUR ATUR RITME) ---
   Widget _buildClassHeaderCard() {
     final kelas = _overviewData?['kelas'] ?? {};
     final ta = _overviewData?['tahunAjaran'] ?? {};
-    final semester = _overviewData?['semester'] ?? 'Ganjil';
-    final ritme = _overviewData?['konfigurasiRitme'] ?? {};
+    final semester = _overviewData?['semester'] ?? _selectedSemester;
     final isAngka = _overviewData?['tipeInput'] != 'Teks';
-
-    String ritmeText = '1 Pekan Sekali';
-    if (ritme['mode_frekuensi'] == 'harian') ritmeText = 'Setiap Hari';
-    if (ritme['mode_frekuensi'] == 'interval_hari') ritmeText = 'Setiap ${ritme['interval_hari']} Hari Sekali';
-    if (ritme['mode_frekuensi'] == 'bebas') ritmeText = 'Fleksibel / Bebas';
-    if (ritme['target_per_setoran'] != null) ritmeText += " (@ ${ritme['target_per_setoran']} Nadzom)";
 
     return Container(
       padding: const EdgeInsets.all(16),
@@ -1154,44 +1297,6 @@ class _SetoranHafalanScreenState extends State<SetoranHafalanScreen> {
           Text(
             "Model: ${isAngka ? 'Skala Angka (Nadzom)' : 'Materi Bab'}",
             style: GoogleFonts.outfit(color: context.subTitleColor, fontSize: 11),
-          ),
-          const Divider(height: 24),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Row(
-                children: [
-                  const Icon(Icons.timer_outlined, size: 16, color: Color(0xFFD97706)),
-                  const SizedBox(width: 6),
-                  Text(
-                    ritmeText,
-                    style: GoogleFonts.outfit(
-                      color: const Color(0xFFD97706),
-                      fontSize: 12,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ],
-              ),
-              InkWell(
-                onTap: _openAturRitmeSheet,
-                child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFD97706).withOpacity(0.12),
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      const Icon(Icons.tune, size: 13, color: Color(0xFFD97706)),
-                      const SizedBox(width: 4),
-                      Text("Atur Ritme", style: GoogleFonts.outfit(color: const Color(0xFFD97706), fontSize: 11, fontWeight: FontWeight.bold)),
-                    ],
-                  ),
-                ),
-              ),
-            ],
           ),
         ],
       ),
@@ -1304,7 +1409,7 @@ class _SetoranHafalanScreenState extends State<SetoranHafalanScreen> {
     );
   }
 
-  // --- WIDGET: SANTRI LIST ---
+  // --- WIDGET: SANTRI LIST (DENGAN INFO STATIS TARGET & FORMAT DD/MM/YYYY) ---
   Widget _buildSantriListView() {
     final list = _filteredSantriList;
     final isAngka = _overviewData?['tipeInput'] != 'Teks';
@@ -1322,13 +1427,17 @@ class _SetoranHafalanScreenState extends State<SetoranHafalanScreen> {
       shrinkWrap: true,
       physics: const NeverScrollableScrollPhysics(),
       itemCount: list.length,
-      separatorBuilder: (_, __) => const SizedBox(height: 10),
+      separatorBuilder: (_, _) => const SizedBox(height: 10),
       itemBuilder: (context, idx) {
         final santri = list[idx];
         final persentase = (santri['persentase'] as num?)?.toInt() ?? 0;
         final predikat = santri['predikat'] ?? '-';
         final isMelampaui = santri['is_melampaui_ganjil'] == true;
         final predColor = _getPredikatColor(predikat);
+
+        final int baitTerakhir = (santri['bait_terakhir'] as num?)?.toInt() ?? 0;
+        final int targetSem = (santri['target_semester'] as num?)?.toInt() ?? 100;
+        final int targetGenap = (santri['target_genap'] as num?)?.toInt() ?? targetSem;
 
         return Container(
           padding: const EdgeInsets.all(14),
@@ -1348,8 +1457,10 @@ class _SetoranHafalanScreenState extends State<SetoranHafalanScreen> {
                     backgroundColor: const Color(0xFF3B82F6),
                     backgroundImage: santri['foto_url'] != null ? NetworkImage(santri['foto_url']) : null,
                     child: santri['foto_url'] == null
-                        ? Text((santri['nama'] ?? 'S').substring(0, 1).toUpperCase(),
-                            style: GoogleFonts.outfit(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12))
+                        ? Text(
+                            (santri['nama'] ?? 'S').substring(0, 1).toUpperCase(),
+                            style: GoogleFonts.outfit(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12),
+                          )
                         : null,
                   ),
                   const SizedBox(width: 10),
@@ -1367,12 +1478,35 @@ class _SetoranHafalanScreenState extends State<SetoranHafalanScreen> {
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                         ),
-                        Text(
-                          isAngka
-                              ? "Capaian: Bait ke-${santri['bait_terakhir'] ?? 0} (Target: ${santri['target_semester'] ?? 100})"
-                              : "Capaian: ${santri['nama_bab_terakhir'] ?? 'Belum ada'}",
-                          style: GoogleFonts.outfit(color: context.subTitleColor, fontSize: 11),
-                        ),
+                        if (isAngka) ...[
+                          Text(
+                            "Capaian: Bait ke-$baitTerakhir / $targetSem",
+                            style: GoogleFonts.outfit(
+                              color: context.titleColor,
+                              fontSize: 12,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          if (isMelampaui)
+                            Text(
+                              "✨ Melampaui Ganjil (+${baitTerakhir - targetSem} nadzom) • Maks: $targetGenap",
+                              style: GoogleFonts.outfit(
+                                color: const Color(0xFF8B5CF6),
+                                fontSize: 11,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            )
+                          else
+                            Text(
+                              "Batas Maks Genap: $targetGenap Nadzom",
+                              style: GoogleFonts.outfit(color: context.subTitleColor, fontSize: 11),
+                            ),
+                        ] else ...[
+                          Text(
+                            "Capaian: ${santri['nama_bab_terakhir'] ?? 'Belum ada'}",
+                            style: GoogleFonts.outfit(color: context.subTitleColor, fontSize: 11),
+                          ),
+                        ],
                       ],
                     ),
                   ),
@@ -1433,9 +1567,9 @@ class _SetoranHafalanScreenState extends State<SetoranHafalanScreen> {
                 children: [
                   Text(
                     santri['tanggal_setor_terakhir'] != null
-                        ? "Terakhir: ${santri['tanggal_setor_terakhir']}"
+                        ? "Terakhir: ${formatDateDMY(santri['tanggal_setor_terakhir'])}"
                         : "Belum pernah setor",
-                    style: GoogleFonts.outfit(color: context.subTitleColor, fontSize: 10),
+                    style: GoogleFonts.outfit(color: context.subTitleColor, fontSize: 11),
                   ),
                   Row(
                     children: [
