@@ -42,6 +42,7 @@ const MateriSidangPage = lazy(() => import('./pages/MateriSidang').then(m => ({ 
 const StrukturKepesantrenan = lazy(() => import('./pages/StrukturKepesantrenan').then(m => ({ default: m.StrukturKepesantrenan })));
 const Inventaris = lazy(() => import('./pages/Inventaris'));
 const StatistikDiniyah = lazy(() => import('./pages/StatistikDiniyah'));
+const MonitoringSetoranHafalan = lazy(() => import('./pages/MonitoringSetoranHafalan'));
 
 // ── Modul Keuangan (lazy loaded) ──────────────────────────────────────────
 const KeuanganDashboard = lazy(() => import('./pages/KeuanganDashboard'));
@@ -103,6 +104,7 @@ function App() {
                   <Route path="input-nilai-ujian" element={<ManajemenNilai mode="input-ujian" key="input-ujian" />} />
                   <Route path="nilai-pengaturan" element={<PengaturanJadwal />} />
                   <Route path="informasi-ujian" element={<InformasiUjian />} />
+                  <Route path="monitoring-setoran" element={<MonitoringSetoranHafalan />} />
                   <Route path="nilai-rekap" element={<ManajemenNilai mode="rekap" key="rekap" />} />
                   <Route path="laporan-ujian-khusus" element={<LaporanUjianKhusus />} />
                   <Route path="welcome" element={<Welcome />} />

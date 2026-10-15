@@ -39,12 +39,14 @@ import {
   Landmark,
   FileArchive,
   Boxes,
-  PieChart
+  PieChart,
+  BookmarkCheck
 } from 'lucide-react';
 import './Sidebar.scss';
 
 // Icon Map for dynamic lookup of lucide icons
 const IconMap = {
+  BookmarkCheck,
   LayoutDashboard,
   Users,
   BookOpen,
@@ -239,6 +241,7 @@ export function Sidebar({ collapsed, onCollapse }) {
         { key: '/silabus-pembelajaran', icon: 'BookOpen', label: 'Silabus Pembelajaran', disabled: isStaff() },
         { key: '/nilai-pengaturan', icon: 'Sliders', label: 'Pengaturan & Jadwal', disabled: isStaff() },
         { key: '/informasi-ujian', icon: 'FileText', label: 'Informasi Ujian', disabled: isStaff() },
+        { key: '/monitoring-setoran', icon: 'BookmarkCheck', label: 'Monitoring Setoran Nadzom', disabled: isStaff() },
         { key: '/nilai', icon: 'Edit', label: 'Input Penilaian', disabled: isStaff() },
         { key: '/kartu-ujian-semester', icon: 'IdCard', label: 'Kartu Ujian Tulis', disabled: isStaff() },
         { key: '/lembar-ujian', icon: 'FileText', label: 'Lembar Ujian', disabled: isStaff() },

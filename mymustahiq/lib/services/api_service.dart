@@ -1207,6 +1207,121 @@ class ApiService {
       rethrow;
     }
   }
+
+  // --- SETORAN HAFALAN NADZOM (MUHAFADZOH) ---
+  Future<Map<String, dynamic>> getSetoranOverview({int? kelasId, int? tahunAjaranId, String? semester}) async {
+    try {
+      final Map<String, dynamic> qp = {};
+      if (kelasId != null) qp['kelas_id'] = kelasId;
+      if (tahunAjaranId != null) qp['tahun_ajaran_id'] = tahunAjaranId;
+      if (semester != null && semester.isNotEmpty) qp['semester'] = semester;
+
+      final response = await _dio.get('/my-mustahiq/setoran/overview', queryParameters: qp);
+      if (response.statusCode == 200) {
+        return response.data as Map<String, dynamic>;
+      }
+      throw Exception('Gagal memuat data setoran hafalan.');
+    } catch (e) {
+      if (e is DioException && e.response != null) {
+        throw Exception(e.response?.data['error'] ?? 'Gagal memuat data setoran hafalan.');
+      }
+      rethrow;
+    }
+  }
+
+  Future<Map<String, dynamic>> saveSetoranKonfigurasi(Map<String, dynamic> data) async {
+    try {
+      final response = await _dio.post('/my-mustahiq/setoran/konfigurasi', data: data);
+      if (response.statusCode == 200) {
+        return response.data as Map<String, dynamic>;
+      }
+      throw Exception('Gagal menyimpan ritme setoran.');
+    } catch (e) {
+      if (e is DioException && e.response != null) {
+        throw Exception(e.response?.data['error'] ?? 'Gagal menyimpan ritme setoran.');
+      }
+      rethrow;
+    }
+  }
+
+  Future<Map<String, dynamic>> getSantriSetoranHistory(int santriId, {int? tahunAjaranId, int? kelasId}) async {
+    try {
+      final Map<String, dynamic> qp = {};
+      if (tahunAjaranId != null) qp['tahun_ajaran_id'] = tahunAjaranId;
+      if (kelasId != null) qp['kelas_id'] = kelasId;
+
+      final response = await _dio.get('/my-mustahiq/setoran/santri/$santriId', queryParameters: qp);
+      if (response.statusCode == 200) {
+        return response.data as Map<String, dynamic>;
+      }
+      throw Exception('Gagal mengambil riwayat setoran santri.');
+    } catch (e) {
+      if (e is DioException && e.response != null) {
+        throw Exception(e.response?.data['error'] ?? 'Gagal mengambil riwayat setoran santri.');
+      }
+      rethrow;
+    }
+  }
+
+  Future<Map<String, dynamic>> inputSetoran(Map<String, dynamic> data) async {
+    try {
+      final response = await _dio.post('/my-mustahiq/setoran/input', data: data);
+      if (response.statusCode == 200) {
+        return response.data as Map<String, dynamic>;
+      }
+      throw Exception('Gagal mencatat setoran santri.');
+    } catch (e) {
+      if (e is DioException && e.response != null) {
+        throw Exception(e.response?.data['error'] ?? 'Gagal mencatat setoran santri.');
+      }
+      rethrow;
+    }
+  }
+
+  Future<Map<String, dynamic>> bulkInputSetoran(Map<String, dynamic> data) async {
+    try {
+      final response = await _dio.post('/my-mustahiq/setoran/bulk-input', data: data);
+      if (response.statusCode == 200) {
+        return response.data as Map<String, dynamic>;
+      }
+      throw Exception('Gagal mencatat setoran massal.');
+    } catch (e) {
+      if (e is DioException && e.response != null) {
+        throw Exception(e.response?.data['error'] ?? 'Gagal mencatat setoran massal.');
+      }
+      rethrow;
+    }
+  }
+
+  Future<Map<String, dynamic>> updateSetoran(int id, Map<String, dynamic> data) async {
+    try {
+      final response = await _dio.put('/my-mustahiq/setoran/$id', data: data);
+      if (response.statusCode == 200) {
+        return response.data as Map<String, dynamic>;
+      }
+      throw Exception('Gagal memperbarui catatan setoran.');
+    } catch (e) {
+      if (e is DioException && e.response != null) {
+        throw Exception(e.response?.data['error'] ?? 'Gagal memperbarui catatan setoran.');
+      }
+      rethrow;
+    }
+  }
+
+  Future<void> deleteSetoran(int id) async {
+    try {
+      final response = await _dio.delete('/my-mustahiq/setoran/$id');
+      if (response.statusCode != 200) {
+        throw Exception('Gagal menghapus riwayat setoran.');
+      }
+    } catch (e) {
+      if (e is DioException && e.response != null) {
+        throw Exception(e.response?.data['error'] ?? 'Gagal menghapus riwayat setoran.');
+      }
+      rethrow;
+    }
+  }
 }
+
 
 

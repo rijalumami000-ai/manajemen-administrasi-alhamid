@@ -1,0 +1,664 @@
+const express = require('express');
+const db = require('../../db');
+const { getActiveTahunAjaran } = require('../services/tahunAjaranService');
+const { authenticateToken } = require('../middleware/authMiddleware');
+const { asyncHandler } = require('../utils/errorHandler');
+
+function registerSetoranHafalanRoutes(app) {
+  const router = express.Router();
+  router.use(authenticateToken);
+
+  // Helper: Dapatkan Kategori Evaluasi ID untuk Ganjil dan Genap
+  async function getSemesterCategories() {
+    const categories = await db.query(
+      `SELECT id, nama FROM kategori_evaluasi WHERE LOWER(nama) LIKE '%semester%' ORDER BY id ASC`
+    );
+    let ganjilId = 1;
+    let genapId = 2;
+    for (const c of categories.rows) {
+      if (c.nama.toLowerCase().includes('ganjil')) ganjilId = c.id;
+      if (c.nama.toLowerCase().includes('genap')) genapId = c.id;
+    }
+    return { ganjilId, genapId };
+  }
+
+  // Helper: Ambil kriteria evaluasi Muhafadzoh dari setting_kriteria_nilai
+  async function getKriteriaMuhafadzoh(tingkat, mapelId, tahunAjaranId, kategoriId) {
+    const muhafadzohTingkat = tingkat === 99 ? 2 : tingkat;
+    const query = `
+      SELECT tipe_input, konfigurasi
+      FROM setting_kriteria_nilai
+      WHERE (tahun_ajaran_id = $1 OR tahun_ajaran_id IS NULL)
+        AND (kategori_evaluasi_id = $2 OR kategori_evaluasi_id IS NULL)
+        AND (mata_pelajaran_id = $3 OR (mata_pelajaran_id IS NULL AND jenis_mapel = 'Muhafadzoh'))
+        AND tingkat = $4
+      ORDER BY tahun_ajaran_id DESC NULLS LAST, kategori_evaluasi_id DESC NULLS LAST, mata_pelajaran_id NULLS LAST
+      LIMIT 1
+    `;
+    const res = await db.query(query, [tahunAjaranId, kategoriId, mapelId, muhafadzohTingkat]);
+    if (res.rows.length > 0) {
+      return res.rows[0];
+    }
+    // Fallback default jika belum diset di web
+    return {
+      tipe_input: tingkat === 2 || tingkat === 99 ? 'Teks' : 'Angka',
+      konfigurasi: null
+    };
+  }
+
+  // Helper: Evaluasi Predikat dan Pencapaian Santri
+  function evaluateProgress(currentBait, currentBab, tipeInput, kriteriaGanjil, kriteriaGenap, isGanjilActive) {
+    let predikat = '-';
+    let persentase = 0;
+    let isMelampauiGanjil = false;
+    let targetSemesterAktif = 100;
+    let targetGenap = 200;
+
+    if (tipeInput === 'Angka') {
+      const baitVal = Number(currentBait) || 0;
+
+      // Cari target Mumtaz ganjil & genap
+      const ganjilMumtaz = kriteriaGanjil?.konfigurasi?.Mumtaz?.min || kriteriaGanjil?.konfigurasi?.Mumtaz?.max || 100;
+      const genapMumtaz = kriteriaGenap?.konfigurasi?.Mumtaz?.min || kriteriaGenap?.konfigurasi?.Mumtaz?.max || (ganjilMumtaz * 2);
+      
+      targetSemesterAktif = isGanjilActive ? ganjilMumtaz : genapMumtaz;
+      targetGenap = genapMumtaz;
+
+      persentase = targetSemesterAktif > 0 ? Math.round((baitVal / targetSemesterAktif) * 100) : 0;
+
+      if (isGanjilActive) {
+        if (baitVal >= ganjilMumtaz) {
+          isMelampauiGanjil = baitVal > ganjilMumtaz;
+          if (baitVal >= genapMumtaz) {
+            predikat = 'Mumtaz (Tuntas Genap)';
+          } else if (baitVal > ganjilMumtaz) {
+            predikat = 'Mumtaz (Melampaui)';
+          } else {
+            predikat = 'Mumtaz';
+          }
+        } else {
+          // Bandingkan dengan skala Ganjil
+          const cfg = kriteriaGanjil?.konfigurasi;
+          if (cfg && cfg.Jayyid && baitVal >= (cfg.Jayyid.min || 0)) {
+            predikat = 'Jayyid';
+          } else if (cfg && cfg.Mutawassith && baitVal >= (cfg.Mutawassith.min || 0)) {
+            predikat = 'Mutawassith';
+          } else if (baitVal > 0) {
+            predikat = "Rodi'";
+          } else {
+            predikat = 'Belum Setor';
+          }
+        }
+      } else {
+        // Semester Genap aktif
+        if (baitVal >= genapMumtaz) {
+          predikat = 'Mumtaz';
+        } else {
+          const cfg = kriteriaGenap?.konfigurasi || kriteriaGanjil?.konfigurasi;
+          if (cfg && cfg.Jayyid && baitVal >= (cfg.Jayyid.min || 0)) {
+            predikat = 'Jayyid';
+          } else if (cfg && cfg.Mutawassith && baitVal >= (cfg.Mutawassith.min || 0)) {
+            predikat = 'Mutawassith';
+          } else if (baitVal > 0) {
+            predikat = "Rodi'";
+          } else {
+            predikat = 'Belum Setor';
+          }
+        }
+      }
+    } else {
+      // Model Bab / Teks
+      if (!currentBab) {
+        predikat = 'Belum Setor';
+        persentase = 0;
+      } else {
+        const listGanjil = Array.isArray(kriteriaGanjil?.konfigurasi) ? kriteriaGanjil.konfigurasi : [];
+        const listGenap = Array.isArray(kriteriaGenap?.konfigurasi) ? kriteriaGenap.konfigurasi : [];
+
+        // Cek apakah bab ada di daftar
+        const matchG = listGanjil.find(item => (item.bab || '').trim().toLowerCase() === currentBab.trim().toLowerCase());
+        const matchGe = listGenap.find(item => (item.bab || '').trim().toLowerCase() === currentBab.trim().toLowerCase());
+
+        if (isGanjilActive && matchGe && !matchG) {
+          isMelampauiGanjil = true;
+          predikat = matchGe.predikat ? `${matchGe.predikat} (Genap)` : 'Melampaui Target';
+        } else if (matchG) {
+          predikat = matchG.predikat || 'Tuntas';
+        } else if (matchGe) {
+          predikat = matchGe.predikat || 'Tuntas';
+        } else {
+          predikat = 'Tercatat';
+        }
+
+        // Estimasi persentase index bab
+        const totalBabGanjil = listGanjil.length || 1;
+        const idx = listGanjil.findIndex(item => (item.bab || '').trim().toLowerCase() === currentBab.trim().toLowerCase());
+        if (idx >= 0) {
+          persentase = Math.round(((idx + 1) / totalBabGanjil) * 100);
+        } else if (isMelampauiGanjil) {
+          persentase = 100;
+        } else {
+          persentase = 50;
+        }
+      }
+    }
+
+    return { predikat, persentase, isMelampauiGanjil, targetSemesterAktif, targetGenap };
+  }
+
+  /**
+   * GET /api/my-mustahiq/setoran/overview
+   * Mengembalikan:
+   * - Data kelas, mustahiq, kitab muhafadzoh
+   * - Pengaturan ritme setoran kelas saat ini
+   * - Standar kriteria ganjil & genap
+   * - Daftar seluruh santri beserta akumulasi capaian, predikat, & progress bar
+   */
+  router.get('/setoran/overview', asyncHandler(async (req, res) => {
+    const guruId = req.user.guru_id;
+    const { kelas_id, tahun_ajaran_id, semester } = req.query;
+
+    const activeYear = tahun_ajaran_id
+      ? (await db.query('SELECT id, kode FROM tahun_ajaran WHERE id = $1', [parseInt(tahun_ajaran_id, 10)])).rows[0]
+      : await getActiveTahunAjaran();
+
+    if (!activeYear) return res.status(404).json({ error: 'Tahun ajaran tidak ditemukan.' });
+
+    const semResult = await db.query("SELECT value FROM system_settings WHERE key = 'active_semester' LIMIT 1");
+    const activeSemester = semester || (semResult.rows[0] ? semResult.rows[0].value : 'Ganjil');
+    const isGanjilActive = activeSemester.toLowerCase().includes('ganjil');
+
+    const { ganjilId, genapId } = await getSemesterCategories();
+    const currentKategoriId = isGanjilActive ? ganjilId : genapId;
+
+    // Tentukan Kelas ID: dari query (web / admin) atau dari kelas binaan mustahiq login
+    let targetKelasId = kelas_id ? parseInt(kelas_id, 10) : null;
+    if (!targetKelasId && guruId) {
+      const mustahiqRes = await db.query(
+        `SELECT kta.kelas_id 
+         FROM kelas_tahun_ajaran kta
+         WHERE kta.mustahiq_id = $1 AND kta.tahun_ajaran_id = $2
+         LIMIT 1`,
+        [guruId, activeYear.id]
+      );
+      if (mustahiqRes.rows.length > 0) {
+        targetKelasId = mustahiqRes.rows[0].kelas_id;
+      }
+    }
+
+    if (!targetKelasId) {
+      return res.status(400).json({
+        error: 'Kelas belum dipilih atau Anda belum terdaftar sebagai Mustahiq pada tahun ajaran ini.'
+      });
+    }
+
+    // Detail Kelas & Muhafadzoh Kitab
+    const classRes = await db.query(
+      `SELECT k.id, k.nama, k.tingkat, k.jenis,
+              kta.mustahiq_id, g.nama AS mustahiq_nama,
+              kta.muhafadzoh_mapel_id, mp.nama AS muhafadzoh_nama
+       FROM kelas k
+       JOIN kelas_tahun_ajaran kta ON kta.kelas_id = k.id AND kta.tahun_ajaran_id = $2
+       LEFT JOIN guru g ON g.id = kta.mustahiq_id
+       LEFT JOIN mata_pelajaran mp ON mp.id = kta.muhafadzoh_mapel_id
+       WHERE k.id = $1
+       LIMIT 1`,
+      [targetKelasId, activeYear.id]
+    );
+
+    if (classRes.rows.length === 0) {
+      return res.status(404).json({ error: 'Informasi kelas untuk tahun ajaran ini tidak ditemukan.' });
+    }
+    const classDetail = classRes.rows[0];
+
+    // Konfigurasi Ritme Kelas oleh Mustahiq
+    const configRes = await db.query(
+      `SELECT * FROM konfigurasi_setoran_kelas 
+       WHERE kelas_id = $1 AND tahun_ajaran_id = $2 AND kategori_evaluasi_id = $3
+       LIMIT 1`,
+      [targetKelasId, activeYear.id, currentKategoriId]
+    );
+    const classConfig = configRes.rows[0] || {
+      mode_frekuensi: 'mingguan',
+      interval_hari: 7,
+      target_per_setoran: 10,
+      catatan: ''
+    };
+
+    // Ambil Kriteria Penilaian Muhafadzoh dari Web (Pengaturan Kriteria)
+    const kriteriaGanjil = await getKriteriaMuhafadzoh(classDetail.tingkat, classDetail.muhafadzoh_mapel_id, activeYear.id, ganjilId);
+    const kriteriaGenap = await getKriteriaMuhafadzoh(classDetail.tingkat, classDetail.muhafadzoh_mapel_id, activeYear.id, genapId);
+
+    // Tipe input efektif: 'Angka' atau 'Teks' (dinamis dari kriteria web)
+    const activeKriteria = isGanjilActive ? kriteriaGanjil : kriteriaGenap;
+    const tipeInput = activeKriteria?.tipe_input || (classDetail.tingkat === 2 || classDetail.tingkat === 99 ? 'Teks' : 'Angka');
+
+    // Daftar Santri di Kelas ini
+    const isGenap = activeSemester.toLowerCase().includes('genap');
+    let santriQuery = `
+      SELECT sta.santri_id AS id, sta.nis, sta.nama, s.foto_url
+      FROM santri_tahun_ajaran sta
+      JOIN santri s ON s.id = sta.santri_id
+      WHERE sta.kelas_diniyah_id = $1 AND sta.tahun_ajaran_id = $2 AND sta.status = 'aktif'
+    `;
+    if (isGenap) santriQuery += ' AND sta.aktif_genap = TRUE';
+    else santriQuery += ' AND sta.aktif_ganjil = TRUE';
+    santriQuery += ' ORDER BY sta.nama ASC';
+    const santriRes = await db.query(santriQuery, [targetKelasId, activeYear.id]);
+
+    // Agregasi Riwayat Setoran Santri
+    const setoranAggRes = await db.query(
+      `SELECT 
+         santri_id,
+         COUNT(id) AS total_sesi_setoran,
+         COALESCE(MAX(bait_akhir), 0) AS bait_terakhir,
+         COALESCE(SUM(jumlah_bait), 0) AS total_nadzom_disetor,
+         MAX(tanggal_setor) AS tanggal_setor_terakhir
+       FROM riwayat_setoran_nadzom
+       WHERE kelas_id = $1 AND tahun_ajaran_id = $2
+       GROUP BY santri_id`,
+      [targetKelasId, activeYear.id]
+    );
+
+    const aggMap = new Map();
+    for (const row of setoranAggRes.rows) {
+      aggMap.set(row.santri_id, row);
+    }
+
+    // Ambil info setoran terakhir santri untuk status kelancaran & nama bab terakhir
+    const latestSetoranRes = await db.query(
+      `SELECT DISTINCT ON (santri_id) 
+         santri_id, nama_bab, status_kelancaran, catatan, tanggal_setor, bait_akhir
+       FROM riwayat_setoran_nadzom
+       WHERE kelas_id = $1 AND tahun_ajaran_id = $2
+       ORDER BY santri_id, tanggal_setor DESC, id DESC`,
+      [targetKelasId, activeYear.id]
+    );
+
+    const latestMap = new Map();
+    for (const row of latestSetoranRes.rows) {
+      latestMap.set(row.santri_id, row);
+    }
+
+    // Hitung tanggal 7 hari yang lalu untuk filter santri belum setor sepekan terakhir
+    const sevenDaysAgo = new Date();
+    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+
+    let countTuntasGanjil = 0;
+    let countMelampaui = 0;
+    let countBelumSetorPekanIni = 0;
+
+    const santriList = santriRes.rows.map(s => {
+      const agg = aggMap.get(s.id) || {
+        total_sesi_setoran: 0,
+        bait_terakhir: 0,
+        total_nadzom_disetor: 0,
+        tanggal_setor_terakhir: null
+      };
+      const latest = latestMap.get(s.id) || null;
+
+      const evalResult = evaluateProgress(
+        agg.bait_terakhir,
+        latest?.nama_bab,
+        tipeInput,
+        kriteriaGanjil,
+        kriteriaGenap,
+        isGanjilActive
+      );
+
+      const hasSetorThisWeek = agg.tanggal_setor_terakhir
+        ? new Date(agg.tanggal_setor_terakhir) >= sevenDaysAgo
+        : false;
+
+      if (!hasSetorThisWeek) countBelumSetorPekanIni++;
+      if (evalResult.persentase >= 100) countTuntasGanjil++;
+      if (evalResult.isMelampauiGanjil) countMelampaui++;
+
+      return {
+        id: s.id,
+        nis: s.nis,
+        nama: s.nama,
+        foto_url: s.foto_url,
+        total_sesi_setoran: parseInt(agg.total_sesi_setoran, 10),
+        bait_terakhir: parseInt(agg.bait_terakhir, 10),
+        total_nadzom_disetor: parseInt(agg.total_nadzom_disetor, 10),
+        nama_bab_terakhir: latest?.nama_bab || null,
+        status_kelancaran_terakhir: latest?.status_kelancaran || null,
+        catatan_terakhir: latest?.catatan || null,
+        tanggal_setor_terakhir: agg.tanggal_setor_terakhir,
+        has_setor_this_week: hasSetorThisWeek,
+        predikat: evalResult.predikat,
+        persentase: evalResult.persentase,
+        is_melampaui_ganjil: evalResult.isMelampauiGanjil,
+        target_semester: evalResult.targetSemesterAktif,
+        target_genap: evalResult.targetGenap
+      };
+    });
+
+    res.json({
+      kelas: classDetail,
+      tahunAjaran: activeYear,
+      semester: activeSemester,
+      kategoriEvaluasiId: currentKategoriId,
+      tipeInput,
+      konfigurasiRitme: classConfig,
+      kriteria: {
+        ganjil: kriteriaGanjil,
+        genap: kriteriaGenap
+      },
+      stats: {
+        totalSantri: santriList.length,
+        countTuntasGanjil,
+        countMelampaui,
+        countBelumSetorPekanIni
+      },
+      santriList
+    });
+  }));
+
+  /**
+   * POST /api/my-mustahiq/setoran/konfigurasi
+   * Menyimpan / memperbarui ritme penarikan setoran kelas oleh Mustahiq
+   */
+  router.post('/setoran/konfigurasi', asyncHandler(async (req, res) => {
+    const { kelas_id, tahun_ajaran_id, kategori_evaluasi_id, mode_frekuensi, interval_hari, target_per_setoran, catatan } = req.body;
+    const mustahiqId = req.user.guru_id || null;
+
+    if (!kelas_id || !tahun_ajaran_id || !kategori_evaluasi_id) {
+      return res.status(400).json({ error: 'Parameter kelas_id, tahun_ajaran_id, dan kategori_evaluasi_id wajib diisi.' });
+    }
+
+    const upsertQuery = `
+      INSERT INTO konfigurasi_setoran_kelas 
+        (kelas_id, tahun_ajaran_id, kategori_evaluasi_id, mustahiq_id, mode_frekuensi, interval_hari, target_per_setoran, catatan, updated_at)
+      VALUES 
+        ($1, $2, $3, $4, $5, $6, $7, $8, CURRENT_TIMESTAMP)
+      ON CONFLICT (kelas_id, tahun_ajaran_id, kategori_evaluasi_id)
+      DO UPDATE SET
+        mustahiq_id = EXCLUDED.mustahiq_id,
+        mode_frekuensi = EXCLUDED.mode_frekuensi,
+        interval_hari = EXCLUDED.interval_hari,
+        target_per_setoran = EXCLUDED.target_per_setoran,
+        catatan = EXCLUDED.catatan,
+        updated_at = CURRENT_TIMESTAMP
+      RETURNING *;
+    `;
+
+    const result = await db.query(upsertQuery, [
+      kelas_id,
+      tahun_ajaran_id,
+      kategori_evaluasi_id,
+      mustahiqId,
+      mode_frekuensi || 'mingguan',
+      interval_hari || 7,
+      target_per_setoran || 10,
+      catatan || null
+    ]);
+
+    res.json({
+      message: 'Konfigurasi ritme setoran berhasil disimpan.',
+      konfigurasi: result.rows[0]
+    });
+  }));
+
+  /**
+   * GET /api/my-mustahiq/setoran/santri/:santriId
+   * Mengembalikan seluruh riwayat timeline setoran seorang santri
+   */
+  router.get('/setoran/santri/:santriId', asyncHandler(async (req, res) => {
+    const santriId = parseInt(req.params.santriId, 10);
+    const { tahun_ajaran_id, kelas_id } = req.query;
+
+    const santriRes = await db.query(
+      `SELECT id, nis, nama, foto_url FROM santri WHERE id = $1`,
+      [santriId]
+    );
+    if (santriRes.rows.length === 0) return res.status(404).json({ error: 'Santri tidak ditemukan.' });
+
+    let query = `
+      SELECT r.*, g.nama AS mustahiq_nama, ke.nama AS semester_nama
+      FROM riwayat_setoran_nadzom r
+      LEFT JOIN guru g ON g.id = r.mustahiq_id
+      LEFT JOIN kategori_evaluasi ke ON ke.id = r.kategori_evaluasi_id
+      WHERE r.santri_id = $1
+    `;
+    const params = [santriId];
+    let idx = 2;
+
+    if (tahun_ajaran_id) {
+      query += ` AND r.tahun_ajaran_id = $${idx++}`;
+      params.push(parseInt(tahun_ajaran_id, 10));
+    }
+    if (kelas_id) {
+      query += ` AND r.kelas_id = $${idx++}`;
+      params.push(parseInt(kelas_id, 10));
+    }
+
+    query += ' ORDER BY r.tanggal_setor DESC, r.id DESC';
+    const historyRes = await db.query(query, params);
+
+    res.json({
+      santri: santriRes.rows[0],
+      riwayat: historyRes.rows
+    });
+  }));
+
+  /**
+   * POST /api/my-mustahiq/setoran/input
+   * Input setoran santri (mendukung sinkronisasi Bait Terakhir ATAU Jumlah Nadzom secara otomatis)
+   */
+  router.post('/setoran/input', asyncHandler(async (req, res) => {
+    const guruId = req.user.guru_id || null;
+    let {
+      santri_id,
+      kelas_id,
+      tahun_ajaran_id,
+      kategori_evaluasi_id,
+      tanggal_setor,
+      tipe_setoran,
+      bait_awal,
+      bait_akhir,
+      jumlah_bait,
+      nama_bab,
+      status_kelancaran,
+      catatan
+    } = req.body;
+
+    if (!santri_id || !kelas_id || !tahun_ajaran_id || !kategori_evaluasi_id) {
+      return res.status(400).json({ error: 'santri_id, kelas_id, tahun_ajaran_id, dan kategori_evaluasi_id wajib disertakan.' });
+    }
+
+    // Ambil capaian terakhir santri saat ini
+    const prevRes = await db.query(
+      `SELECT COALESCE(MAX(bait_akhir), 0) AS max_bait
+       FROM riwayat_setoran_nadzom
+       WHERE santri_id = $1 AND tahun_ajaran_id = $2`,
+      [santri_id, tahun_ajaran_id]
+    );
+    const prevBait = parseInt(prevRes.rows[0]?.max_bait || 0, 10);
+
+    const isAngka = tipe_setoran !== 'Bab';
+
+    if (isAngka) {
+      // Logika cerdas sinkronisasi otomatis dua arah:
+      // Jika diberikan bait_akhir tapi tidak ada jumlah_bait:
+      if (bait_akhir !== undefined && bait_akhir !== null && (jumlah_bait === undefined || jumlah_bait === null)) {
+        bait_awal = bait_awal !== undefined ? Number(bait_awal) : prevBait;
+        jumlah_bait = Math.max(0, Number(bait_akhir) - bait_awal);
+      }
+      // Jika diberikan jumlah_bait tapi tidak ada bait_akhir:
+      else if (jumlah_bait !== undefined && jumlah_bait !== null && (bait_akhir === undefined || bait_akhir === null)) {
+        bait_awal = bait_awal !== undefined ? Number(bait_awal) : prevBait;
+        bait_akhir = bait_awal + Number(jumlah_bait);
+      }
+      // Jika keduanya ada:
+      else if (bait_akhir !== undefined && jumlah_bait !== undefined) {
+        bait_awal = bait_awal !== undefined ? Number(bait_awal) : Math.max(0, Number(bait_akhir) - Number(jumlah_bait));
+      } else {
+        bait_awal = prevBait;
+        bait_akhir = prevBait;
+        jumlah_bait = 0;
+      }
+    }
+
+    const insertQuery = `
+      INSERT INTO riwayat_setoran_nadzom
+        (santri_id, kelas_id, tahun_ajaran_id, kategori_evaluasi_id, mustahiq_id,
+         tanggal_setor, tipe_setoran, bait_awal, bait_akhir, jumlah_bait, nama_bab,
+         status_kelancaran, catatan)
+      VALUES
+        ($1, $2, $3, $4, $5, COALESCE($6::DATE, CURRENT_DATE), $7, $8, $9, $10, $11, $12, $13)
+      RETURNING *;
+    `;
+
+    const result = await db.query(insertQuery, [
+      santri_id,
+      kelas_id,
+      tahun_ajaran_id,
+      kategori_evaluasi_id,
+      guruId,
+      tanggal_setor || null,
+      tipe_setoran || 'Angka',
+      isAngka ? bait_awal : 0,
+      isAngka ? bait_akhir : 0,
+      isAngka ? jumlah_bait : 0,
+      nama_bab || null,
+      status_kelancaran || 'Lancar',
+      catatan || null
+    ]);
+
+    res.json({
+      message: 'Setoran hafalan berhasil dicatat.',
+      data: result.rows[0]
+    });
+  }));
+
+  /**
+   * POST /api/my-mustahiq/setoran/bulk-input
+   * Input massal untuk Mode Halaqoh saat menyimak banyak santri sekaligus
+   */
+  router.post('/setoran/bulk-input', asyncHandler(async (req, res) => {
+    const guruId = req.user.guru_id || null;
+    const { kelas_id, tahun_ajaran_id, kategori_evaluasi_id, tanggal_setor, tipe_setoran, items } = req.body;
+
+    if (!kelas_id || !tahun_ajaran_id || !kategori_evaluasi_id || !Array.isArray(items) || items.length === 0) {
+      return res.status(400).json({ error: 'Parameter tidak lengkap atau daftar setoran kosong.' });
+    }
+
+    const client = await db.pool.connect();
+    try {
+      await client.query('BEGIN');
+      const insertedRows = [];
+
+      for (const item of items) {
+        if (!item.santri_id) continue;
+
+        // Cari capaian santri
+        const prevRes = await client.query(
+          `SELECT COALESCE(MAX(bait_akhir), 0) AS max_bait
+           FROM riwayat_setoran_nadzom
+           WHERE santri_id = $1 AND tahun_ajaran_id = $2`,
+          [item.santri_id, tahun_ajaran_id]
+        );
+        const prevBait = parseInt(prevRes.rows[0]?.max_bait || 0, 10);
+
+        let baitAwal = item.bait_awal !== undefined ? Number(item.bait_awal) : prevBait;
+        let baitAkhir = item.bait_akhir !== undefined ? Number(item.bait_akhir) : null;
+        let jumlahBait = item.jumlah_bait !== undefined ? Number(item.jumlah_bait) : null;
+
+        if (baitAkhir !== null && jumlahBait === null) {
+          jumlahBait = Math.max(0, baitAkhir - baitAwal);
+        } else if (jumlahBait !== null && baitAkhir === null) {
+          baitAkhir = baitAwal + jumlahBait;
+        } else if (baitAkhir === null && jumlahBait === null) {
+          baitAkhir = prevBait;
+          jumlahBait = 0;
+        }
+
+        const resIns = await client.query(
+          `INSERT INTO riwayat_setoran_nadzom
+            (santri_id, kelas_id, tahun_ajaran_id, kategori_evaluasi_id, mustahiq_id,
+             tanggal_setor, tipe_setoran, bait_awal, bait_akhir, jumlah_bait, nama_bab,
+             status_kelancaran, catatan)
+           VALUES
+            ($1, $2, $3, $4, $5, COALESCE($6::DATE, CURRENT_DATE), $7, $8, $9, $10, $11, $12, $13)
+           RETURNING id, santri_id, bait_akhir, jumlah_bait, status_kelancaran;`,
+          [
+            item.santri_id,
+            kelas_id,
+            tahun_ajaran_id,
+            kategori_evaluasi_id,
+            guruId,
+            tanggal_setor || null,
+            tipe_setoran || 'Angka',
+            baitAwal,
+            baitAkhir,
+            jumlahBait,
+            item.nama_bab || null,
+            item.status_kelancaran || 'Lancar',
+            item.catatan || null
+          ]
+        );
+        insertedRows.push(resIns.rows[0]);
+      }
+
+      await client.query('COMMIT');
+      res.json({
+        message: `Berhasil mencatat setoran untuk ${insertedRows.length} santri.`,
+        data: insertedRows
+      });
+    } catch (err) {
+      await client.query('ROLLBACK');
+      throw err;
+    } finally {
+      client.release();
+    }
+  }));
+
+  /**
+   * PUT /api/my-mustahiq/setoran/:id
+   * Edit catatan setoran hafalan
+   */
+  router.put('/setoran/:id', asyncHandler(async (req, res) => {
+    const id = parseInt(req.params.id, 10);
+    const { bait_awal, bait_akhir, jumlah_bait, nama_bab, status_kelancaran, catatan, tanggal_setor } = req.body;
+
+    const existingRes = await db.query('SELECT * FROM riwayat_setoran_nadzom WHERE id = $1', [id]);
+    if (existingRes.rows.length === 0) return res.status(404).json({ error: 'Data setoran tidak ditemukan.' });
+
+    const updatedRes = await db.query(
+      `UPDATE riwayat_setoran_nadzom
+       SET bait_awal = COALESCE($1, bait_awal),
+           bait_akhir = COALESCE($2, bait_akhir),
+           jumlah_bait = COALESCE($3, jumlah_bait),
+           nama_bab = COALESCE($4, nama_bab),
+           status_kelancaran = COALESCE($5, status_kelancaran),
+           catatan = COALESCE($6, catatan),
+           tanggal_setor = COALESCE($7::DATE, tanggal_setor),
+           updated_at = CURRENT_TIMESTAMP
+       WHERE id = $8
+       RETURNING *;`,
+      [bait_awal, bait_akhir, jumlah_bait, nama_bab, status_kelancaran, catatan, tanggal_setor, id]
+    );
+
+    res.json({
+      message: 'Catatan setoran berhasil diperbarui.',
+      data: updatedRes.rows[0]
+    });
+  }));
+
+  /**
+   * DELETE /api/my-mustahiq/setoran/:id
+   * Hapus riwayat setoran yang salah input
+   */
+  router.delete('/setoran/:id', asyncHandler(async (req, res) => {
+    const id = parseInt(req.params.id, 10);
+    const result = await db.query('DELETE FROM riwayat_setoran_nadzom WHERE id = $1 RETURNING id', [id]);
+    if (result.rows.length === 0) return res.status(404).json({ error: 'Data setoran tidak ditemukan.' });
+    res.json({ message: 'Riwayat setoran berhasil dihapus.', id });
+  }));
+
+  app.use('/api/my-mustahiq', router);
+}
+
+module.exports = registerSetoranHafalanRoutes;

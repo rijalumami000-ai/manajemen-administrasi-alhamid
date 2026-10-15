@@ -7,6 +7,7 @@ import '../widgets/offline_widget.dart';
 import 'santri_explorer_screen.dart';
 import 'informasi_ujian_screen.dart';
 import 'kelasku_rapor_input_screen.dart';
+import 'setoran_hafalan_screen.dart';
 
 class TabKelasku extends StatefulWidget {
   const TabKelasku({super.key});
@@ -645,8 +646,26 @@ class _TabKelaskuState extends State<TabKelasku> {
                 },
               ),
 
-              // 2. Kelola Rapor Kelas Binaan (paling bawah)
+              // 2. Setoran Hafalan Nadzom (Muhafadzoh) (Khusus Mustahiq)
               if (isMustahiq) ...[
+                const SizedBox(height: 12),
+                _buildElongatedActionCard(
+                  context: context,
+                  title: "Setoran Hafalan Nadzom",
+                  desc: "Monitoring ritme setoran nadzom & progres hafalan santri.",
+                  icon: Icons.menu_book_rounded,
+                  color: const Color(0xFFD97706),
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => SetoranHafalanScreen(
+                          kelasMustahiq: kelasMustahiq ?? {},
+                        ),
+                      ),
+                    );
+                  },
+                ),
                 const SizedBox(height: 12),
                 _buildElongatedActionCard(
                   context: context,
