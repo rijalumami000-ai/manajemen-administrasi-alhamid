@@ -40,10 +40,10 @@ class _TabNotifikasiState extends State<TabNotifikasi> {
     },
     {
       'id': 4,
-      'title': 'Pembaruan Aplikasi Alhamid One v1.4.1',
-      'body': 'Aplikasi Anda telah diperbarui ke versi v1.4.1. Pembaruan ini mencakup navigasi menu baru (Bottom Navbar), fitur ganti password langsung dari HP, login sidik jari (biometrik), dan perbaikan pemuatan foto santri.',
+      'title': 'Pembaruan Aplikasi Alhamid One v1.4.2',
+      'body': 'Aplikasi Anda telah diperbarui ke versi v1.4.2. Pembaruan ini mencakup grafik analitik statistik santri per tingkat & per kelas, indikator sinyal aktif real-time, sinkronisasi semester aktif, dan penguatan autentikasi biometrik.',
       'category': 'Sistem',
-      'time': '3 hari yang lalu',
+      'time': 'Baru saja',
       'isRead': true,
       'color': const Color(0xFF3B82F6),
     },

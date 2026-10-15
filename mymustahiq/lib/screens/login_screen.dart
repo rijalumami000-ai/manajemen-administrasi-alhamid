@@ -51,16 +51,20 @@ class _LoginScreenState extends State<LoginScreen> {
       final isSupported = await _auth.isDeviceSupported();
       final status = await QuickAuthService.getStatus();
       final hasCreds = await QuickAuthService.hasSavedCredentials();
+      final savedUser = await _storage.read(key: 'saved_username');
 
       if (mounted) {
         setState(() {
-          _biometricAvailable = canCheck && isSupported;
+          _biometricAvailable = canCheck || isSupported;
           _biometricEnabled = status['biometric'] ?? false;
           _faceEnabled = status['face'] ?? false;
           _pinEnabled = status['pin'] ?? false;
           _patternEnabled = status['pattern'] ?? false;
           _passwordEnabled = status['password'] ?? false;
           _hasSavedCredentials = hasCreds;
+          if (savedUser != null && savedUser.isNotEmpty && _usernameController.text.isEmpty) {
+            _usernameController.text = savedUser;
+          }
         });
       }
     } catch (_) {}
@@ -143,9 +147,22 @@ class _LoginScreenState extends State<LoginScreen> {
 
   Future<void> _handleBiometricLogin() async {
     try {
+      final canCheck = await _auth.canCheckBiometrics;
+      final isSupported = await _auth.isDeviceSupported();
+      if (!canCheck && !isSupported) {
+        setState(() {
+          _errorMessage = 'Perangkat ini belum mendukung fitur biometrik / sidik jari.';
+        });
+        return;
+      }
+
       final didAuth = await _auth.authenticate(
-        localizedReason: 'Login ke Alhamid One menggunakan sidik jari/biometrik',
-        biometricOnly: true,
+        localizedReason: 'Konfirmasi sidik jari atau biometrik untuk masuk ke Alhamid One',
+        options: const AuthenticationOptions(
+          biometricOnly: false,
+          stickyAuth: true,
+          useErrorDialogs: true,
+        ),
       );
 
       if (!didAuth) return;
@@ -160,9 +177,22 @@ class _LoginScreenState extends State<LoginScreen> {
 
   Future<void> _handleFaceLogin() async {
     try {
+      final canCheck = await _auth.canCheckBiometrics;
+      final isSupported = await _auth.isDeviceSupported();
+      if (!canCheck && !isSupported) {
+        setState(() {
+          _errorMessage = 'Perangkat ini belum mendukung verifikasi wajah.';
+        });
+        return;
+      }
+
       final didAuth = await _auth.authenticate(
-        localizedReason: 'Login ke Alhamid One menggunakan verifikasi wajah',
-        biometricOnly: true,
+        localizedReason: 'Konfirmasi verifikasi wajah untuk masuk ke Alhamid One',
+        options: const AuthenticationOptions(
+          biometricOnly: false,
+          stickyAuth: true,
+          useErrorDialogs: true,
+        ),
       );
 
       if (!didAuth) return;

@@ -13,6 +13,7 @@ import 'notifications_screen.dart';
 import 'chat_rooms_screen.dart';
 import '../services/push_notification_service.dart';
 import '../services/network_service.dart';
+import 'package:connectivity_plus/connectivity_plus.dart';
 
 class DashboardScreen extends StatefulWidget {
   const DashboardScreen({super.key});
@@ -239,43 +240,76 @@ class _DashboardScreenState extends State<DashboardScreen> {
           ),
         ),
         actions: [
-          StreamBuilder<bool>(
-            stream: NetworkService().onConnectionChange,
-            initialData: NetworkService().isOnline,
+          StreamBuilder<ConnectivityResult>(
+            stream: NetworkService().onTypeChange,
+            initialData: NetworkService().currentType,
             builder: (context, snapshot) {
-              final isOnline = snapshot.data ?? true;
-              return Container(
-                margin: const EdgeInsets.symmetric(vertical: 12),
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                decoration: BoxDecoration(
-                  color: (isOnline ? const Color(0xFF10B981) : Colors.redAccent).withOpacity(0.12),
-                  borderRadius: BorderRadius.circular(20),
-                  border: Border.all(
-                    color: (isOnline ? const Color(0xFF10B981) : Colors.redAccent).withOpacity(0.3),
-                    width: 1,
+              final type = snapshot.data ?? ConnectivityResult.none;
+              final isOnline = NetworkService().isOnline && type != ConnectivityResult.none;
+              final isWifi = type == ConnectivityResult.wifi;
+              final isMobile = type == ConnectivityResult.mobile;
+
+              IconData iconData = Icons.cloud_off_rounded;
+              Color iconColor = Colors.redAccent;
+              String statusLabel = 'Offline';
+              String detailInfo = 'Koneksi internet terputus.';
+
+              if (isOnline) {
+                iconColor = const Color(0xFF10B981);
+                if (isWifi) {
+                  iconData = Icons.wifi_rounded;
+                  statusLabel = 'Wi-Fi';
+                  detailInfo = 'Terhubung ke jaringan Wi-Fi.';
+                } else if (isMobile) {
+                  iconData = Icons.signal_cellular_alt_rounded;
+                  statusLabel = 'Seluler';
+                  detailInfo = 'Terhubung ke jaringan Data Seluler.';
+                } else {
+                  iconData = Icons.wifi_rounded;
+                  statusLabel = 'Online';
+                  detailInfo = 'Terhubung ke Internet.';
+                }
+              }
+
+              return Tooltip(
+                message: '$statusLabel: $detailInfo',
+                child: GestureDetector(
+                  onTap: () {
+                    ScaffoldMessenger.of(context).hideCurrentSnackBar();
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Row(
+                          children: [
+                            Icon(iconData, color: Colors.white, size: 20),
+                            const SizedBox(width: 10),
+                            Expanded(
+                              child: Text(
+                                isOnline ? 'Sinyal Aktif ($statusLabel) • $detailInfo' : 'Koneksi Terputus • Mode Offline',
+                                style: GoogleFonts.outfit(fontSize: 13, color: Colors.white),
+                              ),
+                            ),
+                          ],
+                        ),
+                        backgroundColor: isOnline ? const Color(0xFF064E3B) : const Color(0xFF991B1B),
+                        behavior: SnackBarBehavior.floating,
+                        duration: const Duration(seconds: 2),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      ),
+                    );
+                  },
+                  child: Container(
+                    margin: const EdgeInsets.symmetric(vertical: 10),
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: iconColor.withOpacity(0.12),
+                      shape: BoxShape.circle,
+                      border: Border.all(
+                        color: iconColor.withOpacity(0.35),
+                        width: 1.2,
+                      ),
+                    ),
+                    child: Icon(iconData, color: iconColor, size: 18),
                   ),
-                ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Container(
-                      width: 6,
-                      height: 6,
-                      decoration: BoxDecoration(
-                        color: isOnline ? const Color(0xFF10B981) : Colors.redAccent,
-                        shape: BoxShape.circle,
-                      ),
-                    ),
-                    const SizedBox(width: 4),
-                    Text(
-                      isOnline ? 'Online' : 'Offline',
-                      style: GoogleFonts.outfit(
-                        color: isOnline ? const Color(0xFF10B981) : Colors.redAccent,
-                        fontSize: 10,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ],
                 ),
               );
             },

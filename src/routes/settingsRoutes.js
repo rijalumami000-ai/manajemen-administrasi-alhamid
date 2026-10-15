@@ -16,15 +16,26 @@ router.get('/', async (req, res, next) => {
 // POST /api/settings (Protected - Admin only)
 router.post('/', authenticateToken, async (req, res, next) => {
   try {
-    const { key, value } = req.body;
-    
     // Check role
     if (req.user.role !== 'admin') {
       return res.status(403).json({ error: 'Hanya admin yang dapat mengubah pengaturan' });
     }
+
+    const { key, value, ...rest } = req.body;
     
-    const result = await SettingsService.updateSetting(key, value);
-    res.json(result);
+    // Single key update: { key, value }
+    if (key !== undefined && typeof key === 'string') {
+      const result = await SettingsService.updateSetting(key, value);
+      return res.json(result);
+    }
+    
+    // Multi-key / object update: { app_name, active_semester, app_logo, ... }
+    for (const [k, v] of Object.entries(req.body)) {
+      if (v !== undefined) {
+        await SettingsService.updateSetting(k, v);
+      }
+    }
+    res.json({ success: true, message: 'Pengaturan berhasil diperbarui' });
   } catch (error) {
     next(error);
   }

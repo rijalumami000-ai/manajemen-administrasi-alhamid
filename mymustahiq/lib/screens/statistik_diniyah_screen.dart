@@ -21,6 +21,7 @@ class _StatistikDiniyahScreenState extends State<StatistikDiniyahScreen> {
   Map<String, dynamic>? _data;
   bool _isLoading = true;
   String? _errorMessage;
+  bool _showCharts = true;
 
   @override
   void initState() {
@@ -127,6 +128,18 @@ class _StatistikDiniyahScreenState extends State<StatistikDiniyahScreen> {
             fontWeight: FontWeight.bold,
           ),
         ),
+        actions: [
+          IconButton(
+            icon: Icon(
+              _showCharts ? Icons.insert_chart_rounded : Icons.insert_chart_outlined_rounded,
+              color: _showCharts ? const Color(0xFF10B981) : (isDark ? Colors.white60 : const Color(0xFF64748B)),
+              size: 22,
+            ),
+            tooltip: _showCharts ? "Sembunyikan Grafik" : "Tampilkan Grafik",
+            onPressed: () => setState(() => _showCharts = !_showCharts),
+          ),
+          const SizedBox(width: 4),
+        ],
       ),
       body: RefreshIndicator(
         onRefresh: _fetchStatistik,
@@ -141,20 +154,6 @@ class _StatistikDiniyahScreenState extends State<StatistikDiniyahScreen> {
               _buildFilterSection(ganjilStatus, genapStatus, isDark),
               const SizedBox(height: 14),
 
-              // Upcoming Semester Notices
-              if (_selectedSemester == 'genap' && genapStatus == 'akan_datang')
-                _buildUpcomingAlert(
-                  title: "Semester Genap Belum Berjalan (Akan Datang)",
-                  description: "Saat ini posisi kalender berada di Semester Ganjil. Data valid santri aktif Semester Genap belum diverifikasi/berjalan resmi. Angka statistik valid akan tersaji saat memasuki Semester Genap.",
-                  isDark: isDark,
-                ),
-              if (_selectedSemester == 'ganjil' && ganjilStatus == 'akan_datang')
-                _buildUpcomingAlert(
-                  title: "Semester Ganjil Belum Berjalan (Akan Datang)",
-                  description: "Tahun ajaran ini merupakan periode masa depan dan belum aktif berjalan di sistem.",
-                  isDark: isDark,
-                ),
-
               if (_isLoading)
                 const Center(
                   child: Padding(
@@ -167,6 +166,10 @@ class _StatistikDiniyahScreenState extends State<StatistikDiniyahScreen> {
               else ...[
                 // Main KPI Grid
                 _buildKpiGrid(total, putra, putri, pctPutra, pctPutri, isDark),
+                if (_showCharts) ...[
+                  const SizedBox(height: 12),
+                  _buildGenderRatioChart(putra, putri, total, pctPutra, pctPutri, isDark),
+                ],
                 const SizedBox(height: 18),
 
                 // Semester Activity Card
@@ -176,18 +179,30 @@ class _StatistikDiniyahScreenState extends State<StatistikDiniyahScreen> {
                 // Breakdown Per Tingkat
                 _buildSectionHeader("Distribusi Siswa Per Tingkat", "${perTingkat.length} Tingkat", isDark),
                 const SizedBox(height: 12),
+                if (_showCharts) ...[
+                  _buildTingkatChart(perTingkat, total, isDark),
+                  const SizedBox(height: 12),
+                ],
                 _buildTingkatList(perTingkat, total, isDark),
                 const SizedBox(height: 24),
 
                 // Breakdown Per Kelas Diniyah
                 _buildSectionHeader("Rincian Jumlah Siswa Per Kelas", "${perKelas.length} Kelas", isDark),
                 const SizedBox(height: 12),
+                if (_showCharts) ...[
+                  _buildKelasChart(perKelas, total, isDark),
+                  const SizedBox(height: 14),
+                ],
                 _buildKelasGrid(perKelas, total, isDark),
                 const SizedBox(height: 24),
 
                 // Multi-year Trend
                 _buildSectionHeader("Tren Antar Tahun Ajaran", "${tren.length} Periode", isDark),
                 const SizedBox(height: 12),
+                if (_showCharts) ...[
+                  _buildTrenChart(tren, isDark),
+                  const SizedBox(height: 14),
+                ],
                 _buildTrenList(tren, isDark),
                 const SizedBox(height: 30),
               ],
@@ -463,12 +478,12 @@ class _StatistikDiniyahScreenState extends State<StatistikDiniyahScreen> {
         ),
         const SizedBox(height: 12),
 
-        // Putra vs Putri Cards
+        // Putra vs Putri Cards (Tanpa Banin/Banat)
         Row(
           children: [
             Expanded(
               child: _buildGenderCard(
-                label: "Putra (Banin)",
+                label: "Putra",
                 count: putra,
                 pct: pctPutra,
                 icon: Icons.face_rounded,
@@ -479,7 +494,7 @@ class _StatistikDiniyahScreenState extends State<StatistikDiniyahScreen> {
             const SizedBox(width: 10),
             Expanded(
               child: _buildGenderCard(
-                label: "Putri (Banat)",
+                label: "Putri",
                 count: putri,
                 pct: pctPutri,
                 icon: Icons.face_3_rounded,
@@ -490,6 +505,85 @@ class _StatistikDiniyahScreenState extends State<StatistikDiniyahScreen> {
           ],
         ),
       ],
+    );
+  }
+
+  // Grafik Proporsi Putra & Putri
+  Widget _buildGenderRatioChart(int putra, int putri, int total, int pctPutra, int pctPutri, bool isDark) {
+    if (total == 0) return const SizedBox.shrink();
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: isDark ? const Color(0xFF1E293B) : Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: isDark ? Colors.white.withOpacity(0.06) : const Color(0xFFE2E8F0),
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                "Grafik Rasio Siswa",
+                style: GoogleFonts.outfit(
+                  fontSize: 12,
+                  fontWeight: FontWeight.bold,
+                  color: isDark ? Colors.white70 : const Color(0xFF334155),
+                ),
+              ),
+              Row(
+                children: [
+                  Container(width: 8, height: 8, decoration: const BoxDecoration(color: Color(0xFF3B82F6), shape: BoxShape.circle)),
+                  const SizedBox(width: 4),
+                  Text("Putra $pctPutra%", style: GoogleFonts.outfit(fontSize: 11, fontWeight: FontWeight.bold, color: const Color(0xFF3B82F6))),
+                  const SizedBox(width: 10),
+                  Container(width: 8, height: 8, decoration: const BoxDecoration(color: Color(0xFFEC4899), shape: BoxShape.circle)),
+                  const SizedBox(width: 4),
+                  Text("Putri $pctPutri%", style: GoogleFonts.outfit(fontSize: 11, fontWeight: FontWeight.bold, color: const Color(0xFFEC4899))),
+                ],
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          ClipRRect(
+            borderRadius: BorderRadius.circular(8),
+            child: SizedBox(
+              height: 14,
+              child: Row(
+                children: [
+                  if (putra > 0)
+                    Expanded(
+                      flex: putra,
+                      child: Container(
+                        decoration: const BoxDecoration(
+                          gradient: LinearGradient(
+                            colors: [Color(0xFF2563EB), Color(0xFF60A5FA)],
+                          ),
+                        ),
+                      ),
+                    ),
+                  if (putra > 0 && putri > 0)
+                    Container(width: 2, color: isDark ? const Color(0xFF1E293B) : Colors.white),
+                  if (putri > 0)
+                    Expanded(
+                      flex: putri,
+                      child: Container(
+                        decoration: const BoxDecoration(
+                          gradient: LinearGradient(
+                            colors: [Color(0xFFF472B6), Color(0xFFDB2777)],
+                          ),
+                        ),
+                      ),
+                    ),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
     );
   }
 
@@ -616,35 +710,6 @@ class _StatistikDiniyahScreenState extends State<StatistikDiniyahScreen> {
                 ),
               ),
             ],
-          ),
-          const SizedBox(height: 12),
-          Container(
-            padding: const EdgeInsets.only(top: 10),
-            decoration: BoxDecoration(
-              border: Border(
-                top: BorderSide(
-                  color: isDark ? Colors.white.withOpacity(0.08) : const Color(0xFFE2E8F0),
-                ),
-              ),
-            ),
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text("💡 ", style: TextStyle(fontSize: 11)),
-                Expanded(
-                  child: Text(
-                    genapStatus == 'akan_datang'
-                        ? "Semester Genap belum berjalan resmi. Data santri aktif akan disajikan sah saat sistem memasuki Semester Genap."
-                        : "Data keaktifan santri dihitung dari santri terdaftar aktif di semester yang bersangkutan.",
-                    style: GoogleFonts.outfit(
-                      fontSize: 10,
-                      color: isDark ? Colors.white54 : const Color(0xFF64748B),
-                      fontStyle: FontStyle.italic,
-                    ),
-                  ),
-                ),
-              ],
-            ),
           ),
         ],
       ),
@@ -833,14 +898,256 @@ class _StatistikDiniyahScreenState extends State<StatistikDiniyahScreen> {
     );
   }
 
-  // Kelas Grid
+  // Grafik Distribusi Siswa Per Tingkat
+  Widget _buildTingkatChart(List<dynamic> list, int total, bool isDark) {
+    if (list.isEmpty || total == 0) return const SizedBox.shrink();
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: isDark ? const Color(0xFF1E293B) : Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: isDark ? Colors.white.withOpacity(0.06) : const Color(0xFFE2E8F0),
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                "Grafik Distribusi Siswa Per Tingkat",
+                style: GoogleFonts.outfit(
+                  fontSize: 12,
+                  fontWeight: FontWeight.bold,
+                  color: isDark ? Colors.white70 : const Color(0xFF334155),
+                ),
+              ),
+              Row(
+                children: [
+                  Container(width: 7, height: 7, decoration: const BoxDecoration(color: Color(0xFF3B82F6), shape: BoxShape.circle)),
+                  const SizedBox(width: 4),
+                  Text("L", style: GoogleFonts.outfit(fontSize: 10, fontWeight: FontWeight.bold, color: const Color(0xFF3B82F6))),
+                  const SizedBox(width: 8),
+                  Container(width: 7, height: 7, decoration: const BoxDecoration(color: Color(0xFFEC4899), shape: BoxShape.circle)),
+                  const SizedBox(width: 4),
+                  Text("P", style: GoogleFonts.outfit(fontSize: 10, fontWeight: FontWeight.bold, color: const Color(0xFFEC4899))),
+                ],
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          ...list.map((t) {
+            final tTotal = (t['total'] ?? 0) as int;
+            final tPutra = (t['putra'] ?? 0) as int;
+            final tPutri = (t['putri'] ?? 0) as int;
+            final double ratio = total > 0 ? (tTotal / total).clamp(0.0, 1.0) : 0.0;
+            final tName = t['nama_tingkat'] ?? 'Tingkat';
+
+            return Padding(
+              padding: const EdgeInsets.only(bottom: 9),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        tName,
+                        style: GoogleFonts.outfit(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w600,
+                          color: isDark ? Colors.white70 : const Color(0xFF1E293B),
+                        ),
+                      ),
+                      Text(
+                        "$tTotal Santri (${(ratio * 100).round()}%)",
+                        style: GoogleFonts.outfit(
+                          fontSize: 11,
+                          fontWeight: FontWeight.bold,
+                          color: const Color(0xFF10B981),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 5),
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(6),
+                    child: SizedBox(
+                      height: 10,
+                      child: Row(
+                        children: [
+                          if (tTotal > 0)
+                            Expanded(
+                              flex: (ratio * 1000).round(),
+                              child: Row(
+                                children: [
+                                  if (tPutra > 0)
+                                    Expanded(
+                                      flex: tPutra,
+                                      child: Container(color: const Color(0xFF3B82F6)),
+                                    ),
+                                  if (tPutri > 0)
+                                    Expanded(
+                                      flex: tPutri,
+                                      child: Container(color: const Color(0xFFEC4899)),
+                                    ),
+                                ],
+                              ),
+                            ),
+                          if (total - tTotal > 0)
+                            Expanded(
+                              flex: (((1.0 - ratio)) * 1000).round(),
+                              child: Container(
+                                color: isDark ? Colors.white12 : const Color(0xFFF1F5F9),
+                              ),
+                            ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            );
+          }).toList(),
+        ],
+      ),
+    );
+  }
+
+  // Grafik Perbandingan Kelas Terbesar
+  Widget _buildKelasChart(List<dynamic> list, int total, bool isDark) {
+    if (list.isEmpty) return const SizedBox.shrink();
+    final sorted = List<dynamic>.from(list);
+    sorted.sort((a, b) => ((b['total'] ?? 0) as int).compareTo((a['total'] ?? 0) as int));
+    final displayClasses = sorted.take(6).toList();
+    final maxCount = displayClasses.isNotEmpty ? ((displayClasses.first['total'] ?? 0) as int) : 1;
+
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: isDark ? const Color(0xFF1E293B) : Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: isDark ? Colors.white.withOpacity(0.06) : const Color(0xFFE2E8F0),
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                "Grafik Perbandingan Kelas",
+                style: GoogleFonts.outfit(
+                  fontSize: 12,
+                  fontWeight: FontWeight.bold,
+                  color: isDark ? Colors.white70 : const Color(0xFF334155),
+                ),
+              ),
+              Text(
+                "Top ${displayClasses.length} Terbesar",
+                style: GoogleFonts.outfit(
+                  fontSize: 10,
+                  color: isDark ? Colors.white38 : Colors.black38,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          ...displayClasses.map((k) {
+            final kTotal = (k['total'] ?? 0) as int;
+            final kPutra = (k['putra'] ?? 0) as int;
+            final kPutri = (k['putri'] ?? 0) as int;
+            final double ratio = maxCount > 0 ? (kTotal / maxCount).clamp(0.0, 1.0) : 0.0;
+
+            return Padding(
+              padding: const EdgeInsets.only(bottom: 8),
+              child: Row(
+                children: [
+                  SizedBox(
+                    width: 75,
+                    child: Text(
+                      "Kelas ${k['nama_kelas']}",
+                      style: GoogleFonts.outfit(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w600,
+                        color: isDark ? Colors.white70 : const Color(0xFF1E293B),
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(5),
+                      child: SizedBox(
+                        height: 10,
+                        child: Row(
+                          children: [
+                            if (kTotal > 0)
+                              Expanded(
+                                flex: (ratio * 1000).round(),
+                                child: Row(
+                                  children: [
+                                    if (kPutra > 0)
+                                      Expanded(
+                                        flex: kPutra,
+                                        child: Container(color: const Color(0xFF3B82F6)),
+                                      ),
+                                    if (kPutri > 0)
+                                      Expanded(
+                                        flex: kPutri,
+                                        child: Container(color: const Color(0xFFEC4899)),
+                                      ),
+                                  ],
+                                ),
+                              ),
+                            if (maxCount - kTotal > 0)
+                              Expanded(
+                                flex: (((1.0 - ratio)) * 1000).round(),
+                                child: Container(
+                                  color: isDark ? Colors.white12 : const Color(0xFFF1F5F9),
+                                ),
+                              ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  SizedBox(
+                    width: 28,
+                    child: Text(
+                      "$kTotal",
+                      textAlign: TextAlign.end,
+                      style: GoogleFonts.outfit(
+                        fontSize: 11,
+                        fontWeight: FontWeight.bold,
+                        color: const Color(0xFF10B981),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            );
+          }).toList(),
+        ],
+      ),
+    );
+  }
+
+  // Kelas Grid (Desain Kartu Apik, Angka Lebih Besar, Info Putra/Putri Atas-Bawah Tanpa Emoji)
   Widget _buildKelasGrid(List<dynamic> list, int total, bool isDark) {
     return GridView.builder(
       shrinkWrap: true,
       physics: const NeverScrollableScrollPhysics(),
       gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
         crossAxisCount: 2,
-        childAspectRatio: 1.35,
+        childAspectRatio: 0.98,
         crossAxisSpacing: 10,
         mainAxisSpacing: 10,
       ),
@@ -856,75 +1163,146 @@ class _StatistikDiniyahScreenState extends State<StatistikDiniyahScreen> {
             : (tingkat == 0 ? 'Tingkat Sifir' : (tingkat != null ? 'Tingkat $tingkat' : ''));
 
         return Container(
-          padding: const EdgeInsets.all(12),
+          padding: const EdgeInsets.all(13),
           decoration: BoxDecoration(
-            color: isDark ? const Color(0xFF1E293B) : Colors.white,
-            borderRadius: BorderRadius.circular(14),
-            border: Border.all(
-              color: isDark ? Colors.white.withOpacity(0.06) : const Color(0xFFE2E8F0),
+            gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: isDark
+                  ? [const Color(0xFF1E293B), const Color(0xFF0F172A)]
+                  : [Colors.white, const Color(0xFFF8FAFC)],
             ),
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(
+              color: isDark ? const Color(0xFF10B981).withOpacity(0.18) : const Color(0xFFE2E8F0),
+              width: 1.2,
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: isDark ? Colors.black.withOpacity(0.2) : const Color(0xFF64748B).withOpacity(0.06),
+                blurRadius: 8,
+                offset: const Offset(0, 3),
+              ),
+            ],
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              // Header Kelas & Tingkat
+              Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Expanded(
+                        child: Text(
                           "Kelas ${k['nama_kelas']}",
                           style: GoogleFonts.outfit(
-                            fontSize: 13,
+                            fontSize: 14,
                             fontWeight: FontWeight.bold,
                             color: isDark ? Colors.white : const Color(0xFF0F172A),
                           ),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                         ),
-                        if (tingkatLabel.isNotEmpty)
-                          Text(
-                            tingkatLabel,
-                            style: GoogleFonts.outfit(
-                              fontSize: 10,
-                              fontWeight: FontWeight.w500,
-                              color: isDark ? Colors.white54 : const Color(0xFF64748B),
-                            ),
-                          ),
-                      ],
+                      ),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF10B981).withOpacity(0.12),
+                          borderRadius: BorderRadius.circular(6),
+                        ),
+                        child: const Icon(Icons.school_rounded, size: 12, color: Color(0xFF10B981)),
+                      ),
+                    ],
+                  ),
+                  if (tingkatLabel.isNotEmpty) ...[
+                    const SizedBox(height: 2),
+                    Text(
+                      tingkatLabel,
+                      style: GoogleFonts.outfit(
+                        fontSize: 10,
+                        fontWeight: FontWeight.w500,
+                        color: isDark ? Colors.white54 : const Color(0xFF64748B),
+                      ),
+                    ),
+                  ],
+                ],
+              ),
+
+              // Angka Total Kelas Dibuat Lebih Besar
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.baseline,
+                textBaseline: TextBaseline.alphabetic,
+                children: [
+                  Text(
+                    "$kTotal",
+                    style: GoogleFonts.outfit(
+                      fontSize: 22,
+                      fontWeight: FontWeight.w800,
+                      color: const Color(0xFF10B981),
                     ),
                   ),
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFF10B981).withOpacity(0.12),
-                      borderRadius: BorderRadius.circular(6),
-                    ),
-                    child: Text(
-                      "$kTotal",
-                      style: GoogleFonts.outfit(
-                        fontSize: 12,
-                        fontWeight: FontWeight.bold,
-                        color: const Color(0xFF10B981),
-                      ),
+                  const SizedBox(width: 4),
+                  Text(
+                    "Santri",
+                    style: GoogleFonts.outfit(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w500,
+                      color: isDark ? Colors.white54 : const Color(0xFF64748B),
                     ),
                   ),
                 ],
               ),
-              Row(
+
+              // Rincian Putra & Putri Atas Bawah Tanpa Emoji
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    "👦 $kPutra",
-                    style: GoogleFonts.outfit(fontSize: 11, color: const Color(0xFF3B82F6), fontWeight: FontWeight.w600),
+                  Row(
+                    children: [
+                      Container(
+                        width: 7,
+                        height: 7,
+                        decoration: const BoxDecoration(
+                          color: Color(0xFF3B82F6),
+                          shape: BoxShape.circle,
+                        ),
+                      ),
+                      const SizedBox(width: 5),
+                      Text(
+                        "Putra: $kPutra",
+                        style: GoogleFonts.outfit(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w600,
+                          color: const Color(0xFF3B82F6),
+                        ),
+                      ),
+                    ],
                   ),
-                  const SizedBox(width: 8),
-                  Text(
-                    "👧 $kPutri",
-                    style: GoogleFonts.outfit(fontSize: 11, color: const Color(0xFFEC4899), fontWeight: FontWeight.w600),
+                  const SizedBox(height: 3),
+                  Row(
+                    children: [
+                      Container(
+                        width: 7,
+                        height: 7,
+                        decoration: const BoxDecoration(
+                          color: Color(0xFFEC4899),
+                          shape: BoxShape.circle,
+                        ),
+                      ),
+                      const SizedBox(width: 5),
+                      Text(
+                        "Putri: $kPutri",
+                        style: GoogleFonts.outfit(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w600,
+                          color: const Color(0xFFEC4899),
+                        ),
+                      ),
+                    ],
                   ),
                 ],
               ),
@@ -932,6 +1310,144 @@ class _StatistikDiniyahScreenState extends State<StatistikDiniyahScreen> {
           ),
         );
       },
+    );
+  }
+
+  // Grafik Tren Antar Tahun Ajaran
+  Widget _buildTrenChart(List<dynamic> list, bool isDark) {
+    if (list.isEmpty) return const SizedBox.shrink();
+    int maxVal = 1;
+    for (var it in list) {
+      final cnt = (it['total_diniyah'] ?? 0) as int;
+      if (cnt > maxVal) maxVal = cnt;
+    }
+
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: isDark ? const Color(0xFF1E293B) : Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: isDark ? Colors.white.withOpacity(0.06) : const Color(0xFFE2E8F0),
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                "Grafik Tren Siswa Antar Tahun",
+                style: GoogleFonts.outfit(
+                  fontSize: 12,
+                  fontWeight: FontWeight.bold,
+                  color: isDark ? Colors.white70 : const Color(0xFF334155),
+                ),
+              ),
+              Text(
+                "Ketuk batang untuk pilih",
+                style: GoogleFonts.outfit(
+                  fontSize: 10,
+                  color: isDark ? Colors.white38 : Colors.black38,
+                  fontStyle: FontStyle.italic,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          SizedBox(
+            height: 110,
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: list.map((tr) {
+                final cnt = (tr['total_diniyah'] ?? 0) as int;
+                final isSelected = tr['tahun_ajaran_id'] == _selectedTahunAjaranId;
+                final isActive = tr['is_active'] == true;
+                final double heightRatio = maxVal > 0 ? (cnt / maxVal).clamp(0.08, 1.0) : 0.08;
+
+                return Expanded(
+                  child: GestureDetector(
+                    onTap: () {
+                      setState(() {
+                        _selectedTahunAjaranId = tr['tahun_ajaran_id'];
+                        _selectedTahunAjaranKode = tr['kode'] ?? '';
+                      });
+                      _fetchStatistik();
+                    },
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 4),
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.end,
+                        children: [
+                          Text(
+                            "$cnt",
+                            style: GoogleFonts.outfit(
+                              fontSize: 10,
+                              fontWeight: FontWeight.bold,
+                              color: isSelected
+                                  ? const Color(0xFF10B981)
+                                  : (isDark ? Colors.white60 : const Color(0xFF64748B)),
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Container(
+                            height: 65 * heightRatio,
+                            decoration: BoxDecoration(
+                              gradient: LinearGradient(
+                                begin: Alignment.bottomCenter,
+                                end: Alignment.topCenter,
+                                colors: isSelected
+                                    ? [const Color(0xFF047857), const Color(0xFF10B981)]
+                                    : (isDark
+                                        ? [const Color(0xFF334155), const Color(0xFF475569)]
+                                        : [const Color(0xFFCBD5E1), const Color(0xFF94A3B8)]),
+                              ),
+                              borderRadius: const BorderRadius.vertical(top: Radius.circular(6)),
+                              boxShadow: isSelected
+                                  ? [
+                                      BoxShadow(
+                                        color: const Color(0xFF10B981).withOpacity(0.4),
+                                        blurRadius: 6,
+                                        offset: const Offset(0, 2),
+                                      ),
+                                    ]
+                                  : null,
+                            ),
+                          ),
+                          const SizedBox(height: 6),
+                          Text(
+                            tr['kode']?.toString().split('-').first ?? '-',
+                            style: GoogleFonts.outfit(
+                              fontSize: 9,
+                              fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
+                              color: isSelected
+                                  ? const Color(0xFF10B981)
+                                  : (isDark ? Colors.white54 : const Color(0xFF64748B)),
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                          if (isActive)
+                            Container(
+                              margin: const EdgeInsets.only(top: 2),
+                              width: 4,
+                              height: 4,
+                              decoration: const BoxDecoration(
+                                color: Color(0xFF10B981),
+                                shape: BoxShape.circle,
+                              ),
+                            ),
+                        ],
+                      ),
+                    ),
+                  ),
+                );
+              }).toList(),
+            ),
+          ),
+        ],
+      ),
     );
   }
 

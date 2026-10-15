@@ -520,7 +520,7 @@ function registerSantriRoutes(app) {
           k.nama ASC
       `, [tahun_ajaran_id]);
 
-      // Tren Per Tahun Ajaran
+      // Tren Per Tahun Ajaran (Akurat & Valid: mencakup seluruh santri terdaftar di tahun ajaran tersebut)
       const trenRes = await db.query(`
         SELECT
           ta.id AS tahun_ajaran_id,
@@ -534,9 +534,12 @@ function registerSantriRoutes(app) {
         FROM tahun_ajaran ta
         LEFT JOIN santri_tahun_ajaran sta ON sta.tahun_ajaran_id = ta.id 
           AND sta.kelas_diniyah_id IS NOT NULL 
-          AND COALESCE(sta.status, 'aktif') IN ('aktif', 'draft', 'tidak_naik')
+          AND COALESCE(sta.status, 'aktif') IN ('aktif', 'draft', 'tidak_naik', 'lulus', 'alumni')
         LEFT JOIN santri s ON s.id = sta.santri_id 
-          AND NOT EXISTS (SELECT 1 FROM alumni a WHERE a.santri_id = s.id)
+        WHERE EXISTS (
+          SELECT 1 FROM santri_tahun_ajaran sta_chk 
+          WHERE sta_chk.tahun_ajaran_id = ta.id AND sta_chk.kelas_diniyah_id IS NOT NULL
+        ) OR ta.is_active = TRUE
         GROUP BY ta.id, ta.kode, ta.is_active, ta.tahun_mulai
         ORDER BY ta.tahun_mulai ASC
       `);
