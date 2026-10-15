@@ -105,7 +105,7 @@ export function Kelas() {
     if (!kelasId) return;
 
     try {
-      await kelasService.deleteKelas(kelasId);
+      await kelasService.deleteKelas(kelasId, selectedTahunAjaranId);
       toast.success('Data kelas berhasil dihapus');
       setDeleteConfirm({ isOpen: false, kelasId: null, kelasNama: '' });
       await loadKelas(selectedTahunAjaranId);

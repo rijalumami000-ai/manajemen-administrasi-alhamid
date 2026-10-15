@@ -211,6 +211,8 @@ function registerKelasRoutes(app) {
 
   app.delete('/api/kelas/:id', async (req, res) => {
     const { id } = req.params;
+    const tahun_ajaran_id = nullableInt(req.query.tahun_ajaran_id);
+
     try {
       await db.query('BEGIN');
 
@@ -222,7 +224,49 @@ function registerKelasRoutes(app) {
       }
       const targetKelas = kelasRes.rows[0];
 
-      // 2. Check if ANY students (aktif, alumni, lulus) are assigned to this class in any academic year
+      // CASE A: tahun_ajaran_id is provided -> Scoped removal from this academic year
+      if (tahun_ajaran_id) {
+        const studentYearCheck = await db.query(`
+          SELECT COUNT(*) 
+          FROM santri_tahun_ajaran sta
+          WHERE (sta.kelas_diniyah_id = $1 OR sta.kelas_sekolah_id = $1)
+            AND sta.tahun_ajaran_id = $2
+        `, [id, tahun_ajaran_id]);
+
+        const yearStudentCount = parseInt(studentYearCheck.rows[0].count, 10);
+        if (yearStudentCount > 0) {
+          await db.query('ROLLBACK');
+          return res.status(400).json({
+            error: `Kelas "${targetKelas.nama}" tidak dapat dihapus dari tahun ajaran ini karena masih memiliki ${yearStudentCount} santri terdaftar di tahun ajaran ini.`
+          });
+        }
+
+        // Delete mapping from this specific academic year
+        await db.query('DELETE FROM kelas_tahun_ajaran WHERE kelas_id = $1 AND tahun_ajaran_id = $2', [id, tahun_ajaran_id]);
+
+        // Check if this class is used anywhere else across other academic years
+        const globalStudentCheck = await db.query(`
+          SELECT COUNT(*) 
+          FROM santri_tahun_ajaran sta
+          WHERE (sta.kelas_diniyah_id = $1 OR sta.kelas_sekolah_id = $1)
+        `, [id]);
+        const otherYearCount = parseInt(globalStudentCheck.rows[0].count, 10);
+
+        const otherKtaCheck = await db.query('SELECT COUNT(*) FROM kelas_tahun_ajaran WHERE kelas_id = $1', [id]);
+        const otherKtaCount = parseInt(otherKtaCheck.rows[0].count, 10);
+
+        // If completely unused across all years, clean up the master template record too
+        if (otherYearCount === 0 && otherKtaCount === 0) {
+          await db.query('DELETE FROM kelas WHERE id = $1', [id]);
+          console.log(`✅ Master kelas ${id} (${targetKelas.nama}) completely removed.`);
+        }
+
+        await db.query('COMMIT');
+        return res.json({ message: `Kelas ${targetKelas.nama} berhasil dihapus dari tahun ajaran ini.` });
+      }
+
+      // CASE B: NO tahun_ajaran_id -> Global permanent deletion
+      // Check if ANY students (aktif, alumni, lulus) are assigned to this class across ANY academic year
       const studentCheck = await db.query(`
         SELECT COUNT(*) 
         FROM santri_tahun_ajaran sta
@@ -239,7 +283,7 @@ function registerKelasRoutes(app) {
         });
       }
 
-      // 3. Check if exam participants are tied to this class
+      // Check if exam participants are tied to this class
       const examCheck = await db.query(`
         SELECT COUNT(*) 
         FROM peserta_ujian 
@@ -253,7 +297,7 @@ function registerKelasRoutes(app) {
         });
       }
 
-      // If NO active students (empty class), proceed with clean deletion of orphan history/junction entries
+      // If NO students and no exams (empty class), proceed with clean deletion of orphan history/junction entries
       await db.query('DELETE FROM kelas_tahun_ajaran WHERE kelas_id = $1', [id]);
       await db.query('UPDATE santri SET kelas_diniyah_id = NULL WHERE kelas_diniyah_id = $1', [id]);
       await db.query('UPDATE santri SET kelas_sekolah_id = NULL WHERE kelas_sekolah_id = $1', [id]);

@@ -339,15 +339,6 @@ CREATE TABLE IF NOT EXISTS kelas_tahun_ajaran (
   UNIQUE (kelas_id, tahun_ajaran_id)
 );
 
--- Copy baseline settings for active academic year from legacy columns on kelas
-INSERT INTO kelas_tahun_ajaran (kelas_id, tahun_ajaran_id, mustahiq_id, muhafadzoh_mapel_id, qiroatul_mapel_id)
-SELECT k.id, ta.id, k.mustahiq_id, k.muhafadzoh_mapel_id, k.qiroatul_mapel_id
-FROM kelas k
-CROSS JOIN tahun_ajaran ta
-WHERE ta.is_active = TRUE
-  AND (k.mustahiq_id IS NOT NULL OR k.muhafadzoh_mapel_id IS NOT NULL OR k.qiroatul_mapel_id IS NOT NULL)
-ON CONFLICT (kelas_id, tahun_ajaran_id) DO NOTHING;
-
 -- Migration: Add new fields for Buku Induk Santri & Orang Tua
 ALTER TABLE orangtua ADD COLUMN IF NOT EXISTS nik_ayah VARCHAR(50);
 ALTER TABLE orangtua ADD COLUMN IF NOT EXISTS nik_ibu VARCHAR(50);

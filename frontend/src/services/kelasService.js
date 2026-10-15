@@ -18,7 +18,8 @@ export const kelasService = {
   },
 
   // Delete kelas
-  async deleteKelas(id) {
-    return apiDelete(`/kelas/${id}`);
+  async deleteKelas(id, tahunAjaranId = null) {
+    const query = tahunAjaranId ? `?tahun_ajaran_id=${tahunAjaranId}` : '';
+    return apiDelete(`/kelas/${id}${query}`);
   }
 };
