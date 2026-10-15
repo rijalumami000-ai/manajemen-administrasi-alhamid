@@ -24,24 +24,35 @@ function registerSetoranHafalanRoutes(app) {
 
   // Helper: Ambil kriteria evaluasi Muhafadzoh dari setting_kriteria_nilai
   async function getKriteriaMuhafadzoh(tingkat, mapelId, tahunAjaranId, kategoriId) {
-    const muhafadzohTingkat = tingkat === 99 ? 2 : tingkat;
     const query = `
-      SELECT tipe_input, konfigurasi
+      SELECT id, tipe_input, konfigurasi, tahun_ajaran_id, kategori_evaluasi_id
       FROM setting_kriteria_nilai
       WHERE (tahun_ajaran_id = $1 OR tahun_ajaran_id IS NULL)
         AND (kategori_evaluasi_id = $2 OR kategori_evaluasi_id IS NULL)
-        AND (mata_pelajaran_id = $3 OR (mata_pelajaran_id IS NULL AND jenis_mapel = 'Muhafadzoh'))
-        AND tingkat = $4
-      ORDER BY tahun_ajaran_id DESC NULLS LAST, kategori_evaluasi_id DESC NULLS LAST, mata_pelajaran_id NULLS LAST
+        AND (
+          mata_pelajaran_id = $3
+          OR mata_pelajaran_id IN (SELECT id FROM mata_pelajaran WHERE jenis = 'Muhafadzoh' OR nama ILIKE '%muhafadzoh%')
+          OR jenis_mapel = 'Muhafadzoh'
+          OR (mata_pelajaran_id IS NULL AND jenis_mapel IS NULL)
+        )
+        AND (tingkat = $4 OR ($4 = 99 AND tingkat = 2))
+      ORDER BY 
+        (CASE WHEN tahun_ajaran_id = $1 THEN 1 ELSE 2 END) ASC,
+        (CASE WHEN kategori_evaluasi_id = $2 THEN 1 ELSE 2 END) ASC,
+        (CASE WHEN mata_pelajaran_id = $3 THEN 1 
+              WHEN mata_pelajaran_id IN (SELECT id FROM mata_pelajaran WHERE jenis = 'Muhafadzoh') THEN 2 
+              ELSE 3 END) ASC,
+        (CASE WHEN tingkat = $4 THEN 1 ELSE 2 END) ASC,
+        id DESC
       LIMIT 1
     `;
-    const res = await db.query(query, [tahunAjaranId, kategoriId, mapelId, muhafadzohTingkat]);
+    const res = await db.query(query, [tahunAjaranId, kategoriId, mapelId, tingkat]);
     if (res.rows.length > 0) {
       return res.rows[0];
     }
     // Fallback default jika belum diset di web
     return {
-      tipe_input: tingkat === 2 || tingkat === 99 ? 'Teks' : 'Angka',
+      tipe_input: tingkat === 0 || tingkat === 2 || tingkat === 99 ? 'Teks' : 'Angka',
       konfigurasi: null
     };
   }
@@ -241,14 +252,20 @@ function registerSetoranHafalanRoutes(app) {
       return res.status(404).json({ error: 'Informasi kelas untuk tahun ajaran ini tidak ditemukan.' });
     }
     const classDetail = classRes.rows[0];
+    const effectiveTingkat = (classDetail.nama === 'SP' || classDetail.tingkat === 99) ? 99 : classDetail.tingkat;
 
     // Ambil Kriteria Penilaian Muhafadzoh dari Web (Pengaturan Kriteria)
-    const kriteriaGanjil = await getKriteriaMuhafadzoh(classDetail.tingkat, classDetail.muhafadzoh_mapel_id, activeYear.id, ganjilId);
-    const kriteriaGenap = await getKriteriaMuhafadzoh(classDetail.tingkat, classDetail.muhafadzoh_mapel_id, activeYear.id, genapId);
+    const kriteriaGanjil = await getKriteriaMuhafadzoh(effectiveTingkat, classDetail.muhafadzoh_mapel_id, activeYear.id, ganjilId);
+    let kriteriaGenap = await getKriteriaMuhafadzoh(effectiveTingkat, classDetail.muhafadzoh_mapel_id, activeYear.id, genapId);
+
+    // Jika model Ganjil adalah Teks (misal Kelas 0 Sifir atau Kelas 2/SP) dan Genap di TA aktif belum diset, samakan tipe inputnya
+    if (kriteriaGanjil?.tipe_input === 'Teks' && kriteriaGenap?.tipe_input !== 'Teks' && kriteriaGenap?.tahun_ajaran_id !== activeYear.id) {
+      kriteriaGenap = kriteriaGanjil;
+    }
 
     // Tipe input efektif: 'Angka' atau 'Teks' (dinamis dari kriteria web)
     const activeKriteria = isGanjilActive ? kriteriaGanjil : kriteriaGenap;
-    const tipeInput = activeKriteria?.tipe_input || (classDetail.tingkat === 2 || classDetail.tingkat === 99 ? 'Teks' : 'Angka');
+    const tipeInput = activeKriteria?.tipe_input || (effectiveTingkat === 0 || effectiveTingkat === 2 || effectiveTingkat === 99 ? 'Teks' : 'Angka');
 
     // Daftar Santri di Kelas ini
     const isGenap = activeSemester.toLowerCase().includes('genap');
@@ -519,12 +536,19 @@ function registerSetoranHafalanRoutes(app) {
 
     if (isAngka) {
       // Dapatkan batas maksimal (Genap) untuk kelas ini
-      const classInfo = await db.query('SELECT tingkat, muhafadzoh_mapel_id FROM kelas WHERE id = $1', [kelas_id]);
-      const tingkat = classInfo.rows[0]?.tingkat;
+      const classInfo = await db.query(`
+        SELECT k.id, k.nama, k.tingkat, COALESCE(kta.muhafadzoh_mapel_id, k.muhafadzoh_mapel_id) AS muhafadzoh_mapel_id
+        FROM kelas k
+        LEFT JOIN kelas_tahun_ajaran kta ON kta.kelas_id = k.id AND kta.tahun_ajaran_id = $2
+        WHERE k.id = $1
+      `, [kelas_id, tahun_ajaran_id]);
+      const tingkatRaw = classInfo.rows[0]?.tingkat;
+      const kelasNama = classInfo.rows[0]?.nama;
+      const effectiveTingkat = (kelasNama === 'SP' || tingkatRaw === 99) ? 99 : tingkatRaw;
       const mapelId = classInfo.rows[0]?.muhafadzoh_mapel_id;
       const { ganjilId, genapId } = await getSemesterCategories();
-      const kriteriaGenap = await getKriteriaMuhafadzoh(tingkat, mapelId, tahun_ajaran_id, genapId);
-      const kriteriaGanjil = await getKriteriaMuhafadzoh(tingkat, mapelId, tahun_ajaran_id, ganjilId);
+      const kriteriaGenap = await getKriteriaMuhafadzoh(effectiveTingkat, mapelId, tahun_ajaran_id, genapId);
+      const kriteriaGanjil = await getKriteriaMuhafadzoh(effectiveTingkat, mapelId, tahun_ajaran_id, ganjilId);
       const parsedGenap = parseConfigAngka(kriteriaGenap?.konfigurasi);
       const parsedGanjil = parseConfigAngka(kriteriaGanjil?.konfigurasi);
       const genapMumtaz = parsedGenap?.mumtaz?.max || parsedGanjil?.mumtaz?.max || 100;
@@ -677,12 +701,19 @@ function registerSetoranHafalanRoutes(app) {
     const existing = existingRes.rows[0];
 
     // Cek target maksimal kitab/kelas
-    const classInfo = await db.query('SELECT tingkat, muhafadzoh_mapel_id FROM kelas WHERE id = $1', [existing.kelas_id]);
-    const tingkat = classInfo.rows[0]?.tingkat;
+    const classInfo = await db.query(`
+      SELECT k.id, k.nama, k.tingkat, COALESCE(kta.muhafadzoh_mapel_id, k.muhafadzoh_mapel_id) AS muhafadzoh_mapel_id
+      FROM kelas k
+      LEFT JOIN kelas_tahun_ajaran kta ON kta.kelas_id = k.id AND kta.tahun_ajaran_id = $2
+      WHERE k.id = $1
+    `, [existing.kelas_id, existing.tahun_ajaran_id]);
+    const tingkatRaw = classInfo.rows[0]?.tingkat;
+    const kelasNama = classInfo.rows[0]?.nama;
+    const effectiveTingkat = (kelasNama === 'SP' || tingkatRaw === 99) ? 99 : tingkatRaw;
     const mapelId = classInfo.rows[0]?.muhafadzoh_mapel_id;
     const { ganjilId, genapId } = await getSemesterCategories();
-    const kriteriaGenap = await getKriteriaMuhafadzoh(tingkat, mapelId, existing.tahun_ajaran_id, genapId);
-    const kriteriaGanjil = await getKriteriaMuhafadzoh(tingkat, mapelId, existing.tahun_ajaran_id, ganjilId);
+    const kriteriaGenap = await getKriteriaMuhafadzoh(effectiveTingkat, mapelId, existing.tahun_ajaran_id, genapId);
+    const kriteriaGanjil = await getKriteriaMuhafadzoh(effectiveTingkat, mapelId, existing.tahun_ajaran_id, ganjilId);
     const parsedGenap = parseConfigAngka(kriteriaGenap?.konfigurasi);
     const parsedGanjil = parseConfigAngka(kriteriaGanjil?.konfigurasi);
     const genapMumtaz = parsedGenap?.mumtaz?.max || parsedGanjil?.mumtaz?.max || 100;
