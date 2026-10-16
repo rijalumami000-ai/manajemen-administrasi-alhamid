@@ -43,6 +43,7 @@ const StrukturKepesantrenan = lazy(() => import('./pages/StrukturKepesantrenan')
 const Inventaris = lazy(() => import('./pages/Inventaris'));
 const StatistikDiniyah = lazy(() => import('./pages/StatistikDiniyah'));
 const MonitoringSetoranHafalan = lazy(() => import('./pages/MonitoringSetoranHafalan'));
+const InformasiAplikasi = lazy(() => import('./pages/InformasiAplikasi'));
 
 // ── Modul Keuangan (lazy loaded) ──────────────────────────────────────────
 const KeuanganDashboard = lazy(() => import('./pages/KeuanganDashboard'));
@@ -99,6 +100,7 @@ function App() {
                   <Route path="pelanggaran-prestasi" element={<PelanggaranPrestasi />} />
                   <Route path="users" element={<Users />} />
                   <Route path="mymustahiq-settings" element={<MyMustahiqSettings />} />
+                  <Route path="informasi-aplikasi" element={<InformasiAplikasi />} />
                   <Route path="profile" element={<Profile />} />
                   <Route path="nilai" element={<ManajemenNilai mode="input" key="input" />} />
                   <Route path="input-nilai-ujian" element={<ManajemenNilai mode="input-ujian" key="input-ujian" />} />

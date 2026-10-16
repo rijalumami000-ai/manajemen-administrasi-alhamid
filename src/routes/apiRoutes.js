@@ -26,6 +26,7 @@ const registerRomadhonRoutes = require('./romadhonRoutes');
 const registerMateriSidangRoutes = require('./materiSidangRoutes');
 const registerInventarisRoutes = require('./inventarisRoutes');
 const registerSetoranHafalanRoutes = require('./setoranHafalanRoutes');
+const registerAppContentRoutes = require('./appContentRoutes');
 
 function registerApiRoutes(app) {
   // Authentication routes (public)
@@ -63,6 +64,7 @@ function registerApiRoutes(app) {
   registerMateriSidangRoutes(app);
   registerInventarisRoutes(app);
   registerSetoranHafalanRoutes(app);
+  registerAppContentRoutes(app);
 }
 
 module.exports = registerApiRoutes;

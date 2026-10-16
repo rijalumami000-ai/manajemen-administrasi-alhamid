@@ -1,12 +1,15 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:local_auth/local_auth.dart';
+import 'package:image_picker/image_picker.dart';
 import '../services/api_service.dart';
 import '../services/theme_manager.dart';
 import '../services/push_notification_service.dart';
 import '../widgets/quick_auth_widgets.dart';
 import 'login_screen.dart';
+import 'app_info_screens.dart';
 
 class TabAkun extends StatefulWidget {
   const TabAkun({super.key});
@@ -19,10 +22,20 @@ class _TabAkunState extends State<TabAkun> {
   final ApiService _apiService = ApiService();
   final _storage = const FlutterSecureStorage();
   final _auth = LocalAuthentication();
+  final ImagePicker _imagePicker = ImagePicker();
 
   bool _isLoading = true;
+  bool _isUploadingPhoto = false;
   String? _errorMessage;
   Map<String, dynamic>? _guruInfo;
+
+  // Set of expanded section titles for open/close accordion
+  final Set<String> _expandedSections = {
+    'KEAMANAN & AKSES MASUK',
+    'PREFERENSI & LAYANAN',
+    'INFORMASI & BANTUAN',
+  };
+
 
   // Password change controllers
   final _oldPasswordController = TextEditingController();
@@ -293,6 +306,134 @@ class _TabAkunState extends State<TabAkun> {
           ],
         ),
       ),
+    );
+  }
+
+  Future<void> _pickAndUploadPhoto(ImageSource source) async {
+    try {
+      final pickedFile = await _imagePicker.pickImage(
+        source: source,
+        maxWidth: 1080,
+        maxHeight: 1440,
+        imageQuality: 85,
+      );
+
+      if (pickedFile == null) return;
+
+      setState(() {
+        _isUploadingPhoto = true;
+      });
+
+      final file = File(pickedFile.path);
+      final res = await _apiService.uploadProfilePhoto(file);
+
+      if (mounted) {
+        setState(() {
+          _isUploadingPhoto = false;
+          if (_guruInfo != null) {
+            _guruInfo!['foto_url'] = res['foto_url'];
+          }
+        });
+        _showToast(res['message'] ?? 'Foto profil berhasil diperbarui.', const Color(0xFF10B981));
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _isUploadingPhoto = false;
+        });
+        _showToast(e.toString().replaceFirst('Exception: ', ''), Colors.redAccent);
+      }
+    }
+  }
+
+  void _showPhotoOptionsDialog() {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: context.cardBg,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (ctx) {
+        return SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  width: 40,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: context.borderColor,
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                Text(
+                  "Ubah Foto Profil",
+                  style: GoogleFonts.outfit(
+                    color: context.titleColor,
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  "Foto otomatis disinkronkan ke aplikasi dan Web Sekolah Info",
+                  style: GoogleFonts.outfit(
+                    color: context.subTitleColor,
+                    fontSize: 12,
+                  ),
+                ),
+                const SizedBox(height: 18),
+                ListTile(
+                  leading: Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF10B981).withOpacity(0.12),
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Icon(Icons.camera_alt_rounded, color: Color(0xFF10B981)),
+                  ),
+                  title: Text(
+                    "Ambil dari Kamera",
+                    style: GoogleFonts.outfit(
+                      color: context.titleColor,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  onTap: () {
+                    Navigator.pop(ctx);
+                    _pickAndUploadPhoto(ImageSource.camera);
+                  },
+                ),
+                Divider(color: context.borderColor, height: 1),
+                ListTile(
+                  leading: Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF3B82F6).withOpacity(0.12),
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Icon(Icons.photo_library_rounded, color: Color(0xFF3B82F6)),
+                  ),
+                  title: Text(
+                    "Pilih dari Galeri",
+                    style: GoogleFonts.outfit(
+                      color: context.titleColor,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  onTap: () {
+                    Navigator.pop(ctx);
+                    _pickAndUploadPhoto(ImageSource.gallery);
+                  },
+                ),
+              ],
+            ),
+          ),
+        );
+      },
     );
   }
 
@@ -753,102 +894,6 @@ class _TabAkunState extends State<TabAkun> {
     );
   }
 
-  void _showFAQDialog() {
-    showDialog(
-      context: context,
-      builder: (context) {
-        return Dialog(
-          backgroundColor: context.cardBg,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(20),
-            side: BorderSide(color: context.borderColor),
-          ),
-          child: Container(
-            constraints: const BoxConstraints(maxHeight: 500),
-            padding: const EdgeInsets.all(22.0),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text(
-                      'FAQ & Bantuan',
-                      style: GoogleFonts.outfit(
-                        color: context.titleColor,
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    IconButton(
-                      icon: Icon(Icons.close_rounded, color: context.subTitleColor),
-                      onPressed: () => Navigator.pop(context),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 12),
-                Divider(color: context.borderColor, height: 1),
-                const SizedBox(height: 12),
-                Expanded(
-                  child: ListView(
-                    physics: const BouncingScrollPhysics(),
-                    children: [
-                      _buildFAQItem(
-                        "Bagaimana cara mengaktifkan Biometrik?",
-                        "Anda dapat mengaktifkan login sidik jari/wajah dengan menyalakan toggle 'Login Biometrik' di halaman Akun ini. Pastikan Anda sudah login manual sukses minimal satu kali di perangkat ini.",
-                      ),
-                      _buildFAQItem(
-                        "Kenapa data Santri tidak muncul?",
-                        "Pastikan koneksi internet stabil. Jika masalah berlanjut, hubungi Administrator untuk memastikan tahun ajaran aktif telah dikonfigurasi di sistem pusat.",
-                      ),
-                      _buildFAQItem(
-                        "Bagaimana cara mengganti kata sandi?",
-                        "Klik opsi 'Ubah Password' di menu pengaturan akun ini, masukkan password lama Anda, dan isi password baru minimal 6 karakter.",
-                      ),
-                      _buildFAQItem(
-                        "Bagaimana jika aplikasi log out otomatis?",
-                        "Untuk keamanan data santri, token login akan kedaluwarsa setelah beberapa waktu jika aplikasi tidak digunakan. Anda cukup masuk kembali atau gunakan login biometrik cepat.",
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          ),
-        );
-      },
-    );
-  }
-
-  Widget _buildFAQItem(String q, String a) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 16.0),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            q,
-            style: GoogleFonts.outfit(
-              color: const Color(0xFF10B981),
-              fontSize: 13,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-          const SizedBox(height: 4),
-          Text(
-            a,
-            style: GoogleFonts.outfit(
-              color: context.bodyColor,
-              fontSize: 12,
-              height: 1.4,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
   Future<void> _handleLogout() async {
     showDialog(
       context: context,
@@ -960,43 +1005,98 @@ class _TabAkunState extends State<TabAkun> {
               child: Row(
                 crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
-                  // Portrait Profile Picture
-                  Container(
-                    width: 82,
-                    height: 114,
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(16),
-                      border: Border.all(
-                        color: const Color(0xFF10B981).withOpacity(context.isDarkMode ? 0.35 : 0.45),
-                        width: 1.5,
-                      ),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withOpacity(context.isDarkMode ? 0.3 : 0.08),
-                          blurRadius: 8,
-                          offset: const Offset(0, 3),
+                  // Portrait Profile Picture with Camera Overlay & Upload State
+                  GestureDetector(
+                    onTap: _isUploadingPhoto ? null : _showPhotoOptionsDialog,
+                    child: Stack(
+                      clipBehavior: Clip.none,
+                      children: [
+                        Container(
+                          width: 82,
+                          height: 114,
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(16),
+                            border: Border.all(
+                              color: const Color(0xFF10B981).withOpacity(context.isDarkMode ? 0.35 : 0.45),
+                              width: 1.5,
+                            ),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withOpacity(context.isDarkMode ? 0.3 : 0.08),
+                                blurRadius: 8,
+                                offset: const Offset(0, 3),
+                              ),
+                            ],
+                          ),
+                          child: ClipRRect(
+                            borderRadius: BorderRadius.circular(14.5),
+                            child: Stack(
+                              fit: StackFit.expand,
+                              children: [
+                                photo != null && photo.toString().isNotEmpty
+                                    ? Image.network(
+                                        _apiService.getFullImageUrl(photo),
+                                        fit: BoxFit.cover,
+                                        errorBuilder: (context, error, stackTrace) => Container(
+                                          color: context.isDarkMode ? const Color(0xFF1E293B) : const Color(0xFFF1F5F9),
+                                          child: Center(
+                                            child: Icon(Icons.person_rounded, color: context.subTitleColor, size: 40),
+                                          ),
+                                        ),
+                                      )
+                                    : Container(
+                                        color: context.isDarkMode ? const Color(0xFF1E293B) : const Color(0xFFF1F5F9),
+                                        child: Center(
+                                          child: Icon(Icons.person_rounded, color: context.subTitleColor, size: 40),
+                                        ),
+                                      ),
+                                if (_isUploadingPhoto)
+                                  Container(
+                                    color: Colors.black.withOpacity(0.55),
+                                    child: const Center(
+                                      child: SizedBox(
+                                        width: 24,
+                                        height: 24,
+                                        child: CircularProgressIndicator(
+                                          color: Color(0xFF10B981),
+                                          strokeWidth: 2.5,
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                              ],
+                            ),
+                          ),
+                        ),
+                        // Camera overlay badge
+                        Positioned(
+                          right: -4,
+                          bottom: -4,
+                          child: Container(
+                            padding: const EdgeInsets.all(6),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFF10B981),
+                              shape: BoxShape.circle,
+                              border: Border.all(
+                                color: context.cardBg,
+                                width: 2,
+                              ),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.black.withOpacity(0.2),
+                                  blurRadius: 4,
+                                  offset: const Offset(0, 2),
+                                ),
+                              ],
+                            ),
+                            child: const Icon(
+                              Icons.camera_alt_rounded,
+                              color: Colors.white,
+                              size: 14,
+                            ),
+                          ),
                         ),
                       ],
-                    ),
-                    child: ClipRRect(
-                      borderRadius: BorderRadius.circular(14.5),
-                      child: photo != null && photo.toString().isNotEmpty
-                          ? Image.network(
-                              _apiService.getFullImageUrl(photo),
-                              fit: BoxFit.cover,
-                              errorBuilder: (context, error, stackTrace) => Container(
-                                color: context.isDarkMode ? const Color(0xFF1E293B) : const Color(0xFFF1F5F9),
-                                child: Center(
-                                  child: Icon(Icons.person_rounded, color: context.subTitleColor, size: 40),
-                                ),
-                              ),
-                            )
-                          : Container(
-                              color: context.isDarkMode ? const Color(0xFF1E293B) : const Color(0xFFF1F5F9),
-                              child: Center(
-                                child: Icon(Icons.person_rounded, color: context.subTitleColor, size: 40),
-                              ),
-                            ),
                     ),
                   ),
                   const SizedBox(width: 16),
@@ -1065,6 +1165,25 @@ class _TabAkunState extends State<TabAkun> {
                             ],
                           ),
                         ),
+                        const SizedBox(height: 8),
+                        GestureDetector(
+                          onTap: _isUploadingPhoto ? null : _showPhotoOptionsDialog,
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              const Icon(Icons.camera_alt_outlined, size: 13, color: Color(0xFF10B981)),
+                              const SizedBox(width: 4),
+                              Text(
+                                "Ubah Foto Profil",
+                                style: GoogleFonts.outfit(
+                                  color: const Color(0xFF10B981),
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
                       ],
                     ),
                   ),
@@ -1073,162 +1192,196 @@ class _TabAkunState extends State<TabAkun> {
             ),
             const SizedBox(height: 24),
 
-            // ===== 2. GROUP 1: KEAMANAN & PENGATURAN AKUN =====
-            _buildSectionHeader("KEAMANAN & AKSES MASUK"),
-            Container(
-              decoration: BoxDecoration(
-                color: context.cardBg,
-                borderRadius: BorderRadius.circular(20),
-                border: Border.all(color: context.borderColor),
-              ),
-              child: Column(
-                children: [
-                  // Change Password Tile
-                  _buildListTile(
-                    icon: Icons.lock_outline_rounded,
-                    title: "Ubah Password",
-                    subtitle: "Perbarui kata sandi akun Diniyah",
-                    color: const Color(0xFF3B82F6),
-                    onTap: _showChangePasswordDialog,
-                  ),
-                  _buildDivider(),
+            // ===== 2. GROUP 1: KEAMANAN & PENGATURAN AKUN (Buka Tutup Accordion) =====
+            _buildCollapsibleSection(
+              sectionKey: "KEAMANAN & AKSES MASUK",
+              title: "KEAMANAN & AKSES MASUK",
+              icon: Icons.security_rounded,
+              color: const Color(0xFF3B82F6),
+              children: [
+                // Change Password Tile
+                _buildListTile(
+                  icon: Icons.lock_outline_rounded,
+                  title: "Ubah Password",
+                  subtitle: "Perbarui kata sandi akun Diniyah",
+                  color: const Color(0xFF3B82F6),
+                  onTap: _showChangePasswordDialog,
+                ),
+                _buildDivider(),
 
-                  // Biometrics Toggle Tile
-                  if (_biometricAvailable) ...[
-                    _buildSwitchTile(
-                      icon: Icons.fingerprint_rounded,
-                      title: "Login Biometrik",
-                      subtitle: "Masuk aman dengan sidik jari",
-                      color: const Color(0xFF10B981),
-                      value: _biometricEnabled,
-                      onChanged: _toggleBiometric,
-                    ),
-                    _buildDivider(),
-                  ],
-
-                  // Face Recognition Toggle Tile
+                // Biometrics Toggle Tile
+                if (_biometricAvailable) ...[
                   _buildSwitchTile(
-                    icon: Icons.face_rounded,
-                    title: "Login Wajah",
-                    subtitle: "Masuk cepat verifikasi wajah",
-                    color: const Color(0xFF06B6D4),
-                    value: _faceEnabled,
-                    onChanged: _toggleFace,
-                  ),
-                  _buildDivider(),
-
-                  // PIN Tile
-                  _buildListTile(
-                    icon: Icons.dialpad_rounded,
-                    title: "Kunci PIN 6-Digit",
-                    subtitle: _pinEnabled ? "Status: Aktif" : "Belum diatur",
-                    color: const Color(0xFFF59E0B),
-                    trailing: _buildStatusBadge(_pinEnabled),
-                    onTap: _handleManagePin,
-                  ),
-                  _buildDivider(),
-
-                  // Pattern Tile
-                  _buildListTile(
-                    icon: Icons.pattern_rounded,
-                    title: "Kunci Pola (Pattern)",
-                    subtitle: _patternEnabled ? "Status: Aktif" : "Belum diatur",
-                    color: const Color(0xFFEC4899),
-                    trailing: _buildStatusBadge(_patternEnabled),
-                    onTap: _handleManagePattern,
-                  ),
-                  _buildDivider(),
-
-                  // Quick Password Tile
-                  _buildListTile(
-                    icon: Icons.lock_person_rounded,
-                    title: "Sandi Cepat",
-                    subtitle: _passwordEnabled ? "Status: Aktif" : "Belum diatur",
-                    color: const Color(0xFF14B8A6),
-                    trailing: _buildStatusBadge(_passwordEnabled),
-                    onTap: _handleManagePassword,
-                  ),
-                  _buildDivider(),
-
-                  // Theme Selection
-                  _buildSwitchTile(
-                    icon: Icons.dark_mode_outlined,
-                    title: "Mode Gelap",
-                    subtitle: "Tampilan visual kontras tinggi",
-                    color: const Color(0xFF8B5CF6),
-                    value: ThemeManager().isDarkMode,
-                    onChanged: (val) {
-                      setState(() {
-                        ThemeManager().toggleTheme(val);
-                      });
-                      _showToast(val ? "Mode Gelap aktif" : "Mode Terang aktif", const Color(0xFF8B5CF6));
-                    },
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 20),
-
-            // ===== 3. GROUP 2: PREFERENSI & BANTUAN =====
-            _buildSectionHeader("PREFERENSI & LAYANAN"),
-            Container(
-              decoration: BoxDecoration(
-                color: context.cardBg,
-                borderRadius: BorderRadius.circular(20),
-                border: Border.all(color: context.borderColor),
-              ),
-              child: Column(
-                children: [
-                  // Notifications Switch (Dummy)
-                  _buildSwitchTile(
-                    icon: Icons.notifications_none_rounded,
-                    title: "Notifikasi KBM",
-                    subtitle: "Terima info KBM & pengumuman",
-                    color: const Color(0xFFEC4899),
-                    value: _notificationsEnabled,
-                    onChanged: (val) {
-                      setState(() {
-                        _notificationsEnabled = val;
-                      });
-                      _showToast("Pengaturan notifikasi diperbarui", const Color(0xFFEC4899));
-                    },
-                  ),
-                  _buildDivider(),
-
-                  // Sound setting tile
-                  _buildListTile(
-                    icon: Icons.music_note_rounded,
-                    title: "Nada Dering Notifikasi",
-                    subtitle: _getSoundNameLabel(_selectedSound),
-                    color: const Color(0xFF8B5CF6),
-                    onTap: _showSoundSelectionDialog,
-                  ),
-                  _buildDivider(),
-
-                  // Kotak Saran Tile
-                  _buildListTile(
-                    icon: Icons.rate_review_outlined,
-                    title: "Kotak Saran & Masukan",
-                    subtitle: "Kirim masukan/saran pengembangan aplikasi",
+                    icon: Icons.fingerprint_rounded,
+                    title: "Login Biometrik",
+                    subtitle: "Masuk aman dengan sidik jari",
                     color: const Color(0xFF10B981),
-                    onTap: _showFeedbackDialog,
+                    value: _biometricEnabled,
+                    onChanged: _toggleBiometric,
                   ),
                   _buildDivider(),
-
-                  // FAQ and Help
-                  _buildListTile(
-                    icon: Icons.help_outline_rounded,
-                    title: "FAQ & Pusat Bantuan",
-                    subtitle: "Pertanyaan umum & panduan aplikasi",
-                    color: const Color(0xFFF59E0B),
-                    onTap: _showFAQDialog,
-                  ),
                 ],
-              ),
-            ),
-            const SizedBox(height: 24),
 
-            // ===== 4. GROUP 3: LOGOUT ACTION =====
+                // Face Recognition Toggle Tile
+                _buildSwitchTile(
+                  icon: Icons.face_rounded,
+                  title: "Login Wajah",
+                  subtitle: "Masuk cepat verifikasi wajah",
+                  color: const Color(0xFF06B6D4),
+                  value: _faceEnabled,
+                  onChanged: _toggleFace,
+                ),
+                _buildDivider(),
+
+                // PIN Tile
+                _buildListTile(
+                  icon: Icons.dialpad_rounded,
+                  title: "Kunci PIN 6-Digit",
+                  subtitle: _pinEnabled ? "Status: Aktif" : "Belum diatur",
+                  color: const Color(0xFFF59E0B),
+                  trailing: _buildStatusBadge(_pinEnabled),
+                  onTap: _handleManagePin,
+                ),
+                _buildDivider(),
+
+                // Pattern Tile
+                _buildListTile(
+                  icon: Icons.pattern_rounded,
+                  title: "Kunci Pola (Pattern)",
+                  subtitle: _patternEnabled ? "Status: Aktif" : "Belum diatur",
+                  color: const Color(0xFFEC4899),
+                  trailing: _buildStatusBadge(_patternEnabled),
+                  onTap: _handleManagePattern,
+                ),
+                _buildDivider(),
+
+                // Quick Password Tile
+                _buildListTile(
+                  icon: Icons.lock_person_rounded,
+                  title: "Sandi Cepat",
+                  subtitle: _passwordEnabled ? "Status: Aktif" : "Belum diatur",
+                  color: const Color(0xFF14B8A6),
+                  trailing: _buildStatusBadge(_passwordEnabled),
+                  onTap: _handleManagePassword,
+                ),
+                _buildDivider(),
+
+                // Theme Selection
+                _buildSwitchTile(
+                  icon: Icons.dark_mode_outlined,
+                  title: "Mode Gelap",
+                  subtitle: "Tampilan visual kontras tinggi",
+                  color: const Color(0xFF8B5CF6),
+                  value: ThemeManager().isDarkMode,
+                  onChanged: (val) {
+                    setState(() {
+                      ThemeManager().toggleTheme(val);
+                    });
+                    _showToast(val ? "Mode Gelap aktif" : "Mode Terang aktif", const Color(0xFF8B5CF6));
+                  },
+                ),
+              ],
+            ),
+
+            // ===== 3. GROUP 2: PREFERENSI & LAYANAN (Buka Tutup Accordion) =====
+            _buildCollapsibleSection(
+              sectionKey: "PREFERENSI & LAYANAN",
+              title: "PREFERENSI & LAYANAN",
+              icon: Icons.tune_rounded,
+              color: const Color(0xFF8B5CF6),
+              children: [
+                // Notifications Switch
+                _buildSwitchTile(
+                  icon: Icons.notifications_none_rounded,
+                  title: "Notifikasi KBM",
+                  subtitle: "Terima info KBM & pengumuman",
+                  color: const Color(0xFFEC4899),
+                  value: _notificationsEnabled,
+                  onChanged: (val) {
+                    setState(() {
+                      _notificationsEnabled = val;
+                    });
+                    _showToast("Pengaturan notifikasi diperbarui", const Color(0xFFEC4899));
+                  },
+                ),
+                _buildDivider(),
+
+                // Sound setting tile
+                _buildListTile(
+                  icon: Icons.music_note_rounded,
+                  title: "Nada Dering Notifikasi",
+                  subtitle: _getSoundNameLabel(_selectedSound),
+                  color: const Color(0xFF8B5CF6),
+                  onTap: _showSoundSelectionDialog,
+                ),
+                _buildDivider(),
+
+                // Kotak Saran Tile
+                _buildListTile(
+                  icon: Icons.rate_review_outlined,
+                  title: "Kotak Saran & Masukan",
+                  subtitle: "Kirim masukan/saran pengembangan aplikasi",
+                  color: const Color(0xFF10B981),
+                  onTap: _showFeedbackDialog,
+                ),
+              ],
+            ),
+
+            // ===== 4. GROUP 3: INFORMASI & BANTUAN (Buka Tutup Accordion) =====
+            _buildCollapsibleSection(
+              sectionKey: "INFORMASI & BANTUAN",
+              title: "INFORMASI & BANTUAN",
+              icon: Icons.auto_stories_rounded,
+              color: const Color(0xFF10B981),
+              children: [
+                // Pusat Bantuan Tile
+                _buildListTile(
+                  icon: Icons.help_center_rounded,
+                  title: "Pusat Bantuan",
+                  subtitle: "Dokumentasi & panduan penggunaan fitur",
+                  color: const Color(0xFF10B981),
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (context) => const PusatBantuanScreen()),
+                    );
+                  },
+                ),
+                _buildDivider(),
+
+                // Tentang Tile
+                _buildListTile(
+                  icon: Icons.info_outline_rounded,
+                  title: "Tentang",
+                  subtitle: "Profil pesantren, visi, & versi aplikasi",
+                  color: const Color(0xFF3B82F6),
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (context) => const TentangScreen()),
+                    );
+                  },
+                ),
+                _buildDivider(),
+
+                // Pengembang Tile (Alhamid Studio Code)
+                _buildListTile(
+                  icon: Icons.code_rounded,
+                  title: "Pengembang",
+                  subtitle: "Alhamid Studio Code & rekayasa perangkat lunak",
+                  color: const Color(0xFF6366F1),
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (context) => const PengembangScreen()),
+                    );
+                  },
+                ),
+              ],
+            ),
+            const SizedBox(height: 10),
+
+            // ===== 5. GROUP 4: LOGOUT ACTION =====
             _buildListTile(
               icon: Icons.logout_rounded,
               title: "Keluar Akun",
@@ -1244,20 +1397,84 @@ class _TabAkunState extends State<TabAkun> {
     );
   }
 
-  Widget _buildSectionHeader(String label) {
-    return Padding(
-      padding: const EdgeInsets.only(left: 4.0, bottom: 8.0),
-      child: Text(
-        label,
-        style: GoogleFonts.outfit(
-          color: context.subTitleColor,
-          fontSize: 10,
-          fontWeight: FontWeight.bold,
-          letterSpacing: 1.5,
+  Widget _buildCollapsibleSection({
+    required String sectionKey,
+    required String title,
+    required IconData icon,
+    required Color color,
+    required List<Widget> children,
+  }) {
+    final isExpanded = _expandedSections.contains(sectionKey);
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 16),
+      decoration: BoxDecoration(
+        color: context.cardBg,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(
+          color: isExpanded ? color.withOpacity(0.35) : context.borderColor,
+          width: isExpanded ? 1.4 : 1.0,
         ),
+      ),
+      child: Column(
+        children: [
+          InkWell(
+            borderRadius: BorderRadius.circular(20),
+            onTap: () {
+              setState(() {
+                if (isExpanded) {
+                  _expandedSections.remove(sectionKey);
+                } else {
+                  _expandedSections.add(sectionKey);
+                }
+              });
+            },
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+              child: Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: color.withOpacity(0.12),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: Icon(icon, color: color, size: 20),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Text(
+                      title,
+                      style: GoogleFonts.outfit(
+                        color: context.titleColor,
+                        fontSize: 13,
+                        fontWeight: FontWeight.bold,
+                        letterSpacing: 0.5,
+                      ),
+                    ),
+                  ),
+                  AnimatedRotation(
+                    turns: isExpanded ? 0.5 : 0.0,
+                    duration: const Duration(milliseconds: 200),
+                    child: Icon(
+                      Icons.keyboard_arrow_down_rounded,
+                      color: context.subTitleColor,
+                      size: 22,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          if (isExpanded) ...[
+            Divider(color: context.borderColor, height: 1),
+            ...children,
+          ],
+        ],
       ),
     );
   }
+
 
   Widget _buildListTile({
     required IconData icon,

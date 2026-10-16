@@ -99,7 +99,6 @@ class _TabAkademikState extends State<TabAkademik> {
               _buildSectionHeader(
                 title: "Jadwal & Agenda Kegiatan",
                 subtitle: "Jadwal pelajaran KBM, kajian Romadhon & imam tarawih",
-                badgeText: "3 Jadwal",
                 icon: Icons.calendar_month_rounded,
                 color: const Color(0xFF10B981),
                 isDark: isDark,
@@ -114,7 +113,6 @@ class _TabAkademikState extends State<TabAkademik> {
               _buildSectionHeader(
                 title: "Laporan & Rekapitulasi",
                 subtitle: "Hasil evaluasi belajar, kehadiran, pelanggaran & prestasi",
-                badgeText: "4 Laporan",
                 icon: Icons.analytics_rounded,
                 color: const Color(0xFF6366F1),
                 isDark: isDark,
@@ -129,7 +127,6 @@ class _TabAkademikState extends State<TabAkademik> {
               _buildSectionHeader(
                 title: "Informasi Ujian & Target Akademik",
                 subtitle: "Standarisasi materi, silabus, maqro, dan kalender",
-                badgeText: "6 Acuan",
                 icon: Icons.auto_stories_rounded,
                 color: const Color(0xFF8B5CF6),
                 isDark: isDark,
@@ -144,7 +141,6 @@ class _TabAkademikState extends State<TabAkademik> {
               _buildSectionHeader(
                 title: "Master Input Nilai & Absensi",
                 subtitle: "Entri harian ujian, absensi santri & verifikasi kartu",
-                badgeText: "4 Menu",
                 icon: Icons.border_color_rounded,
                 color: const Color(0xFFF97316),
                 isDark: isDark,
@@ -206,7 +202,6 @@ class _TabAkademikState extends State<TabAkademik> {
   Widget _buildSectionHeader({
     required String title,
     required String subtitle,
-    required String badgeText,
     required IconData icon,
     required Color color,
     required bool isDark,
@@ -226,33 +221,13 @@ class _TabAkademikState extends State<TabAkademik> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Row(
-                children: [
-                  Text(
-                    title,
-                    style: GoogleFonts.outfit(
-                      color: context.titleColor,
-                      fontSize: 15,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                    decoration: BoxDecoration(
-                      color: color.withOpacity(0.15),
-                      borderRadius: BorderRadius.circular(6),
-                    ),
-                    child: Text(
-                      badgeText,
-                      style: GoogleFonts.outfit(
-                        color: color,
-                        fontSize: 9,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ),
-                ],
+              Text(
+                title,
+                style: GoogleFonts.outfit(
+                  color: context.titleColor,
+                  fontSize: 15,
+                  fontWeight: FontWeight.bold,
+                ),
               ),
               Text(
                 subtitle,

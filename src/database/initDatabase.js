@@ -149,6 +149,15 @@ async function initDatabase() {
     $$;
   `);
   console.log('✓ Role bendahara & kolom tambahan diverifikasi/diperbarui');
+
+  // Inisialisasi app_contents (Pusat Bantuan, Tentang, Pengembang)
+  try {
+    const { initAppContentTable } = require('./initAppContent');
+    await initAppContentTable();
+    console.log('✓ app_contents verified & seeded');
+  } catch (err) {
+    console.error('⚠️ Gagal inisialisasi app_contents:', err);
+  }
 }
 
 module.exports = initDatabase;

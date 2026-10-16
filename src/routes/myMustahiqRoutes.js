@@ -1,10 +1,40 @@
 const express = require('express');
+const path = require('path');
+const fs = require('fs');
+const multer = require('multer');
 const db = require('../../db');
 const { getActiveTahunAjaran } = require('../services/tahunAjaranService');
 const { authenticateToken } = require('../middleware/authMiddleware');
 const { asyncHandler } = require('../utils/errorHandler');
 const NilaiService = require('../services/nilaiService');
 const { normalizeGender } = require('../utils/normalizers');
+
+const profilePhotoStorage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    const dir = path.join(__dirname, '../../public/uploads/foto-guru');
+    if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+    cb(null, dir);
+  },
+  filename: (req, file, cb) => {
+    const uid = req.user?.guru_id || req.user?.id || 'user';
+    const ext = path.extname(file.originalname).toLowerCase() || '.jpg';
+    cb(null, `profile_${uid}_${Date.now()}${ext}`);
+  }
+});
+
+const uploadProfilePhoto = multer({
+  storage: profilePhotoStorage,
+  limits: { fileSize: 5 * 1024 * 1024 },
+  fileFilter: (req, file, cb) => {
+    const allowed = ['.jpg', '.jpeg', '.png', '.webp'];
+    const ext = path.extname(file.originalname).toLowerCase();
+    if (allowed.includes(ext) || file.mimetype.startsWith('image/')) {
+      cb(null, true);
+    } else {
+      cb(new Error('Format file tidak didukung. Gunakan JPG, PNG, atau WEBP.'));
+    }
+  }
+});
 
 function registerMyMustahiqRoutes(app) {
   const router = express.Router();
@@ -69,6 +99,48 @@ function registerMyMustahiqRoutes(app) {
 
   // All endpoints here require token authentication
   router.use(authenticateToken);
+
+  /**
+   * POST /api/my-mustahiq/profile/photo
+   * Upload or update profile photo for logged-in user / ustadz
+   */
+  router.post('/profile/photo', uploadProfilePhoto.fields([{ name: 'foto', maxCount: 1 }, { name: 'photo', maxCount: 1 }]), asyncHandler(async (req, res) => {
+    const file = req.files?.['foto']?.[0] || req.files?.['photo']?.[0] || req.file;
+    if (!file) {
+      return res.status(400).json({ error: 'File foto tidak ditemukan.' });
+    }
+
+    const fotoUrl = `/uploads/foto-guru/${file.filename}`;
+    const guruId = req.user.guru_id || req.user.id;
+    const userId = req.user.id;
+    const username = req.user.username;
+
+    // 1. Update guru table if teacher account
+    if (guruId) {
+      const oldGuru = await db.query('SELECT foto_url FROM guru WHERE id = $1', [guruId]);
+      if (oldGuru.rows[0]?.foto_url) {
+        const oldPath = path.join(__dirname, '../../public', oldGuru.rows[0].foto_url);
+        if (fs.existsSync(oldPath)) {
+          try { fs.unlinkSync(oldPath); } catch (_) {}
+        }
+      }
+      await db.query('UPDATE guru SET foto_url = $1 WHERE id = $2', [fotoUrl, guruId]);
+    }
+
+    // 2. Also update users table if user record exists
+    if (userId || username) {
+      await db.query(
+        'UPDATE users SET photo_url = $1 WHERE id = $2 OR LOWER(username) = LOWER($3)',
+        [fotoUrl, userId || null, username || '']
+      );
+    }
+
+    res.json({
+      success: true,
+      message: 'Foto profil berhasil diperbarui.',
+      foto_url: fotoUrl
+    });
+  }));
 
   /**
    * GET /api/my-mustahiq/dashboard

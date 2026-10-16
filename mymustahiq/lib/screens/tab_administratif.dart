@@ -10,6 +10,7 @@ import 'struktur_organisasi_screen.dart';
 import 'materi_sidang_screen.dart';
 import 'inventaris_screen.dart';
 import 'statistik_diniyah_screen.dart';
+import 'tab_keuangan.dart';
 
 class TabAdministratif extends StatefulWidget {
   const TabAdministratif({super.key});
@@ -19,6 +20,7 @@ class TabAdministratif extends StatefulWidget {
 }
 
 class _TabAdministratifState extends State<TabAdministratif> {
+  String _mainTab = 'admin'; // 'admin' | 'keuangan'
   String _selectedCategory = 'Data Kesiswaan';
 
   final List<String> _categories = [
@@ -41,145 +43,252 @@ class _TabAdministratifState extends State<TabAdministratif> {
 
     return Scaffold(
       backgroundColor: Colors.transparent,
-      body: SingleChildScrollView(
-        physics: const BouncingScrollPhysics(),
-        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Header Section
-            Row(
-              children: [
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        "Layanan Administratif",
-                        style: GoogleFonts.outfit(
-                          color: context.titleColor,
-                          fontSize: 22,
-                          fontWeight: FontWeight.bold,
+      body: Column(
+        children: [
+          // Segmented Tab Switch: Administratif vs Keuangan & SPP
+          Padding(
+            padding: const EdgeInsets.fromLTRB(20, 14, 20, 6),
+            child: Container(
+              padding: const EdgeInsets.all(4),
+              decoration: BoxDecoration(
+                color: context.isDarkMode ? Colors.white.withOpacity(0.06) : Colors.black.withOpacity(0.04),
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(
+                  color: context.isDarkMode ? Colors.white.withOpacity(0.08) : Colors.black.withOpacity(0.06),
+                  width: 1,
+                ),
+              ),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: GestureDetector(
+                      onTap: () => setState(() => _mainTab = 'admin'),
+                      child: AnimatedContainer(
+                        duration: const Duration(milliseconds: 200),
+                        padding: const EdgeInsets.symmetric(vertical: 9),
+                        decoration: BoxDecoration(
+                          color: _mainTab == 'admin'
+                              ? (context.isDarkMode ? const Color(0xFF1E293B) : Colors.white)
+                              : Colors.transparent,
+                          borderRadius: BorderRadius.circular(12),
+                          boxShadow: _mainTab == 'admin'
+                              ? [
+                                  BoxShadow(
+                                    color: Colors.black.withOpacity(0.08),
+                                    blurRadius: 8,
+                                    offset: const Offset(0, 2),
+                                  ),
+                                ]
+                              : null,
+                        ),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(
+                              Icons.admin_panel_settings_rounded,
+                              size: 16,
+                              color: _mainTab == 'admin' ? const Color(0xFF3B82F6) : context.subTitleColor,
+                            ),
+                            const SizedBox(width: 8),
+                            Text(
+                              "Administratif",
+                              style: GoogleFonts.outfit(
+                                fontSize: 13,
+                                fontWeight: _mainTab == 'admin' ? FontWeight.bold : FontWeight.w500,
+                                color: _mainTab == 'admin' ? context.titleColor : context.subTitleColor,
+                              ),
+                            ),
+                          ],
                         ),
                       ),
-                      const SizedBox(height: 4),
-                      Text(
-                        "Manajemen santri, dewan asatidz, kepengurusan, & arsip sidang.",
-                        style: GoogleFonts.outfit(
-                          color: context.subTitleColor,
-                          fontSize: 12,
+                    ),
+                  ),
+                  Expanded(
+                    child: GestureDetector(
+                      onTap: () => setState(() => _mainTab = 'keuangan'),
+                      child: AnimatedContainer(
+                        duration: const Duration(milliseconds: 200),
+                        padding: const EdgeInsets.symmetric(vertical: 9),
+                        decoration: BoxDecoration(
+                          color: _mainTab == 'keuangan'
+                              ? (context.isDarkMode ? const Color(0xFF1E293B) : Colors.white)
+                              : Colors.transparent,
+                          borderRadius: BorderRadius.circular(12),
+                          boxShadow: _mainTab == 'keuangan'
+                              ? [
+                                  BoxShadow(
+                                    color: Colors.black.withOpacity(0.08),
+                                    blurRadius: 8,
+                                    offset: const Offset(0, 2),
+                                  ),
+                                ]
+                              : null,
+                        ),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(
+                              Icons.account_balance_wallet_rounded,
+                              size: 16,
+                              color: _mainTab == 'keuangan' ? const Color(0xFF10B981) : context.subTitleColor,
+                            ),
+                            const SizedBox(width: 8),
+                            Text(
+                              "Keuangan & SPP",
+                              style: GoogleFonts.outfit(
+                                fontSize: 13,
+                                fontWeight: _mainTab == 'keuangan' ? FontWeight.bold : FontWeight.w500,
+                                color: _mainTab == 'keuangan' ? context.titleColor : context.subTitleColor,
+                              ),
+                            ),
+                          ],
                         ),
                       ),
-                    ],
+                    ),
                   ),
-                ),
-                Container(
-                  padding: const EdgeInsets.all(10),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFF3B82F6).withOpacity(0.12),
-                    borderRadius: BorderRadius.circular(14),
-                  ),
-                  child: const Icon(Icons.admin_panel_settings_rounded, color: Color(0xFF3B82F6), size: 24),
-                ),
-              ],
+                ],
+              ),
             ),
-            const SizedBox(height: 18),
+          ),
+          Expanded(
+            child: _mainTab == 'keuangan'
+                ? const TabKeuangan()
+                : SingleChildScrollView(
+                    physics: const BouncingScrollPhysics(),
+                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        // Header Section
+                        Row(
+                          children: [
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    "Layanan Administratif",
+                                    style: GoogleFonts.outfit(
+                                      color: context.titleColor,
+                                      fontSize: 22,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 4),
+                                  Text(
+                                    "Manajemen santri, dewan asatidz, kepengurusan, & arsip sidang.",
+                                    style: GoogleFonts.outfit(
+                                      color: context.subTitleColor,
+                                      fontSize: 12,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            Container(
+                              padding: const EdgeInsets.all(10),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFF3B82F6).withOpacity(0.12),
+                                borderRadius: BorderRadius.circular(14),
+                              ),
+                              child: const Icon(Icons.admin_panel_settings_rounded, color: Color(0xFF3B82F6), size: 24),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 18),
 
-            // Quick Filter Chips
-            _buildFilterChips(isDark),
-            const SizedBox(height: 24),
+                        // Quick Filter Chips
+                        _buildFilterChips(isDark),
+                        const SizedBox(height: 24),
 
-            // 1. CLUSTER: DATA KESISWAAN
-            if (_shouldShowCluster('Data Kesiswaan')) ...[
-              _buildSectionHeader(
-                title: "Data Kesiswaan & Profil",
-                subtitle: "Buku induk pendaftaran, riwayat data santri & filter angkatan",
-                badgeText: "2 Menu",
-                icon: Icons.badge_rounded,
-                color: const Color(0xFF3B82F6),
-                isDark: isDark,
-              ),
-              const SizedBox(height: 14),
-              _buildKesiswaanCluster(context, isDark),
-              const SizedBox(height: 28),
-            ],
+                        // 1. CLUSTER: DATA KESISWAAN
+                        if (_shouldShowCluster('Data Kesiswaan')) ...[
+                          _buildSectionHeader(
+                            title: "Data Kesiswaan & Profil",
+                            subtitle: "Buku induk pendaftaran, riwayat data santri & filter angkatan",
+                            icon: Icons.badge_rounded,
+                            color: const Color(0xFF3B82F6),
+                            isDark: isDark,
+                          ),
+                          const SizedBox(height: 14),
+                          _buildKesiswaanCluster(context, isDark),
+                          const SizedBox(height: 28),
+                        ],
 
-            // 2. CLUSTER: ASATIDZ
-            if (_shouldShowCluster('Asatidz')) ...[
-              _buildSectionHeader(
-                title: "Dewan Asatidz & Guru",
-                subtitle: "Wali kelas aktif (Mustahiq) dan guru mata pelajaran (Munawib)",
-                badgeText: "2 Menu",
-                icon: Icons.people_alt_rounded,
-                color: const Color(0xFF10B981),
-                isDark: isDark,
-              ),
-              const SizedBox(height: 14),
-              _buildAsatidzCluster(context, isDark),
-              const SizedBox(height: 28),
-            ],
+                        // 2. CLUSTER: ASATIDZ
+                        if (_shouldShowCluster('Asatidz')) ...[
+                          _buildSectionHeader(
+                            title: "Dewan Asatidz & Guru",
+                            subtitle: "Wali kelas aktif (Mustahiq) dan guru mata pelajaran (Munawib)",
+                            icon: Icons.people_alt_rounded,
+                            color: const Color(0xFF10B981),
+                            isDark: isDark,
+                          ),
+                          const SizedBox(height: 14),
+                          _buildAsatidzCluster(context, isDark),
+                          const SizedBox(height: 28),
+                        ],
 
-            // 3. CLUSTER: STRUKTUR ORGANISASI
-            if (_shouldShowCluster('Struktur')) ...[
-              _buildSectionHeader(
-                title: "Struktur Lembaga & Kepanitiaan",
-                subtitle: "Bagan susunan pengurus Madin, PMQ, Pondok, Sambangan & Haflah",
-                badgeText: "6 Struktur",
-                icon: Icons.account_tree_rounded,
-                color: const Color(0xFF8B5CF6),
-                isDark: isDark,
-              ),
-              const SizedBox(height: 14),
-              _buildStrukturCluster(context, isDark),
-              const SizedBox(height: 28),
-            ],
+                        // 3. CLUSTER: STRUKTUR ORGANISASI
+                        if (_shouldShowCluster('Struktur')) ...[
+                          _buildSectionHeader(
+                            title: "Struktur Lembaga & Kepanitiaan",
+                            subtitle: "Bagan susunan pengurus Madin, PMQ, Pondok, Sambangan & Haflah",
+                            icon: Icons.account_tree_rounded,
+                            color: const Color(0xFF8B5CF6),
+                            isDark: isDark,
+                          ),
+                          const SizedBox(height: 14),
+                          _buildStrukturCluster(context, isDark),
+                          const SizedBox(height: 28),
+                        ],
 
-            // 4. CLUSTER: MUTAKHORIJIN & MUTASI
-            if (_shouldShowCluster('Mutakhorijin')) ...[
-              _buildSectionHeader(
-                title: "Mutakhorijin & Mutasi",
-                subtitle: "Arsip kelulusan alumni santri serta data siswa pindahan/mutasi",
-                badgeText: "2 Menu",
-                icon: Icons.school_rounded,
-                color: const Color(0xFFF59E0B),
-                isDark: isDark,
-              ),
-              const SizedBox(height: 14),
-              _buildMutakhorijinCluster(context, isDark),
-              const SizedBox(height: 28),
-            ],
+                        // 4. CLUSTER: MUTAKHORIJIN & MUTASI
+                        if (_shouldShowCluster('Mutakhorijin')) ...[
+                          _buildSectionHeader(
+                            title: "Mutakhorijin & Mutasi",
+                            subtitle: "Arsip kelulusan alumni santri serta data siswa pindahan/mutasi",
+                            icon: Icons.school_rounded,
+                            color: const Color(0xFFF59E0B),
+                            isDark: isDark,
+                          ),
+                          const SizedBox(height: 14),
+                          _buildMutakhorijinCluster(context, isDark),
+                          const SizedBox(height: 28),
+                        ],
 
-            // 5. CLUSTER: MATERI-MATERI SIDANG (PDF)
-            if (_shouldShowCluster('Materi Sidang')) ...[
-              _buildSectionHeader(
-                title: "Materi & Dokumen Sidang (PDF)",
-                subtitle: "Naskah pleno, pedoman kurikulum, SK keputusan & notulensi",
-                badgeText: "Dokumen Resmi",
-                icon: Icons.picture_as_pdf_rounded,
-                color: const Color(0xFFEF4444),
-                isDark: isDark,
-              ),
-              const SizedBox(height: 14),
-              _buildMateriSidangCluster(context, isDark),
-              const SizedBox(height: 24),
-            ],
+                        // 5. CLUSTER: MATERI-MATERI SIDANG (PDF)
+                        if (_shouldShowCluster('Materi Sidang')) ...[
+                          _buildSectionHeader(
+                            title: "Materi & Dokumen Sidang (PDF)",
+                            subtitle: "Naskah pleno, pedoman kurikulum, SK keputusan & notulensi",
+                            icon: Icons.picture_as_pdf_rounded,
+                            color: const Color(0xFFEF4444),
+                            isDark: isDark,
+                          ),
+                          const SizedBox(height: 14),
+                          _buildMateriSidangCluster(context, isDark),
+                          const SizedBox(height: 24),
+                        ],
 
-            // 6. CLUSTER: INVENTARIS PESANTREN
-            if (_shouldShowCluster('Inventaris')) ...[
-              _buildSectionHeader(
-                title: "Inventaris Sarana & Prasarana",
-                subtitle: "Pencatatan aset Pondok, Madrasah Diniyah, dan PMQ",
-                badgeText: "3 Kategori",
-                icon: Icons.inventory_2_rounded,
-                color: const Color(0xFFF59E0B),
-                isDark: isDark,
-              ),
-              const SizedBox(height: 14),
-              _buildInventarisCluster(context, isDark),
-              const SizedBox(height: 24),
-            ],
-          ],
-        ),
+                        // 6. CLUSTER: INVENTARIS PESANTREN
+                        if (_shouldShowCluster('Inventaris')) ...[
+                          _buildSectionHeader(
+                            title: "Inventaris Sarana & Prasarana",
+                            subtitle: "Pencatatan aset Pondok, Madrasah Diniyah, dan PMQ",
+                            icon: Icons.inventory_2_rounded,
+                            color: const Color(0xFFF59E0B),
+                            isDark: isDark,
+                          ),
+                          const SizedBox(height: 14),
+                          _buildInventarisCluster(context, isDark),
+                          const SizedBox(height: 24),
+                        ],
+                      ],
+                    ),
+                  ),
+          ),
+        ],
       ),
     );
   }
@@ -230,7 +339,6 @@ class _TabAdministratifState extends State<TabAdministratif> {
   Widget _buildSectionHeader({
     required String title,
     required String subtitle,
-    required String badgeText,
     required IconData icon,
     required Color color,
     required bool isDark,
@@ -250,33 +358,13 @@ class _TabAdministratifState extends State<TabAdministratif> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Row(
-                children: [
-                  Text(
-                    title,
-                    style: GoogleFonts.outfit(
-                      color: context.titleColor,
-                      fontSize: 15,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                    decoration: BoxDecoration(
-                      color: color.withOpacity(0.15),
-                      borderRadius: BorderRadius.circular(6),
-                    ),
-                    child: Text(
-                      badgeText,
-                      style: GoogleFonts.outfit(
-                        color: color,
-                        fontSize: 9,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ),
-                ],
+              Text(
+                title,
+                style: GoogleFonts.outfit(
+                  color: context.titleColor,
+                  fontSize: 15,
+                  fontWeight: FontWeight.bold,
+                ),
               ),
               Text(
                 subtitle,

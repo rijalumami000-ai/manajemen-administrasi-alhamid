@@ -40,13 +40,15 @@ import {
   FileArchive,
   Boxes,
   PieChart,
-  BookmarkCheck
+  BookmarkCheck,
+  HelpCircle
 } from 'lucide-react';
 import './Sidebar.scss';
 
 // Icon Map for dynamic lookup of lucide icons
 const IconMap = {
   BookmarkCheck,
+  HelpCircle,
   LayoutDashboard,
   Users,
   BookOpen,
@@ -286,6 +288,12 @@ export function Sidebar({ collapsed, onCollapse }) {
           key: '/mymustahiq-settings',
           icon: 'Settings',
           label: 'Setelan Alhamid One',
+          disabled: false
+        }] : []),
+        ...(isAdmin() ? [{
+          key: '/informasi-aplikasi',
+          icon: 'HelpCircle',
+          label: 'Pusat Bantuan & Info App',
           disabled: false
         }] : []),
         { key: '/profile', icon: 'User', label: 'Profile', disabled: isStaff() }

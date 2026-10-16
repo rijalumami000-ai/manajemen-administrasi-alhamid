@@ -4,9 +4,9 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import '../services/theme_manager.dart';
 import '../services/api_service.dart';
+import 'tab_home.dart';
 import 'tab_akademik.dart';
 import 'tab_kelasku.dart';
-import 'tab_keuangan.dart';
 import 'tab_administratif.dart';
 import 'tab_akun.dart';
 import 'notifications_screen.dart';
@@ -23,26 +23,11 @@ class DashboardScreen extends StatefulWidget {
 }
 
 class _DashboardScreenState extends State<DashboardScreen> {
-  int _currentIndex = 1; // Default to "Kelasku" tab
+  int _currentIndex = 0; // Default to "Home" tab
   int _unreadNotifications = 0;
   int _unreadChats = 0;
   final ApiService _apiService = ApiService();
 
-  final List<Widget> _tabs = const [
-    TabAkademik(),
-    TabKelasku(),
-    TabKeuangan(),
-    TabAdministratif(),
-    TabAkun(),
-  ];
-
-  static const _tabTitles = [
-    'Akademik',
-    'Kelasku',
-    'Keuangan',
-    'Administratif',
-    'Akun Saya',
-  ];
 
   @override
   void initState() {
@@ -217,13 +202,57 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final topPadding = MediaQuery.of(context).padding.top + kToolbarHeight;
+
+    final tabs = [
+      TabHome(
+        onNavigateTab: (index) => setState(() => _currentIndex = index),
+        onOpenChat: () async {
+          await Navigator.push(
+            context,
+            MaterialPageRoute(builder: (context) => const ChatRoomsScreen()),
+          );
+          _fetchUnreadChatsCount();
+        },
+        onOpenNotifications: () async {
+          await Navigator.push(
+            context,
+            MaterialPageRoute(builder: (context) => const NotificationsScreen()),
+          );
+          _fetchUnreadNotificationsCount();
+        },
+        unreadChats: _unreadChats,
+        unreadNotifications: _unreadNotifications,
+      ),
+      Padding(
+        padding: EdgeInsets.only(top: topPadding),
+        child: const TabAkademik(),
+      ),
+      Padding(
+        padding: EdgeInsets.only(top: topPadding),
+        child: const TabKelasku(),
+      ),
+      Padding(
+        padding: EdgeInsets.only(top: topPadding),
+        child: const TabAdministratif(),
+      ),
+      Padding(
+        padding: EdgeInsets.only(top: topPadding),
+        child: const TabAkun(),
+      ),
+    ];
+
     return Scaffold(
       backgroundColor: context.scaffoldBg,
+      extendBodyBehindAppBar: true,
       appBar: AppBar(
-        backgroundColor: context.isDarkMode ? const Color(0xFF0D1527) : Colors.white.withOpacity(0.45),
+        backgroundColor: Colors.transparent,
         elevation: 0,
+        scrolledUnderElevation: 0,
+        surfaceTintColor: Colors.transparent,
+        shadowColor: Colors.transparent,
         centerTitle: true,
-        title: const SizedBox.shrink(), // Removed the page title next to chat icon as requested
+        title: const SizedBox.shrink(),
         leading: Padding(
           padding: const EdgeInsets.all(10.0),
           child: Container(
@@ -250,12 +279,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
               final isMobile = type == ConnectivityResult.mobile;
 
               IconData iconData = Icons.cloud_off_rounded;
-              Color iconColor = Colors.redAccent;
               String statusLabel = 'Offline';
               String detailInfo = 'Koneksi internet terputus.';
 
               if (isOnline) {
-                iconColor = const Color(0xFF10B981);
                 if (isWifi) {
                   iconData = Icons.wifi_rounded;
                   statusLabel = 'Wi-Fi';
@@ -297,24 +324,18 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       ),
                     );
                   },
-                  child: Container(
-                    margin: const EdgeInsets.symmetric(vertical: 10),
-                    padding: const EdgeInsets.all(8),
-                    decoration: BoxDecoration(
-                      color: iconColor.withOpacity(0.12),
-                      shape: BoxShape.circle,
-                      border: Border.all(
-                        color: iconColor.withOpacity(0.35),
-                        width: 1.2,
-                      ),
+                  child: Center(
+                    child: Icon(
+                      iconData,
+                      color: isOnline ? context.titleColor : Colors.redAccent,
+                      size: 22,
                     ),
-                    child: Icon(iconData, color: iconColor, size: 18),
                   ),
                 ),
               );
             },
           ),
-          const SizedBox(width: 8),
+          const SizedBox(width: 14),
           GestureDetector(
             onTap: () async {
               await Navigator.push(
@@ -399,7 +420,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
               ),
             ),
           ),
-          const SizedBox(width: 12),
+          const SizedBox(width: 14),
         ],
       ),
       body: Stack(
@@ -431,11 +452,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
             ),
           ),
           // Tab content
-          SafeArea(
-            child: IndexedStack(
-              index: _currentIndex,
-              children: _tabs,
-            ),
+          IndexedStack(
+            index: _currentIndex,
+            children: tabs,
           ),
         ],
       ),
@@ -480,9 +499,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.spaceAround,
                     children: [
-                      _buildNavItem(0, Icons.school_rounded, 'Akademik'),
-                      _buildNavItem(1, Icons.class_rounded, 'Kelasku'),
-                      _buildNavItem(2, Icons.account_balance_wallet_rounded, 'Keuangan'),
+                      _buildNavItem(0, Icons.home_rounded, 'Home'),
+                      _buildNavItem(1, Icons.school_rounded, 'Akademik'),
+                      _buildNavItem(2, Icons.class_rounded, 'Kelasku'),
                       _buildNavItem(3, Icons.admin_panel_settings_rounded, 'Administratif'),
                       _buildNavItem(4, Icons.person_rounded, 'Akun'),
                     ],

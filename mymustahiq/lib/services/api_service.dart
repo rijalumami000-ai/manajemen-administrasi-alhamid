@@ -1321,7 +1321,65 @@ class ApiService {
       rethrow;
     }
   }
+
+  // ═══════════════════════════════════════════════════════════════
+  // PROFILE PHOTO & APP INFO
+  // ═══════════════════════════════════════════════════════════════
+
+  /// Upload or change profile photo for the logged in ustadz
+  Future<Map<String, dynamic>> uploadProfilePhoto(File imageFile) async {
+    try {
+      final fileName = imageFile.path.split(Platform.pathSeparator).last;
+      final formData = FormData.fromMap({
+        'foto': await MultipartFile.fromFile(
+          imageFile.path,
+          filename: fileName,
+        ),
+      });
+
+      final response = await _dio.post(
+        '/my-mustahiq/profile/photo',
+        data: formData,
+        options: Options(
+          headers: {'Content-Type': 'multipart/form-data'},
+        ),
+      );
+
+      if (response.statusCode == 200 && response.data != null) {
+        return response.data as Map<String, dynamic>;
+      }
+      throw Exception('Gagal mengunggah foto profil.');
+    } catch (e) {
+      if (e is DioException && e.response != null) {
+        throw Exception(e.response?.data['error'] ?? 'Gagal mengunggah foto profil.');
+      }
+      rethrow;
+    }
+  }
+
+  /// Fetch dynamic content items for Pusat Bantuan, Tentang, or Pengembang
+  Future<List<dynamic>> getAppContents({String? section, String? category, String? search}) async {
+    try {
+      final Map<String, dynamic> query = {};
+      if (section != null) query['section'] = section;
+      if (category != null) query['category'] = category;
+      if (search != null && search.trim().isNotEmpty) query['search'] = search.trim();
+
+      final response = await _dio.get('/app-info', queryParameters: query);
+      if (response.statusCode == 200 && response.data != null) {
+        if (response.data is Map && response.data['data'] is List) {
+          return response.data['data'] as List<dynamic>;
+        } else if (response.data is List) {
+          return response.data as List<dynamic>;
+        }
+      }
+      return [];
+    } catch (_) {
+      return [];
+    }
+  }
 }
+
 
 
 
