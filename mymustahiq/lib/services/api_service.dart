@@ -1056,6 +1056,106 @@ class ApiService {
     }
   }
 
+  // --- CREATE PELANGGARAN ---
+  Future<Map<String, dynamic>> createPelanggaran(Map<String, dynamic> data) async {
+    try {
+      final response = await _dio.post('/pelanggaran', data: data);
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        return response.data as Map<String, dynamic>;
+      }
+      throw Exception('Gagal menyimpan pelanggaran.');
+    } catch (e) {
+      if (e is DioException && e.response != null) {
+        throw Exception(e.response?.data['error'] ?? 'Gagal menyimpan pelanggaran.');
+      }
+      rethrow;
+    }
+  }
+
+  // --- DELETE PELANGGARAN ---
+  Future<void> deletePelanggaran(int id) async {
+    try {
+      final response = await _dio.delete('/pelanggaran/$id');
+      if (response.statusCode == 200 || response.statusCode == 204) {
+        return;
+      }
+      throw Exception('Gagal menghapus pelanggaran.');
+    } catch (e) {
+      if (e is DioException && e.response != null) {
+        throw Exception(e.response?.data['error'] ?? 'Gagal menghapus pelanggaran.');
+      }
+      rethrow;
+    }
+  }
+
+  // --- CREATE PRESTASI ---
+  Future<Map<String, dynamic>> createPrestasi(Map<String, dynamic> data) async {
+    try {
+      final response = await _dio.post('/prestasi', data: data);
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        return response.data as Map<String, dynamic>;
+      }
+      throw Exception('Gagal menyimpan prestasi.');
+    } catch (e) {
+      if (e is DioException && e.response != null) {
+        throw Exception(e.response?.data['error'] ?? 'Gagal menyimpan prestasi.');
+      }
+      rethrow;
+    }
+  }
+
+  // --- DELETE PRESTASI ---
+  Future<void> deletePrestasi(int id) async {
+    try {
+      final response = await _dio.delete('/prestasi/$id');
+      if (response.statusCode == 200 || response.statusCode == 204) {
+        return;
+      }
+      throw Exception('Gagal menghapus prestasi.');
+    } catch (e) {
+      if (e is DioException && e.response != null) {
+        throw Exception(e.response?.data['error'] ?? 'Gagal menghapus prestasi.');
+      }
+      rethrow;
+    }
+  }
+
+  // --- STATISTIK PERKEMBANGAN SANTRI PESANTREN ---
+  Future<Map<String, dynamic>> getStatistikPesantren() async {
+    try {
+      final response = await _dio.get('/buku-induk/statistik-pesantren');
+      if (response.statusCode == 200) {
+        return response.data as Map<String, dynamic>;
+      }
+      throw Exception('Gagal mengambil statistik pesantren.');
+    } catch (e) {
+      if (e is DioException && e.response != null) {
+        throw Exception(e.response?.data['error'] ?? 'Gagal mengambil statistik pesantren.');
+      }
+      rethrow;
+    }
+  }
+
+  // --- DAFTAR SANTRI BUKU INDUK ---
+  Future<List<dynamic>> getSantriBukuInduk({int? tahunMasuk, String? search, String? jenisKelamin}) async {
+    try {
+      final Map<String, dynamic> qp = {};
+      if (tahunMasuk != null) qp['tahun_masuk'] = tahunMasuk;
+      if (search != null && search.isNotEmpty) qp['search'] = search;
+      if (jenisKelamin != null && jenisKelamin.isNotEmpty) qp['jenis_kelamin'] = jenisKelamin;
+      final response = await _dio.get('/buku-induk', queryParameters: qp);
+      if (response.statusCode == 200) {
+        return response.data as List<dynamic>;
+      }
+      throw Exception('Gagal memuat data buku induk.');
+    } catch (e) {
+      if (e is DioException && e.response != null) {
+        throw Exception(e.response?.data['error'] ?? 'Gagal memuat data buku induk.');
+      }
+      rethrow;
+    }
+  }
+
   // --- JADWAL KAJIAN BALAGH ROMADHON ---
   Future<List<dynamic>> getKajianBalagh({int? tahunAjaranId}) async {
     try {

@@ -16,6 +16,7 @@ import '../widgets/ujian_tulis_materi_bottom_sheet.dart';
 import 'kalender_akademik_screen.dart';
 import 'silabus_pembelajaran_screen.dart';
 import 'laporan_pelanggaran_prestasi_screen.dart';
+import 'input_pelanggaran_prestasi_screen.dart';
 import 'jadwal_khusus_screen.dart';
 
 class TabAkademik extends StatefulWidget {
@@ -272,6 +273,15 @@ class _TabAkademikState extends State<TabAkademik> {
         'color': const Color(0xFF10B981),
         'password': 'absen123',
         'screen': const InputAbsensiScreen(),
+      },
+      {
+        'title': 'Pelanggaran & Prestasi',
+        'desc': 'Catat kedisiplinan & piagam prestasi santri.',
+        'icon': Icons.gavel_rounded,
+        'badge': 'Protected',
+        'color': const Color(0xFFE11D48),
+        'password': 'pelanggaran123',
+        'screen': const InputPelanggaranPrestasiScreen(),
       },
       {
         'title': 'Scan Kartu Ujian',

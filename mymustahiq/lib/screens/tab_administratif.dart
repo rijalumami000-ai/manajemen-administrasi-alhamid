@@ -10,6 +10,7 @@ import 'struktur_organisasi_screen.dart';
 import 'materi_sidang_screen.dart';
 import 'inventaris_screen.dart';
 import 'statistik_diniyah_screen.dart';
+import 'statistik_pesantren_screen.dart';
 import 'tab_keuangan.dart';
 
 class TabAdministratif extends StatefulWidget {
@@ -565,6 +566,96 @@ class _TabAdministratifState extends State<TabAdministratif> {
                     ),
                   ),
                   const Icon(Icons.arrow_forward_rounded, size: 16, color: Color(0xFF10B981)),
+                ],
+              ),
+            ),
+          ),
+        ),
+        const SizedBox(height: 10),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 5),
+          child: GestureDetector(
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => const StatistikPesantrenScreen()),
+              );
+            },
+            child: Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: isDark ? const Color(0xFF131C2E) : Colors.white,
+                borderRadius: BorderRadius.circular(20),
+                border: Border.all(
+                  color: const Color(0xFF3B82F6).withOpacity(isDark ? 0.35 : 0.25),
+                  width: 1.2,
+                ),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(isDark ? 0.25 : 0.03),
+                    blurRadius: 10,
+                    offset: const Offset(0, 4),
+                  ),
+                ],
+              ),
+              child: Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(10),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF3B82F6).withOpacity(0.12),
+                      borderRadius: BorderRadius.circular(14),
+                    ),
+                    child: const Icon(Icons.insights_rounded, color: Color(0xFF3B82F6), size: 22),
+                  ),
+                  const SizedBox(width: 14),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Text(
+                              "Statistik & Grafik Pesantren",
+                              style: GoogleFonts.outfit(
+                                color: context.titleColor,
+                                fontSize: 15,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFF3B82F6).withOpacity(0.15),
+                                borderRadius: BorderRadius.circular(6),
+                              ),
+                              child: Text(
+                                "Buku Induk",
+                                style: GoogleFonts.outfit(
+                                  color: const Color(0xFF3B82F6),
+                                  fontSize: 9,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          "Perkembangan kuantitatif santri per angkatan/tahun masuk, rasio putra/putri, & sebaran asrama.",
+                          style: GoogleFonts.outfit(
+                            color: context.subTitleColor,
+                            fontSize: 10,
+                            height: 1.3,
+                          ),
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ],
+                    ),
+                  ),
+                  const Icon(Icons.arrow_forward_rounded, size: 16, color: Color(0xFF3B82F6)),
                 ],
               ),
             ),

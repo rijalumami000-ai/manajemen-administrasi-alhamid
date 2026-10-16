@@ -1,4 +1,6 @@
 import 'dart:async';
+import 'dart:math' as math;
+import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../services/theme_manager.dart';
@@ -24,15 +26,22 @@ class TabHome extends StatefulWidget {
 }
 
 class _TabHomeState extends State<TabHome> with SingleTickerProviderStateMixin {
-  late Timer _timer;
+  late AnimationController _auroraController;
+  late Timer _clockTimer;
   DateTime _currentTime = DateTime.now();
   int? _pressedShortcutIndex;
 
   @override
   void initState() {
     super.initState();
-    // Update live clock every second without any locale dependency crashes
-    _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
+    // Smooth, slow ambient animation loop
+    _auroraController = AnimationController(
+      vsync: this,
+      duration: const Duration(seconds: 12),
+    )..repeat();
+
+    // 1-second live clock update
+    _clockTimer = Timer.periodic(const Duration(seconds: 1), (_) {
       if (mounted) {
         setState(() {
           _currentTime = DateTime.now();
@@ -43,11 +52,11 @@ class _TabHomeState extends State<TabHome> with SingleTickerProviderStateMixin {
 
   @override
   void dispose() {
-    _timer.cancel();
+    _auroraController.dispose();
+    _clockTimer.cancel();
     super.dispose();
   }
 
-  // Crash-proof Indonesian time greeting
   String _getTimeGreeting() {
     final hour = _currentTime.hour;
     if (hour >= 3 && hour < 11) return "Selamat Pagi";
@@ -56,7 +65,6 @@ class _TabHomeState extends State<TabHome> with SingleTickerProviderStateMixin {
     return "Selamat Malam";
   }
 
-  // 100% zero-dependency, crash-proof native Indonesian date formatter
   String _formatIndonesianDate(DateTime dt) {
     const dayNames = ['Minggu', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'];
     const monthNames = [
@@ -82,653 +90,375 @@ class _TabHomeState extends State<TabHome> with SingleTickerProviderStateMixin {
   Widget build(BuildContext context) {
     final isDark = context.isDarkMode;
     final topPadding = MediaQuery.of(context).padding.top + kToolbarHeight;
+    final screenHeight = MediaQuery.of(context).size.height;
+
+    // Hero Space height: gracefully proportional (~42% of screen)
+    final heroHeight = (screenHeight * 0.42).clamp(290.0, 390.0);
 
     return Scaffold(
       backgroundColor: Colors.transparent,
       body: SingleChildScrollView(
         physics: const BouncingScrollPhysics(),
-        padding: EdgeInsets.only(
-          top: topPadding + 8,
-          bottom: 110, // clearance for bottom navigation bar
-          left: 18,
-          right: 18,
-        ),
+        padding: EdgeInsets.zero,
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            // ─── 1. EXECUTIVE HERO SPACE (Clean, Modern, No AI-Slop) ──────────
-            _buildExecutiveHeroCard(context, isDark),
-
-            const SizedBox(height: 22),
-
-            // ─── 2. PROFESSIONAL GREETING & PLATFORM IDENTITY ─────────────────
-            _buildGreetingHeader(context, isDark),
-
-            const SizedBox(height: 22),
-
-            // ─── 3. SECTION TITLE: MODUL & LAYANAN CEPAT ──────────────────────
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 4),
-              child: Row(
+            // ─── 1. SEAMLESS HERO SPACE DENGAN ANIMASI ABSTRAK HIDUP ──────────
+            // Menyatukan latar belakang abstrak bergerak dengan konten pembuka tanpa kotak/border
+            SizedBox(
+              height: heroHeight + topPadding,
+              width: double.infinity,
+              child: Stack(
+                fit: StackFit.expand,
                 children: [
-                  Container(
-                    width: 4,
-                    height: 18,
-                    decoration: BoxDecoration(
-                      color: const Color(0xFF10B981),
-                      borderRadius: BorderRadius.circular(4),
-                    ),
+                  // Full Animated Abstract Aurora Waves Canvas
+                  AnimatedBuilder(
+                    animation: _auroraController,
+                    builder: (context, child) {
+                      return CustomPaint(
+                        painter: _LivingAuroraPainter(
+                          progress: _auroraController.value,
+                          isDark: isDark,
+                        ),
+                      );
+                    },
                   ),
-                  const SizedBox(width: 8),
-                  Text(
-                    "Layanan & Modul Utama",
-                    style: GoogleFonts.outfit(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w700,
-                      color: context.titleColor,
-                      letterSpacing: -0.2,
-                    ),
-                  ),
-                  const Spacer(),
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                    decoration: BoxDecoration(
-                      color: isDark ? Colors.white.withOpacity(0.06) : Colors.black.withOpacity(0.04),
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: Text(
-                      "6 Modul Aktif",
-                      style: GoogleFonts.outfit(
-                        fontSize: 11,
-                        fontWeight: FontWeight.w600,
-                        color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B),
+
+                  // Bottom smooth fade out to completely blend into Home background
+                  Positioned(
+                    bottom: 0,
+                    left: 0,
+                    right: 0,
+                    height: 70,
+                    child: Container(
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          begin: Alignment.topCenter,
+                          end: Alignment.bottomCenter,
+                          colors: [
+                            (isDark ? const Color(0xFF070B13) : const Color(0xFFF8FAFC)).withOpacity(0.0),
+                            (isDark ? const Color(0xFF070B13) : const Color(0xFFF8FAFC)),
+                          ],
+                        ),
                       ),
+                    ),
+                  ),
+
+                  // Integrated Opening Content inside the Flowing Aurora
+                  Padding(
+                    padding: EdgeInsets.only(
+                      top: topPadding + 10,
+                      left: 24,
+                      right: 24,
+                      bottom: 16,
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        // Pembuka: Assalamu'alaikum & Dynamic Greeting
+                        Row(
+                          children: [
+                            Text(
+                              "Assalamu'alaikum",
+                              style: GoogleFonts.outfit(
+                                fontSize: 18,
+                                fontWeight: FontWeight.w700,
+                                color: const Color(0xFF10B981),
+                                letterSpacing: 0.2,
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            Text(
+                              "• ${_getTimeGreeting()}",
+                              style: GoogleFonts.outfit(
+                                fontSize: 13,
+                                fontWeight: FontWeight.w500,
+                                color: context.subTitleColor,
+                              ),
+                            ),
+                          ],
+                        ),
+
+                        const SizedBox(height: 10),
+
+                        // Centerpiece: Digital Clock & Crash-Proof Indonesian Date
+                        Row(
+                          crossAxisAlignment: CrossAxisAlignment.baseline,
+                          textBaseline: TextBaseline.alphabetic,
+                          children: [
+                            Text(
+                              _formatDigitalTime(_currentTime),
+                              style: GoogleFonts.outfit(
+                                fontSize: 48,
+                                fontWeight: FontWeight.w800,
+                                color: context.titleColor,
+                                letterSpacing: -1.5,
+                                height: 1.0,
+                              ),
+                            ),
+                            const SizedBox(width: 4),
+                            Text(
+                              ":${_formatDigitalSeconds(_currentTime)}",
+                              style: GoogleFonts.outfit(
+                                fontSize: 20,
+                                fontWeight: FontWeight.w600,
+                                color: const Color(0xFF10B981),
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            Text(
+                              "WIB",
+                              style: GoogleFonts.outfit(
+                                fontSize: 12,
+                                fontWeight: FontWeight.w700,
+                                color: context.subTitleColor,
+                                letterSpacing: 0.8,
+                              ),
+                            ),
+                          ],
+                        ),
+
+                        const SizedBox(height: 6),
+
+                        // Tanggal Indonesia Hari Ini
+                        Row(
+                          children: [
+                            Icon(
+                              Icons.calendar_today_rounded,
+                              size: 13,
+                              color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B),
+                            ),
+                            const SizedBox(width: 6),
+                            Text(
+                              _formatIndonesianDate(_currentTime),
+                              style: GoogleFonts.outfit(
+                                fontSize: 13,
+                                fontWeight: FontWeight.w600,
+                                color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B),
+                                letterSpacing: 0.1,
+                              ),
+                            ),
+                          ],
+                        ),
+
+                        const SizedBox(height: 18),
+
+                        // Headline & Sub-kalimat
+                        Text(
+                          "Selamat datang di Alhamid One",
+                          style: GoogleFonts.outfit(
+                            fontSize: 22,
+                            fontWeight: FontWeight.w800,
+                            color: context.titleColor,
+                            letterSpacing: -0.4,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          "Satu platform untuk seluruh kebutuhan pesantren",
+                          style: GoogleFonts.outfit(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w400,
+                            color: context.bodyColor,
+                            height: 1.35,
+                          ),
+                        ),
+                      ],
                     ),
                   ),
                 ],
               ),
             ),
 
-            const SizedBox(height: 14),
+            const SizedBox(height: 16),
 
-            // ─── 4. EXECUTIVE SHORTCUT LAUNCHER TILES (3x2 Balanced Bento Grid)
-            _buildShortcutGrid(context, isDark),
+            // ─── 2. TIGA SHORTCUT UTAMA (Akademik, Kelasku, Administrasi) ──────
+            // Bersih tanpa sub-judul dan tanpa tombol Chat, Notifikasi, Akun
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20),
+              child: _buildThreeCoreShortcuts(context, isDark),
+            ),
 
-            const SizedBox(height: 24),
+            const SizedBox(height: 32),
 
-            // ─── 5. INSTITUTIONAL FOOTER BADGE (Pesantren Al-Hamid) ────────────
-            _buildInstitutionalCard(context, isDark),
+            // ─── 3. INSTITUTIONAL FOOTER (Tanpa Centang) ───────────────────────
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20),
+              child: _buildCleanInstitutionalFooter(context, isDark),
+            ),
+
+            const SizedBox(height: 90), // Bottom navigation clearance
           ],
         ),
       ),
     );
   }
 
-  // ─── HERO CARD: EXECUTIVE DIGITAL COCKPIT ─────────────────────────────────
-  Widget _buildExecutiveHeroCard(BuildContext context, bool isDark) {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(24),
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: isDark
-              ? [
-                  const Color(0xFF0F172A),
-                  const Color(0xFF0B1120),
-                  const Color(0xFF064E3B).withOpacity(0.35),
-                ]
-              : [
-                  Colors.white,
-                  const Color(0xFFF8FAFC),
-                  const Color(0xFFECFDF5),
-                ],
-        ),
-        border: Border.all(
-          color: isDark
-              ? const Color(0xFF334155).withOpacity(0.6)
-              : const Color(0xFFE2E8F0),
-          width: 1.2,
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: isDark
-                ? Colors.black.withOpacity(0.4)
-                : const Color(0xFF0F172A).withOpacity(0.07),
-            blurRadius: 28,
-            offset: const Offset(0, 10),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Top Row: Status Chips
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              // System Online indicator
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-                decoration: BoxDecoration(
-                  color: isDark
-                      ? const Color(0xFF064E3B).withOpacity(0.6)
-                      : const Color(0xFFD1FAE5),
-                  borderRadius: BorderRadius.circular(20),
-                  border: Border.all(
-                    color: const Color(0xFF10B981).withOpacity(isDark ? 0.4 : 0.3),
-                    width: 1,
-                  ),
-                ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Container(
-                      width: 7,
-                      height: 7,
-                      decoration: const BoxDecoration(
-                        color: Color(0xFF10B981),
-                        shape: BoxShape.circle,
-                        boxShadow: [
-                          BoxShadow(
-                            color: Color(0xFF10B981),
-                            blurRadius: 6,
-                            spreadRadius: 1,
-                          ),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(width: 6),
-                    Text(
-                      "SISTEM AKTIF",
-                      style: GoogleFonts.outfit(
-                        fontSize: 10.5,
-                        fontWeight: FontWeight.w700,
-                        color: isDark ? const Color(0xFF6EE7B7) : const Color(0xFF047857),
-                        letterSpacing: 0.5,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-
-              // Academic Semester Chip
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-                decoration: BoxDecoration(
-                  color: isDark
-                      ? Colors.white.withOpacity(0.06)
-                      : Colors.black.withOpacity(0.04),
-                  borderRadius: BorderRadius.circular(20),
-                  border: Border.all(
-                    color: isDark ? Colors.white.withOpacity(0.1) : Colors.black.withOpacity(0.06),
-                    width: 1,
-                  ),
-                ),
-                child: Text(
-                  "Semester Genap • 2025/2026",
-                  style: GoogleFonts.outfit(
-                    fontSize: 11,
-                    fontWeight: FontWeight.w600,
-                    color: isDark ? const Color(0xFFCBD5E1) : const Color(0xFF475569),
-                  ),
-                ),
-              ),
-            ],
-          ),
-
-          const SizedBox(height: 18),
-
-          // Centerpiece: Big Digital Live Clock & Date
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.baseline,
-            textBaseline: TextBaseline.alphabetic,
-            children: [
-              Text(
-                _formatDigitalTime(_currentTime),
-                style: GoogleFonts.outfit(
-                  fontSize: 48,
-                  fontWeight: FontWeight.w800,
-                  color: context.titleColor,
-                  letterSpacing: -1.5,
-                  height: 1.0,
-                ),
-              ),
-              const SizedBox(width: 6),
-              Text(
-                ":${_formatDigitalSeconds(_currentTime)}",
-                style: GoogleFonts.outfit(
-                  fontSize: 20,
-                  fontWeight: FontWeight.w600,
-                  color: const Color(0xFF10B981),
-                ),
-              ),
-              const SizedBox(width: 8),
-              Text(
-                "WIB",
-                style: GoogleFonts.outfit(
-                  fontSize: 12,
-                  fontWeight: FontWeight.w700,
-                  color: context.subTitleColor,
-                  letterSpacing: 0.8,
-                ),
-              ),
-            ],
-          ),
-
-          const SizedBox(height: 4),
-
-          // Crash-proof Indonesian Date
-          Row(
-            children: [
-              Icon(
-                Icons.calendar_today_rounded,
-                size: 13,
-                color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B),
-              ),
-              const SizedBox(width: 6),
-              Text(
-                _formatIndonesianDate(_currentTime),
-                style: GoogleFonts.outfit(
-                  fontSize: 13,
-                  fontWeight: FontWeight.w600,
-                  color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B),
-                  letterSpacing: 0.1,
-                ),
-              ),
-            ],
-          ),
-
-          const SizedBox(height: 16),
-
-          // Divider
-          Container(
-            height: 1,
-            color: isDark ? Colors.white.withOpacity(0.08) : Colors.black.withOpacity(0.06),
-          ),
-
-          const SizedBox(height: 12),
-
-          // Bottom Quick System Glance Strip
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              _buildGlanceMetric(
-                label: "Pesantren",
-                value: "Al-Hamid",
-                isDark: isDark,
-              ),
-              Container(width: 1, height: 24, color: isDark ? Colors.white.withOpacity(0.08) : Colors.black.withOpacity(0.06)),
-              _buildGlanceMetric(
-                label: "Madrasah",
-                value: "Diniyah",
-                isDark: isDark,
-              ),
-              Container(width: 1, height: 24, color: isDark ? Colors.white.withOpacity(0.08) : Colors.black.withOpacity(0.06)),
-              _buildGlanceMetric(
-                label: "Database",
-                value: "VPS Online",
-                valueColor: const Color(0xFF10B981),
-                isDark: isDark,
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildGlanceMetric({
-    required String label,
-    required String value,
-    Color? valueColor,
-    required bool isDark,
-  }) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          label.toUpperCase(),
-          style: GoogleFonts.outfit(
-            fontSize: 9.5,
-            fontWeight: FontWeight.w600,
-            color: isDark ? const Color(0xFF64748B) : const Color(0xFF94A3B8),
-            letterSpacing: 0.5,
-          ),
-        ),
-        const SizedBox(height: 1),
-        Text(
-          value,
-          style: GoogleFonts.outfit(
-            fontSize: 12,
-            fontWeight: FontWeight.w700,
-            color: valueColor ?? (isDark ? const Color(0xFFE2E8F0) : const Color(0xFF1E293B)),
-          ),
-        ),
-      ],
-    );
-  }
-
-  // ─── GREETING HEADER ──────────────────────────────────────────────────────
-  Widget _buildGreetingHeader(BuildContext context, bool isDark) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 4),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Text(
-                "Assalamu'alaikum",
-                style: GoogleFonts.outfit(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w700,
-                  color: const Color(0xFF10B981),
-                ),
-              ),
-              const SizedBox(width: 6),
-              Text(
-                "• ${_getTimeGreeting()}",
-                style: GoogleFonts.outfit(
-                  fontSize: 13,
-                  fontWeight: FontWeight.w500,
-                  color: context.subTitleColor,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 3),
-          Text(
-            "Selamat datang di Alhamid One",
-            style: GoogleFonts.outfit(
-              fontSize: 22,
-              fontWeight: FontWeight.w800,
-              color: context.titleColor,
-              letterSpacing: -0.4,
-            ),
-          ),
-          const SizedBox(height: 4),
-          Text(
-            "Pusat kendali operasional akademik, santri, dan tata usaha pesantren.",
-            style: GoogleFonts.outfit(
-              fontSize: 12.5,
-              fontWeight: FontWeight.w400,
-              color: context.bodyColor,
-              height: 1.4,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  // ─── 3x2 BALANCED BENTO SHORTCUT MATRIX ───────────────────────────────────
-  Widget _buildShortcutGrid(BuildContext context, bool isDark) {
-    final shortcuts = [
-      _ShortcutItem(
-        icon: Icons.school_rounded,
+  // ─── TIGA SHORTCUT UTAMA BERSIH ───────────────────────────────────────────
+  Widget _buildThreeCoreShortcuts(BuildContext context, bool isDark) {
+    final items = [
+      _CoreShortcut(
         title: "Akademik",
-        subtitle: "Jadwal & Nilai",
+        icon: Icons.school_rounded,
         gradientStart: const Color(0xFF2563EB),
         gradientEnd: const Color(0xFF1D4ED8),
         onTap: () => widget.onNavigateTab(1),
       ),
-      _ShortcutItem(
-        icon: Icons.meeting_room_rounded,
+      _CoreShortcut(
         title: "Kelasku",
-        subtitle: "Presensi & Bab",
+        icon: Icons.meeting_room_rounded,
         gradientStart: const Color(0xFF059669),
         gradientEnd: const Color(0xFF047857),
         onTap: () => widget.onNavigateTab(2),
       ),
-      _ShortcutItem(
-        icon: Icons.badge_rounded,
+      _CoreShortcut(
         title: "Administrasi",
-        subtitle: "Buku & Surat",
+        icon: Icons.badge_rounded,
         gradientStart: const Color(0xFF7C3AED),
         gradientEnd: const Color(0xFF6D28D9),
         onTap: () => widget.onNavigateTab(3),
       ),
-      _ShortcutItem(
-        icon: Icons.forum_rounded,
-        title: "Chat Asatidz",
-        subtitle: "Ruang Diskusi",
-        gradientStart: const Color(0xFF0284C7),
-        gradientEnd: const Color(0xFF0369A1),
-        badgeCount: widget.unreadChats,
-        onTap: widget.onOpenChat,
-      ),
-      _ShortcutItem(
-        icon: Icons.notifications_active_rounded,
-        title: "Notifikasi",
-        subtitle: "Pemberitahuan",
-        gradientStart: const Color(0xFFE11D48),
-        gradientEnd: const Color(0xFFBE123C),
-        badgeCount: widget.unreadNotifications,
-        onTap: widget.onOpenNotifications,
-      ),
-      _ShortcutItem(
-        icon: Icons.person_rounded,
-        title: "Akun Profil",
-        subtitle: "Ustadz & Akses",
-        gradientStart: const Color(0xFFD97706),
-        gradientEnd: const Color(0xFFB45309),
-        onTap: () => widget.onNavigateTab(4),
-      ),
     ];
 
-    return Column(
-      children: [
-        // Row 1: Akademik, Kelasku, Administrasi
-        Row(
-          children: [
-            Expanded(child: _buildBentoShortcutTile(0, shortcuts[0], context, isDark)),
-            const SizedBox(width: 10),
-            Expanded(child: _buildBentoShortcutTile(1, shortcuts[1], context, isDark)),
-            const SizedBox(width: 10),
-            Expanded(child: _buildBentoShortcutTile(2, shortcuts[2], context, isDark)),
-          ],
-        ),
+    return Row(
+      children: List.generate(items.length, (index) {
+        final item = items[index];
+        final isPressed = _pressedShortcutIndex == index;
 
-        const SizedBox(height: 10),
-
-        // Row 2: Chat, Notifikasi, Akun Profil
-        Row(
-          children: [
-            Expanded(child: _buildBentoShortcutTile(3, shortcuts[3], context, isDark)),
-            const SizedBox(width: 10),
-            Expanded(child: _buildBentoShortcutTile(4, shortcuts[4], context, isDark)),
-            const SizedBox(width: 10),
-            Expanded(child: _buildBentoShortcutTile(5, shortcuts[5], context, isDark)),
-          ],
-        ),
-      ],
-    );
-  }
-
-  // Individual Bento Tile with Micro-press Physics and Executive Dual-Tone Badge
-  Widget _buildBentoShortcutTile(
-    int index,
-    _ShortcutItem item,
-    BuildContext context,
-    bool isDark,
-  ) {
-    final isPressed = _pressedShortcutIndex == index;
-
-    return GestureDetector(
-      onTapDown: (_) => setState(() => _pressedShortcutIndex = index),
-      onTapUp: (_) {
-        setState(() => _pressedShortcutIndex = null);
-        item.onTap();
-      },
-      onTapCancel: () => setState(() => _pressedShortcutIndex = null),
-      child: AnimatedScale(
-        scale: isPressed ? 0.94 : 1.0,
-        duration: const Duration(milliseconds: 120),
-        curve: Curves.easeOutCubic,
-        child: Container(
-          padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 8),
-          decoration: BoxDecoration(
-            color: isDark
-                ? const Color(0xFF131D2E).withOpacity(0.85)
-                : Colors.white,
-            borderRadius: BorderRadius.circular(20),
-            border: Border.all(
-              color: isDark
-                  ? const Color(0xFF334155).withOpacity(0.5)
-                  : const Color(0xFFE2E8F0),
-              width: 1.1,
+        return Expanded(
+          child: Padding(
+            padding: EdgeInsets.only(
+              left: index == 0 ? 0 : 6,
+              right: index == items.length - 1 ? 0 : 6,
             ),
-            boxShadow: [
-              BoxShadow(
-                color: isDark
-                    ? Colors.black.withOpacity(0.25)
-                    : const Color(0xFF64748B).withOpacity(0.08),
-                blurRadius: 14,
-                offset: const Offset(0, 5),
-              ),
-            ],
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              // Icon Badge with Accent Linear Gradient & Soft Glow
-              Stack(
-                clipBehavior: Clip.none,
-                children: [
-                  Container(
-                    width: 48,
-                    height: 48,
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(16),
-                      gradient: LinearGradient(
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
-                        colors: [
-                          item.gradientStart,
-                          item.gradientEnd,
-                        ],
-                      ),
-                      boxShadow: [
-                        BoxShadow(
-                          color: item.gradientStart.withOpacity(isDark ? 0.35 : 0.28),
-                          blurRadius: 12,
-                          offset: const Offset(0, 4),
-                        ),
-                      ],
+            child: GestureDetector(
+              onTapDown: (_) => setState(() => _pressedShortcutIndex = index),
+              onTapUp: (_) {
+                setState(() => _pressedShortcutIndex = null);
+                item.onTap();
+              },
+              onTapCancel: () => setState(() => _pressedShortcutIndex = null),
+              child: AnimatedScale(
+                scale: isPressed ? 0.93 : 1.0,
+                duration: const Duration(milliseconds: 120),
+                curve: Curves.easeOutCubic,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(vertical: 18, horizontal: 10),
+                  decoration: BoxDecoration(
+                    color: isDark
+                        ? const Color(0xFF131D2E).withOpacity(0.85)
+                        : Colors.white,
+                    borderRadius: BorderRadius.circular(22),
+                    border: Border.all(
+                      color: isDark
+                          ? const Color(0xFF334155).withOpacity(0.5)
+                          : const Color(0xFFE2E8F0),
+                      width: 1.1,
                     ),
-                    child: Center(
-                      child: Icon(
-                        item.icon,
-                        size: 24,
-                        color: Colors.white,
+                    boxShadow: [
+                      BoxShadow(
+                        color: isDark
+                            ? Colors.black.withOpacity(0.25)
+                            : const Color(0xFF64748B).withOpacity(0.08),
+                        blurRadius: 14,
+                        offset: const Offset(0, 4),
                       ),
-                    ),
+                    ],
                   ),
-
-                  // Unread Badge Pill
-                  if (item.badgeCount > 0)
-                    Positioned(
-                      top: -4,
-                      right: -4,
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      // Curated Gradient Squircle Icon Badge
+                      Container(
+                        width: 50,
+                        height: 50,
                         decoration: BoxDecoration(
-                          color: const Color(0xFFEF4444),
-                          borderRadius: BorderRadius.circular(10),
-                          border: Border.all(
-                            color: isDark ? const Color(0xFF0F172A) : Colors.white,
-                            width: 1.5,
+                          borderRadius: BorderRadius.circular(16),
+                          gradient: LinearGradient(
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
+                            colors: [
+                              item.gradientStart,
+                              item.gradientEnd,
+                            ],
                           ),
                           boxShadow: [
                             BoxShadow(
-                              color: const Color(0xFFEF4444).withOpacity(0.5),
-                              blurRadius: 6,
+                              color: item.gradientStart.withOpacity(isDark ? 0.35 : 0.28),
+                              blurRadius: 14,
+                              offset: const Offset(0, 4),
                             ),
                           ],
                         ),
-                        constraints: const BoxConstraints(minWidth: 18, minHeight: 18),
-                        child: Text(
-                          item.badgeCount > 99 ? '99+' : '${item.badgeCount}',
-                          style: GoogleFonts.outfit(
+                        child: Center(
+                          child: Icon(
+                            item.icon,
+                            size: 25,
                             color: Colors.white,
-                            fontSize: 9.5,
-                            fontWeight: FontWeight.w800,
                           ),
-                          textAlign: TextAlign.center,
                         ),
                       ),
-                    ),
-                ],
-              ),
 
-              const SizedBox(height: 10),
+                      const SizedBox(height: 12),
 
-              // Title
-              Text(
-                item.title,
-                textAlign: TextAlign.center,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: GoogleFonts.outfit(
-                  color: context.titleColor,
-                  fontSize: 12.5,
-                  fontWeight: FontWeight.w700,
-                  letterSpacing: -0.2,
+                      // Clean Title (Tanpa sub-judul sesuai instruksi)
+                      Text(
+                        item.title,
+                        textAlign: TextAlign.center,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: GoogleFonts.outfit(
+                          color: context.titleColor,
+                          fontSize: 13.5,
+                          fontWeight: FontWeight.w700,
+                          letterSpacing: -0.2,
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ),
-
-              const SizedBox(height: 2),
-
-              // Subtitle
-              Text(
-                item.subtitle,
-                textAlign: TextAlign.center,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: GoogleFonts.outfit(
-                  color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B),
-                  fontSize: 10,
-                  fontWeight: FontWeight.w500,
-                ),
-              ),
-            ],
+            ),
           ),
-        ),
-      ),
+        );
+      }),
     );
   }
 
-  // ─── INSTITUTIONAL IDENTITY FOOTER ─────────────────────────────────────────
-  Widget _buildInstitutionalCard(BuildContext context, bool isDark) {
+  // ─── INSTITUTIONAL FOOTER BERSIH (TANPA CENTANG) ─────────────────────────
+  Widget _buildCleanInstitutionalFooter(BuildContext context, bool isDark) {
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
       decoration: BoxDecoration(
         color: isDark
-            ? Colors.white.withOpacity(0.04)
+            ? Colors.white.withOpacity(0.03)
             : Colors.black.withOpacity(0.02),
         borderRadius: BorderRadius.circular(18),
         border: Border.all(
           color: isDark
-              ? Colors.white.withOpacity(0.06)
-              : Colors.black.withOpacity(0.05),
+              ? Colors.white.withOpacity(0.05)
+              : Colors.black.withOpacity(0.04),
           width: 1,
         ),
       ),
       child: Row(
         children: [
           Container(
-            padding: const EdgeInsets.all(10),
+            padding: const EdgeInsets.all(9),
             decoration: BoxDecoration(
               color: const Color(0xFF10B981).withOpacity(0.12),
               borderRadius: BorderRadius.circular(12),
             ),
-            child: const Icon(
-              Icons.verified_rounded,
-              color: Color(0xFF10B981),
-              size: 22,
+            child: Image.asset(
+              'assets/images/logo.png',
+              width: 22,
+              height: 22,
+              errorBuilder: (_, _, _) => const Icon(
+                Icons.account_balance_rounded,
+                color: Color(0xFF10B981),
+                size: 20,
+              ),
             ),
           ),
           const SizedBox(width: 14),
@@ -746,7 +476,7 @@ class _TabHomeState extends State<TabHome> with SingleTickerProviderStateMixin {
                 ),
                 const SizedBox(height: 2),
                 Text(
-                  "Madrasah Diniyah Takmiliyah Wustha & Ulya • Jalur Resmi",
+                  "Madrasah Diniyah Takmiliyah Wustha & Ulya",
                   style: GoogleFonts.outfit(
                     fontSize: 10.5,
                     fontWeight: FontWeight.w500,
@@ -762,22 +492,152 @@ class _TabHomeState extends State<TabHome> with SingleTickerProviderStateMixin {
   }
 }
 
-class _ShortcutItem {
-  final IconData icon;
+class _CoreShortcut {
   final String title;
-  final String subtitle;
+  final IconData icon;
   final Color gradientStart;
   final Color gradientEnd;
-  final int badgeCount;
   final VoidCallback onTap;
 
-  _ShortcutItem({
-    required this.icon,
+  _CoreShortcut({
     required this.title,
-    required this.subtitle,
+    required this.icon,
     required this.gradientStart,
     required this.gradientEnd,
-    this.badgeCount = 0,
     required this.onTap,
   });
+}
+
+// ─── MESMERIZING LIVING AURORA MESH PAINTER (NO AI SLOP, NO TACKY DOODLES) ──
+// Animasi abstrak gelombang cahaya harmonik yang mengalir hidup, menyatu dengan latar belakang
+class _LivingAuroraPainter extends CustomPainter {
+  final double progress;
+  final bool isDark;
+
+  _LivingAuroraPainter({required this.progress, required this.isDark});
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final w = size.width;
+    final h = size.height;
+    final twoPi = math.pi * 2;
+
+    // 1. Base Ambient Glow Orbs (Soft floating radial light gradients)
+    final orb1X = w * (0.35 + 0.18 * math.sin(progress * twoPi));
+    final orb1Y = h * (0.30 + 0.12 * math.cos(progress * twoPi));
+    final orb1Radius = w * 0.55;
+
+    final orb1Paint = Paint()
+      ..shader = ui.Gradient.radial(
+        Offset(orb1X, orb1Y),
+        orb1Radius,
+        [
+          (isDark ? const Color(0xFF065F46) : const Color(0xFFA7F3D0)).withOpacity(isDark ? 0.38 : 0.45),
+          (isDark ? const Color(0xFF042F2E) : const Color(0xFFCCFBF1)).withOpacity(isDark ? 0.15 : 0.20),
+          Colors.transparent,
+        ],
+        [0.0, 0.55, 1.0],
+      );
+    canvas.drawRect(Rect.fromLTWH(0, 0, w, h), orb1Paint);
+
+    final orb2X = w * (0.75 - 0.20 * math.cos(progress * twoPi));
+    final orb2Y = h * (0.45 + 0.15 * math.sin(progress * twoPi));
+    final orb2Radius = w * 0.50;
+
+    final orb2Paint = Paint()
+      ..shader = ui.Gradient.radial(
+        Offset(orb2X, orb2Y),
+        orb2Radius,
+        [
+          (isDark ? const Color(0xFF1E3A8A) : const Color(0xFFBAE6FD)).withOpacity(isDark ? 0.28 : 0.35),
+          (isDark ? const Color(0xFF0F172A) : const Color(0xFFE0F2FE)).withOpacity(isDark ? 0.08 : 0.12),
+          Colors.transparent,
+        ],
+        [0.0, 0.50, 1.0],
+      );
+    canvas.drawRect(Rect.fromLTWH(0, 0, w, h), orb2Paint);
+
+    // 2. Harmonically Undulating Fluid Mesh Ribbons (Organic Sine Waves)
+    _drawFluidRibbon(
+      canvas,
+      size,
+      amplitude: 28,
+      frequency: 1.2,
+      phase: progress * twoPi,
+      baseY: h * 0.48,
+      gradientStart: (isDark ? const Color(0xFF10B981) : const Color(0xFF059669)).withOpacity(isDark ? 0.22 : 0.18),
+      gradientEnd: (isDark ? const Color(0xFF06B6D4) : const Color(0xFF0284C7)).withOpacity(0.0),
+    );
+
+    _drawFluidRibbon(
+      canvas,
+      size,
+      amplitude: 34,
+      frequency: 0.9,
+      phase: (progress * twoPi) + math.pi * 0.7,
+      baseY: h * 0.62,
+      gradientStart: (isDark ? const Color(0xFF0284C7) : const Color(0xFF38BDF8)).withOpacity(isDark ? 0.18 : 0.14),
+      gradientEnd: (isDark ? const Color(0xFF8B5CF6) : const Color(0xFF818CF8)).withOpacity(0.0),
+    );
+
+    _drawFluidRibbon(
+      canvas,
+      size,
+      amplitude: 22,
+      frequency: 1.5,
+      phase: (progress * twoPi) + math.pi * 1.3,
+      baseY: h * 0.75,
+      gradientStart: (isDark ? const Color(0xFF059669) : const Color(0xFF34D399)).withOpacity(isDark ? 0.15 : 0.12),
+      gradientEnd: Colors.transparent,
+    );
+  }
+
+  void _drawFluidRibbon(
+    Canvas canvas,
+    Size size, {
+    required double amplitude,
+    required double frequency,
+    required double phase,
+    required double baseY,
+    required Color gradientStart,
+    required Color gradientEnd,
+  }) {
+    final w = size.width;
+    final path = Path();
+    path.moveTo(0, baseY);
+
+    const steps = 30;
+    final dx = w / steps;
+
+    for (int i = 0; i <= steps; i++) {
+      final x = i * dx;
+      final wave1 = math.sin((x / w * frequency * math.pi * 2) + phase) * amplitude;
+      final wave2 = math.cos((x / w * frequency * 1.6 * math.pi) + phase * 0.8) * (amplitude * 0.4);
+      final y = baseY + wave1 + wave2;
+
+      if (i == 0) {
+        path.moveTo(x, y);
+      } else {
+        path.lineTo(x, y);
+      }
+    }
+
+    path.lineTo(w, size.height);
+    path.lineTo(0, size.height);
+    path.close();
+
+    final ribbonPaint = Paint()
+      ..shader = ui.Gradient.linear(
+        Offset(0, baseY - amplitude),
+        Offset(0, size.height),
+        [gradientStart, gradientEnd],
+      );
+
+    canvas.drawPath(path, ribbonPaint);
+  }
+
+  @override
+  bool shouldRepaint(covariant _LivingAuroraPainter oldDelegate) {
+    return oldDelegate.progress != progress || oldDelegate.isDark != isDark;
+  }
 }

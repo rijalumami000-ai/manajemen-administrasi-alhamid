@@ -143,6 +143,68 @@ function registerBukuIndukRoutes(app) {
     }
   });
 
+  // === BUKU INDUK: STATISTIK & PERKEMBANGAN KUANTITATIF PESANTREN ===
+  app.get('/api/buku-induk/statistik-pesantren', async (req, res) => {
+    try {
+      const summaryRes = await db.query(`
+        SELECT 
+          COUNT(*)::int as total_santri,
+          COUNT(CASE WHEN jenis_kelamin = 'L' THEN 1 END)::int as total_putra,
+          COUNT(CASE WHEN jenis_kelamin = 'P' THEN 1 END)::int as total_putri,
+          COUNT(DISTINCT tahun_masuk)::int as total_angkatan
+        FROM santri
+      `);
+
+      const angkatanRes = await db.query(`
+        SELECT 
+          COALESCE(tahun_masuk, 0)::int as tahun,
+          COUNT(*)::int as total,
+          COUNT(CASE WHEN jenis_kelamin = 'L' THEN 1 END)::int as putra,
+          COUNT(CASE WHEN jenis_kelamin = 'P' THEN 1 END)::int as putri
+        FROM santri
+        WHERE tahun_masuk IS NOT NULL
+        GROUP BY tahun_masuk
+        ORDER BY tahun_masuk ASC
+      `);
+
+      // Hitung persentase pertumbuhan dibanding angkatan sebelumnya
+      let prevTotal = null;
+      const angkatanList = angkatanRes.rows.map(row => {
+        let growthPercent = null;
+        if (prevTotal !== null && prevTotal > 0) {
+          growthPercent = Number((((row.total - prevTotal) / prevTotal) * 100).toFixed(1));
+        }
+        prevTotal = row.total;
+        return {
+          ...row,
+          growthPercent,
+        };
+      });
+
+      const kamarRes = await db.query(`
+        SELECT 
+          COALESCE(km.nama, 'Belum Diatur') as kamar,
+          COUNT(s.id)::int as total,
+          COUNT(CASE WHEN s.jenis_kelamin = 'L' THEN 1 END)::int as putra,
+          COUNT(CASE WHEN s.jenis_kelamin = 'P' THEN 1 END)::int as putri
+        FROM santri s
+        LEFT JOIN kamar km ON s.kamar_id = km.id
+        GROUP BY km.nama
+        ORDER BY total DESC
+        LIMIT 10
+      `);
+
+      res.json({
+        summary: summaryRes.rows[0],
+        angkatan: angkatanList,
+        kamarTop: kamarRes.rows,
+      });
+    } catch (err) {
+      console.error('Error GET /api/buku-induk/statistik-pesantren:', err);
+      res.status(500).json({ error: 'Gagal memuat statistik perkembangan santri.' });
+    }
+  });
+
   // === BUKU INDUK: TAMBAH SANTRI BARU (CREATE) ===
   app.post('/api/buku-induk', async (req, res) => {
     const {

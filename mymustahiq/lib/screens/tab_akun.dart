@@ -29,12 +29,8 @@ class _TabAkunState extends State<TabAkun> {
   String? _errorMessage;
   Map<String, dynamic>? _guruInfo;
 
-  // Set of expanded section titles for open/close accordion
-  final Set<String> _expandedSections = {
-    'KEAMANAN & AKSES MASUK',
-    'PREFERENSI & LAYANAN',
-    'INFORMASI & BANTUAN',
-  };
+  // Set of expanded section titles for open/close accordion (closed by default)
+  final Set<String> _expandedSections = {};
 
 
   // Password change controllers
