@@ -1,8 +1,6 @@
-import 'dart:math' as math;
-import 'dart:ui' as ui;
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:intl/intl.dart';
 import '../services/theme_manager.dart';
 
 class TabHome extends StatefulWidget {
@@ -26,516 +24,760 @@ class TabHome extends StatefulWidget {
 }
 
 class _TabHomeState extends State<TabHome> with SingleTickerProviderStateMixin {
-  late AnimationController _animController;
+  late Timer _timer;
+  DateTime _currentTime = DateTime.now();
+  int? _pressedShortcutIndex;
 
   @override
   void initState() {
     super.initState();
-    _animController = AnimationController(
-      vsync: this,
-      duration: const Duration(seconds: 7),
-    )..repeat(reverse: true);
+    // Update live clock every second without any locale dependency crashes
+    _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
+      if (mounted) {
+        setState(() {
+          _currentTime = DateTime.now();
+        });
+      }
+    });
   }
 
   @override
   void dispose() {
-    _animController.dispose();
+    _timer.cancel();
     super.dispose();
   }
 
+  // Crash-proof Indonesian time greeting
   String _getTimeGreeting() {
-    final hour = DateTime.now().hour;
+    final hour = _currentTime.hour;
     if (hour >= 3 && hour < 11) return "Selamat Pagi";
     if (hour >= 11 && hour < 15) return "Selamat Siang";
     if (hour >= 15 && hour < 18) return "Selamat Sore";
     return "Selamat Malam";
   }
 
+  // 100% zero-dependency, crash-proof native Indonesian date formatter
+  String _formatIndonesianDate(DateTime dt) {
+    const dayNames = ['Minggu', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'];
+    const monthNames = [
+      '', 'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni',
+      'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'
+    ];
+    final dayName = dayNames[dt.weekday % 7];
+    final monthName = monthNames[dt.month];
+    return '$dayName, ${dt.day} $monthName ${dt.year}';
+  }
+
+  String _formatDigitalTime(DateTime dt) {
+    final h = dt.hour.toString().padLeft(2, '0');
+    final m = dt.minute.toString().padLeft(2, '0');
+    return '$h:$m';
+  }
+
+  String _formatDigitalSeconds(DateTime dt) {
+    return dt.second.toString().padLeft(2, '0');
+  }
+
   @override
   Widget build(BuildContext context) {
     final isDark = context.isDarkMode;
-    final screenHeight = MediaQuery.of(context).size.height;
-    // Kurang sedikit dari setengah layar: ~38% - 40% dari tinggi layar
-    final heroHeight = (screenHeight * 0.38).clamp(240.0, 360.0);
+    final topPadding = MediaQuery.of(context).padding.top + kToolbarHeight;
 
     return Scaffold(
       backgroundColor: Colors.transparent,
       body: SingleChildScrollView(
         physics: const BouncingScrollPhysics(),
-        padding: EdgeInsets.zero,
+        padding: EdgeInsets.only(
+          top: topPadding + 8,
+          bottom: 110, // clearance for bottom navigation bar
+          left: 18,
+          right: 18,
+        ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            // ─── 1. RUANG KOSONG HERO VISUAL (Ukuran < setengah layar) ───────────
-            SizedBox(
-              height: heroHeight,
-              width: double.infinity,
-              child: Stack(
-                fit: StackFit.expand,
-                children: [
-                  // Animated Serene Islamic Geometry & Ambient Glow Canvas
-                  AnimatedBuilder(
-                    animation: _animController,
-                    builder: (context, child) {
-                      return CustomPaint(
-                        painter: _SereneHeroPainter(
-                          progress: _animController.value,
-                          isDark: isDark,
-                        ),
-                      );
-                    },
-                  ),
+            // ─── 1. EXECUTIVE HERO SPACE (Clean, Modern, No AI-Slop) ──────────
+            _buildExecutiveHeroCard(context, isDark),
 
-                  // Floating Content Badge inside the Hero Space
-                  SafeArea(
-                    bottom: false,
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          // Ambient Breathing Emblem
-                          AnimatedBuilder(
-                            animation: _animController,
-                            builder: (context, child) {
-                              final floatOffset = math.sin(_animController.value * math.pi * 2) * 4;
-                              return Transform.translate(
-                                offset: Offset(0, floatOffset),
-                                child: Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                                  decoration: BoxDecoration(
-                                    color: isDark
-                                        ? const Color(0xFF0D2818).withOpacity(0.55)
-                                        : Colors.white.withOpacity(0.65),
-                                    borderRadius: BorderRadius.circular(20),
-                                    border: Border.all(
-                                      color: isDark
-                                          ? const Color(0xFF10B981).withOpacity(0.25)
-                                          : const Color(0xFF10B981).withOpacity(0.2),
-                                      width: 1,
-                                    ),
-                                    boxShadow: [
-                                      BoxShadow(
-                                        color: const Color(0xFF10B981).withOpacity(isDark ? 0.12 : 0.08),
-                                        blurRadius: 20,
-                                        spreadRadius: 1,
-                                      ),
-                                    ],
-                                  ),
-                                  child: Row(
-                                    mainAxisSize: MainAxisSize.min,
-                                    children: [
-                                      Container(
-                                        width: 8,
-                                        height: 8,
-                                        decoration: const BoxDecoration(
-                                          color: Color(0xFF10B981),
-                                          shape: BoxShape.circle,
-                                        ),
-                                      ),
-                                      const SizedBox(width: 8),
-                                      Text(
-                                        "Pondok Pesantren Al-Hamid Cinta Mulya",
-                                        style: GoogleFonts.outfit(
-                                          color: isDark ? const Color(0xFF6EE7B7) : const Color(0xFF065F46),
-                                          fontSize: 12,
-                                          fontWeight: FontWeight.w600,
-                                          letterSpacing: 0.3,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                              );
-                            },
-                          ),
+            const SizedBox(height: 22),
 
-                          const SizedBox(height: 18),
+            // ─── 2. PROFESSIONAL GREETING & PLATFORM IDENTITY ─────────────────
+            _buildGreetingHeader(context, isDark),
 
-                          // Live Clock & Serenity Quotation
-                          StreamBuilder(
-                            stream: Stream.periodic(const Duration(seconds: 1)),
-                            builder: (context, snapshot) {
-                              final now = DateTime.now();
-                              final timeStr = DateFormat('HH:mm').format(now);
-                              final dateStr = DateFormat('EEEE, d MMMM yyyy', 'id_ID').format(now);
+            const SizedBox(height: 22),
 
-                              return Column(
-                                children: [
-                                  Text(
-                                    timeStr,
-                                    style: GoogleFonts.outfit(
-                                      fontSize: 42,
-                                      fontWeight: FontWeight.w700,
-                                      color: context.titleColor,
-                                      letterSpacing: -1,
-                                      height: 1.05,
-                                    ),
-                                  ),
-                                  const SizedBox(height: 4),
-                                  Text(
-                                    dateStr,
-                                    style: GoogleFonts.outfit(
-                                      fontSize: 12,
-                                      fontWeight: FontWeight.w500,
-                                      color: context.subTitleColor,
-                                    ),
-                                  ),
-                                ],
-                              );
-                            },
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-
-                  // Bottom subtle fade to blend with greeting section
-                  Positioned(
-                    bottom: 0,
-                    left: 0,
-                    right: 0,
-                    height: 36,
-                    child: Container(
-                      decoration: BoxDecoration(
-                        gradient: LinearGradient(
-                          begin: Alignment.topCenter,
-                          end: Alignment.bottomCenter,
-                          colors: [
-                            (isDark ? const Color(0xFF070B13) : const Color(0xFFF8FAFC)).withOpacity(0.0),
-                            (isDark ? const Color(0xFF070B13) : const Color(0xFFF8FAFC)),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-
-            // ─── 2. UCAPAN SELAMAT DATANG ───────────────────────────────────────
+            // ─── 3. SECTION TITLE: MODUL & LAYANAN CEPAT ──────────────────────
             Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+              padding: const EdgeInsets.symmetric(horizontal: 4),
+              child: Row(
                 children: [
-                  Row(
-                    children: [
-                      Text(
-                        "Assalamu'alaikum",
-                        style: GoogleFonts.outfit(
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                          color: const Color(0xFF10B981),
-                          letterSpacing: 0.2,
-                        ),
-                      ),
-                      const SizedBox(width: 6),
-                      Text(
-                        "• ${_getTimeGreeting()}",
-                        style: GoogleFonts.outfit(
-                          fontSize: 13,
-                          fontWeight: FontWeight.w500,
-                          color: context.subTitleColor,
-                        ),
-                      ),
-                    ],
+                  Container(
+                    width: 4,
+                    height: 18,
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF10B981),
+                      borderRadius: BorderRadius.circular(4),
+                    ),
                   ),
-                  const SizedBox(height: 4),
+                  const SizedBox(width: 8),
                   Text(
-                    "Selamat datang di Alhamid One",
+                    "Layanan & Modul Utama",
                     style: GoogleFonts.outfit(
-                      fontSize: 21,
-                      fontWeight: FontWeight.w800,
+                      fontSize: 16,
+                      fontWeight: FontWeight.w700,
                       color: context.titleColor,
-                      letterSpacing: -0.3,
+                      letterSpacing: -0.2,
                     ),
                   ),
-                  const SizedBox(height: 4),
-                  Text(
-                    "Satu platform untuk seluruh kebutuhan pesantren",
-                    style: GoogleFonts.outfit(
-                      fontSize: 13,
-                      fontWeight: FontWeight.w500,
-                      color: context.bodyColor,
-                      height: 1.4,
+                  const Spacer(),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                    decoration: BoxDecoration(
+                      color: isDark ? Colors.white.withOpacity(0.06) : Colors.black.withOpacity(0.04),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Text(
+                      "6 Modul Aktif",
+                      style: GoogleFonts.outfit(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w600,
+                        color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B),
+                      ),
                     ),
                   ),
                 ],
               ),
             ),
 
-            const SizedBox(height: 20),
+            const SizedBox(height: 14),
 
-            // ─── 3. TOMBOL SHORTCUT (Maksimal 4 per baris, Frame Glass) ─────────
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20),
-              child: Column(
-                children: [
-                  // Row 1: Akademik, Kelasku, Administratif, Akun (4 item)
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      _buildShortcutButton(
-                        context: context,
-                        icon: Icons.school_rounded,
-                        label: 'Akademik',
-                        iconColor: const Color(0xFF3B82F6),
-                        onTap: () => widget.onNavigateTab(1),
-                      ),
-                      _buildShortcutButton(
-                        context: context,
-                        icon: Icons.class_rounded,
-                        label: 'Kelasku',
-                        iconColor: const Color(0xFF10B981),
-                        onTap: () => widget.onNavigateTab(2),
-                      ),
-                      _buildShortcutButton(
-                        context: context,
-                        icon: Icons.admin_panel_settings_rounded,
-                        label: 'Administratif',
-                        iconColor: const Color(0xFF6366F1),
-                        onTap: () => widget.onNavigateTab(3),
-                      ),
-                      _buildShortcutButton(
-                        context: context,
-                        icon: Icons.person_rounded,
-                        label: 'Akun',
-                        iconColor: const Color(0xFF8B5CF6),
-                        onTap: () => widget.onNavigateTab(4),
-                      ),
-                    ],
-                  ),
+            // ─── 4. EXECUTIVE SHORTCUT LAUNCHER TILES (3x2 Balanced Bento Grid)
+            _buildShortcutGrid(context, isDark),
 
-                  const SizedBox(height: 18),
+            const SizedBox(height: 24),
 
-                  // Row 2: Chat, Notifikasi (2 item, rapi & proporsional)
-                  Row(
-                    children: [
-                      _buildShortcutButton(
-                        context: context,
-                        icon: Icons.chat_bubble_outline_rounded,
-                        label: 'Chat',
-                        iconColor: const Color(0xFF06B6D4),
-                        badgeCount: widget.unreadChats,
-                        onTap: widget.onOpenChat,
-                      ),
-                      const SizedBox(width: 14),
-                      _buildShortcutButton(
-                        context: context,
-                        icon: Icons.notifications_rounded,
-                        label: 'Notifikasi',
-                        iconColor: const Color(0xFFF43F5E),
-                        badgeCount: widget.unreadNotifications,
-                        onTap: widget.onOpenNotifications,
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-            ),
-
-            const SizedBox(height: 36),
+            // ─── 5. INSTITUTIONAL FOOTER BADGE (Pesantren Al-Hamid) ────────────
+            _buildInstitutionalCard(context, isDark),
           ],
         ),
       ),
     );
   }
 
-  // ─── FRAME KOTAK EFEK GLASS/BLUR UNTUK ICON SHORTCUT ────────────────────────
-  Widget _buildShortcutButton({
-    required BuildContext context,
-    required IconData icon,
-    required String label,
-    required Color iconColor,
-    required VoidCallback onTap,
-    int badgeCount = 0,
-  }) {
-    final isDark = context.isDarkMode;
-
-    return Expanded(
-      child: GestureDetector(
-        onTap: onTap,
-        behavior: HitTestBehavior.opaque,
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            // Glass/Translucent Effect Frame
-            ClipRRect(
-              borderRadius: BorderRadius.circular(18),
-              child: BackdropFilter(
-                filter: ui.ImageFilter.blur(sigmaX: 12, sigmaY: 12),
-                child: Container(
-                  width: 58,
-                  height: 58,
-                  decoration: BoxDecoration(
-                    color: isDark
-                        ? iconColor.withOpacity(0.12)
-                        : iconColor.withOpacity(0.09),
-                    borderRadius: BorderRadius.circular(18),
-                    border: Border.all(
-                      color: isDark
-                          ? iconColor.withOpacity(0.32)
-                          : iconColor.withOpacity(0.24),
-                      width: 1.2,
-                    ),
-                    boxShadow: [
-                      BoxShadow(
-                        color: iconColor.withOpacity(isDark ? 0.2 : 0.12),
-                        blurRadius: 14,
-                        offset: const Offset(0, 4),
-                      ),
-                    ],
+  // ─── HERO CARD: EXECUTIVE DIGITAL COCKPIT ─────────────────────────────────
+  Widget _buildExecutiveHeroCard(BuildContext context, bool isDark) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(24),
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: isDark
+              ? [
+                  const Color(0xFF0F172A),
+                  const Color(0xFF0B1120),
+                  const Color(0xFF064E3B).withOpacity(0.35),
+                ]
+              : [
+                  Colors.white,
+                  const Color(0xFFF8FAFC),
+                  const Color(0xFFECFDF5),
+                ],
+        ),
+        border: Border.all(
+          color: isDark
+              ? const Color(0xFF334155).withOpacity(0.6)
+              : const Color(0xFFE2E8F0),
+          width: 1.2,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: isDark
+                ? Colors.black.withOpacity(0.4)
+                : const Color(0xFF0F172A).withOpacity(0.07),
+            blurRadius: 28,
+            offset: const Offset(0, 10),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Top Row: Status Chips
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              // System Online indicator
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                decoration: BoxDecoration(
+                  color: isDark
+                      ? const Color(0xFF064E3B).withOpacity(0.6)
+                      : const Color(0xFFD1FAE5),
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(
+                    color: const Color(0xFF10B981).withOpacity(isDark ? 0.4 : 0.3),
+                    width: 1,
                   ),
-                  child: Stack(
-                    clipBehavior: Clip.none,
-                    alignment: Alignment.center,
-                    children: [
-                      Icon(
-                        icon,
-                        size: 26,
-                        color: iconColor,
-                      ),
-                      if (badgeCount > 0)
-                        Positioned(
-                          top: 4,
-                          right: 4,
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
-                            decoration: BoxDecoration(
-                              color: Colors.redAccent,
-                              borderRadius: BorderRadius.circular(10),
-                            ),
-                            constraints: const BoxConstraints(minWidth: 16, minHeight: 16),
-                            child: Text(
-                              badgeCount > 99 ? '99+' : '$badgeCount',
-                              style: const TextStyle(
-                                color: Colors.white,
-                                fontSize: 9,
-                                fontWeight: FontWeight.bold,
-                              ),
-                              textAlign: TextAlign.center,
-                            ),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Container(
+                      width: 7,
+                      height: 7,
+                      decoration: const BoxDecoration(
+                        color: Color(0xFF10B981),
+                        shape: BoxShape.circle,
+                        boxShadow: [
+                          BoxShadow(
+                            color: Color(0xFF10B981),
+                            blurRadius: 6,
+                            spreadRadius: 1,
                           ),
-                        ),
-                    ],
+                        ],
+                      ),
+                    ),
+                    const SizedBox(width: 6),
+                    Text(
+                      "SISTEM AKTIF",
+                      style: GoogleFonts.outfit(
+                        fontSize: 10.5,
+                        fontWeight: FontWeight.w700,
+                        color: isDark ? const Color(0xFF6EE7B7) : const Color(0xFF047857),
+                        letterSpacing: 0.5,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+
+              // Academic Semester Chip
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                decoration: BoxDecoration(
+                  color: isDark
+                      ? Colors.white.withOpacity(0.06)
+                      : Colors.black.withOpacity(0.04),
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(
+                    color: isDark ? Colors.white.withOpacity(0.1) : Colors.black.withOpacity(0.06),
+                    width: 1,
+                  ),
+                ),
+                child: Text(
+                  "Semester Genap • 2025/2026",
+                  style: GoogleFonts.outfit(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w600,
+                    color: isDark ? const Color(0xFFCBD5E1) : const Color(0xFF475569),
                   ),
                 ),
               ),
-            ),
-            const SizedBox(height: 8),
-            // Label
-            Text(
-              label,
-              textAlign: TextAlign.center,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: GoogleFonts.outfit(
-                color: context.titleColor,
-                fontSize: 11.5,
-                fontWeight: FontWeight.w600,
-                letterSpacing: 0.1,
+            ],
+          ),
+
+          const SizedBox(height: 18),
+
+          // Centerpiece: Big Digital Live Clock & Date
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.baseline,
+            textBaseline: TextBaseline.alphabetic,
+            children: [
+              Text(
+                _formatDigitalTime(_currentTime),
+                style: GoogleFonts.outfit(
+                  fontSize: 48,
+                  fontWeight: FontWeight.w800,
+                  color: context.titleColor,
+                  letterSpacing: -1.5,
+                  height: 1.0,
+                ),
               ),
+              const SizedBox(width: 6),
+              Text(
+                ":${_formatDigitalSeconds(_currentTime)}",
+                style: GoogleFonts.outfit(
+                  fontSize: 20,
+                  fontWeight: FontWeight.w600,
+                  color: const Color(0xFF10B981),
+                ),
+              ),
+              const SizedBox(width: 8),
+              Text(
+                "WIB",
+                style: GoogleFonts.outfit(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w700,
+                  color: context.subTitleColor,
+                  letterSpacing: 0.8,
+                ),
+              ),
+            ],
+          ),
+
+          const SizedBox(height: 4),
+
+          // Crash-proof Indonesian Date
+          Row(
+            children: [
+              Icon(
+                Icons.calendar_today_rounded,
+                size: 13,
+                color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B),
+              ),
+              const SizedBox(width: 6),
+              Text(
+                _formatIndonesianDate(_currentTime),
+                style: GoogleFonts.outfit(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w600,
+                  color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B),
+                  letterSpacing: 0.1,
+                ),
+              ),
+            ],
+          ),
+
+          const SizedBox(height: 16),
+
+          // Divider
+          Container(
+            height: 1,
+            color: isDark ? Colors.white.withOpacity(0.08) : Colors.black.withOpacity(0.06),
+          ),
+
+          const SizedBox(height: 12),
+
+          // Bottom Quick System Glance Strip
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              _buildGlanceMetric(
+                label: "Pesantren",
+                value: "Al-Hamid",
+                isDark: isDark,
+              ),
+              Container(width: 1, height: 24, color: isDark ? Colors.white.withOpacity(0.08) : Colors.black.withOpacity(0.06)),
+              _buildGlanceMetric(
+                label: "Madrasah",
+                value: "Diniyah",
+                isDark: isDark,
+              ),
+              Container(width: 1, height: 24, color: isDark ? Colors.white.withOpacity(0.08) : Colors.black.withOpacity(0.06)),
+              _buildGlanceMetric(
+                label: "Database",
+                value: "VPS Online",
+                valueColor: const Color(0xFF10B981),
+                isDark: isDark,
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildGlanceMetric({
+    required String label,
+    required String value,
+    Color? valueColor,
+    required bool isDark,
+  }) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          label.toUpperCase(),
+          style: GoogleFonts.outfit(
+            fontSize: 9.5,
+            fontWeight: FontWeight.w600,
+            color: isDark ? const Color(0xFF64748B) : const Color(0xFF94A3B8),
+            letterSpacing: 0.5,
+          ),
+        ),
+        const SizedBox(height: 1),
+        Text(
+          value,
+          style: GoogleFonts.outfit(
+            fontSize: 12,
+            fontWeight: FontWeight.w700,
+            color: valueColor ?? (isDark ? const Color(0xFFE2E8F0) : const Color(0xFF1E293B)),
+          ),
+        ),
+      ],
+    );
+  }
+
+  // ─── GREETING HEADER ──────────────────────────────────────────────────────
+  Widget _buildGreetingHeader(BuildContext context, bool isDark) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 4),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Text(
+                "Assalamu'alaikum",
+                style: GoogleFonts.outfit(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w700,
+                  color: const Color(0xFF10B981),
+                ),
+              ),
+              const SizedBox(width: 6),
+              Text(
+                "• ${_getTimeGreeting()}",
+                style: GoogleFonts.outfit(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w500,
+                  color: context.subTitleColor,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 3),
+          Text(
+            "Selamat datang di Alhamid One",
+            style: GoogleFonts.outfit(
+              fontSize: 22,
+              fontWeight: FontWeight.w800,
+              color: context.titleColor,
+              letterSpacing: -0.4,
             ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            "Pusat kendali operasional akademik, santri, dan tata usaha pesantren.",
+            style: GoogleFonts.outfit(
+              fontSize: 12.5,
+              fontWeight: FontWeight.w400,
+              color: context.bodyColor,
+              height: 1.4,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ─── 3x2 BALANCED BENTO SHORTCUT MATRIX ───────────────────────────────────
+  Widget _buildShortcutGrid(BuildContext context, bool isDark) {
+    final shortcuts = [
+      _ShortcutItem(
+        icon: Icons.school_rounded,
+        title: "Akademik",
+        subtitle: "Jadwal & Nilai",
+        gradientStart: const Color(0xFF2563EB),
+        gradientEnd: const Color(0xFF1D4ED8),
+        onTap: () => widget.onNavigateTab(1),
+      ),
+      _ShortcutItem(
+        icon: Icons.meeting_room_rounded,
+        title: "Kelasku",
+        subtitle: "Presensi & Bab",
+        gradientStart: const Color(0xFF059669),
+        gradientEnd: const Color(0xFF047857),
+        onTap: () => widget.onNavigateTab(2),
+      ),
+      _ShortcutItem(
+        icon: Icons.badge_rounded,
+        title: "Administrasi",
+        subtitle: "Buku & Surat",
+        gradientStart: const Color(0xFF7C3AED),
+        gradientEnd: const Color(0xFF6D28D9),
+        onTap: () => widget.onNavigateTab(3),
+      ),
+      _ShortcutItem(
+        icon: Icons.forum_rounded,
+        title: "Chat Asatidz",
+        subtitle: "Ruang Diskusi",
+        gradientStart: const Color(0xFF0284C7),
+        gradientEnd: const Color(0xFF0369A1),
+        badgeCount: widget.unreadChats,
+        onTap: widget.onOpenChat,
+      ),
+      _ShortcutItem(
+        icon: Icons.notifications_active_rounded,
+        title: "Notifikasi",
+        subtitle: "Pemberitahuan",
+        gradientStart: const Color(0xFFE11D48),
+        gradientEnd: const Color(0xFFBE123C),
+        badgeCount: widget.unreadNotifications,
+        onTap: widget.onOpenNotifications,
+      ),
+      _ShortcutItem(
+        icon: Icons.person_rounded,
+        title: "Akun Profil",
+        subtitle: "Ustadz & Akses",
+        gradientStart: const Color(0xFFD97706),
+        gradientEnd: const Color(0xFFB45309),
+        onTap: () => widget.onNavigateTab(4),
+      ),
+    ];
+
+    return Column(
+      children: [
+        // Row 1: Akademik, Kelasku, Administrasi
+        Row(
+          children: [
+            Expanded(child: _buildBentoShortcutTile(0, shortcuts[0], context, isDark)),
+            const SizedBox(width: 10),
+            Expanded(child: _buildBentoShortcutTile(1, shortcuts[1], context, isDark)),
+            const SizedBox(width: 10),
+            Expanded(child: _buildBentoShortcutTile(2, shortcuts[2], context, isDark)),
           ],
         ),
+
+        const SizedBox(height: 10),
+
+        // Row 2: Chat, Notifikasi, Akun Profil
+        Row(
+          children: [
+            Expanded(child: _buildBentoShortcutTile(3, shortcuts[3], context, isDark)),
+            const SizedBox(width: 10),
+            Expanded(child: _buildBentoShortcutTile(4, shortcuts[4], context, isDark)),
+            const SizedBox(width: 10),
+            Expanded(child: _buildBentoShortcutTile(5, shortcuts[5], context, isDark)),
+          ],
+        ),
+      ],
+    );
+  }
+
+  // Individual Bento Tile with Micro-press Physics and Executive Dual-Tone Badge
+  Widget _buildBentoShortcutTile(
+    int index,
+    _ShortcutItem item,
+    BuildContext context,
+    bool isDark,
+  ) {
+    final isPressed = _pressedShortcutIndex == index;
+
+    return GestureDetector(
+      onTapDown: (_) => setState(() => _pressedShortcutIndex = index),
+      onTapUp: (_) {
+        setState(() => _pressedShortcutIndex = null);
+        item.onTap();
+      },
+      onTapCancel: () => setState(() => _pressedShortcutIndex = null),
+      child: AnimatedScale(
+        scale: isPressed ? 0.94 : 1.0,
+        duration: const Duration(milliseconds: 120),
+        curve: Curves.easeOutCubic,
+        child: Container(
+          padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 8),
+          decoration: BoxDecoration(
+            color: isDark
+                ? const Color(0xFF131D2E).withOpacity(0.85)
+                : Colors.white,
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(
+              color: isDark
+                  ? const Color(0xFF334155).withOpacity(0.5)
+                  : const Color(0xFFE2E8F0),
+              width: 1.1,
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: isDark
+                    ? Colors.black.withOpacity(0.25)
+                    : const Color(0xFF64748B).withOpacity(0.08),
+                blurRadius: 14,
+                offset: const Offset(0, 5),
+              ),
+            ],
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // Icon Badge with Accent Linear Gradient & Soft Glow
+              Stack(
+                clipBehavior: Clip.none,
+                children: [
+                  Container(
+                    width: 48,
+                    height: 48,
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(16),
+                      gradient: LinearGradient(
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                        colors: [
+                          item.gradientStart,
+                          item.gradientEnd,
+                        ],
+                      ),
+                      boxShadow: [
+                        BoxShadow(
+                          color: item.gradientStart.withOpacity(isDark ? 0.35 : 0.28),
+                          blurRadius: 12,
+                          offset: const Offset(0, 4),
+                        ),
+                      ],
+                    ),
+                    child: Center(
+                      child: Icon(
+                        item.icon,
+                        size: 24,
+                        color: Colors.white,
+                      ),
+                    ),
+                  ),
+
+                  // Unread Badge Pill
+                  if (item.badgeCount > 0)
+                    Positioned(
+                      top: -4,
+                      right: -4,
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFEF4444),
+                          borderRadius: BorderRadius.circular(10),
+                          border: Border.all(
+                            color: isDark ? const Color(0xFF0F172A) : Colors.white,
+                            width: 1.5,
+                          ),
+                          boxShadow: [
+                            BoxShadow(
+                              color: const Color(0xFFEF4444).withOpacity(0.5),
+                              blurRadius: 6,
+                            ),
+                          ],
+                        ),
+                        constraints: const BoxConstraints(minWidth: 18, minHeight: 18),
+                        child: Text(
+                          item.badgeCount > 99 ? '99+' : '${item.badgeCount}',
+                          style: GoogleFonts.outfit(
+                            color: Colors.white,
+                            fontSize: 9.5,
+                            fontWeight: FontWeight.w800,
+                          ),
+                          textAlign: TextAlign.center,
+                        ),
+                      ),
+                    ),
+                ],
+              ),
+
+              const SizedBox(height: 10),
+
+              // Title
+              Text(
+                item.title,
+                textAlign: TextAlign.center,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: GoogleFonts.outfit(
+                  color: context.titleColor,
+                  fontSize: 12.5,
+                  fontWeight: FontWeight.w700,
+                  letterSpacing: -0.2,
+                ),
+              ),
+
+              const SizedBox(height: 2),
+
+              // Subtitle
+              Text(
+                item.subtitle,
+                textAlign: TextAlign.center,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: GoogleFonts.outfit(
+                  color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B),
+                  fontSize: 10,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  // ─── INSTITUTIONAL IDENTITY FOOTER ─────────────────────────────────────────
+  Widget _buildInstitutionalCard(BuildContext context, bool isDark) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: isDark
+            ? Colors.white.withOpacity(0.04)
+            : Colors.black.withOpacity(0.02),
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(
+          color: isDark
+              ? Colors.white.withOpacity(0.06)
+              : Colors.black.withOpacity(0.05),
+          width: 1,
+        ),
+      ),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(10),
+            decoration: BoxDecoration(
+              color: const Color(0xFF10B981).withOpacity(0.12),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: const Icon(
+              Icons.verified_rounded,
+              color: Color(0xFF10B981),
+              size: 22,
+            ),
+          ),
+          const SizedBox(width: 14),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  "Pondok Pesantren Al-Hamid Cinta Mulya",
+                  style: GoogleFonts.outfit(
+                    fontSize: 12.5,
+                    fontWeight: FontWeight.w700,
+                    color: context.titleColor,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  "Madrasah Diniyah Takmiliyah Wustha & Ulya • Jalur Resmi",
+                  style: GoogleFonts.outfit(
+                    fontSize: 10.5,
+                    fontWeight: FontWeight.w500,
+                    color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }
 }
 
-// ─── CUSTOM PAINTER: SERENE ISLAMIC GEOMETRY & AMBIENT NUR ──────────────────
-class _SereneHeroPainter extends CustomPainter {
-  final double progress;
-  final bool isDark;
+class _ShortcutItem {
+  final IconData icon;
+  final String title;
+  final String subtitle;
+  final Color gradientStart;
+  final Color gradientEnd;
+  final int badgeCount;
+  final VoidCallback onTap;
 
-  _SereneHeroPainter({required this.progress, required this.isDark});
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final w = size.width;
-    final h = size.height;
-
-    // 1. Subtle radial ambient glow in the center-top
-    final glowPaint = Paint()
-      ..shader = ui.Gradient.radial(
-        Offset(w * 0.5, h * 0.35),
-        w * 0.65,
-        [
-          (isDark ? const Color(0xFF0F3A22) : const Color(0xFFD1FAE5)).withOpacity(0.55),
-          (isDark ? const Color(0xFF070B13) : const Color(0xFFF0FDF8)).withOpacity(0.0),
-        ],
-      );
-    canvas.drawRect(Rect.fromLTWH(0, 0, w, h), glowPaint);
-
-    // 2. Floating subtle Nur/Star particles
-    final rnd = math.Random(42);
-    final particlePaint = Paint()..style = PaintingStyle.fill;
-
-    for (int i = 0; i < 22; i++) {
-      final basePx = rnd.nextDouble() * w;
-      final basePy = rnd.nextDouble() * h;
-      final speed = 0.5 + rnd.nextDouble();
-      final currentY = (basePy - (progress * 30 * speed)) % h;
-      final alpha = (0.2 + 0.4 * math.sin((progress + rnd.nextDouble()) * math.pi * 2)).clamp(0.05, 0.75);
-
-      particlePaint.color = (isDark ? const Color(0xFF6EE7B7) : const Color(0xFF10B981)).withOpacity(alpha);
-      final radius = 1.0 + rnd.nextDouble() * 1.8;
-      canvas.drawCircle(Offset(basePx, currentY), radius, particlePaint);
-    }
-
-    // 3. Elegant Sacred Arch/Dome Silhouette (Subtle curved lines)
-    final archPaint = Paint()
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 1.2
-      ..color = (isDark ? const Color(0xFF10B981) : const Color(0xFF059669)).withOpacity(0.14);
-
-    final centerX = w * 0.5;
-    final archTopY = h * 0.16 + math.sin(progress * math.pi * 2) * 3;
-    final archWidth = w * 0.42;
-
-    final path = Path();
-    path.moveTo(centerX - archWidth, h * 0.95);
-    path.lineTo(centerX - archWidth, h * 0.45);
-    path.cubicTo(
-      centerX - archWidth, archTopY + 20,
-      centerX - 20, archTopY,
-      centerX, archTopY - 14,
-    );
-    path.cubicTo(
-      centerX + 20, archTopY,
-      centerX + archWidth, archTopY + 20,
-      centerX + archWidth, h * 0.45,
-    );
-    path.lineTo(centerX + archWidth, h * 0.95);
-
-    canvas.drawPath(path, archPaint);
-
-    // Secondary inner arch
-    final innerPath = Path();
-    final innerW = archWidth * 0.82;
-    final innerTopY = archTopY + 18;
-    innerPath.moveTo(centerX - innerW, h * 0.95);
-    innerPath.lineTo(centerX - innerW, h * 0.5);
-    innerPath.cubicTo(
-      centerX - innerW, innerTopY + 16,
-      centerX - 16, innerTopY,
-      centerX, innerTopY - 10,
-    );
-    innerPath.cubicTo(
-      centerX + 16, innerTopY,
-      centerX + innerW, innerTopY + 16,
-      centerX + innerW, h * 0.5,
-    );
-    innerPath.lineTo(centerX + innerW, h * 0.95);
-
-    archPaint.strokeWidth = 0.8;
-    archPaint.color = archPaint.color.withOpacity(0.08);
-    canvas.drawPath(innerPath, archPaint);
-  }
-
-  @override
-  bool shouldRepaint(covariant _SereneHeroPainter oldDelegate) {
-    return oldDelegate.progress != progress || oldDelegate.isDark != isDark;
-  }
+  _ShortcutItem({
+    required this.icon,
+    required this.title,
+    required this.subtitle,
+    required this.gradientStart,
+    required this.gradientEnd,
+    this.badgeCount = 0,
+    required this.onTap,
+  });
 }

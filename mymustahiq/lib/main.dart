@@ -9,6 +9,7 @@ import 'screens/splash_screen.dart';
 import 'services/theme_manager.dart';
 import 'services/push_notification_service.dart';
 import 'services/network_service.dart';
+import 'package:intl/date_symbol_data_local.dart';
 
 import 'widgets/glass_background.dart';
 
@@ -16,6 +17,7 @@ void main() async {
   WidgetsBinding widgetsBinding = WidgetsFlutterBinding.ensureInitialized();
   FlutterNativeSplash.preserve(widgetsBinding: widgetsBinding);
 
+  await initializeDateFormatting('id_ID', null);
   await ThemeManager().init();
   await PushNotificationService().initialize();
   await NetworkService().initialize();
