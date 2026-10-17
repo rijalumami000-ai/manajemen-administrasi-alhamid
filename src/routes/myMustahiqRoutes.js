@@ -445,7 +445,7 @@ function registerMyMustahiqRoutes(app) {
         mp_qir.nama AS qiroatul_kitab
       FROM santri_tahun_ajaran sta
       JOIN santri s ON sta.santri_id = s.id
-      LEFT JOIN orangtua o ON s.id = o.santri_id
+      LEFT JOIN orangtua o ON s.orangtua_id = o.id
       LEFT JOIN kelas kd ON sta.kelas_diniyah_id = kd.id
       LEFT JOIN kelas ks ON sta.kelas_sekolah_id = ks.id
       LEFT JOIN kamar kam ON sta.kamar_id = kam.id
@@ -455,11 +455,70 @@ function registerMyMustahiqRoutes(app) {
       WHERE sta.santri_id = $1 AND sta.tahun_ajaran_id = $2
     `, [santriId, activeYear.id]);
 
-    if (profileResult.rows.length === 0) {
-      return res.status(404).json({ error: 'Santri tidak ditemukan pada tahun ajaran ini.' });
-    }
+    let profile = profileResult.rows[0];
 
-    const profile = profileResult.rows[0];
+    // Fallback: If student not enrolled in current academic year snapshot, fetch directly from santri master table
+    if (!profile) {
+      const fallbackResult = await db.query(`
+        SELECT 
+          s.id,
+          s.kelas_diniyah_id,
+          s.nis,
+          s.nik,
+          s.nama,
+          s.jenis_kelamin,
+          s.tempat_lahir,
+          s.tanggal_lahir,
+          s.alamat,
+          'aktif' AS status,
+          '' AS catatan,
+          o.nama_ayah,
+          o.nama_ibu,
+          o.no_hp_ayah,
+          o.no_hp_ibu,
+          o.pekerjaan_ayah,
+          o.pekerjaan_ibu,
+          o.nik_ayah,
+          o.nik_ibu,
+          s.tahun_masuk,
+          s.anak_ke,
+          s.agama,
+          s.status_keluarga,
+          s.status_masuk,
+          s.pesantren_sebelumnya,
+          s.sekolah_asal_nama,
+          s.sekolah_asal_alamat,
+          s.diterima_kelas_madin,
+          s.diterima_tanggal_madin,
+          s.keluar_madin_tanggal,
+          s.keluar_madin_status,
+          s.keluar_pondok_tanggal,
+          s.keluar_pondok_status,
+          s.keluar_sekolah_tingkat,
+          s.keluar_sekolah_tanggal,
+          s.keluar_sekolah_status,
+          kd.nama AS kelas_diniyah,
+          ks.nama AS kelas_sekolah,
+          kam.nama AS kamar_nama,
+          kam.gedung AS kamar_gedung,
+          s.foto_url,
+          NULL AS muhafadzoh_mapel_id,
+          NULL AS qiroatul_mapel_id,
+          '-' AS muhafadzoh_kitab,
+          '-' AS qiroatul_kitab
+        FROM santri s
+        LEFT JOIN orangtua o ON s.orangtua_id = o.id
+        LEFT JOIN kelas kd ON s.kelas_diniyah_id = kd.id
+        LEFT JOIN kelas ks ON s.kelas_sekolah_id = ks.id
+        LEFT JOIN kamar kam ON s.kamar_id = kam.id
+        WHERE s.id = $1
+      `, [santriId]);
+
+      if (fallbackResult.rows.length === 0) {
+        return res.status(404).json({ error: 'Santri tidak ditemukan.' });
+      }
+      profile = fallbackResult.rows[0];
+    }
     profile.orangtua = {
       nama_ayah: profile.nama_ayah,
       nama_ibu: profile.nama_ibu,

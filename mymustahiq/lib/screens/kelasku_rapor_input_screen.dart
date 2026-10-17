@@ -470,13 +470,62 @@ class _KelaskuRaporInputScreenState extends State<KelaskuRaporInputScreen> {
                               ),
                               child: Row(
                                 children: [
-                                  CircleAvatar(
-                                    backgroundColor: isDark ? Colors.white10 : Colors.black12,
-                                    radius: 20,
-                                    child: Text(
-                                      "${index + 1}",
-                                      style: GoogleFonts.outfit(color: context.titleColor, fontWeight: FontWeight.bold, fontSize: 13),
-                                    ),
+                                  Stack(
+                                    children: [
+                                      Container(
+                                        width: 44,
+                                        height: 48,
+                                        decoration: BoxDecoration(
+                                          color: isDark ? Colors.white.withOpacity(0.06) : const Color(0xFFF1F5F9),
+                                          borderRadius: BorderRadius.circular(12),
+                                          border: Border.all(
+                                            color: const Color(0xFF10B981).withOpacity(0.35),
+                                            width: 1.2,
+                                          ),
+                                        ),
+                                        child: ClipRRect(
+                                          borderRadius: BorderRadius.circular(11),
+                                          child: (s['foto_url'] != null && s['foto_url'].toString().trim().isNotEmpty)
+                                              ? Image.network(
+                                                  _apiService.getFullImageUrl(s['foto_url']),
+                                                  fit: BoxFit.cover,
+                                                  alignment: Alignment.topCenter,
+                                                  errorBuilder: (ctx, err, stack) => Icon(
+                                                    Icons.person_rounded,
+                                                    color: isDark ? Colors.white38 : Colors.black38,
+                                                    size: 24,
+                                                  ),
+                                                )
+                                              : Icon(
+                                                  Icons.person_rounded,
+                                                  color: isDark ? Colors.white38 : Colors.black38,
+                                                  size: 24,
+                                                ),
+                                        ),
+                                      ),
+                                      Positioned(
+                                        left: 0,
+                                        top: 0,
+                                        child: Container(
+                                          padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
+                                          decoration: const BoxDecoration(
+                                            color: Color(0xFF10B981),
+                                            borderRadius: BorderRadius.only(
+                                              topLeft: Radius.circular(11),
+                                              bottomRight: Radius.circular(8),
+                                            ),
+                                          ),
+                                          child: Text(
+                                            "${index + 1}",
+                                            style: GoogleFonts.outfit(
+                                              color: Colors.white,
+                                              fontSize: 9,
+                                              fontWeight: FontWeight.bold,
+                                            ),
+                                          ),
+                                        ),
+                                      ),
+                                    ],
                                   ),
                                   const SizedBox(width: 14),
                                   Expanded(

@@ -994,33 +994,7 @@ class _InputPelanggaranPrestasiScreenState extends State<InputPelanggaranPrestas
         physics: const AlwaysScrollableScrollPhysics(parent: BouncingScrollPhysics()),
         padding: const EdgeInsets.only(left: 18, right: 18, top: 16, bottom: 90),
         children: [
-          // Banner Info Sinkronisasi Web
-          Container(
-            padding: const EdgeInsets.all(14),
-            decoration: BoxDecoration(
-              color: const Color(0xFFE11D48).withOpacity(0.08),
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: const Color(0xFFE11D48).withOpacity(0.2)),
-            ),
-            child: Row(
-              children: [
-                const Icon(Icons.sync_rounded, color: Color(0xFFE11D48), size: 22),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: Text(
-                    "Terhubung langsung dengan Modul Kepesantrenan > Pelanggaran & Prestasi di Web.",
-                    style: GoogleFonts.outfit(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w600,
-                      color: isDark ? const Color(0xFFFDA4AF) : const Color(0xFFBE123C),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
 
-          const SizedBox(height: 16),
 
           if (_pelanggaranList.isEmpty)
             Center(
@@ -1159,32 +1133,7 @@ class _InputPelanggaranPrestasiScreenState extends State<InputPelanggaranPrestas
         physics: const AlwaysScrollableScrollPhysics(parent: BouncingScrollPhysics()),
         padding: const EdgeInsets.only(left: 18, right: 18, top: 16, bottom: 90),
         children: [
-          Container(
-            padding: const EdgeInsets.all(14),
-            decoration: BoxDecoration(
-              color: const Color(0xFFF59E0B).withOpacity(0.08),
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: const Color(0xFFF59E0B).withOpacity(0.2)),
-            ),
-            child: Row(
-              children: [
-                const Icon(Icons.sync_rounded, color: Color(0xFFF59E0B), size: 22),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: Text(
-                    "Terhubung langsung dengan Modul Kepesantrenan > Pelanggaran & Prestasi di Web.",
-                    style: GoogleFonts.outfit(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w600,
-                      color: isDark ? const Color(0xFFFDE68A) : const Color(0xFFB45309),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
 
-          const SizedBox(height: 16),
 
           if (_prestasiList.isEmpty)
             Center(

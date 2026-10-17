@@ -194,32 +194,6 @@ class _SplashScreenState extends State<SplashScreen> with TickerProviderStateMix
                       ),
                     ),
                   ),
-                  const SizedBox(height: 8),
-
-                  // Subtitle container (Portal Terpadu Pesantren)
-                  FadeTransition(
-                    opacity: _logoFade,
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFF10B981).withOpacity(0.08),
-                        borderRadius: BorderRadius.circular(20),
-                        border: Border.all(
-                          color: const Color(0xFF10B981).withOpacity(0.2),
-                          width: 0.8,
-                        ),
-                      ),
-                      child: Text(
-                        'Portal Terpadu Pesantren Al-Hamid',
-                        style: GoogleFonts.outfit(
-                          color: const Color(0xFF10B981),
-                          fontSize: 11,
-                          fontWeight: FontWeight.bold,
-                          letterSpacing: 0.3,
-                        ),
-                      ),
-                    ),
-                  ),
 
                   const Spacer(flex: 2),
 

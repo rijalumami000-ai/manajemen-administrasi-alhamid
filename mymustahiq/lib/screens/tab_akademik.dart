@@ -132,7 +132,7 @@ class _TabAkademikState extends State<TabAkademik> {
                 color: const Color(0xFF8B5CF6),
                 isDark: isDark,
               ),
-              const SizedBox(height: 8),
+              const SizedBox(height: 4),
               _buildInfoUjianCluster(context, isDark),
               const SizedBox(height: 24),
             ],
@@ -146,7 +146,7 @@ class _TabAkademikState extends State<TabAkademik> {
                 color: const Color(0xFFF97316),
                 isDark: isDark,
               ),
-              const SizedBox(height: 8),
+              const SizedBox(height: 4),
               _buildMasterInputGrid(context, isDark),
               const SizedBox(height: 24),
             ],
@@ -302,6 +302,7 @@ class _TabAkademikState extends State<TabAkademik> {
     return GridView.builder(
       shrinkWrap: true,
       physics: const NeverScrollableScrollPhysics(),
+      padding: EdgeInsets.zero,
       itemCount: filtered.length,
       gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
         crossAxisCount: 2,
@@ -730,6 +731,7 @@ class _TabAkademikState extends State<TabAkademik> {
     return GridView.builder(
       shrinkWrap: true,
       physics: const NeverScrollableScrollPhysics(),
+      padding: EdgeInsets.zero,
       itemCount: filtered.length,
       gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
         crossAxisCount: 2,
