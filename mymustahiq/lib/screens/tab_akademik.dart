@@ -132,9 +132,9 @@ class _TabAkademikState extends State<TabAkademik> {
                 color: const Color(0xFF8B5CF6),
                 isDark: isDark,
               ),
-              const SizedBox(height: 14),
+              const SizedBox(height: 8),
               _buildInfoUjianCluster(context, isDark),
-              const SizedBox(height: 28),
+              const SizedBox(height: 24),
             ],
 
             // 4. CLUSTER: MASTER INPUT
@@ -146,7 +146,7 @@ class _TabAkademikState extends State<TabAkademik> {
                 color: const Color(0xFFF97316),
                 isDark: isDark,
               ),
-              const SizedBox(height: 14),
+              const SizedBox(height: 8),
               _buildMasterInputGrid(context, isDark),
               const SizedBox(height: 24),
             ],
@@ -339,19 +339,19 @@ class _TabAkademikState extends State<TabAkademik> {
             }
           },
           child: Container(
-            padding: const EdgeInsets.all(16),
+            padding: const EdgeInsets.all(14),
             decoration: BoxDecoration(
               color: isDark ? const Color(0xFF131C2E) : Colors.white,
-              borderRadius: BorderRadius.circular(20),
+              borderRadius: BorderRadius.circular(18),
               border: Border.all(
-                color: col.withOpacity(isDark ? 0.35 : 0.25),
+                color: col.withOpacity(isDark ? 0.32 : 0.22),
                 width: 1.2,
               ),
               boxShadow: [
                 BoxShadow(
                   color: Colors.black.withOpacity(isDark ? 0.25 : 0.03),
-                  blurRadius: 10,
-                  offset: const Offset(0, 4),
+                  blurRadius: 8,
+                  offset: const Offset(0, 3),
                 ),
               ],
             ),
@@ -362,17 +362,39 @@ class _TabAkademikState extends State<TabAkademik> {
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     Container(
-                      padding: const EdgeInsets.all(10),
+                      padding: const EdgeInsets.all(9),
                       decoration: BoxDecoration(
                         color: col.withOpacity(0.12),
-                        borderRadius: BorderRadius.circular(14),
+                        borderRadius: BorderRadius.circular(12),
                       ),
-                      child: Icon(it['icon'] as IconData, color: col, size: 22),
+                      child: Icon(it['icon'] as IconData, color: col, size: 20),
                     ),
-                    if (hasPw)
-                      Icon(Icons.lock_rounded, size: 15, color: col.withOpacity(0.8))
-                    else
-                      Icon(Icons.arrow_forward_rounded, size: 15, color: col.withOpacity(0.8)),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
+                      decoration: BoxDecoration(
+                        color: col.withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(
+                            hasPw ? Icons.lock_rounded : Icons.qr_code_scanner_rounded,
+                            size: 11,
+                            color: col,
+                          ),
+                          const SizedBox(width: 3),
+                          Text(
+                            hasPw ? "PIN" : "QR",
+                            style: GoogleFonts.outfit(
+                              fontSize: 9.5,
+                              fontWeight: FontWeight.bold,
+                              color: col,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
                   ],
                 ),
                 const Spacer(),
@@ -380,11 +402,11 @@ class _TabAkademikState extends State<TabAkademik> {
                   it['title'] as String,
                   style: GoogleFonts.outfit(
                     color: context.titleColor,
-                    fontSize: 15,
+                    fontSize: 14,
                     fontWeight: FontWeight.bold,
                   ),
                 ),
-                const SizedBox(height: 4),
+                const SizedBox(height: 3),
                 Text(
                   it['desc'] as String,
                   style: GoogleFonts.outfit(
@@ -722,17 +744,17 @@ class _TabAkademikState extends State<TabAkademik> {
         return GestureDetector(
           onTap: it['onTap'] as VoidCallback,
           child: Container(
-            padding: const EdgeInsets.all(16),
+            padding: const EdgeInsets.all(14),
             decoration: BoxDecoration(
               color: isDark ? const Color(0xFF131C2E) : Colors.white,
               borderRadius: BorderRadius.circular(18),
               border: Border.all(
-                color: col.withOpacity(isDark ? 0.3 : 0.2),
+                color: col.withOpacity(isDark ? 0.32 : 0.22),
                 width: 1.2,
               ),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withOpacity(isDark ? 0.2 : 0.03),
+                  color: Colors.black.withOpacity(isDark ? 0.25 : 0.03),
                   blurRadius: 8,
                   offset: const Offset(0, 3),
                 ),
@@ -741,20 +763,30 @@ class _TabAkademikState extends State<TabAkademik> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Container(
-                  padding: const EdgeInsets.all(10),
-                  decoration: BoxDecoration(
-                    color: col.withOpacity(0.12),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Icon(it['icon'] as IconData, color: col, size: 22),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(9),
+                      decoration: BoxDecoration(
+                        color: col.withOpacity(0.12),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Icon(it['icon'] as IconData, color: col, size: 20),
+                    ),
+                    Icon(
+                      Icons.arrow_forward_rounded,
+                      color: col.withOpacity(0.8),
+                      size: 14,
+                    ),
+                  ],
                 ),
                 const Spacer(),
                 Text(
                   it['title'] as String,
                   style: GoogleFonts.outfit(
                     color: context.titleColor,
-                    fontSize: 13,
+                    fontSize: 13.5,
                     fontWeight: FontWeight.bold,
                   ),
                 ),

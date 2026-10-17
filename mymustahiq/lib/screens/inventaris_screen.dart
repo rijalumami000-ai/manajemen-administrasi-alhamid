@@ -4,7 +4,8 @@ import '../services/theme_manager.dart';
 import '../services/api_service.dart';
 
 class InventarisScreen extends StatefulWidget {
-  const InventarisScreen({super.key});
+  final int initialIndex;
+  const InventarisScreen({super.key, this.initialIndex = 0});
 
   @override
   State<InventarisScreen> createState() => _InventarisScreenState();
@@ -34,7 +35,8 @@ class _InventarisScreenState extends State<InventarisScreen> with SingleTickerPr
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 3, vsync: this);
+    final idx = (widget.initialIndex >= 0 && widget.initialIndex < 3) ? widget.initialIndex : 0;
+    _tabController = TabController(length: 3, vsync: this, initialIndex: idx);
     _tabController.addListener(() {
       if (_tabController.indexIsChanging) {
         setState(() {});

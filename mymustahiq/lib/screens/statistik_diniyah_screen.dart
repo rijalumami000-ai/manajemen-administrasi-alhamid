@@ -179,11 +179,7 @@ class _StatistikDiniyahScreenState extends State<StatistikDiniyahScreen> {
                 // Breakdown Per Tingkat
                 _buildSectionHeader("Distribusi Siswa Per Tingkat", "${perTingkat.length} Tingkat", isDark),
                 const SizedBox(height: 12),
-                if (_showCharts) ...[
-                  _buildTingkatChart(perTingkat, total, isDark),
-                  const SizedBox(height: 12),
-                ],
-                _buildTingkatList(perTingkat, total, isDark),
+                _buildTingkatChart(perTingkat, total, isDark),
                 const SizedBox(height: 24),
 
                 // Breakdown Per Kelas Diniyah
@@ -961,13 +957,27 @@ class _StatistikDiniyahScreenState extends State<StatistikDiniyahScreen> {
                           color: isDark ? Colors.white70 : const Color(0xFF1E293B),
                         ),
                       ),
-                      Text(
-                        "$tTotal Santri (${(ratio * 100).round()}%)",
-                        style: GoogleFonts.outfit(
-                          fontSize: 11,
-                          fontWeight: FontWeight.bold,
-                          color: const Color(0xFF10B981),
-                        ),
+                      Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            "$tTotal Santri (${(ratio * 100).round()}%)",
+                            style: GoogleFonts.outfit(
+                              fontSize: 11,
+                              fontWeight: FontWeight.bold,
+                              color: const Color(0xFF10B981),
+                            ),
+                          ),
+                          const SizedBox(width: 5),
+                          Text(
+                            "($tPutra L / $tPutri P)",
+                            style: GoogleFonts.outfit(
+                              fontSize: 10,
+                              fontWeight: FontWeight.w600,
+                              color: isDark ? Colors.white54 : const Color(0xFF64748B),
+                            ),
+                          ),
+                        ],
                       ),
                     ],
                   ),
@@ -1021,7 +1031,7 @@ class _StatistikDiniyahScreenState extends State<StatistikDiniyahScreen> {
     if (list.isEmpty) return const SizedBox.shrink();
     final sorted = List<dynamic>.from(list);
     sorted.sort((a, b) => ((b['total'] ?? 0) as int).compareTo((a['total'] ?? 0) as int));
-    final displayClasses = sorted.take(6).toList();
+    final displayClasses = sorted;
     final maxCount = displayClasses.isNotEmpty ? ((displayClasses.first['total'] ?? 0) as int) : 1;
 
     return Container(
@@ -1048,7 +1058,7 @@ class _StatistikDiniyahScreenState extends State<StatistikDiniyahScreen> {
                 ),
               ),
               Text(
-                "Top ${displayClasses.length} Terbesar",
+                "Seluruh Kelas (${displayClasses.length})",
                 style: GoogleFonts.outfit(
                   fontSize: 10,
                   color: isDark ? Colors.white38 : Colors.black38,
@@ -1140,16 +1150,16 @@ class _StatistikDiniyahScreenState extends State<StatistikDiniyahScreen> {
     );
   }
 
-  // Kelas Grid (Desain Kartu Apik, Angka Lebih Besar, Info Putra/Putri Atas-Bawah Tanpa Emoji)
+  // Kelas Grid (Desain Kartu 3 Kolom Modern & Non-AI-Slop)
   Widget _buildKelasGrid(List<dynamic> list, int total, bool isDark) {
     return GridView.builder(
       shrinkWrap: true,
       physics: const NeverScrollableScrollPhysics(),
       gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: 2,
-        childAspectRatio: 0.98,
-        crossAxisSpacing: 10,
-        mainAxisSpacing: 10,
+        crossAxisCount: 3,
+        childAspectRatio: 0.82,
+        crossAxisSpacing: 8,
+        mainAxisSpacing: 8,
       ),
       itemCount: list.length,
       itemBuilder: (context, index) {
@@ -1159,29 +1169,23 @@ class _StatistikDiniyahScreenState extends State<StatistikDiniyahScreen> {
         final kPutri = (k['putri'] ?? 0) as int;
         final int? tingkat = k['tingkat'] is int ? k['tingkat'] as int : int.tryParse(k['tingkat']?.toString() ?? '');
         final tingkatLabel = tingkat == 99
-            ? 'Tingkat SP'
-            : (tingkat == 0 ? 'Tingkat Sifir' : (tingkat != null ? 'Tingkat $tingkat' : ''));
+            ? 'SP'
+            : (tingkat == 0 ? 'Sifir' : (tingkat != null ? 'Tkt $tingkat' : ''));
 
         return Container(
-          padding: const EdgeInsets.all(13),
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
           decoration: BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-              colors: isDark
-                  ? [const Color(0xFF1E293B), const Color(0xFF0F172A)]
-                  : [Colors.white, const Color(0xFFF8FAFC)],
-            ),
-            borderRadius: BorderRadius.circular(16),
+            color: isDark ? const Color(0xFF131C2E) : Colors.white,
+            borderRadius: BorderRadius.circular(14),
             border: Border.all(
-              color: isDark ? const Color(0xFF10B981).withOpacity(0.18) : const Color(0xFFE2E8F0),
-              width: 1.2,
+              color: const Color(0xFF10B981).withOpacity(isDark ? 0.3 : 0.2),
+              width: 1.1,
             ),
             boxShadow: [
               BoxShadow(
-                color: isDark ? Colors.black.withOpacity(0.2) : const Color(0xFF64748B).withOpacity(0.06),
-                blurRadius: 8,
-                offset: const Offset(0, 3),
+                color: Colors.black.withOpacity(isDark ? 0.2 : 0.03),
+                blurRadius: 6,
+                offset: const Offset(0, 2),
               ),
             ],
           ),
@@ -1189,7 +1193,7 @@ class _StatistikDiniyahScreenState extends State<StatistikDiniyahScreen> {
             crossAxisAlignment: CrossAxisAlignment.start,
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              // Header Kelas & Tingkat
+              // Header Kelas & Badge
               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -1200,7 +1204,7 @@ class _StatistikDiniyahScreenState extends State<StatistikDiniyahScreen> {
                         child: Text(
                           "Kelas ${k['nama_kelas']}",
                           style: GoogleFonts.outfit(
-                            fontSize: 14,
+                            fontSize: 12,
                             fontWeight: FontWeight.bold,
                             color: isDark ? Colors.white : const Color(0xFF0F172A),
                           ),
@@ -1209,21 +1213,21 @@ class _StatistikDiniyahScreenState extends State<StatistikDiniyahScreen> {
                         ),
                       ),
                       Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFF10B981).withOpacity(0.12),
-                          borderRadius: BorderRadius.circular(6),
+                        width: 5,
+                        height: 5,
+                        decoration: const BoxDecoration(
+                          color: Color(0xFF10B981),
+                          shape: BoxShape.circle,
                         ),
-                        child: const Icon(Icons.school_rounded, size: 12, color: Color(0xFF10B981)),
                       ),
                     ],
                   ),
                   if (tingkatLabel.isNotEmpty) ...[
-                    const SizedBox(height: 2),
+                    const SizedBox(height: 1),
                     Text(
                       tingkatLabel,
                       style: GoogleFonts.outfit(
-                        fontSize: 10,
+                        fontSize: 9,
                         fontWeight: FontWeight.w500,
                         color: isDark ? Colors.white54 : const Color(0xFF64748B),
                       ),
@@ -1232,7 +1236,7 @@ class _StatistikDiniyahScreenState extends State<StatistikDiniyahScreen> {
                 ],
               ),
 
-              // Angka Total Kelas Dibuat Lebih Besar
+              // Angka Total Santri
               Row(
                 crossAxisAlignment: CrossAxisAlignment.baseline,
                 textBaseline: TextBaseline.alphabetic,
@@ -1240,16 +1244,16 @@ class _StatistikDiniyahScreenState extends State<StatistikDiniyahScreen> {
                   Text(
                     "$kTotal",
                     style: GoogleFonts.outfit(
-                      fontSize: 22,
+                      fontSize: 19,
                       fontWeight: FontWeight.w800,
                       color: const Color(0xFF10B981),
                     ),
                   ),
-                  const SizedBox(width: 4),
+                  const SizedBox(width: 3),
                   Text(
                     "Santri",
                     style: GoogleFonts.outfit(
-                      fontSize: 11,
+                      fontSize: 9.5,
                       fontWeight: FontWeight.w500,
                       color: isDark ? Colors.white54 : const Color(0xFF64748B),
                     ),
@@ -1257,47 +1261,69 @@ class _StatistikDiniyahScreenState extends State<StatistikDiniyahScreen> {
                 ],
               ),
 
-              // Rincian Putra & Putri Atas Bawah Tanpa Emoji
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+              // Dual-color progress bar
+              if (kTotal > 0)
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(3),
+                  child: SizedBox(
+                    height: 3.5,
+                    child: Row(
+                      children: [
+                        if (kPutra > 0)
+                          Expanded(
+                            flex: kPutra,
+                            child: Container(color: const Color(0xFF3B82F6)),
+                          ),
+                        if (kPutri > 0)
+                          Expanded(
+                            flex: kPutri,
+                            child: Container(color: const Color(0xFFEC4899)),
+                          ),
+                      ],
+                    ),
+                  ),
+                ),
+
+              // Rincian Putra & Putri
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   Row(
                     children: [
                       Container(
-                        width: 7,
-                        height: 7,
+                        width: 5,
+                        height: 5,
                         decoration: const BoxDecoration(
                           color: Color(0xFF3B82F6),
                           shape: BoxShape.circle,
                         ),
                       ),
-                      const SizedBox(width: 5),
+                      const SizedBox(width: 3),
                       Text(
-                        "Putra: $kPutra",
+                        "$kPutra L",
                         style: GoogleFonts.outfit(
-                          fontSize: 11,
+                          fontSize: 9.5,
                           fontWeight: FontWeight.w600,
                           color: const Color(0xFF3B82F6),
                         ),
                       ),
                     ],
                   ),
-                  const SizedBox(height: 3),
                   Row(
                     children: [
                       Container(
-                        width: 7,
-                        height: 7,
+                        width: 5,
+                        height: 5,
                         decoration: const BoxDecoration(
                           color: Color(0xFFEC4899),
                           shape: BoxShape.circle,
                         ),
                       ),
-                      const SizedBox(width: 5),
+                      const SizedBox(width: 3),
                       Text(
-                        "Putri: $kPutri",
+                        "$kPutri P",
                         style: GoogleFonts.outfit(
-                          fontSize: 11,
+                          fontSize: 9.5,
                           fontWeight: FontWeight.w600,
                           color: const Color(0xFFEC4899),
                         ),

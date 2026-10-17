@@ -409,10 +409,31 @@ function registerMyMustahiqRoutes(app) {
         sta.alamat,
         sta.status,
         sta.catatan,
-        sta.nama_ayah,
-        sta.nama_ibu,
-        sta.no_hp_ayah,
-        sta.no_hp_ibu,
+        COALESCE(sta.nama_ayah, o.nama_ayah) AS nama_ayah,
+        COALESCE(sta.nama_ibu, o.nama_ibu) AS nama_ibu,
+        COALESCE(sta.no_hp_ayah, o.no_hp_ayah) AS no_hp_ayah,
+        COALESCE(sta.no_hp_ibu, o.no_hp_ibu) AS no_hp_ibu,
+        o.pekerjaan_ayah,
+        o.pekerjaan_ibu,
+        o.nik_ayah,
+        o.nik_ibu,
+        s.tahun_masuk,
+        s.anak_ke,
+        s.agama,
+        s.status_keluarga,
+        s.status_masuk,
+        s.pesantren_sebelumnya,
+        s.sekolah_asal_nama,
+        s.sekolah_asal_alamat,
+        s.diterima_kelas_madin,
+        s.diterima_tanggal_madin,
+        s.keluar_madin_tanggal,
+        s.keluar_madin_status,
+        s.keluar_pondok_tanggal,
+        s.keluar_pondok_status,
+        s.keluar_sekolah_tingkat,
+        s.keluar_sekolah_tanggal,
+        s.keluar_sekolah_status,
         kd.nama AS kelas_diniyah,
         ks.nama AS kelas_sekolah,
         kam.nama AS kamar_nama,
@@ -424,6 +445,7 @@ function registerMyMustahiqRoutes(app) {
         mp_qir.nama AS qiroatul_kitab
       FROM santri_tahun_ajaran sta
       JOIN santri s ON sta.santri_id = s.id
+      LEFT JOIN orangtua o ON s.id = o.santri_id
       LEFT JOIN kelas kd ON sta.kelas_diniyah_id = kd.id
       LEFT JOIN kelas ks ON sta.kelas_sekolah_id = ks.id
       LEFT JOIN kamar kam ON sta.kamar_id = kam.id
@@ -438,6 +460,16 @@ function registerMyMustahiqRoutes(app) {
     }
 
     const profile = profileResult.rows[0];
+    profile.orangtua = {
+      nama_ayah: profile.nama_ayah,
+      nama_ibu: profile.nama_ibu,
+      no_hp_ayah: profile.no_hp_ayah,
+      no_hp_ibu: profile.no_hp_ibu,
+      pekerjaan_ayah: profile.pekerjaan_ayah,
+      pekerjaan_ibu: profile.pekerjaan_ibu,
+      nik_ayah: profile.nik_ayah,
+      nik_ibu: profile.nik_ibu,
+    };
 
     // 2. Fetch grades for selected year and semester (kategori_evaluasi_id)
     const gradesResult = await db.query(`
@@ -909,6 +941,42 @@ function registerMyMustahiqRoutes(app) {
       tahunAjaran: activeYear ? activeYear.kode : '-',
       semester: activeSemester,
       munawib: result.rows 
+    });
+  }));
+
+  /**
+   * GET /api/my-mustahiq/all-asatidz
+   * Returns list of all active Asatidz regardless of Mustahiq/Munawib
+   */
+  router.get('/all-asatidz', asyncHandler(async (req, res) => {
+    const activeYear = await getActiveTahunAjaran();
+    const result = await db.query(`
+      SELECT 
+        g.id, 
+        g.nip, 
+        g.nama, 
+        g.no_hp, 
+        g.alamat, 
+        g.foto_url,
+        g.jabatan_id,
+        j.nama AS jabatan,
+        k.nama AS kelas_binaan
+      FROM guru g
+      LEFT JOIN jabatan j ON g.jabatan_id = j.id
+      LEFT JOIN kelas_tahun_ajaran kta ON kta.mustahiq_id = g.id AND kta.tahun_ajaran_id = $1
+      LEFT JOIN kelas k ON kta.kelas_id = k.id
+      WHERE LOWER(COALESCE(g.status, 'aktif')) = 'aktif'
+        AND LOWER(COALESCE(g.status, '')) NOT IN ('cuti', 'pensiun')
+      ORDER BY g.nama
+    `, [activeYear ? activeYear.id : null]);
+
+    const semResult = await db.query("SELECT value FROM system_settings WHERE key = 'active_semester' LIMIT 1");
+    const activeSemester = semResult.rows[0] ? semResult.rows[0].value : 'Ganjil';
+
+    res.json({ 
+      tahunAjaran: activeYear ? activeYear.kode : '-',
+      semester: activeSemester,
+      asatidz: result.rows 
     });
   }));
 
@@ -1438,10 +1506,14 @@ function registerMyMustahiqRoutes(app) {
 
   // === BUKU INDUK: GET DATA ===
   router.get('/buku-induk', asyncHandler(async (req, res) => {
-    const { jenis_kelamin, search } = req.query;
+    const { jenis_kelamin, search, tahun_masuk } = req.query;
     let whereClause = [];
     let params = [];
 
+    if (tahun_masuk && tahun_masuk !== 'Semua' && tahun_masuk !== '') {
+      params.push(parseInt(tahun_masuk, 10));
+      whereClause.push(`s.tahun_masuk = $${params.length}`);
+    }
     if (jenis_kelamin) {
       const normJk = normalizeGender(jenis_kelamin);
       if (normJk) {
@@ -1475,6 +1547,18 @@ function registerMyMustahiqRoutes(app) {
     `, params);
 
     res.json(result.rows);
+  }));
+
+  // === BUKU INDUK: GET DAFTAR TAHUN MASUK ===
+  router.get('/buku-induk/tahun-masuk', asyncHandler(async (req, res) => {
+    const result = await db.query(`
+      SELECT DISTINCT tahun_masuk
+      FROM santri
+      WHERE tahun_masuk IS NOT NULL
+      ORDER BY tahun_masuk DESC
+    `);
+    const years = result.rows.map(r => r.tahun_masuk);
+    res.json(years);
   }));
 
   // === NOTIFICATIONS: GET LIST ===
@@ -3091,7 +3175,7 @@ function registerMyMustahiqRoutes(app) {
     const { tahun_ajaran_id } = req.query;
     const targetTaId = tahun_ajaran_id ? parseInt(tahun_ajaran_id, 10) : null;
     let query = `
-      SELECT p.*, s.nis, s.nama AS nama_santri, 
+      SELECT p.*, s.nis, s.nama AS nama_santri, s.foto_url,
              COALESCE(kd.nama, ks.nama, '-') AS kelas_nama
       FROM pelanggaran p
       LEFT JOIN santri s ON p.santri_id = s.id
@@ -3112,7 +3196,7 @@ function registerMyMustahiqRoutes(app) {
     const { tahun_ajaran_id } = req.query;
     const targetTaId = tahun_ajaran_id ? parseInt(tahun_ajaran_id, 10) : null;
     let query = `
-      SELECT p.*, s.nis, s.nama AS nama_santri,
+      SELECT p.*, s.nis, s.nama AS nama_santri, s.foto_url,
              COALESCE(kd.nama, ks.nama, '-') AS kelas_nama
       FROM prestasi p
       LEFT JOIN santri s ON p.santri_id = s.id

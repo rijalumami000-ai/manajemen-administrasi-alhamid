@@ -562,102 +562,117 @@ class _SantriExplorerScreenState extends State<SantriExplorerScreen> {
                                   crossAxisCount: 2,
                                   crossAxisSpacing: 12,
                                   mainAxisSpacing: 12,
-                                  childAspectRatio: 0.8,
+                                  childAspectRatio: 0.68,
                                 ),
                                 itemCount: _filteredStudents.length,
                                 itemBuilder: (context, index) {
                                   final student = _filteredStudents[index];
-                                  return Card(
-                                    color: context.cardBg,
-                                    margin: EdgeInsets.zero,
-                                    shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(20),
-                                      side: BorderSide(color: context.borderColor),
+                                  final isDark = context.isDarkMode;
+                                  return Container(
+                                    decoration: BoxDecoration(
+                                      color: isDark ? const Color(0xFF131C2E) : Colors.white,
+                                      borderRadius: BorderRadius.circular(16),
+                                      border: Border.all(
+                                        color: isDark ? Colors.white.withOpacity(0.08) : Colors.black.withOpacity(0.07),
+                                        width: 1.1,
+                                      ),
+                                      boxShadow: [
+                                        BoxShadow(
+                                          color: Colors.black.withOpacity(isDark ? 0.25 : 0.04),
+                                          blurRadius: 8,
+                                          offset: const Offset(0, 3),
+                                        ),
+                                      ],
                                     ),
-                                    elevation: 0,
-                                    child: InkWell(
-                                      onTap: () {
-                                        Navigator.push(
-                                          context,
-                                          MaterialPageRoute(
-                                            builder: (context) => SantriDetailScreen(
-                                              santriId: student.id,
-                                              tahunAjaranId: _selectedTahunAjaran?['id'],
-                                              semester: _selectedSemester,
+                                    child: Material(
+                                      color: Colors.transparent,
+                                      child: InkWell(
+                                        borderRadius: BorderRadius.circular(16),
+                                        onTap: () {
+                                          Navigator.push(
+                                            context,
+                                            MaterialPageRoute(
+                                              builder: (context) => SantriDetailScreen(
+                                                santriId: student.id,
+                                                tahunAjaranId: _selectedTahunAjaran?['id'],
+                                                semester: _selectedSemester,
+                                              ),
                                             ),
-                                          ),
-                                        );
-                                      },
-                                      borderRadius: BorderRadius.circular(20),
-                                      child: Padding(
-                                        padding: const EdgeInsets.all(12.0),
-                                        child: Column(
-                                          mainAxisAlignment: MainAxisAlignment.center,
-                                          children: [
-                                            // Avatar
-                                            Container(
-                                              width: 56,
-                                              height: 56,
-                                              decoration: BoxDecoration(
-                                                color: context.isDarkMode 
-                                                    ? Colors.white.withOpacity(0.05) 
-                                                    : const Color(0xFF10B981).withOpacity(0.12),
-                                                shape: BoxShape.circle,
-                                                border: Border.all(
-                                                  color: const Color(0xFF10B981).withOpacity(
-                                                    context.isDarkMode ? 0.3 : 0.5,
+                                          );
+                                        },
+                                        child: Padding(
+                                          padding: const EdgeInsets.all(8.0),
+                                          child: Column(
+                                            crossAxisAlignment: CrossAxisAlignment.start,
+                                            children: [
+                                              // Tall portrait half-body rounded photo frame
+                                              Expanded(
+                                                child: ClipRRect(
+                                                  borderRadius: BorderRadius.circular(12),
+                                                  child: Container(
+                                                    width: double.infinity,
+                                                    color: isDark ? Colors.white.withOpacity(0.04) : const Color(0xFFF1F5F9),
+                                                    child: student.fotoUrl != null && student.fotoUrl!.isNotEmpty
+                                                        ? Image.network(
+                                                            _apiService.getFullImageUrl(student.fotoUrl),
+                                                            fit: BoxFit.cover,
+                                                            alignment: Alignment.topCenter, // Waist-up crop focus
+                                                            errorBuilder: (context, error, stackTrace) => Center(
+                                                              child: _buildDefaultAvatar(student.jenisKelamin),
+                                                            ),
+                                                          )
+                                                        : Center(
+                                                            child: _buildDefaultAvatar(student.jenisKelamin),
+                                                          ),
                                                   ),
-                                                  width: 2,
                                                 ),
                                               ),
-                                              child: ClipOval(
-                                                child: student.fotoUrl != null && student.fotoUrl!.isNotEmpty
-                                                    ? Image.network(
-                                                        _apiService.getFullImageUrl(student.fotoUrl),
-                                                        fit: BoxFit.cover,
-                                                        errorBuilder: (context, error, stackTrace) =>
-                                                            _buildDefaultAvatar(student.jenisKelamin),
-                                                      )
-                                                    : _buildDefaultAvatar(student.jenisKelamin),
+                                              const SizedBox(height: 8),
+                                              // Name
+                                              Text(
+                                                student.nama,
+                                                style: GoogleFonts.outfit(
+                                                  color: context.titleColor,
+                                                  fontSize: 12.5,
+                                                  fontWeight: FontWeight.bold,
+                                                ),
+                                                maxLines: 1,
+                                                overflow: TextOverflow.ellipsis,
                                               ),
-                                            ),
-                                            const SizedBox(height: 12),
-                                            // Name
-                                            Text(
-                                              student.nama,
-                                              style: GoogleFonts.outfit(
-                                                color: context.titleColor,
-                                                fontSize: 13,
-                                                fontWeight: FontWeight.bold,
+                                              const SizedBox(height: 2),
+                                              // NIS & Room Row
+                                              Row(
+                                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                                children: [
+                                                  Text(
+                                                    "NIS: ${student.nis}",
+                                                    style: GoogleFonts.outfit(
+                                                      color: context.subTitleColor,
+                                                      fontSize: 10,
+                                                    ),
+                                                  ),
+                                                  if (student.kamarNama.isNotEmpty)
+                                                    Container(
+                                                      padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1.5),
+                                                      decoration: BoxDecoration(
+                                                        color: const Color(0xFF10B981).withOpacity(0.12),
+                                                        borderRadius: BorderRadius.circular(4),
+                                                      ),
+                                                      child: Text(
+                                                        student.kamarNama,
+                                                        style: GoogleFonts.outfit(
+                                                          color: const Color(0xFF10B981),
+                                                          fontSize: 9,
+                                                          fontWeight: FontWeight.bold,
+                                                        ),
+                                                        maxLines: 1,
+                                                        overflow: TextOverflow.ellipsis,
+                                                      ),
+                                                    ),
+                                                ],
                                               ),
-                                              textAlign: TextAlign.center,
-                                              maxLines: 2,
-                                              overflow: TextOverflow.ellipsis,
-                                            ),
-                                            const SizedBox(height: 4),
-                                            // NIS
-                                            Text(
-                                              "NIS: ${student.nis}",
-                                              style: GoogleFonts.outfit(
-                                                color: context.subTitleColor,
-                                                fontSize: 10,
-                                              ),
-                                              textAlign: TextAlign.center,
-                                            ),
-                                            const SizedBox(height: 2),
-                                            // Room
-                                            Text(
-                                              student.kamarNama,
-                                              style: GoogleFonts.outfit(
-                                                color: const Color(0xFF10B981),
-                                                fontSize: 10,
-                                                fontWeight: FontWeight.w600,
-                                              ),
-                                              textAlign: TextAlign.center,
-                                              maxLines: 1,
-                                              overflow: TextOverflow.ellipsis,
-                                            ),
-                                          ],
+                                            ],
+                                          ),
                                         ),
                                       ),
                                     ),

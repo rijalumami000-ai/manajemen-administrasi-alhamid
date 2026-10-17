@@ -277,6 +277,19 @@ class ApiService {
     }
   }
 
+  // Get all Asatidz list (Mustahiq + Munawib)
+  Future<Map<String, dynamic>> getAllAsatidzList() async {
+    try {
+      final response = await _dio.get('/my-mustahiq/all-asatidz');
+      if (response.statusCode == 200) {
+        return response.data;
+      }
+      throw Exception('Gagal mengambil daftar asatidz.');
+    } catch (e) {
+      throw Exception('Tidak dapat memuat daftar seluruh asatidz.');
+    }
+  }
+
   // --- NEW ACADEMIC YEAR / TIM SOAL / INPUT NILAI METHODS ---
 
   // Get list of all academic years
@@ -439,11 +452,14 @@ class ApiService {
   }
 
   // Get Buku Induk Santri list
-  Future<List<dynamic>> getBukuInduk({String? gender, String? search}) async {
+  Future<List<dynamic>> getBukuInduk({String? gender, String? search, dynamic tahunMasuk}) async {
     try {
       final queryParams = <String>[];
       if (gender != null && gender.isNotEmpty) queryParams.add('jenis_kelamin=$gender');
       if (search != null && search.isNotEmpty) queryParams.add('search=$search');
+      if (tahunMasuk != null && tahunMasuk.toString().isNotEmpty && tahunMasuk.toString() != 'Semua') {
+        queryParams.add('tahun_masuk=$tahunMasuk');
+      }
       final queryString = queryParams.isNotEmpty ? '?${queryParams.join('&')}' : '';
       
       final response = await _dio.get('/my-mustahiq/buku-induk$queryString');
@@ -456,6 +472,19 @@ class ApiService {
         throw Exception(e.response?.data['error'] ?? 'Gagal mengambil data buku induk.');
       }
       rethrow;
+    }
+  }
+
+  // Get distinct list of tahun masuk for Buku Induk
+  Future<List<dynamic>> getBukuIndukTahunMasuk() async {
+    try {
+      final response = await _dio.get('/my-mustahiq/buku-induk/tahun-masuk');
+      if (response.statusCode == 200) {
+        return response.data as List<dynamic>;
+      }
+      return [];
+    } catch (_) {
+      return [];
     }
   }
 

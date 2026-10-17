@@ -22,17 +22,40 @@ class _BukuIndukScreenState extends State<BukuIndukScreen> {
   List<dynamic> _santriList = [];
   
   String _selectedGender = 'Laki-laki'; // Default to Putra, 'Perempuan' = Putri
+  List<int> _availableYears = [];
+  int? _selectedYear; // Default to latest year
 
   @override
   void initState() {
     super.initState();
-    _fetchBukuInduk();
+    _initYearsAndFetch();
   }
 
   @override
   void dispose() {
     _searchController.dispose();
     super.dispose();
+  }
+
+  Future<void> _initYearsAndFetch() async {
+    try {
+      final years = await _apiService.getBukuIndukTahunMasuk();
+      if (years.isNotEmpty) {
+        final parsed = years
+            .map((y) => int.tryParse(y.toString()) ?? 0)
+            .where((y) => y > 0)
+            .toList();
+        parsed.sort((a, b) => b.compareTo(a));
+        if (mounted) {
+          setState(() {
+            _availableYears = parsed;
+            // Default filter: Tahun terbaru (newest year)
+            _selectedYear = parsed.isNotEmpty ? parsed.first : 2025;
+          });
+        }
+      }
+    } catch (_) {}
+    _fetchBukuInduk();
   }
 
   Future<void> _fetchBukuInduk() async {
@@ -52,7 +75,11 @@ class _BukuIndukScreenState extends State<BukuIndukScreen> {
     try {
       final genderParam = _selectedGender.isNotEmpty ? _selectedGender : null;
       final searchParam = _searchController.text.isNotEmpty ? _searchController.text : null;
-      final data = await _apiService.getBukuInduk(gender: genderParam, search: searchParam);
+      final data = await _apiService.getBukuInduk(
+        gender: genderParam,
+        search: searchParam,
+        tahunMasuk: _selectedYear,
+      );
       
       setState(() {
         _santriList = data;
@@ -142,13 +169,51 @@ class _BukuIndukScreenState extends State<BukuIndukScreen> {
                     ),
                   ),
                 ),
-                const SizedBox(height: 14),
-                // Gender Chip Filters
+                const SizedBox(height: 12),
+                // Tahun Masuk Filter (Above Gender)
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        const Icon(Icons.calendar_today_rounded, size: 12, color: Color(0xFF3B82F6)),
+                        const SizedBox(width: 6),
+                        Text(
+                          "Tahun Masuk:",
+                          style: GoogleFonts.outfit(
+                            fontSize: 11,
+                            fontWeight: FontWeight.w600,
+                            color: context.subTitleColor,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 6),
+                    SingleChildScrollView(
+                      scrollDirection: Axis.horizontal,
+                      physics: const BouncingScrollPhysics(),
+                      child: Row(
+                        children: [
+                          _buildTahunChip(null, "Semua"),
+                          const SizedBox(width: 6),
+                          ..._availableYears.map((yr) => Padding(
+                                padding: const EdgeInsets.only(right: 6),
+                                child: _buildTahunChip(yr, "$yr"),
+                              )),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 10),
+                // Gender Chip Filters (Below Tahun)
                 Row(
                   children: [
                     _buildFilterChip('Laki-laki', 'Putra'),
                     const SizedBox(width: 8),
                     _buildFilterChip('Perempuan', 'Putri'),
+                    const SizedBox(width: 8),
+                    _buildFilterChip('', 'Semua'),
                   ],
                 ),
               ],
@@ -207,6 +272,41 @@ class _BukuIndukScreenState extends State<BukuIndukScreen> {
                           ),
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildTahunChip(int? year, String label) {
+    final isSelected = _selectedYear == year;
+    const accentColor = Color(0xFF3B82F6);
+    return GestureDetector(
+      onTap: () {
+        setState(() {
+          _selectedYear = year;
+        });
+        _fetchBukuInduk();
+      },
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
+        decoration: BoxDecoration(
+          color: isSelected
+              ? accentColor.withOpacity(context.isDarkMode ? 0.25 : 0.12)
+              : Colors.transparent,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+            color: isSelected ? accentColor : context.borderColor,
+            width: 1.5,
+          ),
+        ),
+        child: Text(
+          label,
+          style: GoogleFonts.outfit(
+            color: isSelected ? accentColor : context.subTitleColor,
+            fontSize: 12,
+            fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
+          ),
+        ),
       ),
     );
   }

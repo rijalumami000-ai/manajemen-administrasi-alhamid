@@ -10,8 +10,13 @@ import '../widgets/offline_widget.dart';
 
 class TeacherListScreen extends StatefulWidget {
   final bool isMustahiq; // true for Mustahiq, false for Munawib
+  final bool isAll; // true for Daftar Seluruh Asatidz
 
-  const TeacherListScreen({super.key, required this.isMustahiq});
+  const TeacherListScreen({
+    super.key,
+    required this.isMustahiq,
+    this.isAll = false,
+  });
 
   @override
   State<TeacherListScreen> createState() => _TeacherListScreenState();
@@ -86,11 +91,19 @@ class _TeacherListScreenState extends State<TeacherListScreen> {
     }
 
     try {
-      final res = widget.isMustahiq
-          ? await _apiService.getMustahiqList()
-          : await _apiService.getMunawibList();
+      final dynamic res;
+      final String dataKey;
+      if (widget.isAll) {
+        res = await _apiService.getAllAsatidzList();
+        dataKey = 'asatidz';
+      } else if (widget.isMustahiq) {
+        res = await _apiService.getMustahiqList();
+        dataKey = 'mustahiq';
+      } else {
+        res = await _apiService.getMunawibList();
+        dataKey = 'munawib';
+      }
 
-      final dataKey = widget.isMustahiq ? 'mustahiq' : 'munawib';
       final list = res[dataKey] as List<dynamic>? ?? [];
       final parsedList = list.map((item) => Guru.fromJson(item)).toList();
       final activeYear = res['tahunAjaran'] ?? '';
@@ -98,6 +111,8 @@ class _TeacherListScreenState extends State<TeacherListScreen> {
 
       if (widget.isMustahiq) {
         _sortMustahiq(parsedList);
+      } else {
+        parsedList.sort((a, b) => a.nama.compareTo(b.nama));
       }
 
       setState(() {
@@ -174,10 +189,14 @@ class _TeacherListScreenState extends State<TeacherListScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final title = widget.isMustahiq ? "Daftar Mustahiq" : "Daftar Munawib";
-    final description = widget.isMustahiq
-        ? "Daftar asatidz/ustadzah wali kelas Diniyah aktif"
-        : "Daftar asatidz/ustadzah guru mata pelajaran";
+    final title = widget.isAll
+        ? "Daftar Seluruh Asatidz"
+        : (widget.isMustahiq ? "Daftar Mustahiq" : "Daftar Munawib");
+    final description = widget.isAll
+        ? "Seluruh asatidz dan ustadzah aktif di Ponpes Al-Hamid"
+        : (widget.isMustahiq
+            ? "Daftar asatidz/ustadzah wali kelas Diniyah aktif"
+            : "Daftar asatidz/ustadzah guru mata pelajaran");
 
     return Scaffold(
       backgroundColor: context.scaffoldBg,

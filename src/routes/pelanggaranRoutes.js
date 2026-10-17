@@ -9,7 +9,7 @@ function registerPelanggaranRoutes(app) {
     try {
       const { tahun_ajaran_id } = req.query;
       let query = `
-        SELECT p.*, s.nis, s.nama AS nama_santri, ta.kode AS tahun_ajaran_kode
+        SELECT p.*, s.nis, s.nama AS nama_santri, s.foto_url, ta.kode AS tahun_ajaran_kode
         FROM pelanggaran p
         LEFT JOIN santri s ON p.santri_id = s.id
         LEFT JOIN tahun_ajaran ta ON p.tahun_ajaran_id = ta.id

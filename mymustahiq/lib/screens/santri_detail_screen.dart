@@ -168,29 +168,63 @@ class _SantriDetailScreenState extends State<SantriDetailScreen> with SingleTick
                       color: context.cardBg,
                       child: Row(
                         children: [
-                          Container(
-                            width: 70,
-                            height: 70,
-                            decoration: BoxDecoration(
-                              color: Colors.white.withOpacity(0.05),
-                              shape: BoxShape.circle,
-                              border: Border.all(
-                                color: const Color(0xFF10B981),
-                                width: 2,
+                          GestureDetector(
+                            onTap: () => _showLargePhotoDialog(context, fotoUrl, studentName, gender),
+                            child: Container(
+                              width: 68,
+                              height: 88,
+                              decoration: BoxDecoration(
+                                color: Colors.white.withOpacity(0.05),
+                                borderRadius: BorderRadius.circular(14),
+                                border: Border.all(
+                                  color: const Color(0xFF10B981).withOpacity(0.5),
+                                  width: 2,
+                                ),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: Colors.black.withOpacity(0.12),
+                                    blurRadius: 6,
+                                    offset: const Offset(0, 3),
+                                  ),
+                                ],
+                              ),
+                              child: Stack(
+                                children: [
+                                  ClipRRect(
+                                    borderRadius: BorderRadius.circular(12),
+                                    child: SizedBox.expand(
+                                      child: fotoUrl != null && fotoUrl.isNotEmpty
+                                          ? Image.network(
+                                              _apiService.getFullImageUrl(fotoUrl),
+                                              fit: BoxFit.cover,
+                                              alignment: Alignment.topCenter,
+                                              errorBuilder: (context, error, stackTrace) =>
+                                                  Center(child: _buildDefaultAvatar(gender)),
+                                            )
+                                          : Center(child: _buildDefaultAvatar(gender)),
+                                    ),
+                                  ),
+                                  Positioned(
+                                    right: 4,
+                                    bottom: 4,
+                                    child: Container(
+                                      padding: const EdgeInsets.all(3),
+                                      decoration: BoxDecoration(
+                                        color: Colors.black.withOpacity(0.65),
+                                        shape: BoxShape.circle,
+                                      ),
+                                      child: const Icon(
+                                        Icons.fullscreen_rounded,
+                                        size: 12,
+                                        color: Colors.white,
+                                      ),
+                                    ),
+                                  ),
+                                ],
                               ),
                             ),
-                            child: ClipOval(
-                              child: fotoUrl != null
-                                  ? Image.network(
-                                      _apiService.getFullImageUrl(fotoUrl),
-                                      fit: BoxFit.cover,
-                                      errorBuilder: (context, error, stackTrace) =>
-                                          _buildDefaultAvatar(gender),
-                                    )
-                                  : _buildDefaultAvatar(gender),
-                            ),
                           ),
-                          const SizedBox(width: 20),
+                          const SizedBox(width: 18),
                           Expanded(
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
@@ -211,7 +245,7 @@ class _SantriDetailScreenState extends State<SantriDetailScreen> with SingleTick
                                     fontSize: 13,
                                   ),
                                 ),
-                                const SizedBox(height: 4),
+                                const SizedBox(height: 6),
                                 Container(
                                   padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                                   decoration: BoxDecoration(
@@ -336,6 +370,90 @@ class _SantriDetailScreenState extends State<SantriDetailScreen> with SingleTick
     );
   }
 
+  void _showLargePhotoDialog(BuildContext context, String? fotoUrl, String studentName, String gender) {
+    showDialog(
+      context: context,
+      barrierDismissible: true,
+      builder: (ctx) {
+        final isDark = Theme.of(ctx).brightness == Brightness.dark;
+        return Dialog(
+          backgroundColor: Colors.transparent,
+          insetPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
+          child: Container(
+            decoration: BoxDecoration(
+              color: isDark ? const Color(0xFF131C2E) : Colors.white,
+              borderRadius: BorderRadius.circular(24),
+              border: Border.all(
+                color: isDark ? Colors.white.withOpacity(0.08) : Colors.black.withOpacity(0.06),
+              ),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.4),
+                  blurRadius: 24,
+                  offset: const Offset(0, 8),
+                ),
+              ],
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // Header Bar
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(18, 12, 10, 10),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Expanded(
+                        child: Text(
+                          studentName,
+                          style: GoogleFonts.outfit(
+                            fontSize: 15,
+                            fontWeight: FontWeight.bold,
+                            color: isDark ? Colors.white : const Color(0xFF0F172A),
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                      IconButton(
+                        icon: const Icon(Icons.close_rounded, size: 20),
+                        onPressed: () => Navigator.pop(ctx),
+                        splashRadius: 18,
+                      ),
+                    ],
+                  ),
+                ),
+                // Large Tall Portrait Image Viewer
+                ClipRRect(
+                  borderRadius: const BorderRadius.only(
+                    bottomLeft: Radius.circular(24),
+                    bottomRight: Radius.circular(24),
+                  ),
+                  child: Container(
+                    constraints: BoxConstraints(
+                      maxHeight: MediaQuery.of(context).size.height * 0.65,
+                      minHeight: 260,
+                      maxWidth: double.infinity,
+                    ),
+                    color: isDark ? const Color(0xFF0A0F1D) : const Color(0xFFF1F5F9),
+                    child: fotoUrl != null && fotoUrl.isNotEmpty
+                        ? Image.network(
+                            _apiService.getFullImageUrl(fotoUrl),
+                            fit: BoxFit.contain,
+                            alignment: Alignment.center,
+                            errorBuilder: (c, e, s) => Center(child: _buildDefaultAvatar(gender)),
+                          )
+                        : Center(child: _buildDefaultAvatar(gender)),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
   Widget _buildDefaultAvatar(String gender) {
     final isPutra = gender.toLowerCase() == 'putra' || gender.toLowerCase().startsWith('l');
     return Icon(
@@ -348,25 +466,28 @@ class _SantriDetailScreenState extends State<SantriDetailScreen> with SingleTick
   // ===== TAB 1: PROFIL =====
   Widget _buildProfilTab(Map<String, dynamic>? profile) {
     if (profile == null) return const SizedBox();
-    
+    final orangtua = profile['orangtua'] as Map<String, dynamic>? ?? {};
+
     return SingleChildScrollView(
       physics: const BouncingScrollPhysics(),
-      padding: const EdgeInsets.all(24),
+      padding: const EdgeInsets.all(20),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          // Personal Details
+          // 1. Personal Details
           _buildSectionTitle("BIODATA PRIBADI"),
           const SizedBox(height: 12),
           Container(
-            padding: const EdgeInsets.all(20),
+            padding: const EdgeInsets.all(18),
             decoration: BoxDecoration(
               color: context.cardBg,
-              borderRadius: BorderRadius.circular(20),
+              borderRadius: BorderRadius.circular(18),
               border: Border.all(color: context.borderColor),
             ),
             child: Column(
               children: [
+                _buildInfoRow("NIS", profile['nis'] ?? '-'),
+                _buildDivider(),
                 _buildInfoRow("NIK / No. KTP", profile['nik'] ?? '-'),
                 _buildDivider(),
                 _buildInfoRow(
@@ -382,7 +503,17 @@ class _SantriDetailScreenState extends State<SantriDetailScreen> with SingleTick
                 _buildDivider(),
                 _buildInfoRow("Tanggal Lahir", _formatTanggal(profile['tanggal_lahir'])),
                 _buildDivider(),
-                _buildInfoRow("Kamar Asrama", profile['kamar'] ?? '-'),
+                _buildInfoRow("Tahun Masuk", profile['tahun_masuk']?.toString() ?? '-'),
+                _buildDivider(),
+                _buildInfoRow("Anak Ke", profile['anak_ke'] != null ? "${profile['anak_ke']}" : '-'),
+                _buildDivider(),
+                _buildInfoRow("Status Keluarga", profile['status_keluarga'] ?? '-'),
+                _buildDivider(),
+                _buildInfoRow("Status Santri", profile['status'] ?? 'Aktif'),
+                _buildDivider(),
+                _buildInfoRow("Kamar Asrama", "${profile['kamar_nama'] ?? profile['kamar'] ?? '-'} ${profile['kamar_gedung'] != null ? '(${profile['kamar_gedung']})' : ''}".trim()),
+                _buildDivider(),
+                _buildInfoRow("Kelas Diniyah", profile['kelas_diniyah'] ?? profile['kelas'] ?? '-'),
                 _buildDivider(),
                 _buildInfoRow("Sekolah Formal", profile['kelas_sekolah'] ?? '-'),
                 _buildDivider(),
@@ -390,31 +521,67 @@ class _SantriDetailScreenState extends State<SantriDetailScreen> with SingleTick
               ],
             ),
           ),
-          const SizedBox(height: 30),
+          const SizedBox(height: 24),
 
-          // Parents Details
+          // 2. Parents Details
           _buildSectionTitle("DATA ORANG TUA / WALI"),
           const SizedBox(height: 12),
           Container(
-            padding: const EdgeInsets.all(20),
+            padding: const EdgeInsets.all(18),
             decoration: BoxDecoration(
               color: context.cardBg,
-              borderRadius: BorderRadius.circular(20),
+              borderRadius: BorderRadius.circular(18),
               border: Border.all(color: context.borderColor),
             ),
             child: Column(
               children: [
-                _buildInfoRow("Nama Ayah", profile['orangtua']?['nama_ayah'] ?? '-'),
+                _buildInfoRow("Nama Ayah", orangtua['nama_ayah'] ?? profile['nama_ayah'] ?? '-'),
                 _buildDivider(),
-                _buildInfoRow("No. HP Ayah", profile['orangtua']?['no_hp_ayah'] ?? '-'),
+                _buildInfoRow("NIK Ayah", orangtua['nik_ayah'] ?? '-'),
                 _buildDivider(),
-                _buildInfoRow("Nama Ibu", profile['orangtua']?['nama_ibu'] ?? '-'),
+                _buildInfoRow("Pekerjaan Ayah", orangtua['pekerjaan_ayah'] ?? '-'),
                 _buildDivider(),
-                _buildInfoRow("No. HP Ibu", profile['orangtua']?['no_hp_ibu'] ?? '-'),
+                _buildInfoRow("No. HP Ayah", orangtua['no_hp_ayah'] ?? profile['no_hp_ayah'] ?? '-'),
+                _buildDivider(),
+                _buildInfoRow("Nama Ibu", orangtua['nama_ibu'] ?? profile['nama_ibu'] ?? '-'),
+                _buildDivider(),
+                _buildInfoRow("NIK Ibu", orangtua['nik_ibu'] ?? '-'),
+                _buildDivider(),
+                _buildInfoRow("Pekerjaan Ibu", orangtua['pekerjaan_ibu'] ?? '-'),
+                _buildDivider(),
+                _buildInfoRow("No. HP Ibu", orangtua['no_hp_ibu'] ?? profile['no_hp_ibu'] ?? '-'),
               ],
             ),
           ),
-          const SizedBox(height: 30),
+          const SizedBox(height: 24),
+
+          // 3. Education & Registration History
+          _buildSectionTitle("RIWAYAT PENDIDIKAN & PENDAFTARAN"),
+          const SizedBox(height: 12),
+          Container(
+            padding: const EdgeInsets.all(18),
+            decoration: BoxDecoration(
+              color: context.cardBg,
+              borderRadius: BorderRadius.circular(18),
+              border: Border.all(color: context.borderColor),
+            ),
+            child: Column(
+              children: [
+                _buildInfoRow("Sekolah Asal", profile['sekolah_asal_nama'] ?? '-'),
+                _buildDivider(),
+                _buildInfoRow("Alamat Sekolah Asal", profile['sekolah_asal_alamat'] ?? '-'),
+                _buildDivider(),
+                _buildInfoRow("Pesantren Sebelumnya", profile['pesantren_sebelumnya'] ?? '-'),
+                _buildDivider(),
+                _buildInfoRow("Status Masuk", profile['status_masuk'] ?? '-'),
+                _buildDivider(),
+                _buildInfoRow("Diterima di Kelas", profile['diterima_kelas_madin'] ?? '-'),
+                _buildDivider(),
+                _buildInfoRow("Tanggal Diterima Madin", _formatTanggal(profile['diterima_tanggal_madin'])),
+              ],
+            ),
+          ),
+          const SizedBox(height: 24),
         ],
       ),
     );

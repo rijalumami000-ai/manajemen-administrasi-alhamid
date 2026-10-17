@@ -155,36 +155,7 @@ class _QiroahMaqroBottomSheetState extends State<QiroahMaqroBottomSheet> {
             ),
           ),
           const Divider(height: 1),
-
-          // Informational Warning Banner
-          Container(
-            margin: const EdgeInsets.all(16),
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: Colors.orange.withOpacity(isDark ? 0.12 : 0.08),
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(
-                color: Colors.orange.withOpacity(isDark ? 0.25 : 0.2),
-              ),
-            ),
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Icon(Icons.warning_amber_rounded, color: Colors.orangeAccent, size: 20),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: Text(
-                    "Tabel ini merupakan acuan daftar bahan bacaan (Maqro) Ujian Qiroatul Kitab yang berlaku di Ponpes Al-Hamid. Data ini hanya bersifat informatif / administratif sebagai panduan pengujian.",
-                    style: GoogleFonts.outfit(
-                      fontSize: 11,
-                      color: isDark ? Colors.orange[200] : Colors.orange[900],
-                      height: 1.4,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
+          const SizedBox(height: 8),
 
           // Year and Semester dropdown selectors
           if (_loadingFilters)

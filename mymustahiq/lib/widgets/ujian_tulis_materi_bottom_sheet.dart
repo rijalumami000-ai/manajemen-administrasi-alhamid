@@ -171,36 +171,7 @@ class _UjianTulisMateriBottomSheetState extends State<UjianTulisMateriBottomShee
             ),
           ),
           const Divider(height: 1),
-
-          // Informational Warning Banner
-          Container(
-            margin: const EdgeInsets.all(16),
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: const Color(0xFF3B82F6).withOpacity(isDark ? 0.12 : 0.08),
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(
-                color: const Color(0xFF3B82F6).withOpacity(isDark ? 0.25 : 0.2),
-              ),
-            ),
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Icon(Icons.info_outline_rounded, color: Color(0xFF3B82F6), size: 20),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: Text(
-                    "Tabel ini merupakan acuan batasan materi (Batas Awal, Batas Akhir) Ujian Tulis reguler per kelas Diniyah yang berlaku di Ponpes Al-Hamid.",
-                    style: GoogleFonts.outfit(
-                      fontSize: 11,
-                      color: isDark ? const Color(0xFF93C5FD) : const Color(0xFF1E40AF),
-                      height: 1.4,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
+          const SizedBox(height: 8),
 
           // Year and Semester dropdown selectors
           if (_loadingFilters)

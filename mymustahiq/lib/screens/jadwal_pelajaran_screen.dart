@@ -350,103 +350,106 @@ class _JadwalPelajaranScreenState extends State<JadwalPelajaranScreen> {
             child: GridView.builder(
               physics: const BouncingScrollPhysics(),
               gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                crossAxisCount: 2,
-                crossAxisSpacing: 14,
-                mainAxisSpacing: 14,
-                childAspectRatio: 1.1,
+                crossAxisCount: 3,
+                crossAxisSpacing: 10,
+                mainAxisSpacing: 10,
+                childAspectRatio: 0.92,
               ),
               itemCount: _classes.length,
               itemBuilder: (context, index) {
                 final kelas = _classes[index];
                 final namaKelas = kelas['nama'] ?? '';
-                
-                // Deterministic gradient based on index and theme mode
-                final List<Color> cardColors = context.isDarkMode
-                    ? (index % 3 == 0
-                        ? [const Color(0xFF064E3B).withOpacity(0.4), const Color(0xFF022C22).withOpacity(0.6)]
-                        : index % 3 == 1
-                            ? [const Color(0xFF1E3A8A).withOpacity(0.4), const Color(0xFF172554).withOpacity(0.6)]
-                            : [const Color(0xFF78350F).withOpacity(0.4), const Color(0xFF451A03).withOpacity(0.6)])
-                    : (index % 3 == 0
-                        ? [const Color(0xFFECFDF5), const Color(0xFFD1FAE5)]
-                        : index % 3 == 1
-                            ? [const Color(0xFFEFF6FF), const Color(0xFFDBEAFE)]
-                            : [const Color(0xFFFFFBEB), const Color(0xFFFEF3C7)]);
+                final isDark = context.isDarkMode;
 
-                final Color accentColor = index % 3 == 0
-                    ? const Color(0xFF10B981)
-                    : index % 3 == 1
-                        ? const Color(0xFF3B82F6)
-                        : const Color(0xFFF59E0B);
+                // Curated cohesive accents (Emerald, Indigo, Amber, Cyan, Rose)
+                final List<Color> accents = [
+                  const Color(0xFF10B981),
+                  const Color(0xFF3B82F6),
+                  const Color(0xFF8B5CF6),
+                  const Color(0xFFF59E0B),
+                  const Color(0xFF06B6D4),
+                  const Color(0xFFEC4899),
+                ];
+                final Color accentColor = accents[index % accents.length];
 
                 return GestureDetector(
                   onTap: () => _selectClass(kelas['id'], namaKelas),
                   child: Container(
                     decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        colors: cardColors,
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
-                      ),
-                      borderRadius: BorderRadius.circular(20),
+                      color: isDark ? const Color(0xFF131C2E) : Colors.white,
+                      borderRadius: BorderRadius.circular(16),
                       border: Border.all(
-                        color: accentColor.withOpacity(context.isDarkMode ? 0.2 : 0.6),
+                        color: accentColor.withOpacity(isDark ? 0.35 : 0.22),
                         width: 1.2,
                       ),
                       boxShadow: [
                         BoxShadow(
-                          color: Colors.black.withOpacity(context.isDarkMode ? 0.2 : 0.04),
-                          blurRadius: 6,
+                          color: Colors.black.withOpacity(isDark ? 0.25 : 0.03),
+                          blurRadius: 8,
                           offset: const Offset(0, 3),
                         )
                       ],
                     ),
-                    padding: const EdgeInsets.all(16),
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Container(
-                          padding: const EdgeInsets.all(8),
-                          decoration: BoxDecoration(
-                            color: context.isDarkMode ? Colors.white.withOpacity(0.06) : Colors.white,
-                            borderRadius: BorderRadius.circular(10),
-                            boxShadow: context.isDarkMode
-                                ? null
-                                : [
-                                    BoxShadow(
-                                      color: Colors.black.withOpacity(0.05),
-                                      blurRadius: 4,
-                                      offset: const Offset(0, 1),
-                                    )
-                                  ],
-                          ),
-                          child: Icon(
-                            Icons.school_rounded,
-                            color: accentColor,
-                            size: 18,
-                          ),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.all(6),
+                              decoration: BoxDecoration(
+                                color: accentColor.withOpacity(0.12),
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: Icon(
+                                Icons.school_rounded,
+                                color: accentColor,
+                                size: 14,
+                              ),
+                            ),
+                            Container(
+                              width: 6,
+                              height: 6,
+                              decoration: BoxDecoration(
+                                shape: BoxShape.circle,
+                                color: accentColor.withOpacity(0.8),
+                              ),
+                            ),
+                          ],
                         ),
                         const Spacer(),
                         Text(
-                          "Kelas $namaKelas",
+                          "Kelas",
                           style: GoogleFonts.outfit(
-                            color: context.titleColor,
-                            fontSize: 15,
-                            fontWeight: FontWeight.bold,
+                            color: context.subTitleColor,
+                            fontSize: 10,
+                            fontWeight: FontWeight.w500,
                           ),
                         ),
-                        const SizedBox(height: 3),
+                        Text(
+                          namaKelas,
+                          style: GoogleFonts.outfit(
+                            color: context.titleColor,
+                            fontSize: 14,
+                            fontWeight: FontWeight.bold,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                        const SizedBox(height: 4),
                         Row(
                           children: [
                             Text(
-                              "Lihat Jadwal",
+                              "Jadwal",
                               style: GoogleFonts.outfit(
                                 color: accentColor,
-                                fontSize: 10,
+                                fontSize: 9.5,
                                 fontWeight: FontWeight.bold,
                               ),
                             ),
-                            const SizedBox(width: 4),
+                            const SizedBox(width: 3),
                             Icon(
                               Icons.arrow_forward_rounded,
                               color: accentColor,

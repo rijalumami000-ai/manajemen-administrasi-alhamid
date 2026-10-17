@@ -436,6 +436,59 @@ class _LaporanPelanggaranPrestasiScreenState extends State<LaporanPelanggaranPre
     );
   }
 
+  Widget _buildSantriAvatar(dynamic item, Color accentColor) {
+    final photo = item['foto_url'];
+    final name = (item['nama_santri'] ?? '?').toString().trim();
+    final initial = name.isNotEmpty ? name[0].toUpperCase() : '?';
+
+    return Container(
+      width: 44,
+      height: 44,
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        color: accentColor.withOpacity(0.12),
+        border: Border.all(
+          color: accentColor.withOpacity(0.3),
+          width: 1.5,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.04),
+            blurRadius: 4,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: ClipOval(
+        child: photo != null && photo.toString().isNotEmpty
+            ? Image.network(
+                _apiService.getFullImageUrl(photo.toString()),
+                fit: BoxFit.cover,
+                errorBuilder: (context, error, stackTrace) => Center(
+                  child: Text(
+                    initial,
+                    style: GoogleFonts.outfit(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                      color: accentColor,
+                    ),
+                  ),
+                ),
+              )
+            : Center(
+                child: Text(
+                  initial,
+                  style: GoogleFonts.outfit(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                    color: accentColor,
+                  ),
+                ),
+              ),
+      ),
+    );
+  }
+
   Widget _buildPelanggaranCard(dynamic item, bool isDark) {
     final badgeText = (item['jenis'] ?? item['tingkat'])?.toString();
     return Container(
@@ -451,14 +504,7 @@ class _LaporanPelanggaranPrestasiScreenState extends State<LaporanPelanggaranPre
         children: [
           Row(
             children: [
-              Container(
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color: const Color(0xFFEF4444).withOpacity(0.12),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: const Icon(Icons.warning_amber_rounded, color: Color(0xFFEF4444), size: 18),
-              ),
+              _buildSantriAvatar(item, const Color(0xFFEF4444)),
               const SizedBox(width: 12),
               Expanded(
                 child: Column(
@@ -542,14 +588,7 @@ class _LaporanPelanggaranPrestasiScreenState extends State<LaporanPelanggaranPre
         children: [
           Row(
             children: [
-              Container(
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color: const Color(0xFFF59E0B).withOpacity(0.12),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: const Icon(Icons.emoji_events_rounded, color: Color(0xFFF59E0B), size: 18),
-              ),
+              _buildSantriAvatar(item, const Color(0xFFF59E0B)),
               const SizedBox(width: 12),
               Expanded(
                 child: Column(
