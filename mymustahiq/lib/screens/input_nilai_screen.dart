@@ -440,26 +440,59 @@ class _InputNilaiScreenState extends State<InputNilaiScreen> {
                                           flex: showPredikat ? 2 : 1,
                                           child: item['tipe_input'] == 'Teks'
                                               ? DropdownButtonFormField<String>(
-                                                  value: scoreCtrl.text.isEmpty ? null : ((item['konfigurasi'] as List<dynamic>? ?? []).any((c) => c['bab'].toString() == scoreCtrl.text) ? scoreCtrl.text : null),
+                                                  value: scoreCtrl.text.isEmpty
+                                                      ? null
+                                                      : ((item['konfigurasi'] as List<dynamic>? ?? []).any((c) => c['bab'].toString() == scoreCtrl.text)
+                                                          ? scoreCtrl.text
+                                                          : null),
                                                   dropdownColor: panelBg,
                                                   style: textStyle,
-                                                  decoration: _inputDecoration("Pilih Capaian / Teks", isDark),
-                                                  items: (item['konfigurasi'] as List<dynamic>? ?? [])
-                                                      .map<DropdownMenuItem<String>>((c) {
-                                                    return DropdownMenuItem<String>(
-                                                      value: c['bab'].toString(),
-                                                      child: Text(c['bab'].toString(), style: textStyle),
-                                                    );
-                                                  }).toList(),
+                                                  decoration: _inputDecoration("Pilih Capaian / Teks", isDark).copyWith(
+                                                    suffixIcon: scoreCtrl.text.isNotEmpty
+                                                        ? IconButton(
+                                                            icon: const Icon(Icons.clear_rounded, size: 18),
+                                                            tooltip: "Kosongkan Nilai",
+                                                            onPressed: () {
+                                                              setModalState(() {
+                                                                scoreCtrl.clear();
+                                                                predCtrl.clear();
+                                                              });
+                                                            },
+                                                          )
+                                                        : null,
+                                                  ),
+                                                  items: [
+                                                    DropdownMenuItem<String>(
+                                                      value: '__KOSONG__',
+                                                      child: Text(
+                                                        '-- Belum Dipilih / Kosongkan --',
+                                                        style: textStyle.copyWith(
+                                                          color: isDark ? Colors.white54 : Colors.black45,
+                                                          fontStyle: FontStyle.italic,
+                                                          fontSize: 12.5,
+                                                        ),
+                                                      ),
+                                                    ),
+                                                    ...(item['konfigurasi'] as List<dynamic>? ?? [])
+                                                        .map<DropdownMenuItem<String>>((c) {
+                                                      return DropdownMenuItem<String>(
+                                                        value: c['bab'].toString(),
+                                                        child: Text(c['bab'].toString(), style: textStyle),
+                                                      );
+                                                    }),
+                                                  ],
                                                   onChanged: (val) {
-                                                    if (val != null) {
-                                                      setModalState(() {
+                                                    setModalState(() {
+                                                      if (val == null || val == '__KOSONG__') {
+                                                        scoreCtrl.text = '';
+                                                        predCtrl.text = '';
+                                                      } else {
                                                         scoreCtrl.text = val;
                                                         final cfg = (item['konfigurasi'] as List<dynamic>?)?.firstWhere(
                                                             (c) => c['bab'].toString() == val, orElse: () => null);
                                                         predCtrl.text = cfg != null ? (cfg['predikat']?.toString() ?? '') : '';
-                                                      });
-                                                    }
+                                                      }
+                                                    });
                                                   },
                                                 )
                                               : TextField(
@@ -532,7 +565,11 @@ class _InputNilaiScreenState extends State<InputNilaiScreen> {
                         // We also append desc if there's any extra note.
                         String finalCapaian = '';
                         if (isTeks) {
-                          finalCapaian = desc.isNotEmpty ? "$scoreText - $desc" : scoreText;
+                          if (scoreText.isNotEmpty && scoreText != '__KOSONG__') {
+                            finalCapaian = desc.isNotEmpty ? "$scoreText - $desc" : scoreText;
+                          } else {
+                            finalCapaian = '';
+                          }
                         } else {
                           finalCapaian = desc;
                         }
@@ -541,7 +578,7 @@ class _InputNilaiScreenState extends State<InputNilaiScreen> {
                           'santri_id': santriId,
                           'mata_pelajaran_id': mId,
                           'nilai_angka': score,
-                          'predikat': pred.isNotEmpty ? pred : null,
+                          'predikat': isTeks && (scoreText.isEmpty || scoreText == '__KOSONG__') ? null : (pred.isNotEmpty ? pred : null),
                           'capaian': finalCapaian.isNotEmpty ? finalCapaian : null,
                         });
                       }

@@ -533,22 +533,6 @@ class _TabAdministratifState extends State<TabAdministratif> {
                                 fontWeight: FontWeight.bold,
                               ),
                             ),
-                            const SizedBox(width: 8),
-                            Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                              decoration: BoxDecoration(
-                                color: const Color(0xFF10B981).withOpacity(0.15),
-                                borderRadius: BorderRadius.circular(6),
-                              ),
-                              child: Text(
-                                "Demografi",
-                                style: GoogleFonts.outfit(
-                                  color: const Color(0xFF10B981),
-                                  fontSize: 9,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                            ),
                           ],
                         ),
                         const SizedBox(height: 4),
@@ -621,22 +605,6 @@ class _TabAdministratifState extends State<TabAdministratif> {
                                 color: context.titleColor,
                                 fontSize: 15,
                                 fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                            const SizedBox(width: 8),
-                            Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                              decoration: BoxDecoration(
-                                color: const Color(0xFF3B82F6).withOpacity(0.15),
-                                borderRadius: BorderRadius.circular(6),
-                              ),
-                              child: Text(
-                                "Buku Induk",
-                                style: GoogleFonts.outfit(
-                                  color: const Color(0xFF3B82F6),
-                                  fontSize: 9,
-                                  fontWeight: FontWeight.bold,
-                                ),
                               ),
                             ),
                           ],

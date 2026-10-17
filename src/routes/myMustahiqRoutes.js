@@ -1551,12 +1551,19 @@ function registerMyMustahiqRoutes(app) {
       const { santri_id, mata_pelajaran_id, nilai_angka, predikat, capaian } = item;
       if (!santri_id || !mata_pelajaran_id) continue;
 
-      await db.query(`
-        INSERT INTO nilai_santri (santri_id, mata_pelajaran_id, tahun_ajaran_id, kategori_evaluasi_id, nilai_angka, predikat, capaian)
-        VALUES ($1, $2, $3, $4, $5, $6, $7)
-        ON CONFLICT (santri_id, mata_pelajaran_id, tahun_ajaran_id, kategori_evaluasi_id)
-        DO UPDATE SET nilai_angka = EXCLUDED.nilai_angka, predikat = EXCLUDED.predikat, capaian = EXCLUDED.capaian, updated_at = NOW()
-      `, [santri_id, mata_pelajaran_id, tahun_ajaran_id, kategori_evaluasi_id, nilai_angka || null, predikat || null, capaian || null]);
+      if ((nilai_angka === null || nilai_angka === undefined) && !predikat && !capaian) {
+        await db.query(`
+          DELETE FROM nilai_santri
+          WHERE santri_id = $1 AND mata_pelajaran_id = $2 AND tahun_ajaran_id = $3 AND kategori_evaluasi_id = $4
+        `, [santri_id, mata_pelajaran_id, tahun_ajaran_id, kategori_evaluasi_id]);
+      } else {
+        await db.query(`
+          INSERT INTO nilai_santri (santri_id, mata_pelajaran_id, tahun_ajaran_id, kategori_evaluasi_id, nilai_angka, predikat, capaian)
+          VALUES ($1, $2, $3, $4, $5, $6, $7)
+          ON CONFLICT (santri_id, mata_pelajaran_id, tahun_ajaran_id, kategori_evaluasi_id)
+          DO UPDATE SET nilai_angka = EXCLUDED.nilai_angka, predikat = EXCLUDED.predikat, capaian = EXCLUDED.capaian, updated_at = NOW()
+        `, [santri_id, mata_pelajaran_id, tahun_ajaran_id, kategori_evaluasi_id, nilai_angka || null, predikat || null, capaian || null]);
+      }
       saved++;
     }
 

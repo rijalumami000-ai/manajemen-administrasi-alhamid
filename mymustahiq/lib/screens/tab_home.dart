@@ -469,18 +469,9 @@ class _TabHomeState extends State<TabHome> with SingleTickerProviderStateMixin {
                 Text(
                   "Pondok Pesantren Al-Hamid Cinta Mulya",
                   style: GoogleFonts.outfit(
-                    fontSize: 12.5,
+                    fontSize: 13,
                     fontWeight: FontWeight.w700,
                     color: context.titleColor,
-                  ),
-                ),
-                const SizedBox(height: 2),
-                Text(
-                  "Madrasah Diniyah Takmiliyah Wustha & Ulya",
-                  style: GoogleFonts.outfit(
-                    fontSize: 10.5,
-                    fontWeight: FontWeight.w500,
-                    color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B),
                   ),
                 ),
               ],

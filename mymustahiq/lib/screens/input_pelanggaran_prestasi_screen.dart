@@ -4,8 +4,12 @@ import '../services/api_service.dart';
 import '../services/theme_manager.dart';
 
 class InputPelanggaranPrestasiScreen extends StatefulWidget {
-  final int initialTabIndex; // 0: Pelanggaran, 1: Prestasi
-  const InputPelanggaranPrestasiScreen({super.key, this.initialTabIndex = 0});
+  final int initialTabIndex;
+
+  const InputPelanggaranPrestasiScreen({
+    super.key,
+    this.initialTabIndex = 0,
+  });
 
   @override
   State<InputPelanggaranPrestasiScreen> createState() => _InputPelanggaranPrestasiScreenState();
@@ -13,14 +17,14 @@ class InputPelanggaranPrestasiScreen extends StatefulWidget {
 
 class _InputPelanggaranPrestasiScreenState extends State<InputPelanggaranPrestasiScreen>
     with SingleTickerProviderStateMixin {
-  late TabController _tabController;
   final ApiService _apiService = ApiService();
+  late TabController _tabController;
 
   List<dynamic> _pelanggaranList = [];
   List<dynamic> _prestasiList = [];
   List<dynamic> _santriList = [];
   List<dynamic> _tahunAjaranList = [];
-  int? _activeTahunAjaranId;
+  int? _activeTahunAjaranId; // null = Semua Tahun Ajaran
 
   bool _isLoading = true;
   String? _errorMessage;
@@ -104,20 +108,43 @@ class _InputPelanggaranPrestasiScreenState extends State<InputPelanggaranPrestas
     if (date == null) return '-';
     try {
       final dt = DateTime.parse(date.toString());
-      const bulan = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
-      return '${dt.day} ${bulan[dt.month - 1]} ${dt.year}';
+      final d = dt.day.toString().padLeft(2, '0');
+      final m = dt.month.toString().padLeft(2, '0');
+      return '$d/$m/${dt.year}';
     } catch (_) {
+      final clean = date.toString().split('T')[0];
+      if (clean.contains('-')) {
+        final parts = clean.split('-');
+        if (parts.length == 3) {
+          return '${parts[2].padLeft(2, '0')}/${parts[1].padLeft(2, '0')}/${parts[0]}';
+        }
+      }
       return date.toString();
     }
   }
 
-  // ── FORM DIALOG: TAMBAH PELANGGARAN ────────────────────────────────────────
-  void _showAddPelanggaranDialog(BuildContext context) {
-    dynamic selectedSantri;
-    String selectedJenis = 'Ringan';
-    DateTime selectedDate = DateTime.now();
-    final deskripsiCtrl = TextEditingController();
-    final sanksiCtrl = TextEditingController();
+  // ── FORM DIALOG: TAMBAH / EDIT PELANGGARAN ──────────────────────────────────
+  void _showAddEditPelanggaranDialog(BuildContext context, {Map<String, dynamic>? existing}) {
+    final bool isEdit = existing != null;
+    dynamic selectedSantri = isEdit
+        ? {
+            'id': existing['santri_id'],
+            'nama': existing['nama_santri'],
+            'nis': existing['nis'],
+            'foto_url': existing['foto_url'],
+          }
+        : null;
+
+    String selectedJenis = isEdit ? (existing['jenis'] ?? 'Ringan') : 'Ringan';
+    DateTime selectedDate = isEdit && existing['tanggal'] != null
+        ? (DateTime.tryParse(existing['tanggal'].toString()) ?? DateTime.now())
+        : DateTime.now();
+    int? selectedTahunId = isEdit
+        ? (existing['tahun_ajaran_id'] as int? ?? _activeTahunAjaranId)
+        : _activeTahunAjaranId;
+
+    final deskripsiCtrl = TextEditingController(text: isEdit ? (existing['deskripsi'] ?? '') : '');
+    final sanksiCtrl = TextEditingController(text: isEdit ? (existing['sanksi'] ?? '') : '');
     bool isSaving = false;
     String? formError;
 
@@ -148,7 +175,6 @@ class _InputPelanggaranPrestasiScreenState extends State<InputPelanggaranPrestas
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Drag handle
                   Center(
                     child: Container(
                       width: 44,
@@ -161,7 +187,6 @@ class _InputPelanggaranPrestasiScreenState extends State<InputPelanggaranPrestas
                   ),
                   const SizedBox(height: 16),
 
-                  // Header
                   Row(
                     children: [
                       Container(
@@ -170,11 +195,15 @@ class _InputPelanggaranPrestasiScreenState extends State<InputPelanggaranPrestas
                           color: const Color(0xFFEF4444).withOpacity(0.12),
                           borderRadius: BorderRadius.circular(10),
                         ),
-                        child: const Icon(Icons.gavel_rounded, color: Color(0xFFEF4444), size: 20),
+                        child: Icon(
+                          isEdit ? Icons.edit_note_rounded : Icons.gavel_rounded,
+                          color: const Color(0xFFEF4444),
+                          size: 20,
+                        ),
                       ),
                       const SizedBox(width: 12),
                       Text(
-                        "Input Catatan Pelanggaran",
+                        isEdit ? "Edit Catatan Pelanggaran" : "Input Catatan Pelanggaran",
                         style: GoogleFonts.outfit(
                           fontSize: 18,
                           fontWeight: FontWeight.bold,
@@ -204,12 +233,14 @@ class _InputPelanggaranPrestasiScreenState extends State<InputPelanggaranPrestas
                   Text("Pilih Santri *", style: GoogleFonts.outfit(fontWeight: FontWeight.w600, fontSize: 13, color: context.titleColor)),
                   const SizedBox(height: 6),
                   GestureDetector(
-                    onTap: () async {
-                      final chosen = await _showSantriPicker(context);
-                      if (chosen != null) {
-                        setModalState(() => selectedSantri = chosen);
-                      }
-                    },
+                    onTap: isEdit
+                        ? null
+                        : () async {
+                            final chosen = await _showSantriPicker(context);
+                            if (chosen != null) {
+                              setModalState(() => selectedSantri = chosen);
+                            }
+                          },
                     child: Container(
                       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
                       decoration: BoxDecoration(
@@ -239,7 +270,7 @@ class _InputPelanggaranPrestasiScreenState extends State<InputPelanggaranPrestas
                               ),
                             ),
                           ),
-                          const Icon(Icons.arrow_drop_down_rounded),
+                          if (!isEdit) const Icon(Icons.arrow_drop_down_rounded),
                         ],
                       ),
                     ),
@@ -247,7 +278,37 @@ class _InputPelanggaranPrestasiScreenState extends State<InputPelanggaranPrestas
 
                   const SizedBox(height: 14),
 
-                  // 2. Tingkat Pelanggaran
+                  // 2. Tahun Ajaran
+                  Text("Tahun Ajaran *", style: GoogleFonts.outfit(fontWeight: FontWeight.w600, fontSize: 13, color: context.titleColor)),
+                  const SizedBox(height: 6),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 14),
+                    decoration: BoxDecoration(
+                      color: isDark ? const Color(0xFF1E293B) : const Color(0xFFF1F5F9),
+                      borderRadius: BorderRadius.circular(14),
+                    ),
+                    child: DropdownButton<int?>(
+                      value: selectedTahunId,
+                      isExpanded: true,
+                      underline: const SizedBox(),
+                      dropdownColor: isDark ? const Color(0xFF1E293B) : Colors.white,
+                      style: GoogleFonts.outfit(color: context.titleColor, fontSize: 13, fontWeight: FontWeight.w600),
+                      hint: Text("Pilih Tahun Ajaran...", style: GoogleFonts.outfit(color: context.subTitleColor, fontSize: 13)),
+                      items: _tahunAjaranList.map<DropdownMenuItem<int?>>((ta) {
+                        return DropdownMenuItem<int?>(
+                          value: ta['id'] as int,
+                          child: Text("${ta['kode']} ${ta['is_active'] == true ? '(Aktif)' : ''}"),
+                        );
+                      }).toList(),
+                      onChanged: (val) {
+                        setModalState(() => selectedTahunId = val);
+                      },
+                    ),
+                  ),
+
+                  const SizedBox(height: 14),
+
+                  // 3. Tingkat Pelanggaran
                   Text("Tingkat Pelanggaran *", style: GoogleFonts.outfit(fontWeight: FontWeight.w600, fontSize: 13, color: context.titleColor)),
                   const SizedBox(height: 6),
                   Row(
@@ -293,8 +354,8 @@ class _InputPelanggaranPrestasiScreenState extends State<InputPelanggaranPrestas
 
                   const SizedBox(height: 14),
 
-                  // 3. Tanggal
-                  Text("Tanggal Kejadian *", style: GoogleFonts.outfit(fontWeight: FontWeight.w600, fontSize: 13, color: context.titleColor)),
+                  // 4. Tanggal
+                  Text("Tanggal Kejadian (DD/MM/YYYY) *", style: GoogleFonts.outfit(fontWeight: FontWeight.w600, fontSize: 13, color: context.titleColor)),
                   const SizedBox(height: 6),
                   GestureDetector(
                     onTap: () async {
@@ -329,7 +390,7 @@ class _InputPelanggaranPrestasiScreenState extends State<InputPelanggaranPrestas
 
                   const SizedBox(height: 14),
 
-                  // 4. Deskripsi
+                  // 5. Deskripsi
                   Text("Deskripsi Pelanggaran *", style: GoogleFonts.outfit(fontWeight: FontWeight.w600, fontSize: 13, color: context.titleColor)),
                   const SizedBox(height: 6),
                   TextField(
@@ -337,7 +398,7 @@ class _InputPelanggaranPrestasiScreenState extends State<InputPelanggaranPrestas
                     maxLines: 2,
                     style: GoogleFonts.outfit(color: context.titleColor, fontSize: 13),
                     decoration: InputDecoration(
-                      hintText: "Contoh: Terlambat mengikuti sholat berjamaah...",
+                      hintText: "Contoh: Terlambat sholat berjamaah...",
                       hintStyle: GoogleFonts.outfit(color: context.subTitleColor, fontSize: 12.5),
                       filled: true,
                       fillColor: isDark ? const Color(0xFF1E293B) : const Color(0xFFF1F5F9),
@@ -348,14 +409,14 @@ class _InputPelanggaranPrestasiScreenState extends State<InputPelanggaranPrestas
 
                   const SizedBox(height: 14),
 
-                  // 5. Sanksi / Tindakan
+                  // 6. Sanksi
                   Text("Sanksi / Tindakan Ta'zir", style: GoogleFonts.outfit(fontWeight: FontWeight.w600, fontSize: 13, color: context.titleColor)),
                   const SizedBox(height: 6),
                   TextField(
                     controller: sanksiCtrl,
                     style: GoogleFonts.outfit(color: context.titleColor, fontSize: 13),
                     decoration: InputDecoration(
-                      hintText: "Contoh: Teguran lisan & hafalan 1 juz...",
+                      hintText: "Contoh: Teguran lisan & hafalan...",
                       hintStyle: GoogleFonts.outfit(color: context.subTitleColor, fontSize: 12.5),
                       filled: true,
                       fillColor: isDark ? const Color(0xFF1E293B) : const Color(0xFFF1F5F9),
@@ -394,17 +455,24 @@ class _InputPelanggaranPrestasiScreenState extends State<InputPelanggaranPrestas
                                   'tanggal': selectedDate.toIso8601String().split('T')[0],
                                   'deskripsi': deskripsiCtrl.text.trim(),
                                   'sanksi': sanksiCtrl.text.trim(),
-                                  'tahun_ajaran_id': _activeTahunAjaranId,
+                                  'tahun_ajaran_id': selectedTahunId,
                                 };
 
-                                await _apiService.createPelanggaran(payload);
+                                if (isEdit) {
+                                  await _apiService.updatePelanggaran(existing['id'], payload);
+                                } else {
+                                  await _apiService.createPelanggaran(payload);
+                                }
+
                                 if (modalCtx.mounted) Navigator.pop(modalCtx);
                                 _refreshData();
                                 if (context.mounted) {
                                   ScaffoldMessenger.of(context).showSnackBar(
-                                    const SnackBar(
-                                      content: Text("Catatan pelanggaran berhasil disimpan dan tersinkron ke Web!"),
-                                      backgroundColor: Color(0xFF059669),
+                                    SnackBar(
+                                      content: Text(isEdit
+                                          ? "Catatan pelanggaran berhasil diperbarui dan tersinkron ke Web!"
+                                          : "Catatan pelanggaran berhasil disimpan dan tersinkron ke Web!"),
+                                      backgroundColor: const Color(0xFF059669),
                                     ),
                                   );
                                 }
@@ -417,17 +485,13 @@ class _InputPelanggaranPrestasiScreenState extends State<InputPelanggaranPrestas
                             },
                       style: ElevatedButton.styleFrom(
                         backgroundColor: const Color(0xFFEF4444),
-                        foregroundColor: Colors.white,
                         padding: const EdgeInsets.symmetric(vertical: 14),
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-                        elevation: 0,
                       ),
-                      child: isSaving
-                          ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
-                          : Text(
-                              "SIMPAN PELANGGARAN",
-                              style: GoogleFonts.outfit(fontWeight: FontWeight.bold, fontSize: 13, letterSpacing: 0.5),
-                            ),
+                      child: Text(
+                        isSaving ? "Menyimpan..." : (isEdit ? "Perbarui Pelanggaran" : "Simpan Pelanggaran"),
+                        style: GoogleFonts.outfit(fontWeight: FontWeight.bold, fontSize: 14, color: Colors.white),
+                      ),
                     ),
                   ),
                 ],
@@ -439,13 +503,28 @@ class _InputPelanggaranPrestasiScreenState extends State<InputPelanggaranPrestas
     );
   }
 
-  // ── FORM DIALOG: TAMBAH PRESTASI ──────────────────────────────────────────
-  void _showAddPrestasiDialog(BuildContext context) {
-    dynamic selectedSantri;
-    String selectedJenis = 'Akademik';
-    DateTime selectedDate = DateTime.now();
-    final deskripsiCtrl = TextEditingController();
-    final penghargaanCtrl = TextEditingController();
+  // ── FORM DIALOG: TAMBAH / EDIT PRESTASI ────────────────────────────────────
+  void _showAddEditPrestasiDialog(BuildContext context, {Map<String, dynamic>? existing}) {
+    final bool isEdit = existing != null;
+    dynamic selectedSantri = isEdit
+        ? {
+            'id': existing['santri_id'],
+            'nama': existing['nama_santri'],
+            'nis': existing['nis'],
+            'foto_url': existing['foto_url'],
+          }
+        : null;
+
+    String selectedJenis = isEdit ? (existing['jenis'] ?? 'Akademik') : 'Akademik';
+    DateTime selectedDate = isEdit && existing['tanggal'] != null
+        ? (DateTime.tryParse(existing['tanggal'].toString()) ?? DateTime.now())
+        : DateTime.now();
+    int? selectedTahunId = isEdit
+        ? (existing['tahun_ajaran_id'] as int? ?? _activeTahunAjaranId)
+        : _activeTahunAjaranId;
+
+    final deskripsiCtrl = TextEditingController(text: isEdit ? (existing['deskripsi'] ?? '') : '');
+    final penghargaanCtrl = TextEditingController(text: isEdit ? (existing['penghargaan'] ?? '') : '');
     bool isSaving = false;
     String? formError;
 
@@ -496,11 +575,15 @@ class _InputPelanggaranPrestasiScreenState extends State<InputPelanggaranPrestas
                           color: const Color(0xFFF59E0B).withOpacity(0.12),
                           borderRadius: BorderRadius.circular(10),
                         ),
-                        child: const Icon(Icons.emoji_events_rounded, color: Color(0xFFF59E0B), size: 20),
+                        child: Icon(
+                          isEdit ? Icons.edit_note_rounded : Icons.emoji_events_rounded,
+                          color: const Color(0xFFF59E0B),
+                          size: 20,
+                        ),
                       ),
                       const SizedBox(width: 12),
                       Text(
-                        "Input Catatan Prestasi",
+                        isEdit ? "Edit Catatan Prestasi" : "Input Catatan Prestasi",
                         style: GoogleFonts.outfit(
                           fontSize: 18,
                           fontWeight: FontWeight.bold,
@@ -527,12 +610,14 @@ class _InputPelanggaranPrestasiScreenState extends State<InputPelanggaranPrestas
                   Text("Pilih Santri *", style: GoogleFonts.outfit(fontWeight: FontWeight.w600, fontSize: 13, color: context.titleColor)),
                   const SizedBox(height: 6),
                   GestureDetector(
-                    onTap: () async {
-                      final chosen = await _showSantriPicker(context);
-                      if (chosen != null) {
-                        setModalState(() => selectedSantri = chosen);
-                      }
-                    },
+                    onTap: isEdit
+                        ? null
+                        : () async {
+                            final chosen = await _showSantriPicker(context);
+                            if (chosen != null) {
+                              setModalState(() => selectedSantri = chosen);
+                            }
+                          },
                     child: Container(
                       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
                       decoration: BoxDecoration(
@@ -562,9 +647,39 @@ class _InputPelanggaranPrestasiScreenState extends State<InputPelanggaranPrestas
                               ),
                             ),
                           ),
-                          const Icon(Icons.arrow_drop_down_rounded),
+                          if (!isEdit) const Icon(Icons.arrow_drop_down_rounded),
                         ],
                       ),
+                    ),
+                  ),
+
+                  const SizedBox(height: 14),
+
+                  // Tahun Ajaran
+                  Text("Tahun Ajaran *", style: GoogleFonts.outfit(fontWeight: FontWeight.w600, fontSize: 13, color: context.titleColor)),
+                  const SizedBox(height: 6),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 14),
+                    decoration: BoxDecoration(
+                      color: isDark ? const Color(0xFF1E293B) : const Color(0xFFF1F5F9),
+                      borderRadius: BorderRadius.circular(14),
+                    ),
+                    child: DropdownButton<int?>(
+                      value: selectedTahunId,
+                      isExpanded: true,
+                      underline: const SizedBox(),
+                      dropdownColor: isDark ? const Color(0xFF1E293B) : Colors.white,
+                      style: GoogleFonts.outfit(color: context.titleColor, fontSize: 13, fontWeight: FontWeight.w600),
+                      hint: Text("Pilih Tahun Ajaran...", style: GoogleFonts.outfit(color: context.subTitleColor, fontSize: 13)),
+                      items: _tahunAjaranList.map<DropdownMenuItem<int?>>((ta) {
+                        return DropdownMenuItem<int?>(
+                          value: ta['id'] as int,
+                          child: Text("${ta['kode']} ${ta['is_active'] == true ? '(Aktif)' : ''}"),
+                        );
+                      }).toList(),
+                      onChanged: (val) {
+                        setModalState(() => selectedTahunId = val);
+                      },
                     ),
                   ),
 
@@ -610,7 +725,7 @@ class _InputPelanggaranPrestasiScreenState extends State<InputPelanggaranPrestas
                   const SizedBox(height: 14),
 
                   // Tanggal
-                  Text("Tanggal Raihan *", style: GoogleFonts.outfit(fontWeight: FontWeight.w600, fontSize: 13, color: context.titleColor)),
+                  Text("Tanggal Raihan (DD/MM/YYYY) *", style: GoogleFonts.outfit(fontWeight: FontWeight.w600, fontSize: 13, color: context.titleColor)),
                   const SizedBox(height: 6),
                   GestureDetector(
                     onTap: () async {
@@ -652,7 +767,7 @@ class _InputPelanggaranPrestasiScreenState extends State<InputPelanggaranPrestas
                     controller: deskripsiCtrl,
                     style: GoogleFonts.outfit(color: context.titleColor, fontSize: 13),
                     decoration: InputDecoration(
-                      hintText: "Contoh: Juara 1 Musabaqah Qira'atil Kutub (MQK)...",
+                      hintText: "Contoh: Juara 1 Musabaqah Qira'atil Kutub...",
                       hintStyle: GoogleFonts.outfit(color: context.subTitleColor, fontSize: 12.5),
                       filled: true,
                       fillColor: isDark ? const Color(0xFF1E293B) : const Color(0xFFF1F5F9),
@@ -709,17 +824,24 @@ class _InputPelanggaranPrestasiScreenState extends State<InputPelanggaranPrestas
                                   'tanggal': selectedDate.toIso8601String().split('T')[0],
                                   'deskripsi': deskripsiCtrl.text.trim(),
                                   'penghargaan': penghargaanCtrl.text.trim(),
-                                  'tahun_ajaran_id': _activeTahunAjaranId,
+                                  'tahun_ajaran_id': selectedTahunId,
                                 };
 
-                                await _apiService.createPrestasi(payload);
+                                if (isEdit) {
+                                  await _apiService.updatePrestasi(existing['id'], payload);
+                                } else {
+                                  await _apiService.createPrestasi(payload);
+                                }
+
                                 if (modalCtx.mounted) Navigator.pop(modalCtx);
                                 _refreshData();
                                 if (context.mounted) {
                                   ScaffoldMessenger.of(context).showSnackBar(
-                                    const SnackBar(
-                                      content: Text("Catatan prestasi berhasil disimpan dan tersinkron ke Web!"),
-                                      backgroundColor: Color(0xFF059669),
+                                    SnackBar(
+                                      content: Text(isEdit
+                                          ? "Catatan prestasi berhasil diperbarui dan tersinkron ke Web!"
+                                          : "Catatan prestasi berhasil disimpan dan tersinkron ke Web!"),
+                                      backgroundColor: const Color(0xFF059669),
                                     ),
                                   );
                                 }
@@ -732,17 +854,13 @@ class _InputPelanggaranPrestasiScreenState extends State<InputPelanggaranPrestas
                             },
                       style: ElevatedButton.styleFrom(
                         backgroundColor: const Color(0xFFF59E0B),
-                        foregroundColor: Colors.white,
                         padding: const EdgeInsets.symmetric(vertical: 14),
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-                        elevation: 0,
                       ),
-                      child: isSaving
-                          ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
-                          : Text(
-                              "SIMPAN PRESTASI",
-                              style: GoogleFonts.outfit(fontWeight: FontWeight.bold, fontSize: 13, letterSpacing: 0.5),
-                            ),
+                      child: Text(
+                        isSaving ? "Menyimpan..." : (isEdit ? "Perbarui Prestasi" : "Simpan Prestasi"),
+                        style: GoogleFonts.outfit(fontWeight: FontWeight.bold, fontSize: 14, color: Colors.white),
+                      ),
                     ),
                   ),
                 ],
@@ -754,113 +872,132 @@ class _InputPelanggaranPrestasiScreenState extends State<InputPelanggaranPrestas
     );
   }
 
-  // ── SANTRI SEARCH DIALOG PICKER ───────────────────────────────────────────
+  // ── SANTRI PICKER MODAL ───────────────────────────────────────────────────
   Future<dynamic> _showSantriPicker(BuildContext context) async {
-    String search = '';
-    return showDialog<dynamic>(
+    return showModalBottomSheet<dynamic>(
       context: context,
-      builder: (dlgCtx) => StatefulBuilder(
-        builder: (context, setDlgState) {
-          final isDark = context.isDarkMode;
-          final matches = _santriList.where((s) {
-            final q = search.toLowerCase();
-            final name = (s['nama'] ?? '').toString().toLowerCase();
-            final nis = (s['nis'] ?? '').toString().toLowerCase();
-            return name.contains(q) || nis.contains(q);
-          }).toList();
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) {
+        String searchQuery = '';
+        return StatefulBuilder(
+          builder: (pickerCtx, setPickerState) {
+            final isDark = context.isDarkMode;
+            final filtered = _santriList.where((s) {
+              final q = searchQuery.toLowerCase();
+              final nama = (s['nama'] ?? '').toString().toLowerCase();
+              final nis = (s['nis'] ?? '').toString().toLowerCase();
+              return nama.contains(q) || nis.contains(q);
+            }).toList();
 
-          return Dialog(
-            backgroundColor: isDark ? const Color(0xFF0F172A) : Colors.white,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-            child: Container(
-              width: double.maxFinite,
-              height: 480,
-              padding: const EdgeInsets.all(18),
+            return Container(
+              height: MediaQuery.of(context).size.height * 0.75,
+              padding: const EdgeInsets.only(top: 20, left: 18, right: 18),
+              decoration: BoxDecoration(
+                color: isDark ? const Color(0xFF0F172A) : Colors.white,
+                borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
+              ),
               child: Column(
                 children: [
+                  Center(
+                    child: Container(
+                      width: 44,
+                      height: 4,
+                      decoration: BoxDecoration(
+                        color: isDark ? Colors.white24 : Colors.black12,
+                        borderRadius: BorderRadius.circular(2),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 14),
                   Text(
                     "Pilih Santri",
-                    style: GoogleFonts.outfit(fontSize: 16, fontWeight: FontWeight.bold, color: context.titleColor),
+                    style: GoogleFonts.outfit(fontSize: 17, fontWeight: FontWeight.bold, color: context.titleColor),
                   ),
                   const SizedBox(height: 12),
                   TextField(
-                    autofocus: true,
-                    onChanged: (val) => setDlgState(() => search = val),
+                    onChanged: (val) => setPickerState(() => searchQuery = val),
                     style: GoogleFonts.outfit(color: context.titleColor, fontSize: 13),
                     decoration: InputDecoration(
-                      hintText: "Ketik nama atau NIS santri...",
-                      hintStyle: GoogleFonts.outfit(color: context.subTitleColor, fontSize: 12.5),
-                      prefixIcon: const Icon(Icons.search_rounded, size: 18),
+                      prefixIcon: const Icon(Icons.search_rounded, size: 20),
+                      hintText: "Cari nama atau NIS santri...",
+                      hintStyle: GoogleFonts.outfit(color: context.subTitleColor, fontSize: 13),
                       filled: true,
                       fillColor: isDark ? const Color(0xFF1E293B) : const Color(0xFFF1F5F9),
-                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
-                      contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: BorderSide.none),
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
                     ),
                   ),
-                  const SizedBox(height: 10),
+                  const SizedBox(height: 12),
                   Expanded(
-                    child: matches.isEmpty
+                    child: filtered.isEmpty
                         ? Center(
                             child: Text(
                               "Santri tidak ditemukan.",
-                              style: GoogleFonts.outfit(color: context.subTitleColor, fontSize: 12),
+                              style: GoogleFonts.outfit(color: context.subTitleColor),
                             ),
                           )
                         : ListView.separated(
-                            itemCount: matches.length,
+                            itemCount: filtered.length,
                             separatorBuilder: (_, __) => Divider(
                               height: 1,
-                              color: isDark ? Colors.white10 : Colors.black12,
+                              color: isDark ? Colors.white10 : Colors.black.withOpacity(0.05),
                             ),
-                            itemBuilder: (ctx, i) {
-                              final santri = matches[i];
+                            itemBuilder: (c, idx) {
+                              final item = filtered[idx];
+                              final fotoUrl = item['foto_url'];
                               return ListTile(
-                                dense: true,
-                                contentPadding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                                 leading: CircleAvatar(
-                                  radius: 16,
-                                  backgroundColor: const Color(0xFF10B981).withOpacity(0.15),
-                                  child: Text(
-                                    (santri['nama'] ?? '?')[0].toUpperCase(),
-                                    style: GoogleFonts.outfit(fontWeight: FontWeight.bold, color: const Color(0xFF10B981)),
-                                  ),
+                                  radius: 18,
+                                  backgroundColor: const Color(0xFF3B82F6).withOpacity(0.12),
+                                  backgroundImage: fotoUrl != null && fotoUrl.toString().trim().isNotEmpty
+                                      ? NetworkImage(_apiService.getFullImageUrl(fotoUrl.toString()))
+                                      : null,
+                                  child: (fotoUrl == null || fotoUrl.toString().trim().isEmpty)
+                                      ? const Icon(Icons.person_rounded, size: 18, color: Color(0xFF3B82F6))
+                                      : null,
                                 ),
                                 title: Text(
-                                  santri['nama'] ?? '-',
-                                  style: GoogleFonts.outfit(fontSize: 13, fontWeight: FontWeight.w600, color: context.titleColor),
+                                  item['nama'] ?? '-',
+                                  style: GoogleFonts.outfit(fontSize: 13.5, fontWeight: FontWeight.bold, color: context.titleColor),
                                 ),
                                 subtitle: Text(
-                                  "NIS: ${santri['nis'] ?? '-'} • ${santri['kelas_diniyah'] ?? 'Kelas -'}",
-                                  style: GoogleFonts.outfit(fontSize: 11, color: context.subTitleColor),
+                                  "NIS: ${item['nis'] ?? '-'} • ${item['kelas_diniyah'] ?? item['kelas'] ?? '-'}",
+                                  style: GoogleFonts.outfit(fontSize: 11.5, color: context.subTitleColor),
                                 ),
-                                onTap: () => Navigator.pop(dlgCtx, santri),
+                                onTap: () => Navigator.pop(pickerCtx, item),
                               );
                             },
                           ),
                   ),
                 ],
               ),
-            ),
-          );
-        },
-      ),
+            );
+          },
+        );
+      },
     );
   }
 
-  // ── DELETE CONFIRMATION ───────────────────────────────────────────────────
-  Future<void> _confirmDelete(BuildContext context, {required bool isPelanggaran, required int id, required String title}) async {
-    final ok = await showDialog<bool>(
+  // ── CONFIRM DELETE ────────────────────────────────────────────────────────
+  Future<void> _confirmDelete(
+    BuildContext context, {
+    required bool isPelanggaran,
+    required int id,
+    required String title,
+  }) async {
+    final confirmed = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        backgroundColor: context.cardBg,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+        backgroundColor: context.isDarkMode ? const Color(0xFF1E293B) : Colors.white,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         title: Text(
-          "Hapus Catatan?",
-          style: GoogleFonts.outfit(fontWeight: FontWeight.bold, fontSize: 16, color: context.titleColor),
+          isPelanggaran ? "Hapus Pelanggaran?" : "Hapus Prestasi?",
+          style: GoogleFonts.outfit(fontWeight: FontWeight.bold),
         ),
         content: Text(
-          "Apakah Anda yakin ingin menghapus catatan '${title}'? Tindakan ini akan langsung menghapus data di database Web dan App.",
-          style: GoogleFonts.outfit(fontSize: 13, color: context.bodyColor),
+          "Apakah Anda yakin ingin menghapus data \"$title\"? Data yang dihapus juga akan hilang dari website.",
+          style: GoogleFonts.outfit(fontSize: 13, color: context.subTitleColor),
         ),
         actions: [
           TextButton(
@@ -869,14 +1006,17 @@ class _InputPelanggaranPrestasiScreenState extends State<InputPelanggaranPrestas
           ),
           ElevatedButton(
             onPressed: () => Navigator.pop(ctx, true),
-            style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFFEF4444), elevation: 0),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFFEF4444),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+            ),
             child: Text("Hapus", style: GoogleFonts.outfit(color: Colors.white, fontWeight: FontWeight.bold)),
           ),
         ],
       ),
     );
 
-    if (ok == true) {
+    if (confirmed == true) {
       try {
         if (isPelanggaran) {
           await _apiService.deletePelanggaran(id);
@@ -886,7 +1026,7 @@ class _InputPelanggaranPrestasiScreenState extends State<InputPelanggaranPrestas
         _refreshData();
         if (context.mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text("Catatan berhasil dihapus dari sistem!"), backgroundColor: Color(0xFF10B981)),
+            const SnackBar(content: Text("Data berhasil dihapus."), backgroundColor: Color(0xFF059669)),
           );
         }
       } catch (e) {
@@ -897,6 +1037,73 @@ class _InputPelanggaranPrestasiScreenState extends State<InputPelanggaranPrestas
         }
       }
     }
+  }
+
+  // ── FILTER BAR TAHUN AJARAN ───────────────────────────────────────────────
+  Widget _buildTahunAjaranFilterBar(BuildContext context, bool isDark) {
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+      decoration: BoxDecoration(
+        color: isDark ? const Color(0xFF131D2E) : Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: isDark ? const Color(0xFF334155).withOpacity(0.5) : const Color(0xFFE2E8F0),
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(isDark ? 0.2 : 0.03),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(6),
+            decoration: BoxDecoration(
+              color: const Color(0xFF3B82F6).withOpacity(0.12),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: const Icon(Icons.date_range_rounded, size: 16, color: Color(0xFF3B82F6)),
+          ),
+          const SizedBox(width: 10),
+          Text(
+            "Tahun Ajaran:",
+            style: GoogleFonts.outfit(fontSize: 12, fontWeight: FontWeight.bold, color: context.titleColor),
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: DropdownButton<int?>(
+              value: _activeTahunAjaranId,
+              isExpanded: true,
+              underline: const SizedBox(),
+              dropdownColor: isDark ? const Color(0xFF1E293B) : Colors.white,
+              style: GoogleFonts.outfit(color: context.titleColor, fontSize: 13, fontWeight: FontWeight.w600),
+              items: [
+                const DropdownMenuItem<int?>(
+                  value: null,
+                  child: Text("Semua Tahun Ajaran"),
+                ),
+                ..._tahunAjaranList.map<DropdownMenuItem<int?>>((ta) {
+                  return DropdownMenuItem<int?>(
+                    value: ta['id'] as int,
+                    child: Text("${ta['kode']} ${ta['is_active'] == true ? '(Aktif)' : ''}"),
+                  );
+                }),
+              ],
+              onChanged: (val) {
+                setState(() {
+                  _activeTahunAjaranId = val;
+                });
+                _refreshData();
+              },
+            ),
+          ),
+        ],
+      ),
+    );
   }
 
   @override
@@ -913,7 +1120,7 @@ class _InputPelanggaranPrestasiScreenState extends State<InputPelanggaranPrestas
           onPressed: () => Navigator.pop(context),
         ),
         title: Text(
-          "Input Pelanggaran & Prestasi",
+          "Pelanggaran & Prestasi Santri",
           style: GoogleFonts.outfit(
             color: context.titleColor,
             fontWeight: FontWeight.bold,
@@ -960,19 +1167,26 @@ class _InputPelanggaranPrestasiScreenState extends State<InputPelanggaranPrestas
                     ),
                   ),
                 )
-              : TabBarView(
-                  controller: _tabController,
+              : Column(
                   children: [
-                    _buildPelanggaranTab(context, isDark),
-                    _buildPrestasiTab(context, isDark),
+                    _buildTahunAjaranFilterBar(context, isDark),
+                    Expanded(
+                      child: TabBarView(
+                        controller: _tabController,
+                        children: [
+                          _buildPelanggaranTab(context, isDark),
+                          _buildPrestasiTab(context, isDark),
+                        ],
+                      ),
+                    ),
                   ],
                 ),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () {
           if (_tabController.index == 0) {
-            _showAddPelanggaranDialog(context);
+            _showAddEditPelanggaranDialog(context);
           } else {
-            _showAddPrestasiDialog(context);
+            _showAddEditPrestasiDialog(context);
           }
         },
         backgroundColor: const Color(0xFFE11D48),
@@ -992,10 +1206,8 @@ class _InputPelanggaranPrestasiScreenState extends State<InputPelanggaranPrestas
       color: const Color(0xFFE11D48),
       child: ListView(
         physics: const AlwaysScrollableScrollPhysics(parent: BouncingScrollPhysics()),
-        padding: const EdgeInsets.only(left: 18, right: 18, top: 16, bottom: 90),
+        padding: const EdgeInsets.only(left: 18, right: 18, top: 4, bottom: 90),
         children: [
-
-
           if (_pelanggaranList.isEmpty)
             Center(
               child: Padding(
@@ -1022,6 +1234,8 @@ class _InputPelanggaranPrestasiScreenState extends State<InputPelanggaranPrestas
               final id = item['id'] as int;
               final nama = item['nama_santri'] ?? 'Santri';
               final nis = item['nis'] ?? '-';
+              final fotoUrl = item['foto_url'];
+              final tahunKode = item['tahun_ajaran_kode'] ?? '';
               final jenis = item['jenis'] ?? 'Ringan';
               final tanggal = _formatDate(item['tanggal']);
               final deskripsi = item['deskripsi'] ?? '-';
@@ -1072,41 +1286,85 @@ class _InputPelanggaranPrestasiScreenState extends State<InputPelanggaranPrestas
                           tanggal,
                           style: GoogleFonts.outfit(fontSize: 11.5, color: context.subTitleColor, fontWeight: FontWeight.w500),
                         ),
+                        if (tahunKode.isNotEmpty) ...[
+                          const SizedBox(width: 8),
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                            decoration: BoxDecoration(
+                              color: isDark ? Colors.white.withOpacity(0.06) : Colors.black.withOpacity(0.04),
+                              borderRadius: BorderRadius.circular(6),
+                            ),
+                            child: Text(
+                              tahunKode,
+                              style: GoogleFonts.outfit(fontSize: 10, fontWeight: FontWeight.w600, color: context.subTitleColor),
+                            ),
+                          ),
+                        ],
                         const Spacer(),
                         IconButton(
+                          icon: const Icon(Icons.edit_outlined, color: Color(0xFF3B82F6), size: 19),
+                          tooltip: "Edit Pelanggaran",
+                          onPressed: () => _showAddEditPelanggaranDialog(context, existing: item),
+                          constraints: const BoxConstraints(),
+                          padding: const EdgeInsets.only(right: 8),
+                        ),
+                        IconButton(
                           icon: const Icon(Icons.delete_outline_rounded, color: Colors.redAccent, size: 20),
+                          tooltip: "Hapus Pelanggaran",
                           onPressed: () => _confirmDelete(context, isPelanggaran: true, id: id, title: deskripsi),
                           constraints: const BoxConstraints(),
                           padding: EdgeInsets.zero,
                         ),
                       ],
                     ),
+                    const SizedBox(height: 12),
+                    Row(
+                      children: [
+                        CircleAvatar(
+                          radius: 20,
+                          backgroundColor: const Color(0xFFEF4444).withOpacity(0.12),
+                          backgroundImage: fotoUrl != null && fotoUrl.toString().trim().isNotEmpty
+                              ? NetworkImage(_apiService.getFullImageUrl(fotoUrl.toString()))
+                              : null,
+                          child: (fotoUrl == null || fotoUrl.toString().trim().isEmpty)
+                              ? const Icon(Icons.person_rounded, size: 20, color: Color(0xFFEF4444))
+                              : null,
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                nama,
+                                style: GoogleFonts.outfit(fontSize: 14.5, fontWeight: FontWeight.bold, color: context.titleColor),
+                              ),
+                              Text(
+                                "NIS: $nis",
+                                style: GoogleFonts.outfit(fontSize: 11.5, color: context.subTitleColor),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
                     const SizedBox(height: 10),
-                    Text(
-                      nama,
-                      style: GoogleFonts.outfit(fontSize: 14.5, fontWeight: FontWeight.bold, color: context.titleColor),
-                    ),
-                    Text(
-                      "NIS: $nis",
-                      style: GoogleFonts.outfit(fontSize: 11.5, color: context.subTitleColor),
-                    ),
-                    const SizedBox(height: 8),
                     Container(
                       width: double.infinity,
-                      padding: const EdgeInsets.all(10),
+                      padding: const EdgeInsets.all(12),
                       decoration: BoxDecoration(
                         color: isDark ? Colors.white.withOpacity(0.04) : Colors.black.withOpacity(0.02),
-                        borderRadius: BorderRadius.circular(10),
+                        borderRadius: BorderRadius.circular(12),
                       ),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
                             deskripsi,
-                            style: GoogleFonts.outfit(fontSize: 12.5, color: context.titleColor, height: 1.3),
+                            style: GoogleFonts.outfit(fontSize: 12.5, color: context.titleColor, height: 1.35),
                           ),
                           if (sanksi != '-') ...[
-                            const SizedBox(height: 4),
+                            const SizedBox(height: 6),
                             Text(
                               "Sanksi: $sanksi",
                               style: GoogleFonts.outfit(fontSize: 11.5, fontWeight: FontWeight.w600, color: const Color(0xFFEF4444)),
@@ -1131,10 +1389,8 @@ class _InputPelanggaranPrestasiScreenState extends State<InputPelanggaranPrestas
       color: const Color(0xFFF59E0B),
       child: ListView(
         physics: const AlwaysScrollableScrollPhysics(parent: BouncingScrollPhysics()),
-        padding: const EdgeInsets.only(left: 18, right: 18, top: 16, bottom: 90),
+        padding: const EdgeInsets.only(left: 18, right: 18, top: 4, bottom: 90),
         children: [
-
-
           if (_prestasiList.isEmpty)
             Center(
               child: Padding(
@@ -1161,6 +1417,8 @@ class _InputPelanggaranPrestasiScreenState extends State<InputPelanggaranPrestas
               final id = item['id'] as int;
               final nama = item['nama_santri'] ?? 'Santri';
               final nis = item['nis'] ?? '-';
+              final fotoUrl = item['foto_url'];
+              final tahunKode = item['tahun_ajaran_kode'] ?? '';
               final jenis = item['jenis'] ?? 'Akademik';
               final tanggal = _formatDate(item['tanggal']);
               final deskripsi = item['deskripsi'] ?? '-';
@@ -1205,41 +1463,85 @@ class _InputPelanggaranPrestasiScreenState extends State<InputPelanggaranPrestas
                           tanggal,
                           style: GoogleFonts.outfit(fontSize: 11.5, color: context.subTitleColor, fontWeight: FontWeight.w500),
                         ),
+                        if (tahunKode.isNotEmpty) ...[
+                          const SizedBox(width: 8),
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                            decoration: BoxDecoration(
+                              color: isDark ? Colors.white.withOpacity(0.06) : Colors.black.withOpacity(0.04),
+                              borderRadius: BorderRadius.circular(6),
+                            ),
+                            child: Text(
+                              tahunKode,
+                              style: GoogleFonts.outfit(fontSize: 10, fontWeight: FontWeight.w600, color: context.subTitleColor),
+                            ),
+                          ),
+                        ],
                         const Spacer(),
                         IconButton(
+                          icon: const Icon(Icons.edit_outlined, color: Color(0xFF3B82F6), size: 19),
+                          tooltip: "Edit Prestasi",
+                          onPressed: () => _showAddEditPrestasiDialog(context, existing: item),
+                          constraints: const BoxConstraints(),
+                          padding: const EdgeInsets.only(right: 8),
+                        ),
+                        IconButton(
                           icon: const Icon(Icons.delete_outline_rounded, color: Colors.redAccent, size: 20),
+                          tooltip: "Hapus Prestasi",
                           onPressed: () => _confirmDelete(context, isPelanggaran: false, id: id, title: deskripsi),
                           constraints: const BoxConstraints(),
                           padding: EdgeInsets.zero,
                         ),
                       ],
                     ),
+                    const SizedBox(height: 12),
+                    Row(
+                      children: [
+                        CircleAvatar(
+                          radius: 20,
+                          backgroundColor: const Color(0xFFF59E0B).withOpacity(0.12),
+                          backgroundImage: fotoUrl != null && fotoUrl.toString().trim().isNotEmpty
+                              ? NetworkImage(_apiService.getFullImageUrl(fotoUrl.toString()))
+                              : null,
+                          child: (fotoUrl == null || fotoUrl.toString().trim().isEmpty)
+                              ? const Icon(Icons.person_rounded, size: 20, color: Color(0xFFF59E0B))
+                              : null,
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                nama,
+                                style: GoogleFonts.outfit(fontSize: 14.5, fontWeight: FontWeight.bold, color: context.titleColor),
+                              ),
+                              Text(
+                                "NIS: $nis",
+                                style: GoogleFonts.outfit(fontSize: 11.5, color: context.subTitleColor),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
                     const SizedBox(height: 10),
-                    Text(
-                      nama,
-                      style: GoogleFonts.outfit(fontSize: 14.5, fontWeight: FontWeight.bold, color: context.titleColor),
-                    ),
-                    Text(
-                      "NIS: $nis",
-                      style: GoogleFonts.outfit(fontSize: 11.5, color: context.subTitleColor),
-                    ),
-                    const SizedBox(height: 8),
                     Container(
                       width: double.infinity,
-                      padding: const EdgeInsets.all(10),
+                      padding: const EdgeInsets.all(12),
                       decoration: BoxDecoration(
                         color: isDark ? Colors.white.withOpacity(0.04) : Colors.black.withOpacity(0.02),
-                        borderRadius: BorderRadius.circular(10),
+                        borderRadius: BorderRadius.circular(12),
                       ),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
                             deskripsi,
-                            style: GoogleFonts.outfit(fontSize: 12.5, color: context.titleColor, height: 1.3),
+                            style: GoogleFonts.outfit(fontSize: 12.5, color: context.titleColor, height: 1.35),
                           ),
                           if (penghargaan != '-') ...[
-                            const SizedBox(height: 4),
+                            const SizedBox(height: 6),
                             Text(
                               "Penghargaan: $penghargaan",
                               style: GoogleFonts.outfit(fontSize: 11.5, fontWeight: FontWeight.w600, color: const Color(0xFF10B981)),

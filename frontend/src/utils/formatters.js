@@ -31,15 +31,25 @@ export function statusBadgeClass(status) {
 export function formatDate(dateString) {
   if (!dateString) return '-';
 
-  // If date is in YYYY-MM-DD format, convert to DD/MM/YYYY
-  if (dateString.includes('-')) {
-    const parts = dateString.split('-');
+  try {
+    const d = new Date(dateString);
+    if (!isNaN(d.getTime())) {
+      const day = String(d.getDate()).padStart(2, '0');
+      const month = String(d.getMonth() + 1).padStart(2, '0');
+      const year = d.getFullYear();
+      return `${day}/${month}/${year}`;
+    }
+  } catch (e) {}
+
+  const str = String(dateString).trim().split('T')[0];
+  if (str.includes('-')) {
+    const parts = str.split('-');
     if (parts.length === 3) {
-      return `${parts[2]}/${parts[1]}/${parts[0]}`;
+      return `${parts[2].padStart(2, '0')}/${parts[1].padStart(2, '0')}/${parts[0]}`;
     }
   }
 
-  return dateString;
+  return String(dateString);
 }
 
 export function parseDateToISO(dateString) {

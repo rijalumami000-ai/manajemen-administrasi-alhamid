@@ -1101,6 +1101,22 @@ class ApiService {
     }
   }
 
+  // --- UPDATE PELANGGARAN ---
+  Future<Map<String, dynamic>> updatePelanggaran(int id, Map<String, dynamic> data) async {
+    try {
+      final response = await _dio.put('/pelanggaran/$id', data: data);
+      if (response.statusCode == 200) {
+        return response.data as Map<String, dynamic>;
+      }
+      throw Exception('Gagal memperbarui pelanggaran.');
+    } catch (e) {
+      if (e is DioException && e.response != null) {
+        throw Exception(e.response?.data['error'] ?? 'Gagal memperbarui pelanggaran.');
+      }
+      rethrow;
+    }
+  }
+
   // --- DELETE PELANGGARAN ---
   Future<void> deletePelanggaran(int id) async {
     try {
@@ -1128,6 +1144,22 @@ class ApiService {
     } catch (e) {
       if (e is DioException && e.response != null) {
         throw Exception(e.response?.data['error'] ?? 'Gagal menyimpan prestasi.');
+      }
+      rethrow;
+    }
+  }
+
+  // --- UPDATE PRESTASI ---
+  Future<Map<String, dynamic>> updatePrestasi(int id, Map<String, dynamic> data) async {
+    try {
+      final response = await _dio.put('/prestasi/$id', data: data);
+      if (response.statusCode == 200) {
+        return response.data as Map<String, dynamic>;
+      }
+      throw Exception('Gagal memperbarui prestasi.');
+    } catch (e) {
+      if (e is DioException && e.response != null) {
+        throw Exception(e.response?.data['error'] ?? 'Gagal memperbarui prestasi.');
       }
       rethrow;
     }

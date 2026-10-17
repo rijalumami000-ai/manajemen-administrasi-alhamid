@@ -253,7 +253,7 @@ class _TabAkademikState extends State<TabAkademik> {
         'icon': Icons.edit_note_rounded,
         'badge': 'Protected',
         'color': const Color(0xFFEC4899),
-        'password': 'timsoal123',
+        'password': 'soal123',
         'screen': const TimSoalScreen(),
       },
       {
@@ -262,7 +262,7 @@ class _TabAkademikState extends State<TabAkademik> {
         'icon': Icons.border_color_rounded,
         'badge': 'Protected',
         'color': const Color(0xFFF97316),
-        'password': 'inputnilai123',
+        'password': 'nilai123',
         'screen': const InputNilaiScreen(),
       },
       {
