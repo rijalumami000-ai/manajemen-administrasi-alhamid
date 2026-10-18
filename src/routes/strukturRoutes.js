@@ -15,7 +15,7 @@ function registerStrukturRoutes(app) {
       return res.status(400).json({ error: `Tipe struktur tidak valid. Gunakan salah satu: ${VALID_TYPES.join(', ')}` });
     }
 
-    const { tahun_ajaran_id, kategori } = req.query;
+    const { tahun_ajaran_id, kategori, semester } = req.query;
 
     try {
       let query = `
@@ -30,6 +30,7 @@ function registerStrukturRoutes(app) {
           s.keterangan,
           s.no_urut,
           s.tahun_ajaran_id,
+          s.semester,
           g.nama AS guru_nama,
           g.no_hp AS guru_no_hp,
           g.foto_url AS guru_foto_url
@@ -56,6 +57,15 @@ function registerStrukturRoutes(app) {
         params.push(parseInt(tahun_ajaran_id, 10));
       }
 
+      if (typeParam === 'panitia_ujian') {
+        const activeSemester = semester || 'Ganjil';
+        query += ` AND (s.semester = $${paramIdx++} OR s.semester IS NULL)`;
+        params.push(activeSemester);
+      } else if (semester) {
+        query += ` AND (s.semester = $${paramIdx++} OR s.semester IS NULL)`;
+        params.push(semester);
+      }
+
       query += ` ORDER BY s.no_urut ASC, s.id ASC`;
 
       const result = await db.query(query, params);
@@ -68,7 +78,7 @@ function registerStrukturRoutes(app) {
 
   // POST /api/struktur
   app.post('/api/struktur', async (req, res) => {
-    const { id, guru_id, nama_custom, keterangan, alamat, kategori, tahun_ajaran_id } = req.body;
+    const { id, guru_id, nama_custom, keterangan, alamat, kategori, tahun_ajaran_id, semester } = req.body;
 
     if (!id) {
       return res.status(400).json({ error: 'ID struktur wajib disertakan.' });
@@ -79,6 +89,7 @@ function registerStrukturRoutes(app) {
     const parsedAlamat = alamat !== undefined ? (alamat ? alamat.trim() : null) : undefined;
     const parsedKategori = kategori !== undefined ? (kategori ? kategori.trim() : null) : undefined;
     const parsedTaId = tahun_ajaran_id ? Number(tahun_ajaran_id) : null;
+    const parsedSemester = semester !== undefined ? (semester ? semester.trim() : null) : undefined;
 
     try {
       const result = await db.query(`
@@ -90,10 +101,11 @@ function registerStrukturRoutes(app) {
           alamat = COALESCE($4, alamat),
           kategori = COALESCE($5, kategori),
           tahun_ajaran_id = COALESCE($6, tahun_ajaran_id),
+          semester = COALESCE($7, semester),
           updated_at = NOW()
-        WHERE id = $7
+        WHERE id = $8
         RETURNING *
-      `, [parsedGuruId, parsedNamaCustom, keterangan, parsedAlamat, parsedKategori, parsedTaId, id]);
+      `, [parsedGuruId, parsedNamaCustom, keterangan, parsedAlamat, parsedKategori, parsedTaId, parsedSemester, id]);
 
       if (!result.rows.length) {
         return res.status(404).json({ error: 'Jabatan/struktur tidak ditemukan.' });
@@ -112,6 +124,7 @@ function registerStrukturRoutes(app) {
           s.keterangan,
           s.no_urut,
           s.tahun_ajaran_id,
+          s.semester,
           g.nama AS guru_nama,
           g.no_hp AS guru_no_hp,
           g.foto_url AS guru_foto_url
@@ -129,7 +142,7 @@ function registerStrukturRoutes(app) {
 
   // POST /api/struktur/add (For multiple roles like TU)
   app.post('/api/struktur/add', async (req, res) => {
-    const { tipe, kategori, jabatan, guru_id, nama_custom, alamat, keterangan, no_urut, tahun_ajaran_id } = req.body;
+    const { tipe, kategori, jabatan, guru_id, nama_custom, alamat, keterangan, no_urut, tahun_ajaran_id, semester } = req.body;
 
     if (!tipe || !jabatan) {
       return res.status(400).json({ error: 'Tipe dan Jabatan wajib diisi.' });
@@ -141,13 +154,14 @@ function registerStrukturRoutes(app) {
     const parsedKategori = kategori ? kategori.trim() : null;
     const parsedNoUrut = no_urut ? Number(no_urut) : 99;
     const parsedTaId = tahun_ajaran_id ? Number(tahun_ajaran_id) : null;
+    const parsedSemester = semester ? semester.trim() : 'Ganjil';
 
     try {
       const result = await db.query(`
-        INSERT INTO struktur_organisasi (tipe, kategori, jabatan, guru_id, nama_custom, alamat, keterangan, no_urut, tahun_ajaran_id)
-        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+        INSERT INTO struktur_organisasi (tipe, kategori, jabatan, guru_id, nama_custom, alamat, keterangan, no_urut, tahun_ajaran_id, semester)
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
         RETURNING *
-      `, [tipe, parsedKategori, jabatan, parsedGuruId, parsedNamaCustom, parsedAlamat, keterangan, parsedNoUrut, parsedTaId]);
+      `, [tipe, parsedKategori, jabatan, parsedGuruId, parsedNamaCustom, parsedAlamat, keterangan, parsedNoUrut, parsedTaId, parsedSemester]);
 
       // Fetch full row with joined details
       const fullRow = await db.query(`
@@ -162,6 +176,7 @@ function registerStrukturRoutes(app) {
           s.keterangan,
           s.no_urut,
           s.tahun_ajaran_id,
+          s.semester,
           g.nama AS guru_nama,
           g.no_hp AS guru_no_hp,
           g.foto_url AS guru_foto_url
@@ -194,7 +209,7 @@ function registerStrukturRoutes(app) {
 
   // POST /api/struktur/reset
   app.post('/api/struktur/reset', async (req, res) => {
-    const { tipe, tahun_ajaran_id } = req.body;
+    const { tipe, tahun_ajaran_id, semester } = req.body;
     if (!VALID_TYPES.includes(tipe)) {
       return res.status(400).json({ error: 'Tipe struktur tidak valid.' });
     }
@@ -211,18 +226,28 @@ function registerStrukturRoutes(app) {
         WHERE tipe = $1 AND no_urut <= 7
       `;
       const resetParams = [tipe];
+      let pIdx = 2;
       if (tahun_ajaran_id) {
-        resetQuery += ` AND (tahun_ajaran_id = $2 OR tahun_ajaran_id IS NULL)`;
+        resetQuery += ` AND (tahun_ajaran_id = $${pIdx++} OR tahun_ajaran_id IS NULL)`;
         resetParams.push(parseInt(tahun_ajaran_id, 10));
+      }
+      if (semester) {
+        resetQuery += ` AND (semester = $${pIdx++} OR semester IS NULL)`;
+        resetParams.push(semester);
       }
       await db.query(resetQuery, resetParams);
 
       // 2. Delete any extra custom positions
       let deleteQuery = `DELETE FROM struktur_organisasi WHERE tipe = $1 AND no_urut > 7`;
       const deleteParams = [tipe];
+      let dIdx = 2;
       if (tahun_ajaran_id) {
-        deleteQuery += ` AND (tahun_ajaran_id = $2 OR tahun_ajaran_id IS NULL)`;
+        deleteQuery += ` AND (tahun_ajaran_id = $${dIdx++} OR tahun_ajaran_id IS NULL)`;
         deleteParams.push(parseInt(tahun_ajaran_id, 10));
+      }
+      if (semester) {
+        deleteQuery += ` AND (semester = $${dIdx++} OR semester IS NULL)`;
+        deleteParams.push(semester);
       }
       await db.query(deleteQuery, deleteParams);
 

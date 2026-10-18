@@ -26,6 +26,8 @@ class _StrukturOrganisasiScreenState extends State<StrukturOrganisasiScreen> wit
   List<dynamic> _panitiaList = [];
   List<dynamic> _tahunAjaranList = [];
   int? _selectedTahunAjaranId;
+  String _selectedSemester = 'Ganjil';
+  bool _isPanitiaLoading = false;
 
   @override
   void initState() {
@@ -73,7 +75,7 @@ class _StrukturOrganisasiScreenState extends State<StrukturOrganisasiScreen> wit
 
     try {
       final diniyah = await _apiService.getStructure('madrasah_diniyah', tahunAjaranId: _selectedTahunAjaranId);
-      final panitia = await _apiService.getStructure('panitia_ujian', tahunAjaranId: _selectedTahunAjaranId);
+      final panitia = await _apiService.getStructure('panitia_ujian', tahunAjaranId: _selectedTahunAjaranId, semester: _selectedSemester);
 
       setState(() {
         _diniyahList = diniyah;
@@ -85,6 +87,21 @@ class _StrukturOrganisasiScreenState extends State<StrukturOrganisasiScreen> wit
         _errorMessage = e.toString().replaceFirst('Exception: ', '');
         _isLoading = false;
       });
+    }
+  }
+
+  Future<void> _fetchPanitiaData() async {
+    setState(() => _isPanitiaLoading = true);
+    try {
+      final panitia = await _apiService.getStructure('panitia_ujian', tahunAjaranId: _selectedTahunAjaranId, semester: _selectedSemester);
+      if (mounted) {
+        setState(() {
+          _panitiaList = panitia;
+          _isPanitiaLoading = false;
+        });
+      }
+    } catch (_) {
+      if (mounted) setState(() => _isPanitiaLoading = false);
     }
   }
 
@@ -156,12 +173,119 @@ class _StrukturOrganisasiScreenState extends State<StrukturOrganisasiScreen> wit
                         controller: _tabController,
                         children: [
                           _buildStructureList(_diniyahList, const Color(0xFF10B981)),
-                          _buildStructureList(_panitiaList, const Color(0xFFD97706)),
+                          _buildPanitiaTab(context, isDark),
                         ],
                       ),
           ),
         ],
       ),
+    );
+  }
+
+  Widget _buildPanitiaTab(BuildContext context, bool isDark) {
+    return Column(
+      children: [
+        // Semester Switcher
+        Container(
+          margin: const EdgeInsets.fromLTRB(16, 12, 16, 4),
+          padding: const EdgeInsets.all(4),
+          decoration: BoxDecoration(
+            color: isDark ? const Color(0xFF151F32) : const Color(0xFFF1F5F9),
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(
+              color: isDark ? Colors.white.withOpacity(0.06) : Colors.black.withOpacity(0.06),
+            ),
+          ),
+          child: Row(
+            children: [
+              Expanded(
+                child: GestureDetector(
+                  onTap: () {
+                    if (_selectedSemester != 'Ganjil') {
+                      setState(() => _selectedSemester = 'Ganjil');
+                      _fetchPanitiaData();
+                    }
+                  },
+                  child: AnimatedContainer(
+                    duration: const Duration(milliseconds: 200),
+                    padding: const EdgeInsets.symmetric(vertical: 8),
+                    decoration: BoxDecoration(
+                      color: _selectedSemester == 'Ganjil'
+                          ? const Color(0xFFD97706)
+                          : Colors.transparent,
+                      borderRadius: BorderRadius.circular(8),
+                      boxShadow: _selectedSemester == 'Ganjil'
+                          ? [
+                              BoxShadow(
+                                color: const Color(0xFFD97706).withOpacity(0.3),
+                                blurRadius: 4,
+                                offset: const Offset(0, 2),
+                              )
+                            ]
+                          : null,
+                    ),
+                    child: Center(
+                      child: Text(
+                        "Semester Ganjil",
+                        style: GoogleFonts.outfit(
+                          fontSize: 13,
+                          fontWeight: _selectedSemester == 'Ganjil' ? FontWeight.bold : FontWeight.w500,
+                          color: _selectedSemester == 'Ganjil' ? Colors.white : context.subTitleColor,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 4),
+              Expanded(
+                child: GestureDetector(
+                  onTap: () {
+                    if (_selectedSemester != 'Genap') {
+                      setState(() => _selectedSemester = 'Genap');
+                      _fetchPanitiaData();
+                    }
+                  },
+                  child: AnimatedContainer(
+                    duration: const Duration(milliseconds: 200),
+                    padding: const EdgeInsets.symmetric(vertical: 8),
+                    decoration: BoxDecoration(
+                      color: _selectedSemester == 'Genap'
+                          ? const Color(0xFFD97706)
+                          : Colors.transparent,
+                      borderRadius: BorderRadius.circular(8),
+                      boxShadow: _selectedSemester == 'Genap'
+                          ? [
+                              BoxShadow(
+                                color: const Color(0xFFD97706).withOpacity(0.3),
+                                blurRadius: 4,
+                                offset: const Offset(0, 2),
+                              )
+                            ]
+                          : null,
+                    ),
+                    child: Center(
+                      child: Text(
+                        "Semester Genap",
+                        style: GoogleFonts.outfit(
+                          fontSize: 13,
+                          fontWeight: _selectedSemester == 'Genap' ? FontWeight.bold : FontWeight.w500,
+                          color: _selectedSemester == 'Genap' ? Colors.white : context.subTitleColor,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+        Expanded(
+          child: _isPanitiaLoading
+              ? const Center(child: CircularProgressIndicator(color: Color(0xFFD97706)))
+              : _buildStructureList(_panitiaList, const Color(0xFFD97706)),
+        ),
+      ],
     );
   }
 

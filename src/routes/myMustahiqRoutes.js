@@ -3319,7 +3319,7 @@ function registerMyMustahiqRoutes(app) {
   // STRUKTUR ORGANISASI (all types for app)
   // ═══════════════════════════════════════════════════════════════
   router.get('/struktur', asyncHandler(async (req, res) => {
-    let { tipe, tahun_ajaran_id, kategori } = req.query;
+    let { tipe, tahun_ajaran_id, kategori, semester } = req.query;
     tipe = tipe || 'madrasah_diniyah';
 
     // Map common aliases from app tabs
@@ -3329,7 +3329,7 @@ function registerMyMustahiqRoutes(app) {
 
     let query = `
       SELECT 
-        s.id, s.tipe, s.kategori, s.jabatan, s.guru_id, s.nama_custom, s.alamat, s.keterangan, s.no_urut, s.tahun_ajaran_id,
+        s.id, s.tipe, s.kategori, s.jabatan, s.guru_id, s.nama_custom, s.alamat, s.keterangan, s.no_urut, s.tahun_ajaran_id, s.semester,
         g.nama AS guru_nama, g.no_hp AS guru_no_hp, g.foto_url AS guru_foto_url
       FROM struktur_organisasi s
       LEFT JOIN guru g ON s.guru_id = g.id
@@ -3352,6 +3352,15 @@ function registerMyMustahiqRoutes(app) {
     if (tahun_ajaran_id) {
       query += ` AND (s.tahun_ajaran_id = $${paramIdx++} OR s.tahun_ajaran_id IS NULL)`;
       params.push(parseInt(tahun_ajaran_id, 10));
+    }
+
+    if (tipe === 'panitia_ujian') {
+      const activeSemester = semester || 'Ganjil';
+      query += ` AND (s.semester = $${paramIdx++} OR s.semester IS NULL)`;
+      params.push(activeSemester);
+    } else if (semester) {
+      query += ` AND (s.semester = $${paramIdx++} OR s.semester IS NULL)`;
+      params.push(semester);
     }
 
     query += ` ORDER BY s.no_urut ASC, s.id ASC`;

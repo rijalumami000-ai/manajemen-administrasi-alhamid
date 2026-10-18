@@ -7,10 +7,11 @@ export const strukturService = {
   },
 
   // Fetch structure cards by type
-  async fetchStruktur(tipe, tahunAjaranId, kategori) {
+  async fetchStruktur(tipe, tahunAjaranId, kategori, semester) {
     const params = new URLSearchParams();
     if (tahunAjaranId) params.append('tahun_ajaran_id', tahunAjaranId);
     if (kategori) params.append('kategori', kategori);
+    if (semester) params.append('semester', semester);
     const qp = params.toString() ? `?${params.toString()}` : '';
     return apiGet(`/struktur/${tipe}${qp}`, { noCache: true });
   },
@@ -31,7 +32,7 @@ export const strukturService = {
   },
 
   // Reset all assignments for a structure type
-  async resetStruktur(tipe, tahunAjaranId) {
-    return apiPost('/struktur/reset', { tipe, tahun_ajaran_id: tahunAjaranId });
+  async resetStruktur(tipe, tahunAjaranId, semester) {
+    return apiPost('/struktur/reset', { tipe, tahun_ajaran_id: tahunAjaranId, semester });
   }
 };

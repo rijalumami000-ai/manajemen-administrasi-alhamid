@@ -31,9 +31,10 @@ export function StrukturOrganisasi() {
   const [editModalOpen, setEditModalOpen] = useState(false);
   const [selectedNode, setSelectedNode] = useState(null);
   
-  // Academic Year State
+  // Academic Year & Semester State
   const [tahunAjaranList, setTahunAjaranList] = useState([]);
   const [selectedTahunAjaran, setSelectedTahunAjaran] = useState(null);
+  const [selectedSemester, setSelectedSemester] = useState('Ganjil');
   
   // Edit Form States
   const [selectedGuruId, setSelectedGuruId] = useState(null);
@@ -65,11 +66,12 @@ export function StrukturOrganisasi() {
     }
   };
 
-  // Load structure data based on active tab
-  const loadStruktur = async (tipe, tahunId = selectedTahunAjaran) => {
+  // Load structure data based on active tab and semester
+  const loadStruktur = async (tipe, tahunId = selectedTahunAjaran, sem = selectedSemester) => {
     setLoading(true);
     try {
-      const data = await strukturService.fetchStruktur(tipe, tahunId);
+      const semParam = tipe === 'panitia_ujian' ? sem : null;
+      const data = await strukturService.fetchStruktur(tipe, tahunId, null, semParam);
       setStrukturData(data);
     } catch (error) {
       console.error(error);
@@ -96,9 +98,9 @@ export function StrukturOrganisasi() {
 
   useEffect(() => {
     if (selectedTahunAjaran !== null) {
-      loadStruktur(activeTab, selectedTahunAjaran);
+      loadStruktur(activeTab, selectedTahunAjaran, selectedSemester);
     }
-  }, [activeTab, selectedTahunAjaran]);
+  }, [activeTab, selectedTahunAjaran, selectedSemester]);
 
   const handleEditClick = (node) => {
     setSelectedNode(node);
@@ -128,16 +130,17 @@ export function StrukturOrganisasi() {
         guru_id: selectedGuruId ? Number(selectedGuruId) : null,
         nama_custom: selectedGuruId ? null : customName.trim(), // clear custom name if a teacher is selected
         keterangan: keterangan.trim(),
-        tahun_ajaran_id: selectedTahunAjaran
+        tahun_ajaran_id: selectedTahunAjaran,
+        semester: activeTab === 'panitia_ujian' ? selectedSemester : 'Ganjil'
       };
 
-      if (selectedNode.id === null) {
+      if (selectedNode.id === null || String(selectedNode.id).startsWith('placeholder-')) {
         // Create new record
         await strukturService.addStruktur({
           ...payload,
-          tipe: selectedNode.tipe,
+          tipe: selectedNode.tipe || activeTab,
           jabatan: selectedNode.jabatan,
-          no_urut: selectedNode.no_urut
+          no_urut: selectedNode.no_urut || 99
         });
         toast.success(`Berhasil menambahkan personel ${selectedNode.jabatan}`);
       } else {
@@ -150,7 +153,7 @@ export function StrukturOrganisasi() {
       }
       
       setEditModalOpen(false);
-      loadStruktur(activeTab, selectedTahunAjaran);
+      loadStruktur(activeTab, selectedTahunAjaran, selectedSemester);
     } catch (error) {
       console.error(error);
       toast.error('Gagal menyimpan posisi: ' + error.message);
@@ -164,7 +167,8 @@ export function StrukturOrganisasi() {
       id: null,
       tipe: activeTab,
       jabatan: jabatan,
-      no_urut: noUrut
+      no_urut: noUrut,
+      semester: activeTab === 'panitia_ujian' ? selectedSemester : 'Ganjil'
     });
     setSelectedGuruId(null);
     setCustomName('');
@@ -191,7 +195,7 @@ export function StrukturOrganisasi() {
       await strukturService.deleteStruktur(nodeId);
       toast.success('Personel berhasil dihapus dari struktur.');
       setDeleteConfirm({ isOpen: false, nodeId: null, jabatan: '', nama: '' });
-      loadStruktur(activeTab, selectedTahunAjaran);
+      loadStruktur(activeTab, selectedTahunAjaran, selectedSemester);
     } catch (error) {
       console.error(error);
       toast.error('Gagal menghapus personel: ' + error.message);
@@ -226,20 +230,30 @@ export function StrukturOrganisasi() {
   // 3: Waka Kurikulum, Waka Kesiswaan
   // 4: Sekretaris, Bendahara
   // 5: TU (Multiple)
+  // 6: Pembantu Umum (Multiple)
   const getDiniyahTree = () => {
-    const findNode = (jabatan) => strukturData.find(n => n.jabatan.toLowerCase() === jabatan.toLowerCase()) || { jabatan };
-    const filterNodes = (jabatan, defaultNoUrut) => {
-      const nodes = strukturData.filter(n => n.jabatan.toLowerCase() === jabatan.toLowerCase());
-      return nodes.length > 0 ? nodes : [{ id: `placeholder-${jabatan}`, jabatan, tipe: 'madrasah_diniyah', no_urut: defaultNoUrut }];
+    const findNode = (target) => {
+      const q = target.toLowerCase();
+      return (
+        strukturData.find(n => n.jabatan.toLowerCase() === q) ||
+        strukturData.find(n => n.jabatan.toLowerCase().includes(q)) ||
+        { jabatan: target }
+      );
+    };
+    const filterNodes = (target, defaultNoUrut) => {
+      const q = target.toLowerCase();
+      const nodes = strukturData.filter(n => n.jabatan.toLowerCase() === q || n.jabatan.toLowerCase().includes(q));
+      return nodes.length > 0 ? nodes : [{ id: `placeholder-${target}`, jabatan: target, tipe: 'madrasah_diniyah', no_urut: defaultNoUrut }];
     };
 
-    const pelindung = findNode('Pelindung & Penasehat');
+    const pelindung = findNode('Pelindung');
     const kepala = findNode('Kepala Madrasah');
-    const wakaKur = findNode('Waka Kurikulum');
-    const wakaKes = findNode('Waka Kesiswaan');
+    const wakaKur = findNode('Kurikulum');
+    const wakaKes = findNode('Kesiswaan');
     const sekretaris = findNode('Sekretaris');
     const bendahara = findNode('Bendahara');
     const tuList = filterNodes('TU', 7);
+    const pembantuList = filterNodes('Pembantu Umum', 8);
 
     return (
       <div className="org-tree-wrapper animate-fade-in">
@@ -282,7 +296,7 @@ export function StrukturOrganisasi() {
             {isAdmin() && (
               <button 
                 type="button"
-                onClick={() => handleAddMember('TU', 7)}
+                onClick={() => handleAddMember('Tata Usaha (TU)', 7)}
                 className="add-member-btn"
               >
                 <Plus size={14} />
@@ -292,6 +306,28 @@ export function StrukturOrganisasi() {
           </div>
           <div className="multiple-cards-container">
             {tuList.map(node => renderCard(node, 'accent-slate', true))}
+          </div>
+        </div>
+
+        <div className="tree-connector-vertical"></div>
+
+        {/* Level 6: Pembantu Umum (Multiple) */}
+        <div className="org-row level-6 multiple-row">
+          <div className="multiple-header">
+            <span className="multiple-title">Pembantu Umum</span>
+            {isAdmin() && (
+              <button 
+                type="button"
+                onClick={() => handleAddMember('Pembantu Umum', 8)}
+                className="add-member-btn"
+              >
+                <Plus size={14} />
+                <span>Tambah Pembantu Umum</span>
+              </button>
+            )}
+          </div>
+          <div className="multiple-cards-container">
+            {pembantuList.map(node => renderCard(node, 'accent-slate', true))}
           </div>
         </div>
       </div>
@@ -304,10 +340,18 @@ export function StrukturOrganisasi() {
   // 3: Sekretaris & Bendahara
   // 4: Seksi Konsumsi (Multiple) & Asisten Ujian (Multiple)
   const getPanitiaTree = () => {
-    const findNode = (jabatan) => strukturData.find(n => n.jabatan.toLowerCase() === jabatan.toLowerCase()) || { jabatan };
-    const filterNodes = (jabatan, defaultNoUrut) => {
-      const nodes = strukturData.filter(n => n.jabatan.toLowerCase() === jabatan.toLowerCase());
-      return nodes.length > 0 ? nodes : [{ id: `placeholder-${jabatan}`, jabatan, tipe: 'panitia_ujian', no_urut: defaultNoUrut }];
+    const findNode = (target) => {
+      const q = target.toLowerCase();
+      return (
+        strukturData.find(n => n.jabatan.toLowerCase() === q) ||
+        strukturData.find(n => n.jabatan.toLowerCase().includes(q)) ||
+        { jabatan: target }
+      );
+    };
+    const filterNodes = (target, defaultNoUrut) => {
+      const q = target.toLowerCase();
+      const nodes = strukturData.filter(n => n.jabatan.toLowerCase() === q || n.jabatan.toLowerCase().includes(q));
+      return nodes.length > 0 ? nodes : [{ id: `placeholder-${target}`, jabatan: target, tipe: 'panitia_ujian', no_urut: defaultNoUrut }];
     };
 
     const pj = findNode('Penanggungjawab');
@@ -514,7 +558,48 @@ export function StrukturOrganisasi() {
               </button>
             </div>
             
-            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
+              {activeTab === 'panitia_ujian' && (
+                <div style={{ display: 'flex', background: 'rgba(241, 245, 249, 0.85)', padding: '3px', borderRadius: '10px', gap: '4px', border: '1px solid rgba(203, 213, 225, 0.6)' }}>
+                  <button
+                    type="button"
+                    style={{
+                      padding: '6px 14px',
+                      borderRadius: '8px',
+                      fontSize: '13px',
+                      fontWeight: selectedSemester === 'Ganjil' ? 600 : 500,
+                      border: 'none',
+                      background: selectedSemester === 'Ganjil' ? '#10b981' : 'transparent',
+                      color: selectedSemester === 'Ganjil' ? '#ffffff' : '#64748b',
+                      cursor: 'pointer',
+                      transition: 'all 0.2s',
+                      boxShadow: selectedSemester === 'Ganjil' ? '0 1px 3px rgba(0,0,0,0.1)' : 'none'
+                    }}
+                    onClick={() => setSelectedSemester('Ganjil')}
+                  >
+                    Semester Ganjil
+                  </button>
+                  <button
+                    type="button"
+                    style={{
+                      padding: '6px 14px',
+                      borderRadius: '8px',
+                      fontSize: '13px',
+                      fontWeight: selectedSemester === 'Genap' ? 600 : 500,
+                      border: 'none',
+                      background: selectedSemester === 'Genap' ? '#10b981' : 'transparent',
+                      color: selectedSemester === 'Genap' ? '#ffffff' : '#64748b',
+                      cursor: 'pointer',
+                      transition: 'all 0.2s',
+                      boxShadow: selectedSemester === 'Genap' ? '0 1px 3px rgba(0,0,0,0.1)' : 'none'
+                    }}
+                    onClick={() => setSelectedSemester('Genap')}
+                  >
+                    Semester Genap
+                  </button>
+                </div>
+              )}
+
               <div style={{ minWidth: '220px' }}>
                 <CustomSelect
                   value={selectedTahunAjaran ? String(selectedTahunAjaran) : ''}
@@ -532,7 +617,7 @@ export function StrukturOrganisasi() {
               <button 
                 type="button" 
                 className="btn-custom btn-secondary"
-                onClick={() => loadStruktur(activeTab, selectedTahunAjaran)}
+                onClick={() => loadStruktur(activeTab, selectedTahunAjaran, selectedSemester)}
                 disabled={loading}
                 style={{ height: '36px', padding: '0 16px', borderRadius: '10px' }}
               >

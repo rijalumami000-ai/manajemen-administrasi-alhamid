@@ -178,10 +178,11 @@ class ApiService {
   }
 
   // Get Organization Structure (madrasah_diniyah / panitia_ujian / pondok / etc.)
-  Future<List<dynamic>> getStructure(String tipe, {int? tahunAjaranId}) async {
+  Future<List<dynamic>> getStructure(String tipe, {int? tahunAjaranId, String? semester}) async {
     try {
       final Map<String, dynamic> qp = {'tipe': tipe};
       if (tahunAjaranId != null) qp['tahun_ajaran_id'] = tahunAjaranId;
+      if (semester != null) qp['semester'] = semester;
       final response = await _dio.get('/my-mustahiq/struktur', queryParameters: qp);
       if (response.statusCode == 200) {
         return response.data as List<dynamic>;
