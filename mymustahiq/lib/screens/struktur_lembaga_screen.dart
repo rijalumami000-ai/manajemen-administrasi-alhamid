@@ -836,7 +836,7 @@ class _StrukturLembagaScreenState extends State<StrukturLembagaScreen>
       final jab = (item['jabatan'] ?? '').toString();
       final bidang = (item['bidang'] ?? '').toString().toLowerCase();
       final isSeksi = jab.toLowerCase().startsWith('seksi ') ||
-          jab.toLowerCase().includes('seksi') ||
+          jab.toLowerCase().contains('seksi') ||
           bidang.contains('koordinator') ||
           bidang.contains('anggota');
 

@@ -41,8 +41,8 @@ function registerStrukturRoutes(app) {
       let query = `
         SELECT 
           s.id, s.nis, s.nama, s.jenis_kelamin, s.foto_url, s.alamat,
-          kd.nama_kelas AS kelas_diniyah,
-          km.nama_kamar AS kamar
+          kd.nama AS kelas_diniyah,
+          km.nama AS kamar
         FROM santri s
         LEFT JOIN kelas kd ON s.kelas_diniyah_id = kd.id
         LEFT JOIN kamar km ON s.kamar_id = km.id
