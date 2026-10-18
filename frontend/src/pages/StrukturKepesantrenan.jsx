@@ -576,35 +576,55 @@ export function StrukturKepesantrenan({ defaultTab }) {
   const renderCircularAvatar = (item, size = 44) => {
     const foto = item.display_foto_url || item.guru_foto_url || item.santri_foto_url;
     const nama = item.display_nama || item.guru_nama || item.santri_nama || item.nama_custom || '?';
-    const initial = nama.trim().charAt(0).toUpperCase();
+    const initial = (nama.trim().charAt(0) || '?').toUpperCase();
 
-    if (foto) {
-      return (
-        <img
-          src={foto}
-          alt={nama}
-          className="rounded-full object-cover shadow-sm ring-2 ring-primary/20"
-          style={{ width: `${size}px`, height: `${size}px` }}
-          onError={(e) => {
-            e.currentTarget.style.display = 'none';
-            if (e.currentTarget.nextSibling) e.currentTarget.nextSibling.style.display = 'flex';
-          }}
-        />
-      );
-    }
-
-    // Pastel gradient fallback
     return (
       <div
-        className="rounded-full flex items-center justify-center font-bold text-white shadow-sm ring-2 ring-primary/20 flex-shrink-0"
+        className="circular-avatar-box"
         style={{
           width: `${size}px`,
           height: `${size}px`,
-          background: 'linear-gradient(135deg, #6366f1 0%, #3b82f6 100%)',
-          fontSize: `${Math.round(size * 0.4)}px`
+          minWidth: `${size}px`,
+          minHeight: `${size}px`,
+          borderRadius: '50%',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          background: 'linear-gradient(135deg, #4f46e5 0%, #3b82f6 100%)',
+          color: '#ffffff',
+          fontWeight: 800,
+          fontSize: `${Math.round(size * 0.42)}px`,
+          lineHeight: '1',
+          textAlign: 'center',
+          flexShrink: 0,
+          position: 'relative',
+          overflow: 'hidden',
+          userSelect: 'none',
+          boxShadow: '0 3px 10px rgba(59, 130, 246, 0.25)',
+          border: '2px solid rgba(255, 255, 255, 0.9)'
         }}
       >
-        {initial}
+        {foto ? (
+          <img
+            src={foto}
+            alt={nama}
+            style={{
+              width: '100%',
+              height: '100%',
+              objectFit: 'cover',
+              position: 'absolute',
+              top: 0,
+              left: 0,
+              zIndex: 2
+            }}
+            onError={(e) => {
+              e.currentTarget.style.display = 'none';
+            }}
+          />
+        ) : null}
+        <span style={{ color: '#ffffff', display: 'block', lineHeight: 1, zIndex: 1, fontWeight: 800 }}>
+          {initial}
+        </span>
       </div>
     );
   };
@@ -825,236 +845,261 @@ export function StrukturKepesantrenan({ defaultTab }) {
             )}
           </div>
         ) : viewMode === 'grid' ? (
-          /* ── GRID VIEW (Grouped Koordinator + Anggota) ─────────────────── */
-          <div className="sections-container">
-            {groupedSections.map((group, gIdx) => {
-              if (group.isSection) {
-                // Section Card: Unified Koordinator + Anggota
-                return (
-                  <div key={gIdx} className="section-group-card">
-                    {/* Group Header */}
-                    <div className="group-header">
-                      <div className="group-title-box">
-                        <div className="group-icon">
-                          <ShieldCheck size={18} />
-                        </div>
-                        <h4 className="group-title">{group.title}</h4>
-                      </div>
-                      <div className="group-header-right">
-                        <span className="group-count-badge">
-                          {(group.koordinator ? 1 : 0) + group.anggota.length} Personel
-                        </span>
-                        {isAdmin && (
-                          <button
-                            className="add-member-mini-btn"
-                            onClick={() => handleOpenAddModal(group.title, 'Anggota Seksi')}
-                            title={`Tambah Anggota ke ${group.title}`}
-                          >
-                            <Plus size={13} />
-                            <span>Tambah Anggota</span>
-                          </button>
+          /* ── GRID VIEW (Standalone Multi-Column Grid + Section Group Cards) ─── */
+          <>
+            {/* Standalone Personnel Cards in a Handsome Multi-Column Grid */}
+            {groupedSections.some(g => !g.isSection) && (
+              <div className="standalone-grid">
+                {groupedSections.filter(g => !g.isSection).map((group) => {
+                  const item = group.item;
+                  const cleanAlamat = (item.display_alamat || item.alamat || '').trim();
+                  const hasAlamat = cleanAlamat && cleanAlamat !== '-' && cleanAlamat !== 'null' && cleanAlamat !== 'undefined';
+                  const cleanPhone = (item.guru_no_hp || '').trim();
+                  const hasPhone = cleanPhone && cleanPhone !== '-' && cleanPhone !== 'null' && cleanPhone !== 'undefined';
+
+                  return (
+                    <div key={item.id} className="struktur-card-node">
+                      <div className="node-badge-row">
+                        <span className="node-badge">{item.jabatan}</span>
+                        {item.keterangan && (
+                          <span className="node-ket">{item.keterangan}</span>
                         )}
                       </div>
-                    </div>
 
-                    <div className="group-body">
-                      {/* Koordinator Highlight Box */}
-                      {group.koordinator ? (
-                        <div className="koordinator-box">
-                          <div className="koor-left">
-                            {renderCircularAvatar(group.koordinator, 48)}
-                            <div className="koor-text-wrap">
-                              <span className="koor-badge">
-                                <Crown size={12} />
-                                <span>{group.koordinator.keterangan || 'Koordinator Seksi'}</span>
-                              </span>
-                              <h5 className="koor-name">
-                                {group.koordinator.display_nama}
-                              </h5>
-                              <div className="koor-details">
-                                {(group.koordinator.display_alamat || group.koordinator.alamat) && (
-                                  <span className="detail-item">
-                                    <MapPin size={11} />
-                                    <span>{group.koordinator.display_alamat || group.koordinator.alamat}</span>
-                                  </span>
-                                )}
-                                {group.koordinator.guru_no_hp && (
-                                  <span className="detail-item phone-link">
-                                    <Phone size={11} />
-                                    <span>{group.koordinator.guru_no_hp}</span>
-                                  </span>
-                                )}
-                              </div>
-                            </div>
-                          </div>
-
-                          {isAdmin && (
-                            <div className="card-actions-mini">
-                              <button
-                                className="mini-btn edit-mini"
-                                onClick={() => handleOpenEditModal(group.koordinator)}
-                                title="Edit Data"
-                              >
-                                <Edit2 size={13} />
-                              </button>
-                              <button
-                                className="mini-btn delete-mini"
-                                onClick={() => setDeleteConfirm({
-                                  isOpen: true,
-                                  nodeId: group.koordinator.id,
-                                  jabatan: group.koordinator.jabatan,
-                                  nama: group.koordinator.display_nama
-                                })}
-                                title="Hapus Personel"
-                              >
-                                <Trash2 size={13} />
-                              </button>
-                            </div>
-                          )}
+                      <div className="node-main-content">
+                        <div className="node-avatar-box">
+                          {renderCircularAvatar(item, 48)}
                         </div>
-                      ) : (
-                        isAdmin && (
-                          <div style={{
-                            border: '1px dashed #f59e0b',
-                            borderRadius: '12px',
-                            padding: '12px 16px',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'space-between',
-                            fontSize: '12px',
-                            color: '#b45309',
-                            background: 'rgba(254, 243, 199, 0.4)'
-                          }}>
-                            <span>Posisi Koordinator untuk <strong>{group.title}</strong> belum ditentukan.</span>
+
+                        <div className="node-info">
+                          <h4 className="person-name">{item.display_nama}</h4>
+                          <div className="person-phone">
+                            {hasAlamat && (
+                              <span className="detail-item">
+                                <MapPin size={11} />
+                                <span>{cleanAlamat}</span>
+                              </span>
+                            )}
+                            {hasPhone && (
+                              <span className="detail-item phone-link">
+                                <Phone size={11} />
+                                <span>{cleanPhone}</span>
+                              </span>
+                            )}
+                          </div>
+                        </div>
+
+                        {isAdmin && (
+                          <div className="card-actions-row">
                             <button
-                              className="action-pill-btn amber-pill"
-                              style={{ padding: '4px 12px', fontSize: '11.5px' }}
-                              onClick={() => handleOpenAddModal(group.title, 'Koordinator Seksi')}
+                              className="action-icon-btn node-edit-btn"
+                              onClick={() => handleOpenEditModal(item)}
+                              title="Edit Personel"
                             >
-                              Tunjuk Koordinator
+                              <Edit2 size={13} />
+                            </button>
+                            <button
+                              className="action-icon-btn node-delete-btn"
+                              onClick={() => setDeleteConfirm({
+                                isOpen: true,
+                                nodeId: item.id,
+                                jabatan: item.jabatan,
+                                nama: item.display_nama
+                              })}
+                              title="Hapus Personel"
+                            >
+                              <Trash2 size={13} />
                             </button>
                           </div>
-                        )
-                      )}
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
 
-                      {/* Anggota List inside the same card */}
-                      {group.anggota.length > 0 && (
-                        <div className="anggota-section">
-                          <div className="anggota-section-title">
-                            <Users size={12} />
-                            <span>Anggota Seksi ({group.anggota.length})</span>
+            {/* Section Groups Container (Koordinator + Anggota) */}
+            {groupedSections.some(g => g.isSection) && (
+              <div className="sections-container">
+                {groupedSections.filter(g => g.isSection).map((group, gIdx) => {
+                  const koor = group.koordinator;
+                  const koorAlamat = koor ? (koor.display_alamat || koor.alamat || '').trim() : '';
+                  const hasKoorAlamat = koorAlamat && koorAlamat !== '-' && koorAlamat !== 'null' && koorAlamat !== 'undefined';
+                  const koorPhone = koor ? (koor.guru_no_hp || '').trim() : '';
+                  const hasKoorPhone = koorPhone && koorPhone !== '-' && koorPhone !== 'null' && koorPhone !== 'undefined';
+
+                  return (
+                    <div key={gIdx} className="section-group-card">
+                      {/* Group Header */}
+                      <div className="group-header">
+                        <div className="group-title-box">
+                          <div className="group-icon">
+                            <ShieldCheck size={18} />
                           </div>
-
-                          <div className="anggota-grid">
-                            {group.anggota.map((ang) => (
-                              <div key={ang.id} className="anggota-item-card">
-                                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', minWidth: 0 }}>
-                                  {renderCircularAvatar(ang, 34)}
-                                  <div className="anggota-info">
-                                    <h6 className="anggota-name">
-                                      {ang.display_nama}
-                                    </h6>
-                                    <div className="anggota-sub">
-                                      {ang.display_alamat || ang.alamat || ang.keterangan || 'Anggota'}
-                                    </div>
-                                  </div>
-                                </div>
-
-                                {isAdmin && (
-                                  <div className="card-actions-mini">
-                                    <button
-                                      className="mini-btn edit-mini"
-                                      onClick={() => handleOpenEditModal(ang)}
-                                      title="Edit"
-                                    >
-                                      <Edit2 size={12} />
-                                    </button>
-                                    <button
-                                      className="mini-btn delete-mini"
-                                      onClick={() => setDeleteConfirm({
-                                        isOpen: true,
-                                        nodeId: ang.id,
-                                        jabatan: ang.jabatan,
-                                        nama: ang.display_nama
-                                      })}
-                                      title="Hapus"
-                                    >
-                                      <Trash2 size={12} />
-                                    </button>
-                                  </div>
-                                )}
-                              </div>
-                            ))}
-                          </div>
+                          <h4 className="group-title">{group.title}</h4>
                         </div>
-                      )}
-                    </div>
-                  </div>
-                );
-              }
-
-              // Standalone Single Person Card
-              const item = group.item;
-              return (
-                <div key={item.id} className="struktur-card-node">
-                  <div className="node-badge-row">
-                    <span className="node-badge">{item.jabatan}</span>
-                    {item.keterangan && (
-                      <span className="node-ket">{item.keterangan}</span>
-                    )}
-                  </div>
-
-                  <div className="node-main-content">
-                    <div className="node-avatar-box">
-                      {renderCircularAvatar(item, 46)}
-                    </div>
-
-                    <div className="node-info">
-                      <h4 className="person-name">{item.display_nama}</h4>
-                      <div className="person-phone">
-                        {(item.display_alamat || item.alamat) && (
-                          <span className="detail-item">
-                            <MapPin size={11} />
-                            <span>{item.display_alamat || item.alamat}</span>
+                        <div className="group-header-right">
+                          <span className="group-count-badge">
+                            {(koor ? 1 : 0) + group.anggota.length} Personel
                           </span>
+                          {isAdmin && (
+                            <button
+                              className="add-member-mini-btn"
+                              onClick={() => handleOpenAddModal(group.title, 'Anggota Seksi')}
+                              title={`Tambah Anggota ke ${group.title}`}
+                            >
+                              <Plus size={13} />
+                              <span>Tambah Anggota</span>
+                            </button>
+                          )}
+                        </div>
+                      </div>
+
+                      <div className="group-body">
+                        {/* Koordinator Highlight Box */}
+                        {koor ? (
+                          <div className="koordinator-box">
+                            <div className="koor-left">
+                              {renderCircularAvatar(koor, 48)}
+                              <div className="koor-text-wrap">
+                                <span className="koor-badge">
+                                  <Crown size={12} />
+                                  <span>{koor.keterangan || 'Koordinator Seksi'}</span>
+                                </span>
+                                <h5 className="koor-name">
+                                  {koor.display_nama}
+                                </h5>
+                                <div className="koor-details">
+                                  {hasKoorAlamat && (
+                                    <span className="detail-item">
+                                      <MapPin size={11} />
+                                      <span>{koorAlamat}</span>
+                                    </span>
+                                  )}
+                                  {hasKoorPhone && (
+                                    <span className="detail-item phone-link">
+                                      <Phone size={11} />
+                                      <span>{koorPhone}</span>
+                                    </span>
+                                  )}
+                                </div>
+                              </div>
+                            </div>
+
+                            {isAdmin && (
+                              <div className="card-actions-mini">
+                                <button
+                                  className="mini-btn edit-mini"
+                                  onClick={() => handleOpenEditModal(koor)}
+                                  title="Edit Data"
+                                >
+                                  <Edit2 size={13} />
+                                </button>
+                                <button
+                                  className="mini-btn delete-mini"
+                                  onClick={() => setDeleteConfirm({
+                                    isOpen: true,
+                                    nodeId: koor.id,
+                                    jabatan: koor.jabatan,
+                                    nama: koor.display_nama
+                                  })}
+                                  title="Hapus Personel"
+                                >
+                                  <Trash2 size={13} />
+                                </button>
+                              </div>
+                            )}
+                          </div>
+                        ) : (
+                          isAdmin && (
+                            <div style={{
+                              border: '1px dashed #f59e0b',
+                              borderRadius: '12px',
+                              padding: '12px 16px',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'space-between',
+                              fontSize: '12px',
+                              color: '#b45309',
+                              background: 'rgba(254, 243, 199, 0.4)'
+                            }}>
+                              <span>Posisi Koordinator untuk <strong>{group.title}</strong> belum ditentukan.</span>
+                              <button
+                                className="action-pill-btn amber-pill"
+                                style={{ padding: '4px 12px', fontSize: '11.5px' }}
+                                onClick={() => handleOpenAddModal(group.title, 'Koordinator Seksi')}
+                              >
+                                Tunjuk Koordinator
+                              </button>
+                            </div>
+                          )
                         )}
-                        {item.guru_no_hp && (
-                          <span className="detail-item phone-link">
-                            <Phone size={11} />
-                            <span>{item.guru_no_hp}</span>
-                          </span>
+
+                        {/* Anggota List inside the same card */}
+                        {group.anggota.length > 0 && (
+                          <div className="anggota-section">
+                            <div className="anggota-section-title">
+                              <Users size={12} />
+                              <span>Anggota Seksi ({group.anggota.length})</span>
+                            </div>
+
+                            <div className="anggota-grid">
+                              {group.anggota.map((ang) => {
+                                const angSub = (ang.display_alamat || ang.alamat || ang.keterangan || '').trim();
+                                const hasAngSub = angSub && angSub !== '-' && angSub !== 'null';
+                                return (
+                                  <div key={ang.id} className="anggota-item-card">
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px', minWidth: 0 }}>
+                                      {renderCircularAvatar(ang, 34)}
+                                      <div className="anggota-info">
+                                        <h6 className="anggota-name">
+                                          {ang.display_nama}
+                                        </h6>
+                                        {hasAngSub && (
+                                          <div className="anggota-sub">
+                                            {angSub}
+                                          </div>
+                                        )}
+                                      </div>
+                                    </div>
+
+                                    {isAdmin && (
+                                      <div className="card-actions-mini">
+                                        <button
+                                          className="mini-btn edit-mini"
+                                          onClick={() => handleOpenEditModal(ang)}
+                                          title="Edit"
+                                        >
+                                          <Edit2 size={12} />
+                                        </button>
+                                        <button
+                                          className="mini-btn delete-mini"
+                                          onClick={() => setDeleteConfirm({
+                                            isOpen: true,
+                                            nodeId: ang.id,
+                                            jabatan: ang.jabatan,
+                                            nama: ang.display_nama
+                                          })}
+                                          title="Hapus"
+                                        >
+                                          <Trash2 size={12} />
+                                        </button>
+                                      </div>
+                                    )}
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          </div>
                         )}
                       </div>
                     </div>
-
-                    {isAdmin && (
-                      <div className="card-actions-row">
-                        <button
-                          className="action-icon-btn node-edit-btn"
-                          onClick={() => handleOpenEditModal(item)}
-                          title="Edit Personel"
-                        >
-                          <Edit2 size={14} />
-                        </button>
-                        <button
-                          className="action-icon-btn node-delete-btn"
-                          onClick={() => setDeleteConfirm({
-                            isOpen: true,
-                            nodeId: item.id,
-                            jabatan: item.jabatan,
-                            nama: item.display_nama
-                          })}
-                          title="Hapus Personel"
-                        >
-                          <Trash2 size={14} />
-                        </button>
-                      </div>
-                    )}
-                  </div>
-                </div>
-              );
-            })}
-          </div>
+                  );
+                })}
+              </div>
+            )}
+          </>
         ) : (
           /* ── TABLE VIEW ─────────────────────────────────────────────────── */
           <div className="table-responsive">
@@ -1515,17 +1560,12 @@ export function StrukturKepesantrenan({ defaultTab }) {
           </p>
 
           {/* Form Tambah Jabatan Template */}
-          <form onSubmit={handleAddJabatan} style={{
-            background: 'rgba(241, 245, 249, 0.6)',
-            borderRadius: '12px',
-            padding: '12px',
-            border: '1px solid rgba(226, 232, 240, 0.8)',
-            marginBottom: '14px'
-          }}>
-            <div style={{ fontSize: '12px', fontWeight: 700, color: '#334155', marginBottom: '8px' }}>
-              Tambah Opsi Jabatan Baru:
+          <form onSubmit={handleAddJabatan} className="add-jabatan-box">
+            <div className="add-jabatan-title">
+              <Plus size={14} />
+              <span>Tambah Opsi Jabatan Baru:</span>
             </div>
-            <div className="modal-form-grid-2" style={{ marginBottom: '8px' }}>
+            <div className="modal-form-grid-2" style={{ marginBottom: '10px' }}>
               <input
                 type="text"
                 placeholder="Nama Jabatan (misal: Seksi Media)"
@@ -1548,7 +1588,7 @@ export function StrukturKepesantrenan({ defaultTab }) {
               className="modal-btn-submit"
               style={{ width: '100%', justifyContent: 'center' }}
             >
-              <Plus size={14} />
+              <Plus size={15} />
               <span>Tambahkan ke Opsi Jabatan</span>
             </button>
           </form>
@@ -1564,7 +1604,7 @@ export function StrukturKepesantrenan({ defaultTab }) {
                       value={editingJabatanName}
                       onChange={(e) => setEditingJabatanName(e.target.value)}
                       className="modal-input-field"
-                      style={{ height: '32px', fontSize: '12px' }}
+                      style={{ height: '34px', fontSize: '12.5px' }}
                     />
                     <button
                       className="modal-icon-btn btn-edit"
@@ -1582,9 +1622,9 @@ export function StrukturKepesantrenan({ defaultTab }) {
                 ) : (
                   <>
                     <div>
-                      <div>{t.nama_jabatan}</div>
+                      <div className="jabatan-name-badge">{t.nama_jabatan}</div>
                       {t.keterangan_default && (
-                        <div style={{ fontSize: '10.5px', color: '#94a3b8', fontWeight: 500 }}>{t.keterangan_default}</div>
+                        <div className="jabatan-desc-sub">{t.keterangan_default}</div>
                       )}
                     </div>
                     <div className="modal-item-actions">
@@ -1595,14 +1635,14 @@ export function StrukturKepesantrenan({ defaultTab }) {
                           setEditingJabatanName(t.nama_jabatan);
                           setEditingJabatanKeterangan(t.keterangan_default || '');
                         }}
-                        title="Edit"
+                        title="Edit Jabatan"
                       >
                         <Edit2 size={13} />
                       </button>
                       <button
                         className="modal-icon-btn btn-del"
                         onClick={() => handleDeleteJabatan(t.id)}
-                        title="Hapus"
+                        title="Hapus Jabatan"
                       >
                         <Trash2 size={13} />
                       </button>
