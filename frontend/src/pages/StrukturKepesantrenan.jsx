@@ -623,7 +623,7 @@ export function StrukturKepesantrenan({ defaultTab }) {
           </div>
         </div>
 
-        <div className="header-actions flex items-center gap-3 flex-wrap">
+        <div className="header-actions">
           {/* Academic Year Selector */}
           {tahunAjaranList.length > 0 && (
             <div className="tahun-ajaran-select" style={{ minWidth: '180px' }}>
@@ -633,27 +633,27 @@ export function StrukturKepesantrenan({ defaultTab }) {
                 onChange={(val) => setSelectedTahunAjaran(Number(val))}
                 options={tahunAjaranList.map(t => ({
                   value: t.id,
-                  label: `${t.nama}${t.is_active ? ' (Aktif)' : ''}`
+                  label: `${t.kode || t.nama || 'Tahun Ajaran'}${t.is_active ? ' (Aktif)' : ''}`
                 }))}
               />
             </div>
           )}
 
           {/* View Mode Toggle */}
-          <div className="view-mode-toggle flex items-center bg-slate-100 dark:bg-slate-800 p-1 rounded-xl">
+          <div className="view-mode-toggle">
             <button
-              className={`p-2 rounded-lg transition-all ${viewMode === 'grid' ? 'bg-white dark:bg-slate-700 shadow-sm text-blue-600' : 'text-slate-500'}`}
+              className={`view-mode-btn ${viewMode === 'grid' ? 'active' : ''}`}
               onClick={() => setViewMode('grid')}
               title="Tampilan Kartu"
             >
-              <LayoutGrid size={18} />
+              <LayoutGrid size={17} />
             </button>
             <button
-              className={`p-2 rounded-lg transition-all ${viewMode === 'table' ? 'bg-white dark:bg-slate-700 shadow-sm text-blue-600' : 'text-slate-500'}`}
+              className={`view-mode-btn ${viewMode === 'table' ? 'active' : ''}`}
               onClick={() => setViewMode('table')}
               title="Tampilan Tabel"
             >
-              <TableIcon size={18} />
+              <TableIcon size={17} />
             </button>
           </div>
 
@@ -662,7 +662,7 @@ export function StrukturKepesantrenan({ defaultTab }) {
             onClick={loadStruktur}
             title="Muat Ulang"
           >
-            <RefreshCw size={15} className={loading ? 'spin-anim' : ''} />
+            <RefreshCw size={14} className={loading ? 'spin-anim' : ''} />
             <span>Segarkan</span>
           </button>
         </div>
@@ -682,15 +682,12 @@ export function StrukturKepesantrenan({ defaultTab }) {
                   setActiveTab(tab.key);
                   setSearchQuery('');
                 }}
+                title={tab.desc}
               >
                 <div className="tab-icon-wrapper">
-                  <IconComp size={18} />
+                  <IconComp size={17} />
                 </div>
-                <div className="tab-text-wrapper">
-                  <span className="tab-label">{tab.label}</span>
-                  <span className="tab-desc">{tab.desc.split(',')[0]}</span>
-                </div>
-                {isActive && <div className="active-indicator" />}
+                <span className="tab-label">{tab.label}</span>
               </button>
             );
           })}
@@ -775,12 +772,12 @@ export function StrukturKepesantrenan({ defaultTab }) {
       </div>
 
       {/* ── Search Bar Filter ────────────────────────────────────────────── */}
-      <div className="search-filter-row flex items-center justify-between gap-4">
-        <div className="search-input-wrapper relative flex-1" style={{ maxWidth: '420px' }}>
-          <Search size={17} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
+      <div className="search-filter-row">
+        <div className="search-input-wrapper">
+          <Search size={16} className="search-icon-inside" />
           <input
             type="text"
-            className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-800 dark:text-slate-100 placeholder-slate-400"
+            className="search-field-input"
             placeholder="Cari nama pejabat, jabatan, daerah asal..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
@@ -788,14 +785,15 @@ export function StrukturKepesantrenan({ defaultTab }) {
           {searchQuery && (
             <button
               onClick={() => setSearchQuery('')}
-              className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+              className="clear-search-btn"
+              title="Bersihkan Pencarian"
             >
               <X size={15} />
             </button>
           )}
         </div>
 
-        <div className="text-xs text-slate-500 font-medium">
+        <div className="search-count-label">
           Menampilkan <strong>{groupedSections.length}</strong> posisi / seksi di sub-tab ini
         </div>
       </div>
@@ -804,21 +802,21 @@ export function StrukturKepesantrenan({ defaultTab }) {
       <div className="content-layout">
         {loading ? (
           <div className="loading-container">
-            <RefreshCw size={36} className="spin-anim text-blue-500 mb-3" />
-            <p className="font-semibold text-slate-600">Memuat susunan struktur organisasi...</p>
+            <RefreshCw size={36} className="spin-anim mb-3" style={{ color: '#3b82f6' }} />
+            <p style={{ fontWeight: 600, color: '#475569' }}>Memuat susunan struktur organisasi...</p>
           </div>
         ) : strukturData.length === 0 ? (
-          <div className="text-center py-16 px-4">
-            <div className="w-16 h-16 rounded-full bg-blue-50 dark:bg-slate-800 flex items-center justify-center text-blue-500 mx-auto mb-4">
+          <div className="empty-state-box">
+            <div className="empty-icon-circle">
               <Users size={32} />
             </div>
-            <h3 className="text-lg font-bold text-slate-800 dark:text-slate-200 mb-1">Belum Ada Pejabat di Sub-Tab Ini</h3>
-            <p className="text-sm text-slate-500 max-w-md mx-auto mb-6">
+            <h3 className="empty-title">Belum Ada Pejabat di Sub-Tab Ini</h3>
+            <p className="empty-desc">
               Silakan tambahkan personel kepengurusan atau konfigurasi template jabatan pada sub-tab {selectedKategori || 'ini'}.
             </p>
             {isAdmin && (
               <button
-                className="action-pill-btn primary-pill mx-auto"
+                className="action-pill-btn primary-pill"
                 onClick={() => handleOpenAddModal()}
               >
                 <Plus size={16} />
@@ -842,17 +840,18 @@ export function StrukturKepesantrenan({ defaultTab }) {
                         </div>
                         <h4 className="group-title">{group.title}</h4>
                       </div>
-                      <div className="flex items-center gap-3">
+                      <div className="group-header-right">
                         <span className="group-count-badge">
                           {(group.koordinator ? 1 : 0) + group.anggota.length} Personel
                         </span>
                         {isAdmin && (
                           <button
-                            className="p-1.5 rounded-lg bg-blue-50 dark:bg-slate-700 text-blue-600 hover:bg-blue-100 transition-colors"
+                            className="add-member-mini-btn"
                             onClick={() => handleOpenAddModal(group.title, 'Anggota Seksi')}
                             title={`Tambah Anggota ke ${group.title}`}
                           >
-                            <Plus size={14} />
+                            <Plus size={13} />
+                            <span>Tambah Anggota</span>
                           </button>
                         )}
                       </div>
@@ -862,25 +861,25 @@ export function StrukturKepesantrenan({ defaultTab }) {
                       {/* Koordinator Highlight Box */}
                       {group.koordinator ? (
                         <div className="koordinator-box">
-                          <div className="flex items-center gap-3.5 min-w-0">
+                          <div className="koor-left">
                             {renderCircularAvatar(group.koordinator, 48)}
-                            <div className="min-w-0">
+                            <div className="koor-text-wrap">
                               <span className="koor-badge">
                                 <Crown size={12} />
                                 <span>{group.koordinator.keterangan || 'Koordinator Seksi'}</span>
                               </span>
-                              <h5 className="font-bold text-slate-900 dark:text-slate-100 text-sm truncate">
+                              <h5 className="koor-name">
                                 {group.koordinator.display_nama}
                               </h5>
-                              <div className="flex items-center gap-3 text-xs text-slate-500 mt-0.5">
+                              <div className="koor-details">
                                 {(group.koordinator.display_alamat || group.koordinator.alamat) && (
-                                  <span className="flex items-center gap-1">
+                                  <span className="detail-item">
                                     <MapPin size={11} />
                                     <span>{group.koordinator.display_alamat || group.koordinator.alamat}</span>
                                   </span>
                                 )}
                                 {group.koordinator.guru_no_hp && (
-                                  <span className="flex items-center gap-1 text-emerald-600">
+                                  <span className="detail-item phone-link">
                                     <Phone size={11} />
                                     <span>{group.koordinator.guru_no_hp}</span>
                                   </span>
@@ -915,10 +914,21 @@ export function StrukturKepesantrenan({ defaultTab }) {
                         </div>
                       ) : (
                         isAdmin && (
-                          <div className="border border-dashed border-amber-300 dark:border-amber-800 rounded-xl p-3 flex items-center justify-between text-xs text-amber-700 dark:text-amber-400 bg-amber-50/50 dark:bg-amber-950/20">
+                          <div style={{
+                            border: '1px dashed #f59e0b',
+                            borderRadius: '12px',
+                            padding: '12px 16px',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'space-between',
+                            fontSize: '12px',
+                            color: '#b45309',
+                            background: 'rgba(254, 243, 199, 0.4)'
+                          }}>
                             <span>Posisi Koordinator untuk <strong>{group.title}</strong> belum ditentukan.</span>
                             <button
-                              className="px-3 py-1 bg-amber-600 text-white rounded-lg font-semibold hover:bg-amber-700 transition-colors"
+                              className="action-pill-btn amber-pill"
+                              style={{ padding: '4px 12px', fontSize: '11.5px' }}
                               onClick={() => handleOpenAddModal(group.title, 'Koordinator Seksi')}
                             >
                               Tunjuk Koordinator
@@ -938,13 +948,13 @@ export function StrukturKepesantrenan({ defaultTab }) {
                           <div className="anggota-grid">
                             {group.anggota.map((ang) => (
                               <div key={ang.id} className="anggota-item-card">
-                                <div className="flex items-center gap-2.5 min-w-0">
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', minWidth: 0 }}>
                                   {renderCircularAvatar(ang, 34)}
-                                  <div className="min-w-0">
-                                    <h6 className="font-semibold text-slate-800 dark:text-slate-200 text-xs truncate">
+                                  <div className="anggota-info">
+                                    <h6 className="anggota-name">
                                       {ang.display_nama}
                                     </h6>
-                                    <div className="text-[11px] text-slate-400 truncate">
+                                    <div className="anggota-sub">
                                       {ang.display_alamat || ang.alamat || ang.keterangan || 'Anggota'}
                                     </div>
                                   </div>
@@ -990,7 +1000,7 @@ export function StrukturKepesantrenan({ defaultTab }) {
                   <div className="node-badge-row">
                     <span className="node-badge">{item.jabatan}</span>
                     {item.keterangan && (
-                      <span className="text-xs text-slate-400 font-medium">{item.keterangan}</span>
+                      <span className="node-ket">{item.keterangan}</span>
                     )}
                   </div>
 
@@ -1001,18 +1011,20 @@ export function StrukturKepesantrenan({ defaultTab }) {
 
                     <div className="node-info">
                       <h4 className="person-name">{item.display_nama}</h4>
-                      {(item.display_alamat || item.alamat) && (
-                        <div className="person-phone">
-                          <MapPin size={12} className="mr-1" />
-                          <span>{item.display_alamat || item.alamat}</span>
-                        </div>
-                      )}
-                      {item.guru_no_hp && (
-                        <div className="person-phone text-emerald-600">
-                          <Phone size={12} className="mr-1" />
-                          <span>{item.guru_no_hp}</span>
-                        </div>
-                      )}
+                      <div className="person-phone">
+                        {(item.display_alamat || item.alamat) && (
+                          <span className="detail-item">
+                            <MapPin size={11} />
+                            <span>{item.display_alamat || item.alamat}</span>
+                          </span>
+                        )}
+                        {item.guru_no_hp && (
+                          <span className="detail-item phone-link">
+                            <Phone size={11} />
+                            <span>{item.guru_no_hp}</span>
+                          </span>
+                        )}
+                      </div>
                     </div>
 
                     {isAdmin && (
@@ -1045,58 +1057,58 @@ export function StrukturKepesantrenan({ defaultTab }) {
           </div>
         ) : (
           /* ── TABLE VIEW ─────────────────────────────────────────────────── */
-          <div className="table-responsive bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 overflow-hidden">
-            <table className="w-full text-left text-sm">
-              <thead className="bg-slate-50 dark:bg-slate-800/60 border-b border-slate-200 dark:border-slate-800 text-xs text-slate-500 font-bold uppercase tracking-wider">
+          <div className="table-responsive">
+            <table className="table-modern">
+              <thead>
                 <tr>
-                  <th className="py-3.5 px-4 w-12 text-center">No</th>
-                  <th className="py-3.5 px-4">Nama Personel</th>
-                  <th className="py-3.5 px-4">Jabatan / Posisi</th>
-                  <th className="py-3.5 px-4">Kategori / Sub-Tab</th>
-                  <th className="py-3.5 px-4">Tugas / Keterangan</th>
-                  <th className="py-3.5 px-4">Alamat / Kontak</th>
-                  {isAdmin && <th className="py-3.5 px-4 text-center w-24">Aksi</th>}
+                  <th style={{ width: '48px', textAlign: 'center' }}>No</th>
+                  <th>Nama Personel</th>
+                  <th>Jabatan / Posisi</th>
+                  <th>Kategori / Sub-Tab</th>
+                  <th>Tugas / Keterangan</th>
+                  <th>Alamat / Kontak</th>
+                  {isAdmin && <th style={{ width: '90px', textAlign: 'center' }}>Aksi</th>}
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+              <tbody>
                 {strukturData.map((row, idx) => (
-                  <tr key={row.id} className="hover:bg-slate-50/70 dark:hover:bg-slate-800/40 transition-colors">
-                    <td className="py-3 px-4 text-center text-slate-400 font-medium">{idx + 1}</td>
-                    <td className="py-3 px-4">
-                      <div className="flex items-center gap-3">
+                  <tr key={row.id}>
+                    <td style={{ textAlign: 'center', color: '#94a3b8', fontWeight: 600 }}>{idx + 1}</td>
+                    <td>
+                      <div className="person-cell">
                         {renderCircularAvatar(row, 36)}
                         <div>
-                          <div className="font-bold text-slate-900 dark:text-slate-100">{row.display_nama}</div>
+                          <div className="person-text-name">{row.display_nama}</div>
                           {row.santri_nis && (
-                            <div className="text-[11px] text-slate-400 font-mono">NIS: {row.santri_nis}</div>
+                            <div className="person-nis-sub">NIS: {row.santri_nis}</div>
                           )}
                         </div>
                       </div>
                     </td>
-                    <td className="py-3 px-4">
-                      <span className="font-semibold text-blue-600 dark:text-blue-400">{row.jabatan}</span>
+                    <td>
+                      <span className="table-badge-jabatan">{row.jabatan}</span>
                     </td>
-                    <td className="py-3 px-4 text-slate-600 dark:text-slate-300">
+                    <td style={{ color: '#475569' }}>
                       {row.kategori || '-'}
                     </td>
-                    <td className="py-3 px-4 text-slate-500">
+                    <td style={{ color: '#64748b' }}>
                       {row.keterangan || '-'}
                     </td>
-                    <td className="py-3 px-4 text-slate-500 text-xs">
+                    <td style={{ color: '#64748b', fontSize: '12px' }}>
                       {row.display_alamat || row.alamat || row.guru_no_hp || '-'}
                     </td>
                     {isAdmin && (
-                      <td className="py-3 px-4 text-center">
-                        <div className="flex items-center justify-center gap-2">
+                      <td>
+                        <div className="table-action-btns">
                           <button
-                            className="p-1.5 text-blue-600 hover:bg-blue-50 dark:hover:bg-slate-800 rounded-lg transition-colors"
+                            className="btn-table-act edit-act"
                             onClick={() => handleOpenEditModal(row)}
                             title="Edit"
                           >
                             <Edit2 size={15} />
                           </button>
                           <button
-                            className="p-1.5 text-red-600 hover:bg-red-50 dark:hover:bg-slate-800 rounded-lg transition-colors"
+                            className="btn-table-act delete-act"
                             onClick={() => setDeleteConfirm({
                               isOpen: true,
                               nodeId: row.id,
@@ -1127,29 +1139,29 @@ export function StrukturKepesantrenan({ defaultTab }) {
         title={editingNodeId ? 'Edit Pejabat / Pengurus' : 'Tambah Pejabat Baru'}
         maxWidth="max-w-xl"
       >
-        <form onSubmit={handleSavePerson} className="space-y-4">
+        <form onSubmit={handleSavePerson}>
           {/* Active Sub-Tab Info Banner */}
-          <div className="p-3 bg-blue-50 dark:bg-slate-800/80 border border-blue-200 dark:border-slate-700 rounded-xl flex items-center justify-between text-xs">
+          <div className="modal-subtab-banner">
             <div>
-              <span className="text-slate-500">Sub-Tab / Kategori:</span>
-              <strong className="ml-1.5 text-blue-700 dark:text-blue-300 font-bold">
+              <span className="banner-label">Sub-Tab / Kategori:</span>
+              <strong className="banner-value">
                 {isPanitiaUjian ? `Panitia Ujian (${modalSemester})` : (selectedKategori || 'Umum')}
               </strong>
             </div>
-            <span className="px-2 py-0.5 rounded-full bg-blue-200 dark:bg-blue-900/40 text-blue-800 dark:text-blue-300 font-semibold text-[10px]">
+            <span className="banner-tab-tag">
               {currentTabObj.label}
             </span>
           </div>
 
           {/* Jabatan Selection */}
-          <div className="space-y-1">
-            <label className="text-xs font-semibold text-slate-700 dark:text-slate-300">
-              Nama Jabatan / Posisi <span className="text-red-500">*</span>
+          <div className="modal-form-group">
+            <label className="modal-label">
+              Nama Jabatan / Posisi <span className="req-star">*</span>
             </label>
             {!isCustomJabatan && jabatanTemplates.length > 0 ? (
-              <div className="space-y-2">
+              <div>
                 <select
-                  className="w-full px-3 py-2.5 rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-sm font-semibold text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="modal-select"
                   value={modalJabatan}
                   onChange={(e) => {
                     const val = e.target.value;
@@ -1174,7 +1186,7 @@ export function StrukturKepesantrenan({ defaultTab }) {
                 </select>
               </div>
             ) : (
-              <div className="relative">
+              <div style={{ position: 'relative' }}>
                 <FloatingInput
                   label="Nama Jabatan (misal: Seksi Keamanan, Ketua Kamar 01)"
                   value={modalJabatan}
@@ -1184,7 +1196,16 @@ export function StrukturKepesantrenan({ defaultTab }) {
                 {jabatanTemplates.length > 0 && (
                   <button
                     type="button"
-                    className="text-xs text-blue-600 mt-1 hover:underline font-semibold"
+                    style={{
+                      background: 'none',
+                      border: 'none',
+                      color: '#2563eb',
+                      fontSize: '12px',
+                      fontWeight: 600,
+                      cursor: 'pointer',
+                      marginTop: '4px',
+                      padding: 0
+                    }}
                     onClick={() => {
                       setIsCustomJabatan(false);
                       setModalJabatan(jabatanTemplates[0].nama_jabatan);
@@ -1198,40 +1219,26 @@ export function StrukturKepesantrenan({ defaultTab }) {
           </div>
 
           {/* Person Type Selector: Santri (Buku Induk) vs Guru vs Manual */}
-          <div className="space-y-2 pt-2">
-            <label className="text-xs font-semibold text-slate-700 dark:text-slate-300 block">
-              Pilih Sumber Pejabat:
-            </label>
-            <div className="grid grid-cols-3 gap-2 p-1 bg-slate-100 dark:bg-slate-800 rounded-xl">
+          <div className="modal-form-group">
+            <label className="modal-label">Pilih Sumber Pejabat:</label>
+            <div className="source-tabs-grid">
               <button
                 type="button"
-                className={`py-2 px-3 rounded-lg text-xs font-bold transition-all ${
-                  personType === 'santri'
-                    ? 'bg-white dark:bg-slate-700 text-blue-600 shadow-sm'
-                    : 'text-slate-500 hover:text-slate-800'
-                }`}
+                className={`source-tab-btn ${personType === 'santri' ? 'active' : ''}`}
                 onClick={() => setPersonType('santri')}
               >
                 Santri (Buku Induk)
               </button>
               <button
                 type="button"
-                className={`py-2 px-3 rounded-lg text-xs font-bold transition-all ${
-                  personType === 'guru'
-                    ? 'bg-white dark:bg-slate-700 text-blue-600 shadow-sm'
-                    : 'text-slate-500 hover:text-slate-800'
-                }`}
+                className={`source-tab-btn ${personType === 'guru' ? 'active' : ''}`}
                 onClick={() => setPersonType('guru')}
               >
                 Guru / Asatidz
               </button>
               <button
                 type="button"
-                className={`py-2 px-3 rounded-lg text-xs font-bold transition-all ${
-                  personType === 'manual'
-                    ? 'bg-white dark:bg-slate-700 text-blue-600 shadow-sm'
-                    : 'text-slate-500 hover:text-slate-800'
-                }`}
+                className={`source-tab-btn ${personType === 'manual' ? 'active' : ''}`}
                 onClick={() => setPersonType('manual')}
               >
                 Input Manual
@@ -1241,69 +1248,67 @@ export function StrukturKepesantrenan({ defaultTab }) {
 
           {/* OPSI 1: SANTRI DARI BUKU INDUK */}
           {personType === 'santri' && (
-            <div className="space-y-3 pt-1">
-              <div className="relative">
-                <label className="text-xs font-semibold text-slate-600 dark:text-slate-400 block mb-1">
-                  Cari Nama Santri atau NIS dari Buku Induk:
-                </label>
-                <div className="relative">
-                  <Search size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
-                  <input
-                    type="text"
-                    className="w-full pl-9 pr-4 py-2 rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    placeholder="Ketik minimal 2 huruf nama santri atau NIS..."
-                    value={santriSearchQuery}
-                    onChange={(e) => setSantriSearchQuery(e.target.value)}
-                  />
-                  {santriSearching && (
-                    <RefreshCw size={14} className="spin-anim absolute right-3 top-1/2 -translate-y-1/2 text-blue-500" />
-                  )}
-                </div>
-
-                {/* Dropdown Results */}
-                {santriSearchResults.length > 0 && !selectedSantri && (
-                  <div className="absolute left-0 right-0 z-30 mt-1 max-h-56 overflow-y-auto bg-white dark:bg-slate-800 rounded-xl shadow-xl border border-slate-200 dark:border-slate-700 divide-y divide-slate-100 dark:divide-slate-700">
-                    {santriSearchResults.map((s) => (
-                      <div
-                        key={s.id}
-                        className="p-2.5 flex items-center justify-between hover:bg-blue-50 dark:hover:bg-slate-700/60 cursor-pointer transition-colors"
-                        onClick={() => {
-                          setSelectedSantri(s);
-                          setSantriSearchQuery('');
-                          setSantriSearchResults([]);
-                        }}
-                      >
-                        <div className="flex items-center gap-2.5">
-                          {renderCircularAvatar({ display_nama: s.nama, display_foto_url: s.foto_url }, 34)}
-                          <div>
-                            <div className="font-bold text-xs text-slate-900 dark:text-slate-100">{s.nama}</div>
-                            <div className="text-[11px] text-slate-400">
-                              NIS: {s.nis || '-'} • {s.kelas_diniyah || s.kamar || s.jenis_kelamin || ''}
-                            </div>
-                          </div>
-                        </div>
-                        <span className="text-xs text-blue-600 font-semibold">Pilih</span>
-                      </div>
-                    ))}
-                  </div>
+            <div className="santri-search-wrapper">
+              <label className="modal-label" style={{ marginBottom: '6px', display: 'block' }}>
+                Cari Nama Santri atau NIS dari Buku Induk:
+              </label>
+              <div className="search-input-box">
+                <Search size={16} className="icon-inside" />
+                <input
+                  type="text"
+                  className="santri-input"
+                  placeholder="Ketik minimal 2 huruf nama santri atau NIS..."
+                  value={santriSearchQuery}
+                  onChange={(e) => setSantriSearchQuery(e.target.value)}
+                />
+                {santriSearching && (
+                  <RefreshCw size={14} className="spin-anim spin-loader" />
                 )}
               </div>
 
+              {/* Dropdown Results */}
+              {santriSearchResults.length > 0 && !selectedSantri && (
+                <div className="santri-results-dropdown">
+                  {santriSearchResults.map((s) => (
+                    <div
+                      key={s.id}
+                      className="santri-result-item"
+                      onClick={() => {
+                        setSelectedSantri(s);
+                        setSantriSearchQuery('');
+                        setSantriSearchResults([]);
+                      }}
+                    >
+                      <div className="santri-res-left">
+                        {renderCircularAvatar({ display_nama: s.nama, display_foto_url: s.foto_url }, 34)}
+                        <div>
+                          <div className="res-name">{s.nama}</div>
+                          <div className="res-sub">
+                            NIS: {s.nis || '-'} • {s.kelas_diniyah || s.kamar || s.jenis_kelamin || ''}
+                          </div>
+                        </div>
+                      </div>
+                      <span className="res-pick-label">Pilih</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+
               {/* Selected Santri Preview Card */}
               {selectedSantri && (
-                <div className="p-3 bg-blue-50 dark:bg-slate-800 border border-blue-200 dark:border-blue-900/50 rounded-xl flex items-center justify-between">
-                  <div className="flex items-center gap-3">
+                <div className="selected-santri-card" style={{ marginTop: '10px' }}>
+                  <div className="card-left">
                     {renderCircularAvatar({ display_nama: selectedSantri.nama, display_foto_url: selectedSantri.foto_url }, 42)}
                     <div>
-                      <div className="font-bold text-sm text-slate-900 dark:text-slate-100">{selectedSantri.nama}</div>
-                      <div className="text-xs text-slate-500">
+                      <div className="sel-name">{selectedSantri.nama}</div>
+                      <div className="sel-sub">
                         NIS: {selectedSantri.nis || '-'} • {selectedSantri.alamat || 'Alamat pesantren'}
                       </div>
                     </div>
                   </div>
                   <button
                     type="button"
-                    className="p-1 rounded-lg text-slate-400 hover:text-red-500 hover:bg-red-50 transition-colors"
+                    className="btn-remove-santri"
                     onClick={() => setSelectedSantri(null)}
                     title="Ganti Santri"
                   >
@@ -1316,12 +1321,10 @@ export function StrukturKepesantrenan({ defaultTab }) {
 
           {/* OPSI 2: GURU / ASATIDZ */}
           {personType === 'guru' && (
-            <div className="space-y-2 pt-1">
-              <label className="text-xs font-semibold text-slate-600 dark:text-slate-400 block">
-                Pilih Dewan Guru / Asatidz:
-              </label>
+            <div className="modal-form-group">
+              <label className="modal-label">Pilih Dewan Guru / Asatidz:</label>
               <select
-                className="w-full px-3 py-2.5 rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 font-semibold"
+                className="modal-select"
                 value={selectedGuruId || ''}
                 onChange={(e) => setSelectedGuruId(e.target.value ? Number(e.target.value) : null)}
               >
@@ -1337,7 +1340,7 @@ export function StrukturKepesantrenan({ defaultTab }) {
 
           {/* OPSI 3: INPUT MANUAL */}
           {personType === 'manual' && (
-            <div className="space-y-3 pt-1">
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginBottom: '14px' }}>
               <FloatingInput
                 label="Nama Lengkap Pejabat (misal: Bpk. Sifaul Huda)"
                 value={customNama}
@@ -1352,37 +1355,33 @@ export function StrukturKepesantrenan({ defaultTab }) {
             </div>
           )}
 
-          {/* Bidang Tugas / Keterangan (e.g. Koordinator Seksi, Anggota Seksi) */}
-          <div className="grid grid-cols-2 gap-3 pt-2">
-            <div>
-              <label className="text-xs font-semibold text-slate-700 dark:text-slate-300 block mb-1">
-                Tugas / Keterangan
-              </label>
+          {/* Bidang Tugas & Nomor Urut */}
+          <div className="modal-form-grid-2">
+            <div className="modal-form-group">
+              <label className="modal-label">Tugas / Keterangan</label>
               <input
                 type="text"
-                className="w-full px-3 py-2 rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="modal-input"
                 placeholder="Contoh: Koordinator Seksi / Anggota Seksi"
                 value={modalKeterangan}
                 onChange={(e) => setModalKeterangan(e.target.value)}
               />
             </div>
-            <div>
-              <label className="text-xs font-semibold text-slate-700 dark:text-slate-300 block mb-1">
-                Nomor Urut Tampil
-              </label>
+            <div className="modal-form-group">
+              <label className="modal-label">Nomor Urut Tampil</label>
               <input
                 type="number"
-                className="w-full px-3 py-2 rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="modal-input"
                 value={modalNoUrut}
                 onChange={(e) => setModalNoUrut(Number(e.target.value))}
               />
             </div>
           </div>
 
-          <div className="flex items-center justify-end gap-3 pt-4 border-t border-slate-200 dark:border-slate-700">
+          <div className="modal-footer-row">
             <button
               type="button"
-              className="px-4 py-2 rounded-xl border border-slate-300 text-slate-600 hover:bg-slate-50 text-sm font-semibold transition-colors"
+              className="modal-btn-cancel"
               onClick={() => setPersonModalOpen(false)}
             >
               Batal
@@ -1390,7 +1389,7 @@ export function StrukturKepesantrenan({ defaultTab }) {
             <button
               type="submit"
               disabled={saveLoading}
-              className="px-5 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-semibold text-sm shadow-md transition-all flex items-center gap-2"
+              className="modal-btn-submit"
             >
               {saveLoading && <RefreshCw size={14} className="spin-anim" />}
               <span>{editingNodeId ? 'Simpan Perubahan' : 'Tambahkan Pejabat'}</span>
@@ -1408,24 +1407,24 @@ export function StrukturKepesantrenan({ defaultTab }) {
         title={`Kelola Kategori / Bagian (${currentTabObj.label})`}
         maxWidth="max-w-md"
       >
-        <div className="space-y-4">
-          <p className="text-xs text-slate-500">
+        <div>
+          <p style={{ fontSize: '12.5px', color: '#64748b', marginBottom: '14px', lineHeight: 1.5 }}>
             Kategori ini menjadi sub-tab mandiri untuk mengelompokkan struktur kepengurusan.
           </p>
 
           {/* Form Tambah Kategori */}
-          <form onSubmit={handleAddCategory} className="flex gap-2">
+          <form onSubmit={handleAddCategory} className="modal-form-inline">
             <input
               type="text"
               placeholder="Nama Kategori Baru (misal: Dewan Penasihat)"
               value={newCatName}
               onChange={(e) => setNewCatName(e.target.value)}
-              className="flex-1 px-3 py-2 rounded-xl border border-slate-300 dark:border-slate-600 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-slate-800"
+              className="modal-input-field"
             />
             <button
               type="submit"
               disabled={catActionLoading || !newCatName.trim()}
-              className="px-4 py-2 bg-blue-600 text-white rounded-xl text-sm font-bold shadow hover:bg-blue-700 transition-colors flex items-center gap-1.5"
+              className="modal-submit-btn"
             >
               <Plus size={15} />
               <span>Tambah</span>
@@ -1433,40 +1432,39 @@ export function StrukturKepesantrenan({ defaultTab }) {
           </form>
 
           {/* List Existing Categories */}
-          <div className="space-y-2 max-h-60 overflow-y-auto divide-y divide-slate-100 dark:divide-slate-700">
+          <div className="modal-items-list">
             {categories.map((cat) => (
-              <div key={cat.id || cat.nama_kategori} className="pt-2 pb-2 flex items-center justify-between gap-2">
+              <div key={cat.id || cat.nama_kategori} className="modal-item-row">
                 {editingCatId === cat.id ? (
-                  <div className="flex items-center gap-2 flex-1">
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flex: 1 }}>
                     <input
                       type="text"
                       value={editingCatName}
                       onChange={(e) => setEditingCatName(e.target.value)}
-                      className="flex-1 px-2.5 py-1.5 rounded-lg border border-blue-400 text-xs font-semibold bg-white dark:bg-slate-800"
+                      className="modal-input-field"
+                      style={{ height: '32px', fontSize: '12px' }}
                     />
                     <button
-                      className="p-1.5 bg-emerald-600 text-white rounded-lg"
+                      className="modal-icon-btn btn-edit"
                       onClick={() => handleUpdateCategory(cat.id)}
                     >
-                      <Check size={13} />
+                      <Check size={14} />
                     </button>
                     <button
-                      className="p-1.5 bg-slate-200 text-slate-600 rounded-lg"
+                      className="modal-icon-btn btn-del"
                       onClick={() => setEditingCatId(null)}
                     >
-                      <X size={13} />
+                      <X size={14} />
                     </button>
                   </div>
                 ) : (
                   <>
-                    <span className="font-semibold text-xs text-slate-800 dark:text-slate-200">
-                      {cat.nama_kategori}
-                    </span>
-                    <div className="flex items-center gap-1">
+                    <span>{cat.nama_kategori}</span>
+                    <div className="modal-item-actions">
                       {cat.id && (
                         <>
                           <button
-                            className="p-1.5 text-blue-600 hover:bg-blue-50 rounded-lg"
+                            className="modal-icon-btn btn-edit"
                             onClick={() => {
                               setEditingCatId(cat.id);
                               setEditingCatName(cat.nama_kategori);
@@ -1476,7 +1474,7 @@ export function StrukturKepesantrenan({ defaultTab }) {
                             <Edit2 size={13} />
                           </button>
                           <button
-                            className="p-1.5 text-red-600 hover:bg-red-50 rounded-lg"
+                            className="modal-icon-btn btn-del"
                             onClick={() => handleDeleteCategory(cat)}
                             title="Hapus Kategori"
                           >
@@ -1491,9 +1489,9 @@ export function StrukturKepesantrenan({ defaultTab }) {
             ))}
           </div>
 
-          <div className="pt-3 border-t border-slate-200 dark:border-slate-700 flex justify-end">
+          <div className="modal-footer-row">
             <button
-              className="px-4 py-2 bg-slate-100 text-slate-700 rounded-xl text-sm font-semibold hover:bg-slate-200"
+              className="modal-btn-cancel"
               onClick={() => setCategoryModalOpen(false)}
             >
               Tutup
@@ -1511,21 +1509,29 @@ export function StrukturKepesantrenan({ defaultTab }) {
         title={`Kelola Nama Jabatan (${selectedKategori || 'Sub-Tab'})`}
         maxWidth="max-w-lg"
       >
-        <div className="space-y-4">
-          <p className="text-xs text-slate-500">
+        <div>
+          <p style={{ fontSize: '12.5px', color: '#64748b', marginBottom: '14px', lineHeight: 1.5 }}>
             Daftar posisi jabatan yang dapat dipilih saat menambahkan pejabat pada sub-tab <strong>{selectedKategori}</strong>.
           </p>
 
           {/* Form Tambah Jabatan Template */}
-          <form onSubmit={handleAddJabatan} className="space-y-2 p-3 bg-slate-50 dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700">
-            <div className="font-semibold text-xs text-slate-700 dark:text-slate-300">Tambah Opsi Jabatan Baru:</div>
-            <div className="grid grid-cols-2 gap-2">
+          <form onSubmit={handleAddJabatan} style={{
+            background: 'rgba(241, 245, 249, 0.6)',
+            borderRadius: '12px',
+            padding: '12px',
+            border: '1px solid rgba(226, 232, 240, 0.8)',
+            marginBottom: '14px'
+          }}>
+            <div style={{ fontSize: '12px', fontWeight: 700, color: '#334155', marginBottom: '8px' }}>
+              Tambah Opsi Jabatan Baru:
+            </div>
+            <div className="modal-form-grid-2" style={{ marginBottom: '8px' }}>
               <input
                 type="text"
                 placeholder="Nama Jabatan (misal: Seksi Media)"
                 value={newJabatanName}
                 onChange={(e) => setNewJabatanName(e.target.value)}
-                className="px-3 py-1.5 rounded-lg border border-slate-300 text-xs bg-white dark:bg-slate-700"
+                className="modal-input-field"
                 required
               />
               <input
@@ -1533,57 +1539,57 @@ export function StrukturKepesantrenan({ defaultTab }) {
                 placeholder="Tugas Default (opsional)"
                 value={newJabatanKeterangan}
                 onChange={(e) => setNewJabatanKeterangan(e.target.value)}
-                className="px-3 py-1.5 rounded-lg border border-slate-300 text-xs bg-white dark:bg-slate-700"
+                className="modal-input-field"
               />
             </div>
             <button
               type="submit"
               disabled={jabActionLoading || !newJabatanName.trim()}
-              className="w-full py-1.5 bg-blue-600 text-white rounded-lg text-xs font-bold hover:bg-blue-700 transition-colors flex items-center justify-center gap-1"
+              className="modal-btn-submit"
+              style={{ width: '100%', justifyContent: 'center' }}
             >
-              <Plus size={13} />
+              <Plus size={14} />
               <span>Tambahkan ke Opsi Jabatan</span>
             </button>
           </form>
 
           {/* List Configured Positions */}
-          <div className="space-y-2 max-h-60 overflow-y-auto divide-y divide-slate-100 dark:divide-slate-700">
+          <div className="modal-items-list">
             {jabatanTemplates.map((t) => (
-              <div key={t.id} className="pt-2 pb-2 flex items-center justify-between gap-2">
+              <div key={t.id} className="modal-item-row">
                 {editingJabatanId === t.id ? (
-                  <div className="flex items-center gap-2 flex-1">
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flex: 1 }}>
                     <input
                       type="text"
                       value={editingJabatanName}
                       onChange={(e) => setEditingJabatanName(e.target.value)}
-                      className="flex-1 px-2.5 py-1 rounded-lg border border-blue-400 text-xs font-semibold bg-white dark:bg-slate-800"
+                      className="modal-input-field"
+                      style={{ height: '32px', fontSize: '12px' }}
                     />
                     <button
-                      className="p-1 bg-emerald-600 text-white rounded-lg"
+                      className="modal-icon-btn btn-edit"
                       onClick={() => handleUpdateJabatan(t.id)}
                     >
-                      <Check size={13} />
+                      <Check size={14} />
                     </button>
                     <button
-                      className="p-1 bg-slate-200 text-slate-600 rounded-lg"
+                      className="modal-icon-btn btn-del"
                       onClick={() => setEditingJabatanId(null)}
                     >
-                      <X size={13} />
+                      <X size={14} />
                     </button>
                   </div>
                 ) : (
                   <>
                     <div>
-                      <div className="font-semibold text-xs text-slate-800 dark:text-slate-200">
-                        {t.nama_jabatan}
-                      </div>
+                      <div>{t.nama_jabatan}</div>
                       {t.keterangan_default && (
-                        <div className="text-[10px] text-slate-400">{t.keterangan_default}</div>
+                        <div style={{ fontSize: '10.5px', color: '#94a3b8', fontWeight: 500 }}>{t.keterangan_default}</div>
                       )}
                     </div>
-                    <div className="flex items-center gap-1">
+                    <div className="modal-item-actions">
                       <button
-                        className="p-1 text-blue-600 hover:bg-blue-50 rounded-lg"
+                        className="modal-icon-btn btn-edit"
                         onClick={() => {
                           setEditingJabatanId(t.id);
                           setEditingJabatanName(t.nama_jabatan);
@@ -1594,7 +1600,7 @@ export function StrukturKepesantrenan({ defaultTab }) {
                         <Edit2 size={13} />
                       </button>
                       <button
-                        className="p-1 text-red-600 hover:bg-red-50 rounded-lg"
+                        className="modal-icon-btn btn-del"
                         onClick={() => handleDeleteJabatan(t.id)}
                         title="Hapus"
                       >
@@ -1607,9 +1613,9 @@ export function StrukturKepesantrenan({ defaultTab }) {
             ))}
           </div>
 
-          <div className="pt-3 border-t border-slate-200 dark:border-slate-700 flex justify-end">
+          <div className="modal-footer-row">
             <button
-              className="px-4 py-2 bg-slate-100 text-slate-700 rounded-xl text-sm font-semibold hover:bg-slate-200"
+              className="modal-btn-cancel"
               onClick={() => setJabatanModalOpen(false)}
             >
               Tutup
@@ -1627,23 +1633,24 @@ export function StrukturKepesantrenan({ defaultTab }) {
         title="Hapus Pejabat"
         maxWidth="max-w-md"
       >
-        <div className="space-y-4">
-          <div className="p-3 bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-900 rounded-xl flex items-start gap-3">
-            <AlertTriangle className="text-red-500 shrink-0 mt-0.5" size={20} />
-            <div className="text-sm text-red-700 dark:text-red-300">
+        <div>
+          <div className="delete-confirm-box">
+            <AlertTriangle className="delete-warning-icon" size={20} />
+            <div className="delete-warning-text">
               Apakah Anda yakin ingin menghapus <strong>{deleteConfirm.nama}</strong> dari posisi{' '}
               <strong>{deleteConfirm.jabatan}</strong>? Tindakan ini tidak dapat dibatalkan.
             </div>
           </div>
-          <div className="flex justify-end gap-3 pt-2">
+          <div className="modal-footer-row">
             <button
-              className="px-4 py-2 rounded-xl border border-slate-300 text-slate-600 text-sm font-semibold hover:bg-slate-50"
+              className="modal-btn-cancel"
               onClick={() => setDeleteConfirm({ isOpen: false, nodeId: null, jabatan: '', nama: '' })}
             >
               Batal
             </button>
             <button
-              className="px-4 py-2 rounded-xl bg-red-600 text-white text-sm font-semibold hover:bg-red-700 shadow-sm"
+              className="modal-btn-submit"
+              style={{ background: 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)', boxShadow: '0 4px 12px rgba(220, 38, 38, 0.35)' }}
               onClick={handleDeletePerson}
             >
               Ya, Hapus
