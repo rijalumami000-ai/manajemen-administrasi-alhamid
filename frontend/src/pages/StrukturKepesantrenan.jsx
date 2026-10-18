@@ -1,4 +1,5 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { 
   User, 
   Phone, 
@@ -20,7 +21,16 @@ import {
   Table as TableIcon,
   Crown,
   Award,
-  Users
+  Users,
+  GraduationCap,
+  FileCheck,
+  Settings2,
+  FolderPlus,
+  Sliders,
+  Check,
+  X,
+  Edit2,
+  ChevronRight
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { strukturService } from '../services/strukturService';
@@ -31,57 +41,85 @@ import { FloatingInput } from '../components/ui/FloatingInput';
 import { PageHeader, LoadingState, ErrorState, useToast } from '../components/common';
 import './StrukturOrganisasi.scss';
 
-const TABS = [
+const MAIN_TABS = [
   { key: 'dewan_penyantun', label: 'Dewan Penyantun', icon: Crown, color: 'accent-amber', desc: 'Pengasuh Ndalem, Dewan Penasihat & Pembina Asrama' },
   { key: 'pondok_putra', label: 'Pengurus Putra', icon: Building, color: 'accent-blue', desc: 'Dewan Harian, Dewan Pleno, PJ Kamar & Ketua Kamar Putra' },
   { key: 'pondok_putri', label: 'Pengurus Putri', icon: Building, color: 'accent-purple', desc: 'Dewan Harian, Dewan Pleno, PJ Komplek & Ketua Kamar Putri' },
-  { key: 'jamiyyah', label: 'Jam\'iyyah Santri', icon: Users, color: 'accent-emerald', desc: 'Jam\'iyyah Pusat, Jam\'iyyah Putra & Jam\'iyyah Putri' },
-  { key: 'pmq', label: 'Struktur PMQ', icon: BookOpen, color: 'accent-cyan', desc: 'Pendidikan Murottilil Qur\'an' },
+  { key: 'jamiyyah', label: "Jam'iyyah Santri", icon: Users, color: 'accent-emerald', desc: "Jam'iyyah Pusat, Jam'iyyah Putra & Jam'iyyah Putri" },
+  { key: 'pmq', label: 'Struktur PMQ', icon: BookOpen, color: 'accent-cyan', desc: "Pendidikan Murottilil Qur'an" },
+  { key: 'madrasah_diniyah', label: 'Struktur Madrasah Diniyah', icon: GraduationCap, color: 'accent-blue', desc: 'Pimpinan & Pengurus Madrasah Diniyah' },
+  { key: 'panitia_ujian', label: 'Panitia Ujian Semester', icon: FileCheck, color: 'accent-purple', desc: 'Kepanitiaan Ujian Semester Ganjil & Genap', isSemester: true },
   { key: 'panitia_sambangan', label: 'Panitia Sambangan', icon: Calendar, color: 'accent-amber', desc: 'Kepanitiaan Sambangan & Kunjungan Santri' },
   { key: 'panitia_haflah', label: 'Panitia Haflah', icon: Sparkles, color: 'accent-rose', desc: 'Kepanitiaan Haflah Akhirussanah' },
   { key: 'panitia_psb', label: 'Panitia PSB', icon: UserCheck, color: 'accent-slate', desc: 'Penerimaan Santri Baru' },
 ];
 
-export function StrukturKepesantrenan() {
+export function StrukturKepesantrenan({ defaultTab }) {
   const { isAdmin } = useAuth();
   const toast = useToast();
-  
-  // Active Tab & View Mode
-  const [activeTab, setActiveTab] = useState('dewan_penyantun');
+  const [searchParams, setSearchParams] = useSearchParams();
+
+  // Active Main Tab
+  const initialTab = defaultTab || searchParams.get('tab') || 'dewan_penyantun';
+  const [activeTab, setActiveTab] = useState(initialTab);
   const [viewMode, setViewMode] = useState('grid'); // 'grid' | 'table'
   const [searchQuery, setSearchQuery] = useState('');
-  const [selectedKategori, setSelectedKategori] = useState('ALL');
-  
-  const [loading, setLoading] = useState(false);
-  const [strukturData, setStrukturData] = useState([]);
-  const [guruList, setGuruList] = useState([]);
-  
+
+  // Sub-tabs / Categories State
+  const [categories, setCategories] = useState([]);
+  const [selectedKategori, setSelectedKategori] = useState('');
+  const [selectedSemester, setSelectedSemester] = useState('Ganjil');
+
   // Academic Year State
   const [tahunAjaranList, setTahunAjaranList] = useState([]);
   const [selectedTahunAjaran, setSelectedTahunAjaran] = useState(null);
-  
-  // Edit Form States
-  const [editModalOpen, setEditModalOpen] = useState(false);
-  const [selectedNode, setSelectedNode] = useState(null);
+
+  // Main Data
+  const [loading, setLoading] = useState(false);
+  const [strukturData, setStrukturData] = useState([]);
+  const [guruList, setGuruList] = useState([]);
+
+  // Position Templates for Active Category
+  const [jabatanTemplates, setJabatanTemplates] = useState([]);
+
+  // ── Modals State ─────────────────────────────────────────────────────────
+  // 1. Add / Edit Person Modal
+  const [personModalOpen, setPersonModalOpen] = useState(false);
+  const [editingNodeId, setEditingNodeId] = useState(null);
+  const [personType, setPersonType] = useState('santri'); // 'santri' | 'guru' | 'manual'
+  const [selectedSantri, setSelectedSantri] = useState(null);
   const [selectedGuruId, setSelectedGuruId] = useState(null);
-  const [customName, setCustomName] = useState('');
-  const [alamat, setAlamat] = useState('');
-  const [kategori, setKategori] = useState('');
-  const [keterangan, setKeterangan] = useState('');
+  const [customNama, setCustomNama] = useState('');
+  const [customAlamat, setCustomAlamat] = useState('');
+  const [modalJabatan, setModalJabatan] = useState('');
+  const [isCustomJabatan, setIsCustomJabatan] = useState(false);
+  const [modalKeterangan, setModalKeterangan] = useState('');
+  const [modalNoUrut, setModalNoUrut] = useState(99);
+  const [modalSemester, setModalSemester] = useState('Ganjil');
   const [saveLoading, setSaveLoading] = useState(false);
-  const [formErrors, setFormErrors] = useState({});
 
-  // Add Position Modal
-  const [addPosModalOpen, setAddPosModalOpen] = useState(false);
-  const [newJabatan, setNewJabatan] = useState('');
-  const [newKategori, setNewKategori] = useState('');
-  const [newNama, setNewNama] = useState('');
-  const [newGuruId, setNewGuruId] = useState(null);
-  const [newAlamat, setNewAlamat] = useState('');
-  const [newKeterangan, setNewKeterangan] = useState('');
-  const [addPosLoading, setAddPosLoading] = useState(false);
+  // Live Santri Search inside Modal
+  const [santriSearchQuery, setSantriSearchQuery] = useState('');
+  const [santriSearchResults, setSantriSearchResults] = useState([]);
+  const [santriSearching, setSantriSearching] = useState(false);
 
-  // Delete Confirm Modal State
+  // 2. Category Management Modal
+  const [categoryModalOpen, setCategoryModalOpen] = useState(false);
+  const [newCatName, setNewCatName] = useState('');
+  const [editingCatId, setEditingCatId] = useState(null);
+  const [editingCatName, setEditingCatName] = useState('');
+  const [catActionLoading, setCatActionLoading] = useState(false);
+
+  // 3. Jabatan Management Modal
+  const [jabatanModalOpen, setJabatanModalOpen] = useState(false);
+  const [newJabatanName, setNewJabatanName] = useState('');
+  const [newJabatanKeterangan, setNewJabatanKeterangan] = useState('');
+  const [editingJabatanId, setEditingJabatanId] = useState(null);
+  const [editingJabatanName, setEditingJabatanName] = useState('');
+  const [editingJabatanKeterangan, setEditingJabatanKeterangan] = useState('');
+  const [jabActionLoading, setJabActionLoading] = useState(false);
+
+  // 4. Delete Confirmation Modal
   const [deleteConfirm, setDeleteConfirm] = useState({
     isOpen: false,
     nodeId: null,
@@ -89,25 +127,91 @@ export function StrukturKepesantrenan() {
     nama: ''
   });
 
-  const loadTahunAjaran = async () => {
+  // Current Main Tab Object
+  const currentTabObj = MAIN_TABS.find(t => t.key === activeTab) || MAIN_TABS[0];
+  const isPanitiaUjian = activeTab === 'panitia_ujian';
+
+  // ── Initial Load: Academic Years & Teachers ──────────────────────────────
+  useEffect(() => {
+    loadInitialData();
+  }, []);
+
+  const loadInitialData = async () => {
     try {
-      const list = await strukturService.fetchTahunAjaran();
-      setTahunAjaranList(list || []);
-      const active = (list || []).find(t => t.is_active);
+      const [taList, gurus] = await Promise.all([
+        strukturService.fetchTahunAjaran(),
+        guruService.fetchGuru()
+      ]);
+      setTahunAjaranList(taList || []);
+      setGuruList(gurus || []);
+
+      const active = (taList || []).find(t => t.is_active);
       if (active) {
         setSelectedTahunAjaran(active.id);
-      } else if (list && list.length > 0) {
-        setSelectedTahunAjaran(list[0].id);
+      } else if (taList && taList.length > 0) {
+        setSelectedTahunAjaran(taList[0].id);
       }
     } catch (err) {
-      console.error('Gagal memuat tahun ajaran:', err);
+      console.error('Failed to load initial data:', err);
     }
   };
 
-  const loadStruktur = async (tipe, tahunId = selectedTahunAjaran) => {
+  // ── When activeTab changes: load categories and select first sub-tab ──────
+  useEffect(() => {
+    if (isPanitiaUjian) {
+      setCategories([
+        { nama_kategori: 'Panitia Ujian', sem: 'Ganjil' },
+        { nama_kategori: 'Panitia Ujian', sem: 'Genap' }
+      ]);
+      setSelectedSemester('Ganjil');
+    } else {
+      loadCategories(activeTab);
+    }
+  }, [activeTab]);
+
+  const loadCategories = async (tipe) => {
+    try {
+      const list = await strukturService.fetchKategori(tipe);
+      setCategories(list || []);
+      if (list && list.length > 0) {
+        setSelectedKategori(list[0].nama_kategori);
+      } else {
+        setSelectedKategori('');
+      }
+    } catch (err) {
+      console.error('Failed to load categories:', err);
+    }
+  };
+
+  // ── Load Structure Data ──────────────────────────────────────────────────
+  useEffect(() => {
+    if (selectedTahunAjaran) {
+      loadStruktur();
+    }
+  }, [activeTab, selectedTahunAjaran, selectedKategori, selectedSemester]);
+
+  // Load configured Jabatan templates when active category changes
+  useEffect(() => {
+    if (activeTab && selectedKategori && !isPanitiaUjian) {
+      loadJabatanTemplates(activeTab, selectedKategori);
+    }
+  }, [activeTab, selectedKategori]);
+
+  const loadJabatanTemplates = async (tipe, kategori) => {
+    try {
+      const list = await strukturService.fetchJabatan(tipe, kategori);
+      setJabatanTemplates(list || []);
+    } catch (err) {
+      console.error('Failed to load jabatan templates:', err);
+    }
+  };
+
+  const loadStruktur = async () => {
     setLoading(true);
     try {
-      const data = await strukturService.fetchStruktur(tipe, tahunId);
+      const semParam = isPanitiaUjian ? selectedSemester : null;
+      const katParam = isPanitiaUjian ? null : selectedKategori;
+      const data = await strukturService.fetchStruktur(activeTab, selectedTahunAjaran, katParam, semParam);
       setStrukturData(data || []);
     } catch (error) {
       console.error(error);
@@ -117,945 +221,1438 @@ export function StrukturKepesantrenan() {
     }
   };
 
-  const loadGuru = async () => {
-    try {
-      const data = await guruService.fetchGuru();
-      setGuruList(data || []);
-    } catch (error) {
-      console.error(error);
+  // ── Debounced Santri Search in Modal ──────────────────────────────────────
+  const searchTimeoutRef = useRef(null);
+  useEffect(() => {
+    if (personType !== 'santri' || !personModalOpen) return;
+    if (searchTimeoutRef.current) clearTimeout(searchTimeoutRef.current);
+
+    searchTimeoutRef.current = setTimeout(async () => {
+      setSantriSearching(true);
+      try {
+        const results = await strukturService.searchSantri(santriSearchQuery);
+        setSantriSearchResults(results || []);
+      } catch (err) {
+        console.error('Santri search error:', err);
+      } finally {
+        setSantriSearching(false);
+      }
+    }, 250);
+
+    return () => {
+      if (searchTimeoutRef.current) clearTimeout(searchTimeoutRef.current);
+    };
+  }, [santriSearchQuery, personType, personModalOpen]);
+
+  // ── Open Add Person Modal ────────────────────────────────────────────────
+  const handleOpenAddModal = (presetJabatan = '', presetKeterangan = '') => {
+    setEditingNodeId(null);
+    setPersonType('santri');
+    setSelectedSantri(null);
+    setSelectedGuruId(null);
+    setCustomNama('');
+    setCustomAlamat('');
+    setSantriSearchQuery('');
+    setSantriSearchResults([]);
+    setModalKeterangan(presetKeterangan || '');
+    setModalNoUrut(strukturData.length + 1);
+    setModalSemester(isPanitiaUjian ? selectedSemester : 'Ganjil');
+
+    if (presetJabatan) {
+      setModalJabatan(presetJabatan);
+      setIsCustomJabatan(false);
+    } else if (jabatanTemplates.length > 0) {
+      setModalJabatan(jabatanTemplates[0].nama_jabatan);
+      setIsCustomJabatan(false);
+      if (jabatanTemplates[0].keterangan_default && !presetKeterangan) {
+        setModalKeterangan(jabatanTemplates[0].keterangan_default);
+      }
+    } else {
+      setModalJabatan('');
+      setIsCustomJabatan(true);
     }
+
+    setPersonModalOpen(true);
   };
 
-  useEffect(() => {
-    loadTahunAjaran();
-    loadGuru();
-  }, []);
+  // ── Open Edit Person Modal ───────────────────────────────────────────────
+  const handleOpenEditModal = (node) => {
+    setEditingNodeId(node.id);
+    setModalJabatan(node.jabatan || '');
+    setIsCustomJabatan(false);
+    setModalKeterangan(node.keterangan || '');
+    setModalNoUrut(node.no_urut || 99);
+    setModalSemester(node.semester || 'Ganjil');
 
-  useEffect(() => {
-    if (selectedTahunAjaran !== null) {
-      loadStruktur(activeTab, selectedTahunAjaran);
-      setSelectedKategori('ALL');
-    }
-  }, [activeTab, selectedTahunAjaran]);
-
-  // Extract distinct categories in active dataset
-  const categoriesInTab = useMemo(() => {
-    const set = new Set();
-    strukturData.forEach(item => {
-      if (item.kategori) set.add(item.kategori);
-    });
-    return Array.from(set);
-  }, [strukturData]);
-
-  // Filtered dataset based on search and category
-  const filteredData = useMemo(() => {
-    return strukturData.filter(item => {
-      const matchKategori = selectedKategori === 'ALL' || item.kategori === selectedKategori;
-      if (!matchKategori) return false;
-
-      if (!searchQuery.trim()) return true;
-      const q = searchQuery.toLowerCase();
-      const nama = (item.guru_nama || item.nama_custom || '').toLowerCase();
-      const jabatan = (item.jabatan || '').toLowerCase();
-      const alm = (item.alamat || '').toLowerCase();
-      const ket = (item.keterangan || '').toLowerCase();
-      const kat = (item.kategori || '').toLowerCase();
-
-      return nama.includes(q) || jabatan.includes(q) || alm.includes(q) || ket.includes(q) || kat.includes(q);
-    });
-  }, [strukturData, selectedKategori, searchQuery]);
-
-  // Group filtered items by category
-  const groupedData = useMemo(() => {
-    const groups = {};
-    filteredData.forEach(item => {
-      const groupKey = item.kategori || 'Kepengurusan Umum';
-      if (!groups[groupKey]) groups[groupKey] = [];
-      groups[groupKey].push(item);
-    });
-    return groups;
-  }, [filteredData]);
-
-  const handleEditClick = (node) => {
-    setSelectedNode(node);
-    setSelectedGuruId(node.guru_id ? String(node.guru_id) : null);
-    setCustomName(node.nama_custom || '');
-    setAlamat(node.alamat || '');
-    setKategori(node.kategori || '');
-    setKeterangan(node.keterangan || '');
-    setFormErrors({});
-    setEditModalOpen(true);
-  };
-
-  const handleSave = async (e) => {
-    if (e) e.preventDefault();
-    if (!selectedNode) return;
-    
-    if (!selectedGuruId && (!customName || !customName.trim())) {
-      setFormErrors({
-        selectedGuruId: 'Pilih guru atau masukkan nama kustom',
-        customName: 'Pilih guru atau masukkan nama kustom'
+    if (node.santri_id) {
+      setPersonType('santri');
+      setSelectedSantri({
+        id: node.santri_id,
+        nama: node.santri_nama || node.display_nama,
+        nis: node.santri_nis,
+        foto_url: node.santri_foto_url,
+        alamat: node.santri_alamat
       });
+      setSelectedGuruId(null);
+      setCustomNama('');
+      setCustomAlamat('');
+    } else if (node.guru_id) {
+      setPersonType('guru');
+      setSelectedGuruId(node.guru_id);
+      setSelectedSantri(null);
+      setCustomNama('');
+      setCustomAlamat('');
+    } else {
+      setPersonType('manual');
+      setCustomNama(node.nama_custom || node.display_nama || '');
+      setCustomAlamat(node.alamat || '');
+      setSelectedSantri(null);
+      setSelectedGuruId(null);
+    }
+
+    setPersonModalOpen(true);
+  };
+
+  // ── Save Person (Add or Update) ──────────────────────────────────────────
+  const handleSavePerson = async (e) => {
+    e.preventDefault();
+    if (!modalJabatan.trim()) {
+      toast.error('Nama jabatan wajib diisi.');
       return;
+    }
+
+    let guru_id = null;
+    let santri_id = null;
+    let nama_custom = null;
+    let alamat = null;
+
+    if (personType === 'santri') {
+      if (!selectedSantri) {
+        toast.error('Pilih santri dari Buku Induk terlebih dahulu.');
+        return;
+      }
+      santri_id = selectedSantri.id;
+      alamat = selectedSantri.alamat || null;
+    } else if (personType === 'guru') {
+      if (!selectedGuruId) {
+        toast.error('Pilih guru/asatidz terlebih dahulu.');
+        return;
+      }
+      guru_id = selectedGuruId;
+    } else {
+      if (!customNama.trim()) {
+        toast.error('Nama pejabat wajib diisi.');
+        return;
+      }
+      nama_custom = customNama.trim();
+      alamat = customAlamat.trim() || null;
     }
 
     setSaveLoading(true);
     try {
-      if (selectedNode.id && !String(selectedNode.id).startsWith('placeholder-')) {
-        await strukturService.updateStruktur({
-          id: selectedNode.id,
-          guru_id: selectedGuruId,
-          nama_custom: customName,
-          alamat: alamat,
-          kategori: kategori,
-          keterangan: keterangan,
-          tahun_ajaran_id: selectedTahunAjaran
-        });
-        toast.success(`Berhasil memperbarui posisi ${selectedNode.jabatan}`);
+      const payload = {
+        tipe: activeTab,
+        kategori: isPanitiaUjian ? 'Panitia Ujian' : (selectedKategori || 'Umum'),
+        jabatan: modalJabatan.trim(),
+        guru_id,
+        santri_id,
+        nama_custom,
+        alamat,
+        keterangan: modalKeterangan ? modalKeterangan.trim() : null,
+        no_urut: Number(modalNoUrut) || 99,
+        tahun_ajaran_id: selectedTahunAjaran,
+        semester: isPanitiaUjian ? selectedSemester : null
+      };
+
+      if (editingNodeId) {
+        await strukturService.updateStruktur({ id: editingNodeId, ...payload });
+        toast.success('Data personel berhasil diperbarui.');
       } else {
-        await strukturService.addStruktur({
-          tipe: selectedNode.tipe || activeTab,
-          kategori: kategori || selectedNode.kategori,
-          jabatan: selectedNode.jabatan,
-          guru_id: selectedGuruId,
-          nama_custom: customName,
-          alamat: alamat,
-          keterangan: keterangan,
-          no_urut: selectedNode.no_urut || 99,
-          tahun_ajaran_id: selectedTahunAjaran
-        });
-        toast.success(`Berhasil menambahkan personel untuk ${selectedNode.jabatan}`);
+        await strukturService.addStruktur(payload);
+        toast.success('Personel baru berhasil ditambahkan.');
       }
 
-      setEditModalOpen(false);
-      loadStruktur(activeTab, selectedTahunAjaran);
-    } catch (error) {
-      console.error(error);
-      toast.error('Gagal menyimpan data: ' + error.message);
+      setPersonModalOpen(false);
+      loadStruktur();
+      loadCategories(activeTab);
+      if (selectedKategori) loadJabatanTemplates(activeTab, selectedKategori);
+    } catch (err) {
+      console.error(err);
+      toast.error(err.message || 'Gagal menyimpan data personel.');
     } finally {
       setSaveLoading(false);
     }
   };
 
-  const handleAddCustomPosition = async (e) => {
-    if (e) e.preventDefault();
-    if (!newJabatan.trim()) {
-      toast.error('Nama jabatan wajib diisi.');
-      return;
-    }
-    if (!newGuruId && !newNama.trim()) {
-      toast.error('Pilih guru atau masukkan nama personel.');
-      return;
-    }
-
-    setAddPosLoading(true);
+  // ── Delete Person ────────────────────────────────────────────────────────
+  const handleDeletePerson = async () => {
+    if (!deleteConfirm.nodeId) return;
     try {
-      await strukturService.addStruktur({
-        tipe: activeTab,
-        kategori: newKategori.trim() || null,
-        jabatan: newJabatan.trim(),
-        guru_id: newGuruId,
-        nama_custom: newNama.trim() || null,
-        alamat: newAlamat.trim() || null,
-        keterangan: newKeterangan.trim() || null,
-        no_urut: strukturData.length + 1,
-        tahun_ajaran_id: selectedTahunAjaran
-      });
-      toast.success(`Berhasil menambahkan posisi ${newJabatan}`);
-      setAddPosModalOpen(false);
-      setNewJabatan('');
-      setNewKategori('');
-      setNewNama('');
-      setNewAlamat('');
-      setNewGuruId(null);
-      setNewKeterangan('');
-      loadStruktur(activeTab, selectedTahunAjaran);
-    } catch (err) {
-      toast.error('Gagal menambah posisi: ' + err.message);
-    } finally {
-      setAddPosLoading(false);
-    }
-  };
-
-  const handleDeleteMemberClick = (id, jabatan, nama) => {
-    setDeleteConfirm({
-      isOpen: true,
-      nodeId: id,
-      jabatan: jabatan,
-      nama: nama
-    });
-  };
-
-  const handleConfirmDelete = async () => {
-    const { nodeId } = deleteConfirm;
-    if (!nodeId) return;
-
-    setLoading(true);
-    try {
-      await strukturService.deleteStruktur(nodeId);
-      toast.success('Personel berhasil dihapus dari struktur.');
+      await strukturService.deleteStruktur(deleteConfirm.nodeId);
+      toast.success('Personel berhasil dihapus.');
       setDeleteConfirm({ isOpen: false, nodeId: null, jabatan: '', nama: '' });
-      loadStruktur(activeTab, selectedTahunAjaran);
-    } catch (error) {
-      console.error(error);
-      toast.error('Gagal menghapus personel: ' + error.message);
-      setLoading(false);
+      loadStruktur();
+    } catch (err) {
+      console.error(err);
+      toast.error(err.message || 'Gagal menghapus personel.');
     }
   };
 
-  const getAvatarColor = (name) => {
-    if (!name || name === 'Belum diisi') return '#cbd5e1';
-    const colors = ['#3b82f6', '#8b5cf6', '#ec4899', '#f59e0b', '#10b981', '#06b6d4', '#6366f1'];
-    return colors[name.length % colors.length];
+  // ── Category Management Handlers ─────────────────────────────────────────
+  const handleAddCategory = async (e) => {
+    e.preventDefault();
+    if (!newCatName.trim()) return;
+    setCatActionLoading(true);
+    try {
+      await strukturService.createKategori(activeTab, newCatName.trim(), categories.length + 1);
+      toast.success(`Kategori "${newCatName}" berhasil ditambahkan.`);
+      setNewCatName('');
+      await loadCategories(activeTab);
+      setSelectedKategori(newCatName.trim());
+    } catch (err) {
+      toast.error(err.message || 'Gagal menambahkan kategori.');
+    } finally {
+      setCatActionLoading(false);
+    }
   };
 
-  const getDisplayName = (node) => {
-    if (node.guru_nama) return node.guru_nama;
-    if (node.nama_custom) return node.nama_custom;
-    return 'Belum diisi';
+  const handleUpdateCategory = async (id) => {
+    if (!editingCatName.trim()) return;
+    setCatActionLoading(true);
+    try {
+      await strukturService.updateKategori(id, editingCatName.trim());
+      toast.success('Kategori berhasil diperbarui.');
+      setEditingCatId(null);
+      await loadCategories(activeTab);
+      setSelectedKategori(editingCatName.trim());
+      loadStruktur();
+    } catch (err) {
+      toast.error(err.message || 'Gagal memperbarui kategori.');
+    } finally {
+      setCatActionLoading(false);
+    }
   };
 
-  const guruOptions = guruList.map(g => ({
-    value: String(g.id),
-    label: `${g.nama} (${g.nip || 'Guru/Ustadz'})`
-  }));
+  const handleDeleteCategory = async (cat) => {
+    if (!cat.id) {
+      toast.error('Kategori bawaan belum tersimpan secara kustom.');
+      return;
+    }
+    if (!window.confirm(`Yakin ingin menghapus kategori "${cat.nama_kategori}"?`)) return;
+    setCatActionLoading(true);
+    try {
+      await strukturService.deleteKategori(cat.id);
+      toast.success('Kategori berhasil dihapus.');
+      await loadCategories(activeTab);
+    } catch (err) {
+      if (err.count) {
+        if (window.confirm(`${err.error}\n\nApakah Anda ingin MENGHAPUS SEMUA PERSONEL di kategori ini secara paksa?`)) {
+          await strukturService.deleteKategori(cat.id, true);
+          toast.success('Kategori dan seluruh personel terkait berhasil dihapus.');
+          await loadCategories(activeTab);
+          loadStruktur();
+        }
+      } else {
+        toast.error(err.message || 'Gagal menghapus kategori.');
+      }
+    } finally {
+      setCatActionLoading(false);
+    }
+  };
 
-  // Render Card in Grid
-  const renderCard = (node, accentColor = 'blue') => {
-    const displayName = getDisplayName(node);
-    const hasPerson = node.guru_id || node.nama_custom;
-    const initial = hasPerson ? displayName.replace(/^(Bpk\.|Ibu\.|Sdr\.|Sdri\.|Kyai|Umi|Ust\.|Usth\.)\s+/i, '').slice(0, 2).toUpperCase() : '?';
+  // ── Jabatan Management Handlers ──────────────────────────────────────────
+  const handleAddJabatan = async (e) => {
+    e.preventDefault();
+    if (!newJabatanName.trim() || !selectedKategori) return;
+    setJabActionLoading(true);
+    try {
+      await strukturService.createJabatan(
+        activeTab,
+        selectedKategori,
+        newJabatanName.trim(),
+        newJabatanKeterangan.trim() || null,
+        jabatanTemplates.length + 1
+      );
+      toast.success(`Jabatan "${newJabatanName}" berhasil ditambahkan.`);
+      setNewJabatanName('');
+      setNewJabatanKeterangan('');
+      loadJabatanTemplates(activeTab, selectedKategori);
+    } catch (err) {
+      toast.error(err.message || 'Gagal menambahkan jabatan.');
+    } finally {
+      setJabActionLoading(false);
+    }
+  };
 
-    const isKoordinator = node.keterangan && node.keterangan.toLowerCase().includes('koordinator');
-    const isPimpinan = node.no_urut <= 2;
+  const handleUpdateJabatan = async (id) => {
+    if (!editingJabatanName.trim()) return;
+    setJabActionLoading(true);
+    try {
+      await strukturService.updateJabatan(id, editingJabatanName.trim(), editingJabatanKeterangan.trim() || null);
+      toast.success('Jabatan berhasil diperbarui.');
+      setEditingJabatanId(null);
+      loadJabatanTemplates(activeTab, selectedKategori);
+      loadStruktur();
+    } catch (err) {
+      toast.error(err.message || 'Gagal memperbarui jabatan.');
+    } finally {
+      setJabActionLoading(false);
+    }
+  };
 
+  const handleDeleteJabatan = async (id) => {
+    if (!window.confirm('Hapus template jabatan ini dari daftar?')) return;
+    setJabActionLoading(true);
+    try {
+      await strukturService.deleteJabatan(id);
+      toast.success('Jabatan berhasil dihapus dari daftar opsi.');
+      loadJabatanTemplates(activeTab, selectedKategori);
+    } catch (err) {
+      toast.error(err.message || 'Gagal menghapus jabatan.');
+    } finally {
+      setJabActionLoading(false);
+    }
+  };
+
+  // ── Helper: Grouping Personnel into Unified Section Cards ────────────────
+  // For sections (e.g. Seksi Keamanan, Seksi Media, Seksi Kebersihan, etc.),
+  // Koordinator and Anggota must be unified into one visual card container!
+  const groupedSections = useMemo(() => {
+    const query = searchQuery.toLowerCase().trim();
+    const filtered = strukturData.filter(item => {
+      if (!query) return true;
+      const nama = (item.display_nama || '').toLowerCase();
+      const jabatan = (item.jabatan || '').toLowerCase();
+      const alamat = (item.display_alamat || item.alamat || '').toLowerCase();
+      const ket = (item.keterangan || '').toLowerCase();
+      return nama.includes(query) || jabatan.includes(query) || alamat.includes(query) || ket.includes(query);
+    });
+
+    // Detect if items belong to a section with Koordinator & Anggota
+    // We group by base section name (e.g. "Seksi Keamanan", "Seksi PHI")
+    const groups = [];
+    const sectionMap = new Map();
+
+    for (const item of filtered) {
+      const jab = item.jabatan || 'Anggota';
+      const ket = (item.keterangan || '').toLowerCase();
+      const isSeksi = jab.toLowerCase().startsWith('seksi ') || jab.toLowerCase().includes('seksi') || ket.includes('koordinator') || ket.includes('anggota');
+
+      if (isSeksi) {
+        // Group by base jabatan name
+        if (!sectionMap.has(jab)) {
+          sectionMap.set(jab, {
+            isSection: true,
+            title: jab,
+            koordinator: null,
+            anggota: []
+          });
+        }
+        const sGroup = sectionMap.get(jab);
+        const isKoor = ket.includes('koordinator') || jab.toLowerCase().includes('koordinator');
+        if (isKoor && !sGroup.koordinator) {
+          sGroup.koordinator = item;
+        } else {
+          sGroup.anggota.push(item);
+        }
+      } else {
+        // Standalone person card
+        groups.push({
+          isSection: false,
+          item
+        });
+      }
+    }
+
+    // Append all grouped sections
+    for (const sGroup of sectionMap.values()) {
+      groups.push(sGroup);
+    }
+
+    return groups;
+  }, [strukturData, searchQuery]);
+
+  // Helper for Circular Avatar
+  const renderCircularAvatar = (item, size = 44) => {
+    const foto = item.display_foto_url || item.guru_foto_url || item.santri_foto_url;
+    const nama = item.display_nama || item.guru_nama || item.santri_nama || item.nama_custom || '?';
+    const initial = nama.trim().charAt(0).toUpperCase();
+
+    if (foto) {
+      return (
+        <img
+          src={foto}
+          alt={nama}
+          className="rounded-full object-cover shadow-sm ring-2 ring-primary/20"
+          style={{ width: `${size}px`, height: `${size}px` }}
+          onError={(e) => {
+            e.currentTarget.style.display = 'none';
+            if (e.currentTarget.nextSibling) e.currentTarget.nextSibling.style.display = 'flex';
+          }}
+        />
+      );
+    }
+
+    // Pastel gradient fallback
     return (
-      <div 
-        key={node.id} 
-        className={`org-node-card-modern ${isKoordinator || isPimpinan ? 'is-lead' : ''}`}
+      <div
+        className="rounded-full flex items-center justify-center font-bold text-white shadow-sm ring-2 ring-primary/20 flex-shrink-0"
         style={{
-          background: 'rgba(255, 255, 255, 0.85)',
-          backdropFilter: 'blur(16px)',
-          WebkitBackdropFilter: 'blur(16px)',
-          borderRadius: '16px',
-          border: isKoordinator ? '1.5px solid rgba(245, 158, 11, 0.4)' : '1px solid rgba(226, 232, 240, 0.8)',
-          boxShadow: isKoordinator ? '0 10px 25px -5px rgba(245, 158, 11, 0.12)' : '0 4px 16px -2px rgba(0, 0, 0, 0.04)',
-          padding: '16px',
-          display: 'flex',
-          flexDirection: 'column',
-          justifyContent: 'space-between',
-          transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
-          position: 'relative'
+          width: `${size}px`,
+          height: `${size}px`,
+          background: 'linear-gradient(135deg, #6366f1 0%, #3b82f6 100%)',
+          fontSize: `${Math.round(size * 0.4)}px`
         }}
       >
-        <div>
-          {/* Header Role Badge */}
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '8px', marginBottom: '12px' }}>
-            <span 
-              style={{
-                fontSize: '11px',
-                fontWeight: 700,
-                padding: '3px 9px',
-                borderRadius: '8px',
-                letterSpacing: '0.3px',
-                background: isKoordinator ? 'rgba(245, 158, 11, 0.15)' : 'rgba(59, 130, 246, 0.1)',
-                color: isKoordinator ? '#b45309' : '#1d4ed8',
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '4px'
-              }}
-            >
-              {isKoordinator && <Award size={12} />}
-              {node.jabatan}
-            </span>
-
-            {isAdmin() && (
-              <div style={{ display: 'flex', gap: '4px' }}>
-                <button
-                  type="button"
-                  onClick={() => handleEditClick(node)}
-                  title="Edit Personel"
-                  style={{
-                    background: 'none',
-                    border: 'none',
-                    cursor: 'pointer',
-                    padding: '4px',
-                    borderRadius: '6px',
-                    color: '#64748b'
-                  }}
-                >
-                  <Plus size={14} />
-                </button>
-                <button
-                  type="button"
-                  onClick={() => handleDeleteMemberClick(node.id, node.jabatan, displayName)}
-                  title="Hapus"
-                  style={{
-                    background: 'none',
-                    border: 'none',
-                    cursor: 'pointer',
-                    padding: '4px',
-                    borderRadius: '6px',
-                    color: '#ef4444'
-                  }}
-                >
-                  <Trash2 size={13} />
-                </button>
-              </div>
-            )}
-          </div>
-
-          {/* Person Content */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '10px' }}>
-            {node.guru_foto_url ? (
-              <img 
-                src={node.guru_foto_url} 
-                alt={displayName} 
-                style={{
-                  width: '44px',
-                  height: '44px',
-                  borderRadius: '12px',
-                  objectFit: 'cover',
-                  border: '2px solid rgba(255, 255, 255, 0.9)',
-                  boxShadow: '0 4px 10px rgba(0, 0, 0, 0.08)'
-                }}
-              />
-            ) : (
-              <div 
-                style={{
-                  width: '44px',
-                  height: '44px',
-                  borderRadius: '12px',
-                  backgroundColor: getAvatarColor(displayName),
-                  color: '#ffffff',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  fontSize: '15px',
-                  fontWeight: 800,
-                  boxShadow: '0 4px 10px rgba(0, 0, 0, 0.08)'
-                }}
-              >
-                {initial}
-              </div>
-            )}
-
-            <div style={{ flex: 1, minWidth: 0 }}>
-              <div 
-                style={{
-                  fontSize: '14px',
-                  fontWeight: 700,
-                  color: '#0f172a',
-                  whiteSpace: 'nowrap',
-                  overflow: 'hidden',
-                  textOverflow: 'ellipsis'
-                }}
-                title={displayName}
-              >
-                {displayName}
-              </div>
-
-              {node.alamat && node.alamat !== '-' && (
-                <div style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '11px', color: '#64748b', marginTop: '2px' }}>
-                  <MapPin size={11} style={{ color: '#ec4899', flexShrink: 0 }} />
-                  <span style={{ fontWeight: 600 }}>{node.alamat}</span>
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
-
-        {/* Footer Note or Phone */}
-        {(node.keterangan || node.guru_no_hp) && (
-          <div 
-            style={{
-              paddingTop: '8px',
-              borderTop: '1px solid rgba(226, 232, 240, 0.6)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              fontSize: '11px',
-              color: '#64748b',
-              marginTop: '4px'
-            }}
-          >
-            <span style={{ fontStyle: 'italic', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={node.keterangan}>
-              {node.keterangan || '-'}
-            </span>
-            {node.guru_no_hp && (
-              <a 
-                href={`https://wa.me/${node.guru_no_hp.replace(/\D/g, '')}`} 
-                target="_blank" 
-                rel="noreferrer"
-                style={{ display: 'inline-flex', alignItems: 'center', gap: '3px', color: '#10b981', fontWeight: 600, textDecoration: 'none', marginLeft: '6px' }}
-                title="Hubungi via WhatsApp"
-              >
-                <Phone size={11} />
-                <span>WA</span>
-              </a>
-            )}
-          </div>
-        )}
+        {initial}
       </div>
     );
   };
 
-  // Render Tab Content
-  const renderTabContent = () => {
-    if (!strukturData.length) {
-      return (
-        <div className="empty-state" style={{ padding: '60px 20px', textAlign: 'center' }}>
-          <Briefcase size={48} style={{ color: '#cbd5e1', marginBottom: 12 }} />
-          <p style={{ color: '#64748b' }}>Belum ada susunan struktur untuk bagian ini.</p>
-          {isAdmin() && (
-            <button 
-              className="btn-custom btn-primary" 
-              onClick={() => setAddPosModalOpen(true)}
-              style={{ marginTop: 12 }}
+  return (
+    <div className="struktur-organisasi-page">
+      {/* ── Page Header ─────────────────────────────────────────────────── */}
+      <div className="page-header-container">
+        <div className="header-left">
+          <div className="header-icon">
+            <currentTabObj.icon size={26} />
+          </div>
+          <div>
+            <h1 className="page-title">{currentTabObj.label}</h1>
+            <p className="page-subtitle">{currentTabObj.desc}</p>
+          </div>
+        </div>
+
+        <div className="header-actions flex items-center gap-3 flex-wrap">
+          {/* Academic Year Selector */}
+          {tahunAjaranList.length > 0 && (
+            <div className="tahun-ajaran-select" style={{ minWidth: '180px' }}>
+              <CustomSelect
+                label="Tahun Ajaran"
+                value={selectedTahunAjaran}
+                onChange={(val) => setSelectedTahunAjaran(Number(val))}
+                options={tahunAjaranList.map(t => ({
+                  value: t.id,
+                  label: `${t.nama}${t.is_active ? ' (Aktif)' : ''}`
+                }))}
+              />
+            </div>
+          )}
+
+          {/* View Mode Toggle */}
+          <div className="view-mode-toggle flex items-center bg-slate-100 dark:bg-slate-800 p-1 rounded-xl">
+            <button
+              className={`p-2 rounded-lg transition-all ${viewMode === 'grid' ? 'bg-white dark:bg-slate-700 shadow-sm text-blue-600' : 'text-slate-500'}`}
+              onClick={() => setViewMode('grid')}
+              title="Tampilan Kartu"
             >
-              <Plus size={16} /> Tambah Jabatan Baru
+              <LayoutGrid size={18} />
+            </button>
+            <button
+              className={`p-2 rounded-lg transition-all ${viewMode === 'table' ? 'bg-white dark:bg-slate-700 shadow-sm text-blue-600' : 'text-slate-500'}`}
+              onClick={() => setViewMode('table')}
+              title="Tampilan Tabel"
+            >
+              <TableIcon size={18} />
+            </button>
+          </div>
+
+          <button
+            className="action-pill-btn"
+            onClick={loadStruktur}
+            title="Muat Ulang"
+          >
+            <RefreshCw size={15} className={loading ? 'spin-anim' : ''} />
+            <span>Segarkan</span>
+          </button>
+        </div>
+      </div>
+
+      {/* ── Main Tabs Scrollbar ─────────────────────────────────────────── */}
+      <div className="tabs-navigation">
+        <div className="tabs-container">
+          {MAIN_TABS.map((tab) => {
+            const IconComp = tab.icon;
+            const isActive = activeTab === tab.key;
+            return (
+              <button
+                key={tab.key}
+                className={`tab-item ${isActive ? `active ${tab.color}` : ''}`}
+                onClick={() => {
+                  setActiveTab(tab.key);
+                  setSearchQuery('');
+                }}
+              >
+                <div className="tab-icon-wrapper">
+                  <IconComp size={18} />
+                </div>
+                <div className="tab-text-wrapper">
+                  <span className="tab-label">{tab.label}</span>
+                  <span className="tab-desc">{tab.desc.split(',')[0]}</span>
+                </div>
+                {isActive && <div className="active-indicator" />}
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* ── Sub-Tabs (Categories) Bar & Management Controls ─────────────── */}
+      <div className="subtabs-bar">
+        {/* Subtabs list */}
+        <div className="subtabs-scroll">
+          {isPanitiaUjian ? (
+            // Panitia Ujian has Semester Ganjil & Genap sub-tabs
+            <>
+              <button
+                className={`subtab-pill ${selectedSemester === 'Ganjil' ? 'active' : ''}`}
+                onClick={() => setSelectedSemester('Ganjil')}
+              >
+                <Calendar size={14} />
+                <span>Semester Ganjil</span>
+              </button>
+              <button
+                className={`subtab-pill ${selectedSemester === 'Genap' ? 'active' : ''}`}
+                onClick={() => setSelectedSemester('Genap')}
+              >
+                <Calendar size={14} />
+                <span>Semester Genap</span>
+              </button>
+            </>
+          ) : (
+            // Dynamic Categories for this Main Tab
+            categories.map((cat, idx) => {
+              const count = strukturData.filter(d => d.kategori === cat.nama_kategori).length;
+              const isSelected = selectedKategori === cat.nama_kategori;
+              return (
+                <button
+                  key={cat.id || idx}
+                  className={`subtab-pill ${isSelected ? 'active' : ''}`}
+                  onClick={() => setSelectedKategori(cat.nama_kategori)}
+                >
+                  <span>{cat.nama_kategori}</span>
+                  {count > 0 && <span className="count-badge">{count}</span>}
+                </button>
+              );
+            })
+          )}
+        </div>
+
+        {/* Subtabs Action Buttons */}
+        <div className="subtabs-actions">
+          {isAdmin && !isPanitiaUjian && (
+            <>
+              <button
+                className="action-pill-btn"
+                onClick={() => setCategoryModalOpen(true)}
+                title="Kelola Sub-Tab / Kategori Bagian"
+              >
+                <FolderPlus size={15} className="text-amber-500" />
+                <span>Kelola Kategori</span>
+              </button>
+
+              <button
+                className="action-pill-btn"
+                onClick={() => setJabatanModalOpen(true)}
+                title="Kelola Template Nama Jabatan untuk Sub-Tab ini"
+              >
+                <Sliders size={15} className="text-blue-500" />
+                <span>Kelola Jabatan</span>
+              </button>
+            </>
+          )}
+
+          {isAdmin && (
+            <button
+              className="action-pill-btn primary-pill"
+              onClick={() => handleOpenAddModal()}
+            >
+              <Plus size={16} />
+              <span>Tambah Pejabat</span>
             </button>
           )}
         </div>
-      );
-    }
+      </div>
 
-    if (viewMode === 'table') {
-      return (
-        <div style={{ overflowX: 'auto', background: 'rgba(255, 255, 255, 0.8)', borderRadius: '16px', border: '1px solid rgba(226, 232, 240, 0.8)', boxShadow: '0 4px 15px rgba(0, 0, 0, 0.03)' }}>
-          <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '13px' }}>
-            <thead>
-              <tr style={{ background: 'rgba(241, 245, 249, 0.8)', borderBottom: '1px solid #e2e8f0', color: '#334155' }}>
-                <th style={{ padding: '12px 16px', width: '60px' }}>No</th>
-                <th style={{ padding: '12px 16px' }}>Jabatan / Penugasan</th>
-                <th style={{ padding: '12px 16px' }}>Nama Personel</th>
-                <th style={{ padding: '12px 16px' }}>Asal Daerah</th>
-                <th style={{ padding: '12px 16px' }}>Keterangan / Peran</th>
-                {isAdmin() && <th style={{ padding: '12px 16px', textAlign: 'center', width: '90px' }}>Aksi</th>}
-              </tr>
-            </thead>
-            <tbody>
-              {filteredData.map((node, idx) => {
-                const displayName = getDisplayName(node);
+      {/* ── Search Bar Filter ────────────────────────────────────────────── */}
+      <div className="search-filter-row flex items-center justify-between gap-4">
+        <div className="search-input-wrapper relative flex-1" style={{ maxWidth: '420px' }}>
+          <Search size={17} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
+          <input
+            type="text"
+            className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-800 dark:text-slate-100 placeholder-slate-400"
+            placeholder="Cari nama pejabat, jabatan, daerah asal..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+          />
+          {searchQuery && (
+            <button
+              onClick={() => setSearchQuery('')}
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+            >
+              <X size={15} />
+            </button>
+          )}
+        </div>
+
+        <div className="text-xs text-slate-500 font-medium">
+          Menampilkan <strong>{groupedSections.length}</strong> posisi / seksi di sub-tab ini
+        </div>
+      </div>
+
+      {/* ── Main Content Area ────────────────────────────────────────────── */}
+      <div className="content-layout">
+        {loading ? (
+          <div className="loading-container">
+            <RefreshCw size={36} className="spin-anim text-blue-500 mb-3" />
+            <p className="font-semibold text-slate-600">Memuat susunan struktur organisasi...</p>
+          </div>
+        ) : strukturData.length === 0 ? (
+          <div className="text-center py-16 px-4">
+            <div className="w-16 h-16 rounded-full bg-blue-50 dark:bg-slate-800 flex items-center justify-center text-blue-500 mx-auto mb-4">
+              <Users size={32} />
+            </div>
+            <h3 className="text-lg font-bold text-slate-800 dark:text-slate-200 mb-1">Belum Ada Pejabat di Sub-Tab Ini</h3>
+            <p className="text-sm text-slate-500 max-w-md mx-auto mb-6">
+              Silakan tambahkan personel kepengurusan atau konfigurasi template jabatan pada sub-tab {selectedKategori || 'ini'}.
+            </p>
+            {isAdmin && (
+              <button
+                className="action-pill-btn primary-pill mx-auto"
+                onClick={() => handleOpenAddModal()}
+              >
+                <Plus size={16} />
+                <span>Tambah Pejabat Sekarang</span>
+              </button>
+            )}
+          </div>
+        ) : viewMode === 'grid' ? (
+          /* ── GRID VIEW (Grouped Koordinator + Anggota) ─────────────────── */
+          <div className="sections-container">
+            {groupedSections.map((group, gIdx) => {
+              if (group.isSection) {
+                // Section Card: Unified Koordinator + Anggota
                 return (
-                  <tr key={node.id} style={{ borderBottom: '1px solid #f1f5f9', transition: 'background 0.15s' }}>
-                    <td style={{ padding: '12px 16px', fontWeight: 600, color: '#94a3b8' }}>{idx + 1}</td>
-                    <td style={{ padding: '12px 16px', fontWeight: 700, color: '#0f172a' }}>
-                      <div style={{ display: 'flex', flexDirection: 'column' }}>
-                        <span>{node.jabatan}</span>
-                        {node.kategori && <span style={{ fontSize: '10px', color: '#6366f1', fontWeight: 600 }}>{node.kategori}</span>}
-                      </div>
-                    </td>
-                    <td style={{ padding: '12px 16px', fontWeight: 600, color: '#1e293b' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                        <div style={{ width: '28px', height: '28px', borderRadius: '8px', backgroundColor: getAvatarColor(displayName), color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '11px', fontWeight: 700 }}>
-                          {displayName.slice(0, 2).toUpperCase()}
+                  <div key={gIdx} className="section-group-card">
+                    {/* Group Header */}
+                    <div className="group-header">
+                      <div className="group-title-box">
+                        <div className="group-icon">
+                          <ShieldCheck size={18} />
                         </div>
-                        <span>{displayName}</span>
+                        <h4 className="group-title">{group.title}</h4>
+                      </div>
+                      <div className="flex items-center gap-3">
+                        <span className="group-count-badge">
+                          {(group.koordinator ? 1 : 0) + group.anggota.length} Personel
+                        </span>
+                        {isAdmin && (
+                          <button
+                            className="p-1.5 rounded-lg bg-blue-50 dark:bg-slate-700 text-blue-600 hover:bg-blue-100 transition-colors"
+                            onClick={() => handleOpenAddModal(group.title, 'Anggota Seksi')}
+                            title={`Tambah Anggota ke ${group.title}`}
+                          >
+                            <Plus size={14} />
+                          </button>
+                        )}
+                      </div>
+                    </div>
+
+                    <div className="group-body">
+                      {/* Koordinator Highlight Box */}
+                      {group.koordinator ? (
+                        <div className="koordinator-box">
+                          <div className="flex items-center gap-3.5 min-w-0">
+                            {renderCircularAvatar(group.koordinator, 48)}
+                            <div className="min-w-0">
+                              <span className="koor-badge">
+                                <Crown size={12} />
+                                <span>{group.koordinator.keterangan || 'Koordinator Seksi'}</span>
+                              </span>
+                              <h5 className="font-bold text-slate-900 dark:text-slate-100 text-sm truncate">
+                                {group.koordinator.display_nama}
+                              </h5>
+                              <div className="flex items-center gap-3 text-xs text-slate-500 mt-0.5">
+                                {(group.koordinator.display_alamat || group.koordinator.alamat) && (
+                                  <span className="flex items-center gap-1">
+                                    <MapPin size={11} />
+                                    <span>{group.koordinator.display_alamat || group.koordinator.alamat}</span>
+                                  </span>
+                                )}
+                                {group.koordinator.guru_no_hp && (
+                                  <span className="flex items-center gap-1 text-emerald-600">
+                                    <Phone size={11} />
+                                    <span>{group.koordinator.guru_no_hp}</span>
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+
+                          {isAdmin && (
+                            <div className="card-actions-mini">
+                              <button
+                                className="mini-btn edit-mini"
+                                onClick={() => handleOpenEditModal(group.koordinator)}
+                                title="Edit Data"
+                              >
+                                <Edit2 size={13} />
+                              </button>
+                              <button
+                                className="mini-btn delete-mini"
+                                onClick={() => setDeleteConfirm({
+                                  isOpen: true,
+                                  nodeId: group.koordinator.id,
+                                  jabatan: group.koordinator.jabatan,
+                                  nama: group.koordinator.display_nama
+                                })}
+                                title="Hapus Personel"
+                              >
+                                <Trash2 size={13} />
+                              </button>
+                            </div>
+                          )}
+                        </div>
+                      ) : (
+                        isAdmin && (
+                          <div className="border border-dashed border-amber-300 dark:border-amber-800 rounded-xl p-3 flex items-center justify-between text-xs text-amber-700 dark:text-amber-400 bg-amber-50/50 dark:bg-amber-950/20">
+                            <span>Posisi Koordinator untuk <strong>{group.title}</strong> belum ditentukan.</span>
+                            <button
+                              className="px-3 py-1 bg-amber-600 text-white rounded-lg font-semibold hover:bg-amber-700 transition-colors"
+                              onClick={() => handleOpenAddModal(group.title, 'Koordinator Seksi')}
+                            >
+                              Tunjuk Koordinator
+                            </button>
+                          </div>
+                        )
+                      )}
+
+                      {/* Anggota List inside the same card */}
+                      {group.anggota.length > 0 && (
+                        <div className="anggota-section">
+                          <div className="anggota-section-title">
+                            <Users size={12} />
+                            <span>Anggota Seksi ({group.anggota.length})</span>
+                          </div>
+
+                          <div className="anggota-grid">
+                            {group.anggota.map((ang) => (
+                              <div key={ang.id} className="anggota-item-card">
+                                <div className="flex items-center gap-2.5 min-w-0">
+                                  {renderCircularAvatar(ang, 34)}
+                                  <div className="min-w-0">
+                                    <h6 className="font-semibold text-slate-800 dark:text-slate-200 text-xs truncate">
+                                      {ang.display_nama}
+                                    </h6>
+                                    <div className="text-[11px] text-slate-400 truncate">
+                                      {ang.display_alamat || ang.alamat || ang.keterangan || 'Anggota'}
+                                    </div>
+                                  </div>
+                                </div>
+
+                                {isAdmin && (
+                                  <div className="card-actions-mini">
+                                    <button
+                                      className="mini-btn edit-mini"
+                                      onClick={() => handleOpenEditModal(ang)}
+                                      title="Edit"
+                                    >
+                                      <Edit2 size={12} />
+                                    </button>
+                                    <button
+                                      className="mini-btn delete-mini"
+                                      onClick={() => setDeleteConfirm({
+                                        isOpen: true,
+                                        nodeId: ang.id,
+                                        jabatan: ang.jabatan,
+                                        nama: ang.display_nama
+                                      })}
+                                      title="Hapus"
+                                    >
+                                      <Trash2 size={12} />
+                                    </button>
+                                  </div>
+                                )}
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                );
+              }
+
+              // Standalone Single Person Card
+              const item = group.item;
+              return (
+                <div key={item.id} className="struktur-card-node">
+                  <div className="node-badge-row">
+                    <span className="node-badge">{item.jabatan}</span>
+                    {item.keterangan && (
+                      <span className="text-xs text-slate-400 font-medium">{item.keterangan}</span>
+                    )}
+                  </div>
+
+                  <div className="node-main-content">
+                    <div className="node-avatar-box">
+                      {renderCircularAvatar(item, 46)}
+                    </div>
+
+                    <div className="node-info">
+                      <h4 className="person-name">{item.display_nama}</h4>
+                      {(item.display_alamat || item.alamat) && (
+                        <div className="person-phone">
+                          <MapPin size={12} className="mr-1" />
+                          <span>{item.display_alamat || item.alamat}</span>
+                        </div>
+                      )}
+                      {item.guru_no_hp && (
+                        <div className="person-phone text-emerald-600">
+                          <Phone size={12} className="mr-1" />
+                          <span>{item.guru_no_hp}</span>
+                        </div>
+                      )}
+                    </div>
+
+                    {isAdmin && (
+                      <div className="card-actions-row">
+                        <button
+                          className="action-icon-btn node-edit-btn"
+                          onClick={() => handleOpenEditModal(item)}
+                          title="Edit Personel"
+                        >
+                          <Edit2 size={14} />
+                        </button>
+                        <button
+                          className="action-icon-btn node-delete-btn"
+                          onClick={() => setDeleteConfirm({
+                            isOpen: true,
+                            nodeId: item.id,
+                            jabatan: item.jabatan,
+                            nama: item.display_nama
+                          })}
+                          title="Hapus Personel"
+                        >
+                          <Trash2 size={14} />
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        ) : (
+          /* ── TABLE VIEW ─────────────────────────────────────────────────── */
+          <div className="table-responsive bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 overflow-hidden">
+            <table className="w-full text-left text-sm">
+              <thead className="bg-slate-50 dark:bg-slate-800/60 border-b border-slate-200 dark:border-slate-800 text-xs text-slate-500 font-bold uppercase tracking-wider">
+                <tr>
+                  <th className="py-3.5 px-4 w-12 text-center">No</th>
+                  <th className="py-3.5 px-4">Nama Personel</th>
+                  <th className="py-3.5 px-4">Jabatan / Posisi</th>
+                  <th className="py-3.5 px-4">Kategori / Sub-Tab</th>
+                  <th className="py-3.5 px-4">Tugas / Keterangan</th>
+                  <th className="py-3.5 px-4">Alamat / Kontak</th>
+                  {isAdmin && <th className="py-3.5 px-4 text-center w-24">Aksi</th>}
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+                {strukturData.map((row, idx) => (
+                  <tr key={row.id} className="hover:bg-slate-50/70 dark:hover:bg-slate-800/40 transition-colors">
+                    <td className="py-3 px-4 text-center text-slate-400 font-medium">{idx + 1}</td>
+                    <td className="py-3 px-4">
+                      <div className="flex items-center gap-3">
+                        {renderCircularAvatar(row, 36)}
+                        <div>
+                          <div className="font-bold text-slate-900 dark:text-slate-100">{row.display_nama}</div>
+                          {row.santri_nis && (
+                            <div className="text-[11px] text-slate-400 font-mono">NIS: {row.santri_nis}</div>
+                          )}
+                        </div>
                       </div>
                     </td>
-                    <td style={{ padding: '12px 16px', color: '#475569' }}>
-                      {node.alamat && node.alamat !== '-' ? (
-                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', background: '#fdf2f8', color: '#db2777', padding: '2px 8px', borderRadius: '6px', fontSize: '11px', fontWeight: 600 }}>
-                          <MapPin size={10} /> {node.alamat}
-                        </span>
-                      ) : '-'}
+                    <td className="py-3 px-4">
+                      <span className="font-semibold text-blue-600 dark:text-blue-400">{row.jabatan}</span>
                     </td>
-                    <td style={{ padding: '12px 16px', color: '#64748b', fontSize: '12px' }}>{node.keterangan || '-'}</td>
-                    {isAdmin() && (
-                      <td style={{ padding: '12px 16px', textAlign: 'center' }}>
-                        <div style={{ display: 'inline-flex', gap: '4px' }}>
+                    <td className="py-3 px-4 text-slate-600 dark:text-slate-300">
+                      {row.kategori || '-'}
+                    </td>
+                    <td className="py-3 px-4 text-slate-500">
+                      {row.keterangan || '-'}
+                    </td>
+                    <td className="py-3 px-4 text-slate-500 text-xs">
+                      {row.display_alamat || row.alamat || row.guru_no_hp || '-'}
+                    </td>
+                    {isAdmin && (
+                      <td className="py-3 px-4 text-center">
+                        <div className="flex items-center justify-center gap-2">
                           <button
-                            type="button"
-                            onClick={() => handleEditClick(node)}
-                            style={{ background: '#f1f5f9', border: 'none', borderRadius: '6px', padding: '6px', cursor: 'pointer', color: '#3b82f6' }}
+                            className="p-1.5 text-blue-600 hover:bg-blue-50 dark:hover:bg-slate-800 rounded-lg transition-colors"
+                            onClick={() => handleOpenEditModal(row)}
                             title="Edit"
                           >
-                            <Plus size={13} />
+                            <Edit2 size={15} />
                           </button>
                           <button
-                            type="button"
-                            onClick={() => handleDeleteMemberClick(node.id, node.jabatan, displayName)}
-                            style={{ background: '#fef2f2', border: 'none', borderRadius: '6px', padding: '6px', cursor: 'pointer', color: '#ef4444' }}
+                            className="p-1.5 text-red-600 hover:bg-red-50 dark:hover:bg-slate-800 rounded-lg transition-colors"
+                            onClick={() => setDeleteConfirm({
+                              isOpen: true,
+                              nodeId: row.id,
+                              jabatan: row.jabatan,
+                              nama: row.display_nama
+                            })}
                             title="Hapus"
                           >
-                            <Trash2 size={13} />
+                            <Trash2 size={15} />
                           </button>
                         </div>
                       </td>
                     )}
                   </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
-      );
-    }
-
-    // Grid View grouped by category
-    const groupKeys = Object.keys(groupedData);
-
-    return (
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '32px' }}>
-        {groupKeys.map(kategoriKey => {
-          const items = groupedData[kategoriKey];
-          return (
-            <div key={kategoriKey} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-              {/* Group Header Badge */}
-              <div 
-                style={{ 
-                  display: 'flex', 
-                  alignItems: 'center', 
-                  justifyContent: 'space-between',
-                  background: 'linear-gradient(135deg, rgba(248, 250, 252, 0.9) 0%, rgba(241, 245, 249, 0.8) 100%)',
-                  padding: '12px 18px',
-                  borderRadius: '14px',
-                  border: '1px solid rgba(226, 232, 240, 0.8)'
-                }}
-              >
-                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                  <div style={{ width: '8px', height: '22px', borderRadius: '4px', background: 'linear-gradient(to bottom, #3b82f6, #8b5cf6)' }}></div>
-                  <h3 style={{ margin: 0, fontSize: '16px', fontWeight: 800, color: '#0f172a', letterSpacing: '-0.3px' }}>
-                    {kategoriKey}
-                  </h3>
-                </div>
-                <span 
-                  style={{ 
-                    fontSize: '11px', 
-                    fontWeight: 700, 
-                    padding: '4px 10px', 
-                    borderRadius: '20px', 
-                    background: '#e0e7ff', 
-                    color: '#4338ca' 
-                  }}
-                >
-                  {items.length} Personel
-                </span>
-              </div>
-
-              {/* Cards Grid: 3 columns on desktop, 2 on tablet, 1 on mobile */}
-              <div 
-                style={{ 
-                  display: 'grid', 
-                  gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', 
-                  gap: '16px' 
-                }}
-              >
-                {items.map(node => renderCard(node))}
-              </div>
-            </div>
-          );
-        })}
-      </div>
-    );
-  };
-
-  const activeTabMeta = TABS.find(t => t.key === activeTab);
-
-  return (
-    <div className="struktur-organisasi-page">
-      <PageHeader
-        title="🏛️ Struktur Kepengurusan Pondok Pesantren"
-        subtitle="Masa Khidmah 2026 - 2027 M. Pondok Pesantren Al-Hamid"
-        extra={
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
-            <div style={{ minWidth: '200px' }}>
-              <CustomSelect
-                value={selectedTahunAjaran ? String(selectedTahunAjaran) : ''}
-                onChange={(val) => setSelectedTahunAjaran(val ? Number(val) : '')}
-                options={[
-                  { value: '', label: 'Semua Tahun Ajaran' },
-                  ...tahunAjaranList.map(t => ({
-                    value: String(t.id),
-                    label: `${t.kode || t.tahun || '-'} ${t.is_active ? '★ Aktif' : ''}`
-                  }))
-                ]}
-                placeholder="Pilih Tahun Ajaran"
-              />
-            </div>
-            {isAdmin() && (
-              <button 
-                type="button" 
-                className="btn-custom btn-primary"
-                onClick={() => setAddPosModalOpen(true)}
-                style={{ height: '36px', padding: '0 16px', borderRadius: '10px' }}
-              >
-                <Plus size={14} style={{ marginRight: '6px' }} />
-                <span>Tambah Jabatan</span>
-              </button>
-            )}
-            <button 
-              type="button" 
-              className="btn-custom btn-secondary"
-              onClick={() => loadStruktur(activeTab, selectedTahunAjaran)}
-              disabled={loading}
-              style={{ height: '36px', padding: '0 16px', borderRadius: '10px' }}
-            >
-              <RefreshCw size={14} className={loading ? 'spin-anim' : ''} style={{ marginRight: '6px' }} />
-              <span>Reload</span>
-            </button>
-          </div>
-        }
-      />
-
-      <div className="content-layout" style={{ padding: '24px' }}>
-        {/* Navigation Tabs */}
-        <div className="custom-tabs-container">
-          <div 
-            className="custom-tabs-nav-row" 
-            style={{ 
-              display: 'flex', 
-              justifyContent: 'space-between', 
-              alignItems: 'center', 
-              borderBottom: '1px solid rgba(226, 232, 240, 0.8)', 
-              paddingBottom: '12px', 
-              marginBottom: '20px', 
-              overflowX: 'auto',
-              gap: '12px'
-            }}
-          >
-            <div className="custom-tabs-nav" style={{ display: 'flex', gap: '8px', borderBottom: 'none', marginBottom: 0, paddingBottom: 0, flexWrap: 'nowrap' }}>
-              {TABS.map(tab => {
-                const Icon = tab.icon;
-                const isActive = activeTab === tab.key;
-                return (
-                  <button 
-                    key={tab.key}
-                    type="button"
-                    className={`custom-tabs-tab ${isActive ? 'active' : ''}`}
-                    onClick={() => setActiveTab(tab.key)}
-                    style={{ 
-                      whiteSpace: 'nowrap', 
-                      display: 'inline-flex', 
-                      alignItems: 'center', 
-                      gap: '8px',
-                      padding: '8px 16px',
-                      borderRadius: '10px',
-                      fontWeight: isActive ? 700 : 500
-                    }}
-                  >
-                    <Icon size={15} />
-                    <span>{tab.label}</span>
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-
-          {/* Subheader Toolbar: Search, Category Filter & View Mode */}
-          <div 
-            style={{ 
-              display: 'flex', 
-              justifyContent: 'space-between', 
-              alignItems: 'center', 
-              flexWrap: 'wrap', 
-              gap: '12px', 
-              marginBottom: '24px',
-              background: 'rgba(248, 250, 252, 0.7)',
-              padding: '12px 16px',
-              borderRadius: '12px',
-              border: '1px solid rgba(226, 232, 240, 0.6)'
-            }}
-          >
-            {/* Live Search */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flex: '1 1 260px', position: 'relative' }}>
-              <Search size={15} style={{ position: 'absolute', left: '12px', color: '#94a3b8' }} />
-              <input 
-                type="text" 
-                placeholder="Cari nama pengurus, jabatan, daerah asal..." 
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                style={{
-                  width: '100%',
-                  height: '38px',
-                  paddingLeft: '36px',
-                  paddingRight: '12px',
-                  borderRadius: '10px',
-                  border: '1px solid #cbd5e1',
-                  background: '#ffffff',
-                  fontSize: '13px'
-                }}
-              />
-            </div>
-
-            {/* Category Pills Filter */}
-            {categoriesInTab.length > 0 && (
-              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', overflowX: 'auto', flexWrap: 'wrap' }}>
-                <button
-                  type="button"
-                  onClick={() => setSelectedKategori('ALL')}
-                  style={{
-                    padding: '5px 12px',
-                    borderRadius: '8px',
-                    border: 'none',
-                    cursor: 'pointer',
-                    fontSize: '12px',
-                    fontWeight: selectedKategori === 'ALL' ? 700 : 500,
-                    background: selectedKategori === 'ALL' ? '#3b82f6' : '#f1f5f9',
-                    color: selectedKategori === 'ALL' ? '#ffffff' : '#64748b'
-                  }}
-                >
-                  Semua ({strukturData.length})
-                </button>
-                {categoriesInTab.map(cat => (
-                  <button
-                    key={cat}
-                    type="button"
-                    onClick={() => setSelectedKategori(cat)}
-                    style={{
-                      padding: '5px 12px',
-                      borderRadius: '8px',
-                      border: 'none',
-                      cursor: 'pointer',
-                      fontSize: '12px',
-                      fontWeight: selectedKategori === cat ? 700 : 500,
-                      background: selectedKategori === cat ? '#3b82f6' : '#f1f5f9',
-                      color: selectedKategori === cat ? '#ffffff' : '#64748b',
-                      whiteSpace: 'nowrap'
-                    }}
-                  >
-                    {cat}
-                  </button>
                 ))}
-              </div>
-            )}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
 
-            {/* View Mode Toggle */}
-            <div style={{ display: 'flex', background: '#e2e8f0', borderRadius: '8px', padding: '2px' }}>
-              <button
-                type="button"
-                onClick={() => setViewMode('grid')}
-                title="Tampilan Kartu"
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '4px',
-                  padding: '6px 12px',
-                  borderRadius: '6px',
-                  border: 'none',
-                  background: viewMode === 'grid' ? '#ffffff' : 'transparent',
-                  color: viewMode === 'grid' ? '#0f172a' : '#64748b',
-                  fontWeight: viewMode === 'grid' ? 700 : 500,
-                  fontSize: '12px',
-                  cursor: 'pointer'
-                }}
-              >
-                <LayoutGrid size={13} />
-                <span>Kartu</span>
-              </button>
-              <button
-                type="button"
-                onClick={() => setViewMode('table')}
-                title="Tampilan Tabel"
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '4px',
-                  padding: '6px 12px',
-                  borderRadius: '6px',
-                  border: 'none',
-                  background: viewMode === 'table' ? '#ffffff' : 'transparent',
-                  color: viewMode === 'table' ? '#0f172a' : '#64748b',
-                  fontWeight: viewMode === 'table' ? 700 : 500,
-                  fontSize: '12px',
-                  cursor: 'pointer'
-                }}
-              >
-                <TableIcon size={13} />
-                <span>Tabel</span>
-              </button>
+      {/* ═══════════════════════════════════════════════════════════════════ */}
+      {/* MODAL 1: TAMBAH / EDIT PEJABAT                                       */}
+      {/* ═══════════════════════════════════════════════════════════════════ */}
+      <CustomModal
+        isOpen={personModalOpen}
+        onClose={() => setPersonModalOpen(false)}
+        title={editingNodeId ? 'Edit Pejabat / Pengurus' : 'Tambah Pejabat Baru'}
+        maxWidth="max-w-xl"
+      >
+        <form onSubmit={handleSavePerson} className="space-y-4">
+          {/* Active Sub-Tab Info Banner */}
+          <div className="p-3 bg-blue-50 dark:bg-slate-800/80 border border-blue-200 dark:border-slate-700 rounded-xl flex items-center justify-between text-xs">
+            <div>
+              <span className="text-slate-500">Sub-Tab / Kategori:</span>
+              <strong className="ml-1.5 text-blue-700 dark:text-blue-300 font-bold">
+                {isPanitiaUjian ? `Panitia Ujian (${modalSemester})` : (selectedKategori || 'Umum')}
+              </strong>
             </div>
+            <span className="px-2 py-0.5 rounded-full bg-blue-200 dark:bg-blue-900/40 text-blue-800 dark:text-blue-300 font-semibold text-[10px]">
+              {currentTabObj.label}
+            </span>
           </div>
 
-          {/* Content Area */}
-          <div className="custom-tabs-content">
-            {loading ? (
-              <div className="loading-container">
-                <div className="loading-spinner" style={{ width: '40px', height: '40px', borderWidth: '3px' }}></div>
-                <span style={{ marginTop: '12px', fontSize: '14px', fontWeight: 500, color: '#64748b' }}>
-                  Memuat data kepengurusan...
-                </span>
+          {/* Jabatan Selection */}
+          <div className="space-y-1">
+            <label className="text-xs font-semibold text-slate-700 dark:text-slate-300">
+              Nama Jabatan / Posisi <span className="text-red-500">*</span>
+            </label>
+            {!isCustomJabatan && jabatanTemplates.length > 0 ? (
+              <div className="space-y-2">
+                <select
+                  className="w-full px-3 py-2.5 rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-sm font-semibold text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  value={modalJabatan}
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    if (val === '__CUSTOM__') {
+                      setIsCustomJabatan(true);
+                      setModalJabatan('');
+                    } else {
+                      setModalJabatan(val);
+                      const tmpl = jabatanTemplates.find(t => t.nama_jabatan === val);
+                      if (tmpl && tmpl.keterangan_default && !modalKeterangan) {
+                        setModalKeterangan(tmpl.keterangan_default);
+                      }
+                    }
+                  }}
+                >
+                  {jabatanTemplates.map((t) => (
+                    <option key={t.id} value={t.nama_jabatan}>
+                      {t.nama_jabatan} {t.keterangan_default ? `(${t.keterangan_default})` : ''}
+                    </option>
+                  ))}
+                  <option value="__CUSTOM__">+ Ketik Jabatan Kustom Baru...</option>
+                </select>
               </div>
             ) : (
-              renderTabContent()
+              <div className="relative">
+                <FloatingInput
+                  label="Nama Jabatan (misal: Seksi Keamanan, Ketua Kamar 01)"
+                  value={modalJabatan}
+                  onChange={(e) => setModalJabatan(e.target.value)}
+                  required
+                />
+                {jabatanTemplates.length > 0 && (
+                  <button
+                    type="button"
+                    className="text-xs text-blue-600 mt-1 hover:underline font-semibold"
+                    onClick={() => {
+                      setIsCustomJabatan(false);
+                      setModalJabatan(jabatanTemplates[0].nama_jabatan);
+                    }}
+                  >
+                    ← Pilih dari daftar jabatan terdaftar
+                  </button>
+                )}
+              </div>
             )}
           </div>
-        </div>
-      </div>
 
-      {/* Modal Tugaskan / Edit Personel */}
-      <CustomModal
-        open={editModalOpen}
-        onClose={() => setEditModalOpen(false)}
-        title="Edit / Tugaskan Personel"
-        subtitle={`Posisi: ${selectedNode?.jabatan || ''}`}
-        icon={<ShieldCheck />}
-        width={480}
-        destroyOnClose
-        onOk={handleSave}
-        okText={saveLoading ? 'Menyimpan...' : 'Simpan Perubahan'}
-        okLoading={saveLoading}
-      >
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-          <FloatingInput
-            label="Kategori / Bidang"
-            name="kategori"
-            value={kategori}
-            onChange={(e) => setKategori(e.target.value)}
-            disabled={saveLoading}
-            placeholder="Contoh: Dewan Harian Putra, Seksi Keamanan"
-          />
+          {/* Person Type Selector: Santri (Buku Induk) vs Guru vs Manual */}
+          <div className="space-y-2 pt-2">
+            <label className="text-xs font-semibold text-slate-700 dark:text-slate-300 block">
+              Pilih Sumber Pejabat:
+            </label>
+            <div className="grid grid-cols-3 gap-2 p-1 bg-slate-100 dark:bg-slate-800 rounded-xl">
+              <button
+                type="button"
+                className={`py-2 px-3 rounded-lg text-xs font-bold transition-all ${
+                  personType === 'santri'
+                    ? 'bg-white dark:bg-slate-700 text-blue-600 shadow-sm'
+                    : 'text-slate-500 hover:text-slate-800'
+                }`}
+                onClick={() => setPersonType('santri')}
+              >
+                Santri (Buku Induk)
+              </button>
+              <button
+                type="button"
+                className={`py-2 px-3 rounded-lg text-xs font-bold transition-all ${
+                  personType === 'guru'
+                    ? 'bg-white dark:bg-slate-700 text-blue-600 shadow-sm'
+                    : 'text-slate-500 hover:text-slate-800'
+                }`}
+                onClick={() => setPersonType('guru')}
+              >
+                Guru / Asatidz
+              </button>
+              <button
+                type="button"
+                className={`py-2 px-3 rounded-lg text-xs font-bold transition-all ${
+                  personType === 'manual'
+                    ? 'bg-white dark:bg-slate-700 text-blue-600 shadow-sm'
+                    : 'text-slate-500 hover:text-slate-800'
+                }`}
+                onClick={() => setPersonType('manual')}
+              >
+                Input Manual
+              </button>
+            </div>
+          </div>
 
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-            <CustomSelect
-              label="Pilih Guru / Ustadz Terdaftar"
-              value={selectedGuruId}
-              onChange={(val) => {
-                setSelectedGuruId(val);
-                if (val) {
-                  setCustomName('');
-                  setFormErrors({});
-                }
-              }}
-              placeholder="Pilih dari database guru (opsional)"
-              options={guruOptions}
-              allowClear
+          {/* OPSI 1: SANTRI DARI BUKU INDUK */}
+          {personType === 'santri' && (
+            <div className="space-y-3 pt-1">
+              <div className="relative">
+                <label className="text-xs font-semibold text-slate-600 dark:text-slate-400 block mb-1">
+                  Cari Nama Santri atau NIS dari Buku Induk:
+                </label>
+                <div className="relative">
+                  <Search size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
+                  <input
+                    type="text"
+                    className="w-full pl-9 pr-4 py-2 rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    placeholder="Ketik minimal 2 huruf nama santri atau NIS..."
+                    value={santriSearchQuery}
+                    onChange={(e) => setSantriSearchQuery(e.target.value)}
+                  />
+                  {santriSearching && (
+                    <RefreshCw size={14} className="spin-anim absolute right-3 top-1/2 -translate-y-1/2 text-blue-500" />
+                  )}
+                </div>
+
+                {/* Dropdown Results */}
+                {santriSearchResults.length > 0 && !selectedSantri && (
+                  <div className="absolute left-0 right-0 z-30 mt-1 max-h-56 overflow-y-auto bg-white dark:bg-slate-800 rounded-xl shadow-xl border border-slate-200 dark:border-slate-700 divide-y divide-slate-100 dark:divide-slate-700">
+                    {santriSearchResults.map((s) => (
+                      <div
+                        key={s.id}
+                        className="p-2.5 flex items-center justify-between hover:bg-blue-50 dark:hover:bg-slate-700/60 cursor-pointer transition-colors"
+                        onClick={() => {
+                          setSelectedSantri(s);
+                          setSantriSearchQuery('');
+                          setSantriSearchResults([]);
+                        }}
+                      >
+                        <div className="flex items-center gap-2.5">
+                          {renderCircularAvatar({ display_nama: s.nama, display_foto_url: s.foto_url }, 34)}
+                          <div>
+                            <div className="font-bold text-xs text-slate-900 dark:text-slate-100">{s.nama}</div>
+                            <div className="text-[11px] text-slate-400">
+                              NIS: {s.nis || '-'} • {s.kelas_diniyah || s.kamar || s.jenis_kelamin || ''}
+                            </div>
+                          </div>
+                        </div>
+                        <span className="text-xs text-blue-600 font-semibold">Pilih</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* Selected Santri Preview Card */}
+              {selectedSantri && (
+                <div className="p-3 bg-blue-50 dark:bg-slate-800 border border-blue-200 dark:border-blue-900/50 rounded-xl flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    {renderCircularAvatar({ display_nama: selectedSantri.nama, display_foto_url: selectedSantri.foto_url }, 42)}
+                    <div>
+                      <div className="font-bold text-sm text-slate-900 dark:text-slate-100">{selectedSantri.nama}</div>
+                      <div className="text-xs text-slate-500">
+                        NIS: {selectedSantri.nis || '-'} • {selectedSantri.alamat || 'Alamat pesantren'}
+                      </div>
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    className="p-1 rounded-lg text-slate-400 hover:text-red-500 hover:bg-red-50 transition-colors"
+                    onClick={() => setSelectedSantri(null)}
+                    title="Ganti Santri"
+                  >
+                    <X size={16} />
+                  </button>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* OPSI 2: GURU / ASATIDZ */}
+          {personType === 'guru' && (
+            <div className="space-y-2 pt-1">
+              <label className="text-xs font-semibold text-slate-600 dark:text-slate-400 block">
+                Pilih Dewan Guru / Asatidz:
+              </label>
+              <select
+                className="w-full px-3 py-2.5 rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 font-semibold"
+                value={selectedGuruId || ''}
+                onChange={(e) => setSelectedGuruId(e.target.value ? Number(e.target.value) : null)}
+              >
+                <option value="">-- Pilih Asatidz --</option>
+                {guruList.map((g) => (
+                  <option key={g.id} value={g.id}>
+                    {g.nama} {g.no_hp ? `(${g.no_hp})` : ''}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
+
+          {/* OPSI 3: INPUT MANUAL */}
+          {personType === 'manual' && (
+            <div className="space-y-3 pt-1">
+              <FloatingInput
+                label="Nama Lengkap Pejabat (misal: Bpk. Sifaul Huda)"
+                value={customNama}
+                onChange={(e) => setCustomNama(e.target.value)}
+                required
+              />
+              <FloatingInput
+                label="Alamat / Domisili Asal (misal: Cilacap, Jawa Tengah)"
+                value={customAlamat}
+                onChange={(e) => setCustomAlamat(e.target.value)}
+              />
+            </div>
+          )}
+
+          {/* Bidang Tugas / Keterangan (e.g. Koordinator Seksi, Anggota Seksi) */}
+          <div className="grid grid-cols-2 gap-3 pt-2">
+            <div>
+              <label className="text-xs font-semibold text-slate-700 dark:text-slate-300 block mb-1">
+                Tugas / Keterangan
+              </label>
+              <input
+                type="text"
+                className="w-full px-3 py-2 rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                placeholder="Contoh: Koordinator Seksi / Anggota Seksi"
+                value={modalKeterangan}
+                onChange={(e) => setModalKeterangan(e.target.value)}
+              />
+            </div>
+            <div>
+              <label className="text-xs font-semibold text-slate-700 dark:text-slate-300 block mb-1">
+                Nomor Urut Tampil
+              </label>
+              <input
+                type="number"
+                className="w-full px-3 py-2 rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                value={modalNoUrut}
+                onChange={(e) => setModalNoUrut(Number(e.target.value))}
+              />
+            </div>
+          </div>
+
+          <div className="flex items-center justify-end gap-3 pt-4 border-t border-slate-200 dark:border-slate-700">
+            <button
+              type="button"
+              className="px-4 py-2 rounded-xl border border-slate-300 text-slate-600 hover:bg-slate-50 text-sm font-semibold transition-colors"
+              onClick={() => setPersonModalOpen(false)}
+            >
+              Batal
+            </button>
+            <button
+              type="submit"
               disabled={saveLoading}
-            />
+              className="px-5 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-semibold text-sm shadow-md transition-all flex items-center gap-2"
+            >
+              {saveLoading && <RefreshCw size={14} className="spin-anim" />}
+              <span>{editingNodeId ? 'Simpan Perubahan' : 'Tambahkan Pejabat'}</span>
+            </button>
           </div>
-
-          <div style={{ textAlign: 'center', fontSize: '11px', fontWeight: 700, color: '#94a3b8', margin: '2px 0', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px' }}>
-            <div style={{ flex: 1, height: '1px', background: 'rgba(226, 232, 240, 0.8)' }}></div>
-            <span>Atau Nama Personel Kustom / Santri</span>
-            <div style={{ flex: 1, height: '1px', background: 'rgba(226, 232, 240, 0.8)' }}></div>
-          </div>
-
-          <FloatingInput
-            label="Nama Personel *"
-            name="customName"
-            value={customName}
-            onChange={(e) => {
-              setCustomName(e.target.value);
-              if (e.target.value) {
-                setSelectedGuruId(null);
-                setFormErrors({});
-              }
-            }}
-            disabled={!!selectedGuruId || saveLoading}
-            placeholder="Contoh: Sdr. Bara Alvin Azkia / Bpk. Indra Pratama"
-          />
-
-          <FloatingInput
-            label="Asal Daerah / Alamat"
-            name="alamat"
-            value={alamat}
-            onChange={(e) => setAlamat(e.target.value)}
-            disabled={saveLoading}
-            placeholder="Contoh: Katibung, Sidomulyo, Way Sulan, Cirebon"
-          />
-
-          <FloatingInput
-            label="Catatan / Bidang / Keterangan"
-            name="keterangan"
-            value={keterangan}
-            onChange={(e) => setKeterangan(e.target.value)}
-            disabled={saveLoading}
-            placeholder="Contoh: Koordinator Seksi, Wakil PJ: Bpk. Sifaul Huda"
-          />
-        </div>
+        </form>
       </CustomModal>
 
-      {/* Modal Tambah Jabatan Baru */}
+      {/* ═══════════════════════════════════════════════════════════════════ */}
+      {/* MODAL 2: KELOLA KATEGORI / SUB-TAB                                  */}
+      {/* ═══════════════════════════════════════════════════════════════════ */}
       <CustomModal
-        open={addPosModalOpen}
-        onClose={() => setAddPosModalOpen(false)}
-        title="Tambah Jabatan / Posisi Baru"
-        subtitle={`Tambahkan ke bagian ${activeTabMeta?.label || 'struktur'}`}
-        icon={<Plus />}
-        width={480}
-        destroyOnClose
-        onOk={handleAddCustomPosition}
-        okText={addPosLoading ? 'Menyimpan...' : 'Tambah Jabatan'}
-        okLoading={addPosLoading}
+        isOpen={categoryModalOpen}
+        onClose={() => setCategoryModalOpen(false)}
+        title={`Kelola Kategori / Bagian (${currentTabObj.label})`}
+        maxWidth="max-w-md"
       >
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-          <FloatingInput
-            label="Nama Jabatan / Posisi *"
-            value={newJabatan}
-            onChange={(e) => setNewJabatan(e.target.value)}
-            placeholder="Contoh: Seksi Keamanan, PJ Kamar B1"
-          />
-
-          <FloatingInput
-            label="Kategori / Kelompok Bagian"
-            value={newKategori}
-            onChange={(e) => setNewKategori(e.target.value)}
-            placeholder="Contoh: Dewan Pleno Putra, PJ Kamar Putra"
-          />
-
-          <CustomSelect
-            label="Pilih Guru / Ustadz (Opsional)"
-            value={newGuruId}
-            onChange={(val) => {
-              setNewGuruId(val);
-              if (val) setNewNama('');
-            }}
-            placeholder="Pilih dari daftar guru jika ada"
-            options={guruOptions}
-            allowClear
-          />
-
-          <FloatingInput
-            label="Atau Nama Personel Kustom / Santri *"
-            value={newNama}
-            onChange={(e) => {
-              setNewNama(e.target.value);
-              if (e.target.value) setNewGuruId(null);
-            }}
-            placeholder="Contoh: Bpk. Kelvin Kastawa"
-            disabled={!!newGuruId}
-          />
-
-          <FloatingInput
-            label="Asal Daerah / Alamat"
-            value={newAlamat}
-            onChange={(e) => setNewAlamat(e.target.value)}
-            placeholder="Contoh: Sidomulyo, Katibung, Cintamulya"
-          />
-
-          <FloatingInput
-            label="Keterangan / Bidang Tugas"
-            value={newKeterangan}
-            onChange={(e) => setNewKeterangan(e.target.value)}
-            placeholder="Contoh: Koordinator Seksi, Anggota Seksi"
-          />
-        </div>
-      </CustomModal>
-
-      {/* Modal Konfirmasi Hapus */}
-      <CustomModal
-        open={deleteConfirm.isOpen}
-        onClose={() => setDeleteConfirm({ isOpen: false, nodeId: null, jabatan: '', nama: '' })}
-        title="Konfirmasi Hapus Personel"
-        subtitle="Tindakan ini tidak dapat dibatalkan"
-        icon={<AlertTriangle style={{ color: '#ef4444' }} />}
-        width={420}
-        destroyOnClose
-        onOk={handleConfirmDelete}
-        okText="Hapus Personel"
-        okLoading={loading}
-      >
-        <div style={{ textAlign: 'center', padding: '10px 0' }}>
-          <p style={{ fontSize: '14px', color: '#475569', marginBottom: '8px' }}>
-            Apakah Anda yakin ingin menghapus <strong>{deleteConfirm.nama}</strong> dari posisi <strong>{deleteConfirm.jabatan}</strong>?
+        <div className="space-y-4">
+          <p className="text-xs text-slate-500">
+            Kategori ini menjadi sub-tab mandiri untuk mengelompokkan struktur kepengurusan.
           </p>
-          <span style={{ fontSize: '12px', color: '#94a3b8' }}>
-            Personel akan dihapus dari daftar bagan organisasi.
-          </span>
+
+          {/* Form Tambah Kategori */}
+          <form onSubmit={handleAddCategory} className="flex gap-2">
+            <input
+              type="text"
+              placeholder="Nama Kategori Baru (misal: Dewan Penasihat)"
+              value={newCatName}
+              onChange={(e) => setNewCatName(e.target.value)}
+              className="flex-1 px-3 py-2 rounded-xl border border-slate-300 dark:border-slate-600 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-slate-800"
+            />
+            <button
+              type="submit"
+              disabled={catActionLoading || !newCatName.trim()}
+              className="px-4 py-2 bg-blue-600 text-white rounded-xl text-sm font-bold shadow hover:bg-blue-700 transition-colors flex items-center gap-1.5"
+            >
+              <Plus size={15} />
+              <span>Tambah</span>
+            </button>
+          </form>
+
+          {/* List Existing Categories */}
+          <div className="space-y-2 max-h-60 overflow-y-auto divide-y divide-slate-100 dark:divide-slate-700">
+            {categories.map((cat) => (
+              <div key={cat.id || cat.nama_kategori} className="pt-2 pb-2 flex items-center justify-between gap-2">
+                {editingCatId === cat.id ? (
+                  <div className="flex items-center gap-2 flex-1">
+                    <input
+                      type="text"
+                      value={editingCatName}
+                      onChange={(e) => setEditingCatName(e.target.value)}
+                      className="flex-1 px-2.5 py-1.5 rounded-lg border border-blue-400 text-xs font-semibold bg-white dark:bg-slate-800"
+                    />
+                    <button
+                      className="p-1.5 bg-emerald-600 text-white rounded-lg"
+                      onClick={() => handleUpdateCategory(cat.id)}
+                    >
+                      <Check size={13} />
+                    </button>
+                    <button
+                      className="p-1.5 bg-slate-200 text-slate-600 rounded-lg"
+                      onClick={() => setEditingCatId(null)}
+                    >
+                      <X size={13} />
+                    </button>
+                  </div>
+                ) : (
+                  <>
+                    <span className="font-semibold text-xs text-slate-800 dark:text-slate-200">
+                      {cat.nama_kategori}
+                    </span>
+                    <div className="flex items-center gap-1">
+                      {cat.id && (
+                        <>
+                          <button
+                            className="p-1.5 text-blue-600 hover:bg-blue-50 rounded-lg"
+                            onClick={() => {
+                              setEditingCatId(cat.id);
+                              setEditingCatName(cat.nama_kategori);
+                            }}
+                            title="Edit Nama"
+                          >
+                            <Edit2 size={13} />
+                          </button>
+                          <button
+                            className="p-1.5 text-red-600 hover:bg-red-50 rounded-lg"
+                            onClick={() => handleDeleteCategory(cat)}
+                            title="Hapus Kategori"
+                          >
+                            <Trash2 size={13} />
+                          </button>
+                        </>
+                      )}
+                    </div>
+                  </>
+                )}
+              </div>
+            ))}
+          </div>
+
+          <div className="pt-3 border-t border-slate-200 dark:border-slate-700 flex justify-end">
+            <button
+              className="px-4 py-2 bg-slate-100 text-slate-700 rounded-xl text-sm font-semibold hover:bg-slate-200"
+              onClick={() => setCategoryModalOpen(false)}
+            >
+              Tutup
+            </button>
+          </div>
+        </div>
+      </CustomModal>
+
+      {/* ═══════════════════════════════════════════════════════════════════ */}
+      {/* MODAL 3: KELOLA JABATAN PADA SUB-TAB                                */}
+      {/* ═══════════════════════════════════════════════════════════════════ */}
+      <CustomModal
+        isOpen={jabatanModalOpen}
+        onClose={() => setJabatanModalOpen(false)}
+        title={`Kelola Nama Jabatan (${selectedKategori || 'Sub-Tab'})`}
+        maxWidth="max-w-lg"
+      >
+        <div className="space-y-4">
+          <p className="text-xs text-slate-500">
+            Daftar posisi jabatan yang dapat dipilih saat menambahkan pejabat pada sub-tab <strong>{selectedKategori}</strong>.
+          </p>
+
+          {/* Form Tambah Jabatan Template */}
+          <form onSubmit={handleAddJabatan} className="space-y-2 p-3 bg-slate-50 dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700">
+            <div className="font-semibold text-xs text-slate-700 dark:text-slate-300">Tambah Opsi Jabatan Baru:</div>
+            <div className="grid grid-cols-2 gap-2">
+              <input
+                type="text"
+                placeholder="Nama Jabatan (misal: Seksi Media)"
+                value={newJabatanName}
+                onChange={(e) => setNewJabatanName(e.target.value)}
+                className="px-3 py-1.5 rounded-lg border border-slate-300 text-xs bg-white dark:bg-slate-700"
+                required
+              />
+              <input
+                type="text"
+                placeholder="Tugas Default (opsional)"
+                value={newJabatanKeterangan}
+                onChange={(e) => setNewJabatanKeterangan(e.target.value)}
+                className="px-3 py-1.5 rounded-lg border border-slate-300 text-xs bg-white dark:bg-slate-700"
+              />
+            </div>
+            <button
+              type="submit"
+              disabled={jabActionLoading || !newJabatanName.trim()}
+              className="w-full py-1.5 bg-blue-600 text-white rounded-lg text-xs font-bold hover:bg-blue-700 transition-colors flex items-center justify-center gap-1"
+            >
+              <Plus size={13} />
+              <span>Tambahkan ke Opsi Jabatan</span>
+            </button>
+          </form>
+
+          {/* List Configured Positions */}
+          <div className="space-y-2 max-h-60 overflow-y-auto divide-y divide-slate-100 dark:divide-slate-700">
+            {jabatanTemplates.map((t) => (
+              <div key={t.id} className="pt-2 pb-2 flex items-center justify-between gap-2">
+                {editingJabatanId === t.id ? (
+                  <div className="flex items-center gap-2 flex-1">
+                    <input
+                      type="text"
+                      value={editingJabatanName}
+                      onChange={(e) => setEditingJabatanName(e.target.value)}
+                      className="flex-1 px-2.5 py-1 rounded-lg border border-blue-400 text-xs font-semibold bg-white dark:bg-slate-800"
+                    />
+                    <button
+                      className="p-1 bg-emerald-600 text-white rounded-lg"
+                      onClick={() => handleUpdateJabatan(t.id)}
+                    >
+                      <Check size={13} />
+                    </button>
+                    <button
+                      className="p-1 bg-slate-200 text-slate-600 rounded-lg"
+                      onClick={() => setEditingJabatanId(null)}
+                    >
+                      <X size={13} />
+                    </button>
+                  </div>
+                ) : (
+                  <>
+                    <div>
+                      <div className="font-semibold text-xs text-slate-800 dark:text-slate-200">
+                        {t.nama_jabatan}
+                      </div>
+                      {t.keterangan_default && (
+                        <div className="text-[10px] text-slate-400">{t.keterangan_default}</div>
+                      )}
+                    </div>
+                    <div className="flex items-center gap-1">
+                      <button
+                        className="p-1 text-blue-600 hover:bg-blue-50 rounded-lg"
+                        onClick={() => {
+                          setEditingJabatanId(t.id);
+                          setEditingJabatanName(t.nama_jabatan);
+                          setEditingJabatanKeterangan(t.keterangan_default || '');
+                        }}
+                        title="Edit"
+                      >
+                        <Edit2 size={13} />
+                      </button>
+                      <button
+                        className="p-1 text-red-600 hover:bg-red-50 rounded-lg"
+                        onClick={() => handleDeleteJabatan(t.id)}
+                        title="Hapus"
+                      >
+                        <Trash2 size={13} />
+                      </button>
+                    </div>
+                  </>
+                )}
+              </div>
+            ))}
+          </div>
+
+          <div className="pt-3 border-t border-slate-200 dark:border-slate-700 flex justify-end">
+            <button
+              className="px-4 py-2 bg-slate-100 text-slate-700 rounded-xl text-sm font-semibold hover:bg-slate-200"
+              onClick={() => setJabatanModalOpen(false)}
+            >
+              Tutup
+            </button>
+          </div>
+        </div>
+      </CustomModal>
+
+      {/* ═══════════════════════════════════════════════════════════════════ */}
+      {/* MODAL 4: KONFIRMASI HAPUS                                           */}
+      {/* ═══════════════════════════════════════════════════════════════════ */}
+      <CustomModal
+        isOpen={deleteConfirm.isOpen}
+        onClose={() => setDeleteConfirm({ isOpen: false, nodeId: null, jabatan: '', nama: '' })}
+        title="Hapus Pejabat"
+        maxWidth="max-w-md"
+      >
+        <div className="space-y-4">
+          <div className="p-3 bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-900 rounded-xl flex items-start gap-3">
+            <AlertTriangle className="text-red-500 shrink-0 mt-0.5" size={20} />
+            <div className="text-sm text-red-700 dark:text-red-300">
+              Apakah Anda yakin ingin menghapus <strong>{deleteConfirm.nama}</strong> dari posisi{' '}
+              <strong>{deleteConfirm.jabatan}</strong>? Tindakan ini tidak dapat dibatalkan.
+            </div>
+          </div>
+          <div className="flex justify-end gap-3 pt-2">
+            <button
+              className="px-4 py-2 rounded-xl border border-slate-300 text-slate-600 text-sm font-semibold hover:bg-slate-50"
+              onClick={() => setDeleteConfirm({ isOpen: false, nodeId: null, jabatan: '', nama: '' })}
+            >
+              Batal
+            </button>
+            <button
+              className="px-4 py-2 rounded-xl bg-red-600 text-white text-sm font-semibold hover:bg-red-700 shadow-sm"
+              onClick={handleDeletePerson}
+            >
+              Ya, Hapus
+            </button>
+          </div>
         </div>
       </CustomModal>
     </div>
   );
 }
+
 export default StrukturKepesantrenan;

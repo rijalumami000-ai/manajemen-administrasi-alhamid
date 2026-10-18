@@ -3329,10 +3329,15 @@ function registerMyMustahiqRoutes(app) {
 
     let query = `
       SELECT 
-        s.id, s.tipe, s.kategori, s.jabatan, s.guru_id, s.nama_custom, s.alamat, s.keterangan, s.no_urut, s.tahun_ajaran_id, s.semester,
-        g.nama AS guru_nama, g.no_hp AS guru_no_hp, g.foto_url AS guru_foto_url
+        s.id, s.tipe, s.kategori, s.jabatan, s.guru_id, s.santri_id, s.nama_custom, s.alamat, s.keterangan, s.no_urut, s.tahun_ajaran_id, s.semester,
+        g.nama AS guru_nama, g.no_hp AS guru_no_hp, g.foto_url AS guru_foto_url,
+        st.nama AS santri_nama, st.nis AS santri_nis, st.foto_url AS santri_foto_url, st.alamat AS santri_alamat,
+        COALESCE(g.nama, st.nama, s.nama_custom) AS display_nama,
+        COALESCE(g.foto_url, st.foto_url) AS display_foto_url,
+        COALESCE(s.alamat, st.alamat) AS display_alamat
       FROM struktur_organisasi s
       LEFT JOIN guru g ON s.guru_id = g.id
+      LEFT JOIN santri st ON s.santri_id = st.id
     `;
     const params = [];
     let paramIdx = 1;

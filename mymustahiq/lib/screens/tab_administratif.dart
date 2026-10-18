@@ -749,40 +749,58 @@ class _TabAdministratifState extends State<TabAdministratif> {
   Widget _buildStrukturCluster(BuildContext context, bool isDark) {
     final list = [
       {
-        'title': 'Struktur Madrasah Diniyah & Panitia',
-        'desc': 'Struktur pimpinan, bagian kurikulum & panitia semester Madin.',
-        'isMadin': true,
-        'color': const Color(0xFF3B82F6),
+        'title': 'Struktur Pondok Pesantren',
+        'desc': 'Lurah pondok, dewan pleno, keamanan, ubudiyah (Putra & Putri terpisah).',
+        'index': 0,
+        'color': const Color(0xFF8B5CF6),
+      },
+      {
+        'title': "Jam'iyyah Santri",
+        'desc': "Jam'iyyah Pusat, Jam'iyyah Putra & Jam'iyyah Putri.",
+        'index': 1,
+        'color': const Color(0xFF059669),
       },
       {
         'title': 'Struktur PMQ',
         'desc': 'Pendidikan Murottilil Qur\'an - Koordinator tahfidz 30 juz, metode Yanbu\'a & penguji.',
-        'index': 0,
+        'index': 2,
         'color': const Color(0xFF10B981),
       },
       {
-        'title': 'Struktur Pondok Pesantren',
-        'desc': 'Lurah pondok, biro keamanan, biro ubudiyah, sanitasi & ro\'an.',
-        'index': 1,
-        'color': const Color(0xFF8B5CF6),
+        'title': 'Struktur Madrasah Diniyah',
+        'desc': 'Pimpinan madrasah, bidang kurikulum, kesiswaan & tata usaha.',
+        'index': 3,
+        'color': const Color(0xFF3B82F6),
+      },
+      {
+        'title': 'Panitia Ujian Semester',
+        'desc': 'Kepanitiaan ujian semester ganjil dan semester genap.',
+        'index': 4,
+        'color': const Color(0xFF6366F1),
       },
       {
         'title': 'Struktur Panitia Sambangan',
         'desc': 'Panitia kunjungan wali santri, alur perizinan, pos registrasi & bazar.',
-        'index': 2,
+        'index': 5,
         'color': const Color(0xFFF59E0B),
       },
       {
         'title': 'Struktur Panitia Haflah',
         'desc': 'Kepanitiaan wisuda akbar santri, dekorasi, publikasi & panggung.',
-        'index': 3,
+        'index': 6,
         'color': const Color(0xFFEC4899),
       },
       {
         'title': 'Struktur Panitia PSB',
         'desc': 'Panitia penerimaan santri baru, tes baca kitab & administrasi pendaftaran.',
-        'index': 4,
+        'index': 7,
         'color': const Color(0xFF06B6D4),
+      },
+      {
+        'title': 'Dewan Penyantun & Penasihat',
+        'desc': 'Pengasuh Ndalem, Dewan Penasihat & Pembina Asrama.',
+        'index': 8,
+        'color': const Color(0xFFD97706),
       },
     ];
 
@@ -798,23 +816,14 @@ class _TabAdministratifState extends State<TabAdministratif> {
           margin: const EdgeInsets.only(bottom: 12),
           child: GestureDetector(
             onTap: () {
-              if (it['isMadin'] == true) {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => const StrukturOrganisasiScreen(),
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => StrukturLembagaScreen(
+                    initialTabIndex: it['index'] as int,
                   ),
-                );
-              } else {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => StrukturLembagaScreen(
-                      initialTabIndex: it['index'] as int,
-                    ),
-                  ),
-                );
-              }
+                ),
+              );
             },
             child: Container(
               padding: const EdgeInsets.all(16),

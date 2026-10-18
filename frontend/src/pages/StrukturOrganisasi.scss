@@ -664,4 +664,381 @@
     from { transform: rotate(0deg); }
     to { transform: rotate(360deg); }
   }
+
+  // ── Sub-Tabs Navigation Bar ──────────────────────────────────────────────
+  .subtabs-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 10px 16px;
+    background: rgba(255, 255, 255, 0.65);
+    backdrop-filter: blur(12px);
+    border-radius: 16px;
+    border: 1px solid rgba(226, 232, 240, 0.8);
+    flex-wrap: wrap;
+
+    html[data-theme="dark"] & {
+      background: rgba(30, 41, 59, 0.6);
+      border-color: rgba(255, 255, 255, 0.08);
+    }
+
+    .subtabs-scroll {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      overflow-x: auto;
+      max-width: 100%;
+      padding-bottom: 2px;
+
+      &::-webkit-scrollbar {
+        height: 4px;
+      }
+      &::-webkit-scrollbar-thumb {
+        background: rgba(148, 163, 184, 0.4);
+        border-radius: 4px;
+      }
+    }
+
+    .subtab-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 7px 16px;
+      border-radius: 20px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      border: 1px solid rgba(226, 232, 240, 0.8);
+      background: #ffffff;
+      color: #64748b;
+      white-space: nowrap;
+      transition: all 0.2s ease;
+
+      html[data-theme="dark"] & {
+        background: #1e293b;
+        border-color: rgba(255, 255, 255, 0.08);
+        color: #94a3b8;
+      }
+
+      &:hover {
+        color: #3b82f6;
+        border-color: rgba(59, 130, 246, 0.4);
+        background: rgba(59, 130, 246, 0.05);
+      }
+
+      &.active {
+        background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+        color: #ffffff;
+        border-color: #2563eb;
+        box-shadow: 0 4px 12px -2px rgba(37, 99, 235, 0.35);
+
+        .count-badge {
+          background: rgba(255, 255, 255, 0.25);
+          color: #ffffff;
+        }
+      }
+
+      .count-badge {
+        font-size: 11px;
+        font-weight: 700;
+        padding: 2px 7px;
+        border-radius: 10px;
+        background: rgba(148, 163, 184, 0.15);
+        color: #475569;
+
+        html[data-theme="dark"] & {
+          color: #cbd5e1;
+        }
+      }
+    }
+
+    .subtabs-actions {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-left: auto;
+    }
+  }
+
+  // ── Action Buttons for Settings & Adding ──────────────────────────────────
+  .action-pill-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 7px 14px;
+    border-radius: 10px;
+    font-size: 12.5px;
+    font-weight: 600;
+    cursor: pointer;
+    border: 1px solid rgba(203, 213, 225, 0.8);
+    background: #ffffff;
+    color: #334155;
+    transition: all 0.2s ease;
+
+    html[data-theme="dark"] & {
+      background: #1e293b;
+      border-color: rgba(255, 255, 255, 0.1);
+      color: #e2e8f0;
+    }
+
+    &:hover {
+      background: #f8fafc;
+      border-color: #94a3b8;
+
+      html[data-theme="dark"] & {
+        background: #334155;
+      }
+    }
+
+    &.primary-pill {
+      background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+      color: #ffffff;
+      border-color: #2563eb;
+      box-shadow: 0 4px 12px -2px rgba(37, 99, 235, 0.3);
+
+      &:hover {
+        opacity: 0.95;
+        box-shadow: 0 6px 16px -2px rgba(37, 99, 235, 0.45);
+      }
+    }
+
+    &.amber-pill {
+      background: #fffbeb;
+      color: #b45309;
+      border-color: #fde68a;
+
+      html[data-theme="dark"] & {
+        background: rgba(245, 158, 11, 0.12);
+        color: #fbbf24;
+        border-color: rgba(245, 158, 11, 0.3);
+      }
+
+      &:hover {
+        background: #fef3c7;
+      }
+    }
+  }
+
+  // ── Unified Section Group Card (Koordinator + Anggota) ───────────────────
+  .section-group-card {
+    background: rgba(255, 255, 255, 0.85);
+    backdrop-filter: blur(12px);
+    border-radius: 20px;
+    border: 1px solid rgba(226, 232, 240, 0.9);
+    overflow: hidden;
+    margin-bottom: 20px;
+    box-shadow: 0 4px 20px -4px rgba(0, 0, 0, 0.04);
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+
+    html[data-theme="dark"] & {
+      background: rgba(21, 26, 35, 0.8);
+      border-color: rgba(255, 255, 255, 0.07);
+      box-shadow: 0 4px 20px -4px rgba(0, 0, 0, 0.3);
+    }
+
+    &:hover {
+      box-shadow: 0 10px 25px -4px rgba(0, 0, 0, 0.08);
+      border-color: rgba(59, 130, 246, 0.4);
+    }
+
+    .group-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 14px 20px;
+      background: linear-gradient(90deg, rgba(241, 245, 249, 0.7) 0%, rgba(248, 250, 252, 0.4) 100%);
+      border-bottom: 1px solid rgba(226, 232, 240, 0.7);
+
+      html[data-theme="dark"] & {
+        background: linear-gradient(90deg, rgba(30, 41, 59, 0.6) 0%, rgba(15, 23, 42, 0.3) 100%);
+        border-bottom-color: rgba(255, 255, 255, 0.06);
+      }
+
+      .group-title-box {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+
+        .group-icon {
+          width: 32px;
+          height: 32px;
+          border-radius: 10px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          background: rgba(59, 130, 246, 0.12);
+          color: #3b82f6;
+        }
+
+        .group-title {
+          font-size: 15px;
+          font-weight: 800;
+          color: #0f172a;
+          margin: 0;
+
+          html[data-theme="dark"] & {
+            color: #f8fafc;
+          }
+        }
+      }
+
+      .group-count-badge {
+        font-size: 11px;
+        font-weight: 700;
+        padding: 4px 10px;
+        border-radius: 20px;
+        background: rgba(59, 130, 246, 0.1);
+        color: #2563eb;
+
+        html[data-theme="dark"] & {
+          background: rgba(59, 130, 246, 0.2);
+          color: #93c5fd;
+        }
+      }
+    }
+
+    .group-body {
+      padding: 16px 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+
+    // Highlighted Koordinator Box
+    .koordinator-box {
+      background: linear-gradient(135deg, rgba(254, 243, 199, 0.4) 0%, rgba(255, 251, 235, 0.8) 100%);
+      border: 1px solid rgba(245, 158, 11, 0.25);
+      border-radius: 14px;
+      padding: 14px 16px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 14px;
+
+      html[data-theme="dark"] & {
+        background: linear-gradient(135deg, rgba(245, 158, 11, 0.08) 0%, rgba(30, 41, 59, 0.6) 100%);
+        border-color: rgba(245, 158, 11, 0.25);
+      }
+
+      .koor-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        padding: 3px 8px;
+        border-radius: 6px;
+        background: #fef3c7;
+        color: #b45309;
+        font-size: 11px;
+        font-weight: 800;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        margin-bottom: 4px;
+
+        html[data-theme="dark"] & {
+          background: rgba(245, 158, 11, 0.2);
+          color: #fde68a;
+        }
+      }
+    }
+
+    // Anggota Section
+    .anggota-section {
+      .anggota-section-title {
+        font-size: 11px;
+        font-weight: 700;
+        color: #64748b;
+        letter-spacing: 0.8px;
+        text-transform: uppercase;
+        margin-bottom: 10px;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+
+        html[data-theme="dark"] & {
+          color: #94a3b8;
+        }
+      }
+
+      .anggota-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+        gap: 10px;
+      }
+
+      .anggota-item-card {
+        background: rgba(248, 250, 252, 0.7);
+        border: 1px solid rgba(226, 232, 240, 0.7);
+        border-radius: 12px;
+        padding: 10px 12px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+        transition: all 0.2s ease;
+
+        html[data-theme="dark"] & {
+          background: rgba(30, 41, 59, 0.4);
+          border-color: rgba(255, 255, 255, 0.05);
+        }
+
+        &:hover {
+          background: #ffffff;
+          border-color: rgba(59, 130, 246, 0.3);
+          box-shadow: 0 4px 12px rgba(0, 0, 0, 0.04);
+
+          html[data-theme="dark"] & {
+            background: rgba(30, 41, 59, 0.8);
+          }
+
+          .card-actions-mini {
+            opacity: 1;
+          }
+        }
+      }
+    }
+  }
+
+  // Mini actions on hover for cards
+  .card-actions-mini {
+    opacity: 0.7;
+    transition: opacity 0.2s ease;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    flex-shrink: 0;
+
+    .mini-btn {
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: #ffffff;
+      border: 1px solid rgba(226, 232, 240, 0.8);
+      cursor: pointer;
+      color: #64748b;
+      transition: all 0.15s ease;
+
+      html[data-theme="dark"] & {
+        background: #1e293b;
+        border-color: rgba(255, 255, 255, 0.08);
+        color: #94a3b8;
+      }
+
+      &.edit-mini:hover {
+        background: #eff6ff;
+        color: #2563eb;
+        border-color: #93c5fd;
+      }
+
+      &.delete-mini:hover {
+        background: #fef2f2;
+        color: #dc2626;
+        border-color: #fca5a5;
+      }
+    }
+  }
 }
+
