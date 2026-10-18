@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../services/theme_manager.dart';
 import '../services/api_service.dart';
 
@@ -18,197 +19,15 @@ class _StrukturLembagaScreenState extends State<StrukturLembagaScreen>
     with SingleTickerProviderStateMixin {
   late TabController _tabController;
 
-  final Map<String, List<Map<String, dynamic>>> _structuresData = {
-    'pmq': [
-      {
-        'jabatan': 'Direktur Eksekutif PMQ',
-        'nama': 'K.H. Ahmad Dahlan, Lc',
-        'status': 'Pimpinan Lembaga',
-        'bidang': 'Kebijakan & Kurikulum Al-Qur\'an',
-        'kontak': '+62 812-3456-7891',
-        'isHeader': true,
-      },
-      {
-        'jabatan': 'Koordinator Tahfidz 30 Juz',
-        'nama': 'Ust. H. Syarif Hidayatullah, Al-Hafidz',
-        'status': 'Koordinator Bidang',
-        'bidang': 'Bimbingan Mutqin & Tasmi\' Akbar',
-        'kontak': '+62 813-2233-4455',
-      },
-      {
-        'jabatan': 'Koordinator Tartil & Tahsin (Metode Yanbu\'a)',
-        'nama': 'Ust. Farhan Azis, S.Pd',
-        'status': 'Koordinator Bidang',
-        'bidang': 'Kenaikan Jilid & Munaqosyah',
-        'kontak': '+62 856-7788-9900',
-      },
-      {
-        'jabatan': 'Sie Ujian & Verifikasi Sertifikasi Qur\'an',
-        'nama': 'Ust. M. Syukron, M.Ag',
-        'status': 'Penguji Lembaga',
-        'bidang': 'Standarisasi Tajwid & Ghorib',
-        'kontak': '+62 821-9988-7766',
-      },
-      {
-        'jabatan': 'Wali Asrama Khusus Tahfidz Putri',
-        'nama': 'Usth. Siti Khodijah, Al-Hafidzah',
-        'status': 'Pembina Asrama',
-        'bidang': 'Disiplin Waktu & Setoran Harian',
-        'kontak': '+62 878-1122-3344',
-      },
-    ],
-    'pondok': [
-      {
-        'jabatan': 'Pengasuh Utama Pondok Pesantren',
-        'nama': 'K.H. Musthofa Bisri',
-        'status': 'Majelis Pengasuh',
-        'bidang': 'Arah Kebijakan Umum & Tarbiyah',
-        'kontak': 'Sekretariat Ndalem',
-        'isHeader': true,
-      },
-      {
-        'jabatan': 'Lurah Pondok Putra (Ketua Umum Santri)',
-        'nama': 'Ust. Rifqi Maulana, S.Ag',
-        'status': 'Pengurus Pusat',
-        'bidang': 'Koordinator Seluruh Komplek Asrama',
-        'kontak': '+62 812-9988-1122',
-      },
-      {
-        'jabatan': 'Kepala Keamanan & Ketertiban Pusat',
-        'nama': 'Ust. Hasan Basri',
-        'status': 'Biro Keamanan',
-        'bidang': 'Izin Keluar, Jam Malam & Disiplin',
-        'kontak': '+62 857-4455-6677',
-      },
-      {
-        'jabatan': 'Ketua Biro Ubudiyah & Kemasjidan',
-        'nama': 'Ust. Sholeh Mahmud',
-        'status': 'Biro Ibadah',
-        'bidang': 'Imam Rawatib, Dzibaiyah, & Rotib',
-        'kontak': '+62 822-3344-5566',
-      },
-      {
-        'jabatan': 'Biro Kebersihan Lingkungan & Ro\'an',
-        'nama': 'Ust. Danial Ahmad',
-        'status': 'Biro Sarpras',
-        'bidang': 'Sanitasi, Fasilitas & Ro\'an Akbar',
-        'kontak': '+62 819-0011-2233',
-      },
-    ],
-    'sambangan': [
-      {
-        'jabatan': 'Ketua Panitia Sambangan Santri',
-        'nama': 'Ust. Nurul Huda, S.Pd.I',
-        'status': 'Ketua Pelaksana',
-        'bidang': 'Koordinasi Alur Kunjungan Wali Santri',
-        'kontak': '+62 812-7788-9900',
-        'isHeader': true,
-      },
-      {
-        'jabatan': 'Koordinator Registrasi & Buku Tamu Digital',
-        'nama': 'Ust. Ahmad Wildan',
-        'status': 'Divisi Registrasi',
-        'bidang': 'Scan QR Kartu Santri & Kartu Kunjungan',
-        'kontak': '+62 813-1122-3344',
-      },
-      {
-        'jabatan': 'Koordinator Keamanan & Rekayasa Parkir',
-        'nama': 'Ust. Hasan Basri & Tim Banser',
-        'status': 'Divisi Keamanan',
-        'bidang': 'Ketertiban Jalur Masuk/Keluar Gerbang',
-        'kontak': '+62 857-4455-6677',
-      },
-      {
-        'jabatan': 'Koordinator Stan Bazar & Konsumsi Tamu',
-        'nama': 'Ust. Farhan Azis & Koperasi Pondok',
-        'status': 'Divisi Bazar',
-        'bidang': 'Pengaturan Stan UMKM & Kuliner Tamu',
-        'kontak': '+62 856-7788-9900',
-      },
-    ],
-    'haflah': [
-      {
-        'jabatan': 'Ketua Panitia Haflah Akhirussanah 1446 H',
-        'nama': 'K.H. Ahmad Dahlan, Lc',
-        'status': 'Ketua Panitia',
-        'bidang': 'Penanggung Jawab Acara Akbar Haflah',
-        'kontak': '+62 812-3456-7891',
-        'isHeader': true,
-      },
-      {
-        'jabatan': 'Sie Acara & Protokoler Wisuda Santri',
-        'nama': 'Ust. M. Syukron, M.Ag',
-        'status': 'Divisi Acara',
-        'bidang': 'Rundown, Penobatan Santri & Mau\'idhoh',
-        'kontak': '+62 821-9988-7766',
-      },
-      {
-        'jabatan': 'Sie Panggung, Dekorasi & Multimedia',
-        'nama': 'Ust. Rifqi Maulana',
-        'status': 'Divisi Produksi',
-        'bidang': 'Videotron, Tata Suara & Lighting',
-        'kontak': '+62 812-9988-1122',
-      },
-      {
-        'jabatan': 'Sie Publikasi & Live Streaming Official',
-        'nama': 'Tim Media Santri Al-Hamid',
-        'status': 'Divisi Media',
-        'bidang': 'YouTube Live, Dokumentasi & Siaran',
-        'kontak': '+62 878-9900-1122',
-      },
-      {
-        'jabatan': 'Sie Tamu Undangan Masyayikh & Habaib',
-        'nama': 'Ust. Sholeh Mahmud',
-        'status': 'Divisi Jam\'iyyah',
-        'bidang': 'Penyambutan VIP & Akomodasi Kyai',
-        'kontak': '+62 822-3344-5566',
-      },
-    ],
-    'psb': [
-      {
-        'jabatan': 'Ketua Panitia PSB (Penerimaan Santri Baru)',
-        'nama': 'Ust. Ahmad Syukron Rosyid',
-        'status': 'Ketua Panitia',
-        'bidang': 'Penanggung Jawab Penerimaan Santri Baru',
-        'kontak': '+62 812-3344-5566',
-        'isHeader': true,
-      },
-      {
-        'jabatan': 'Sekretaris PSB & Verifikasi Berkas',
-        'nama': 'Ust. Rijal Umami',
-        'status': 'Divisi Sekretariat',
-        'bidang': 'Administrasi & Verifikasi Dokumen Pendaftar',
-        'kontak': '+62 813-4455-6677',
-      },
-      {
-        'jabatan': 'Bendahara & Administrasi Pendaftaran',
-        'nama': 'Ustz. Restu Maharani',
-        'status': 'Divisi Keuangan',
-        'bidang': 'Pembayaran Formulir & Administrasi',
-        'kontak': '+62 856-1122-3344',
-      },
-      {
-        'jabatan': 'Koordinator Tes Seleksi & Wawancara',
-        'nama': 'Ust. Nurrohman',
-        'status': 'Divisi Penguji',
-        'bidang': 'Tes Baca Kitab, Qur\'an & Wawancara Wali',
-        'kontak': '+62 821-6677-8899',
-      },
-      {
-        'jabatan': 'Tim Publikasi, Brosur & Media Sosial',
-        'nama': 'Tim IT & Media Al-Hamid',
-        'status': 'Divisi Publikasi',
-        'bidang': 'Informasi Pendaftaran Online & Brosur',
-        'kontak': '+62 878-0011-2233',
-      },
-    ],
-  };
-
   final ApiService _apiService = ApiService();
   final Map<String, List<Map<String, dynamic>>> _liveApiData = {};
   List<dynamic> _tahunAjaranList = [];
   int? _selectedTahunAjaranId;
   bool _isLoadingApi = false;
+
+  final TextEditingController _searchController = TextEditingController();
+  String _searchQuery = '';
+  String _selectedPondokCategory = 'ALL';
 
   @override
   void initState() {
@@ -218,6 +37,15 @@ class _StrukturLembagaScreenState extends State<StrukturLembagaScreen>
       vsync: this,
       initialIndex: widget.initialTabIndex.clamp(0, 4),
     );
+    _tabController.addListener(() {
+      if (!_tabController.indexIsChanging) {
+        setState(() {
+          _searchController.clear();
+          _searchQuery = '';
+          _selectedPondokCategory = 'ALL';
+        });
+      }
+    });
     _initTahunAjaranAndFetch();
   }
 
@@ -239,6 +67,7 @@ class _StrukturLembagaScreenState extends State<StrukturLembagaScreen>
   }
 
   Future<void> _fetchLiveStructures() async {
+    if (!mounted) return;
     setState(() => _isLoadingApi = true);
     final keys = ['pmq', 'pondok', 'sambangan', 'haflah', 'psb'];
     for (final k in keys) {
@@ -249,11 +78,16 @@ class _StrukturLembagaScreenState extends State<StrukturLembagaScreen>
             final displayName = (item['guru_nama'] ?? item['nama_custom'] ?? '-').toString();
             final isHead = (item['no_urut'] == 1);
             return {
+              'id': item['id'],
               'jabatan': item['jabatan']?.toString() ?? 'Pengurus',
               'nama': displayName,
-              'status': isHead ? 'Pimpinan' : 'Pengurus',
+              'kategori': item['kategori']?.toString() ?? '',
+              'alamat': item['alamat']?.toString() ?? '',
+              'status': isHead ? 'Pimpinan' : (item['kategori']?.toString().isNotEmpty == true ? item['kategori'] : 'Pengurus'),
               'bidang': item['keterangan']?.toString() ?? '-',
               'kontak': item['guru_no_hp']?.toString() ?? '-',
+              'foto_url': item['guru_foto_url']?.toString(),
+              'no_urut': item['no_urut'] ?? 999,
               'isHeader': isHead,
             };
           }).toList();
@@ -269,7 +103,17 @@ class _StrukturLembagaScreenState extends State<StrukturLembagaScreen>
   @override
   void dispose() {
     _tabController.dispose();
+    _searchController.dispose();
     super.dispose();
+  }
+
+  void _launchWhatsApp(String phone) async {
+    final cleanPhone = phone.replaceAll(RegExp(r'\D'), '');
+    if (cleanPhone.isEmpty) return;
+    final url = Uri.parse("https://wa.me/$cleanPhone");
+    if (await canLaunchUrl(url)) {
+      await launchUrl(url, mode: LaunchMode.externalApplication);
+    }
   }
 
   @override
@@ -293,6 +137,13 @@ class _StrukturLembagaScreenState extends State<StrukturLembagaScreen>
             fontSize: 17,
           ),
         ),
+        actions: [
+          IconButton(
+            icon: Icon(Icons.refresh_rounded, color: context.titleColor, size: 20),
+            onPressed: _fetchLiveStructures,
+            tooltip: "Muat Ulang Data",
+          ),
+        ],
         bottom: TabBar(
           controller: _tabController,
           isScrollable: true,
@@ -315,21 +166,39 @@ class _StrukturLembagaScreenState extends State<StrukturLembagaScreen>
         children: [
           _buildTahunAjaranFilter(context, isDark),
           Expanded(
-            child: TabBarView(
-              controller: _tabController,
-              children: [
-                // 1. PMQ
-                _buildStructureList('pmq', 'Pendidikan Murottilil Qur\'an (PMQ)', 'Lembaga khusus tahfidz dan tahsin quran pesantren.', isDark),
-                // 2. Pondok
-                _buildStructureList('pondok', 'Pondok Pesantren Al-Hamid', 'Kepengurusan pusat santri putra dan putri.', isDark),
-                // 3. Sambangan
-                _buildStructureList('sambangan', 'Panitia Sambangan Santri', 'Kepanitiaan acara kunjungan rutin wali santri bulanan.', isDark),
-                // 4. Haflah
-                _buildStructureList('haflah', 'Panitia Haflah Akhirussanah', 'Kepanitiaan wisuda santri dan pengajian akbar tahunan.', isDark),
-                // 5. PSB
-                _buildStructureList('psb', 'Panitia Penerimaan Santri Baru (PSB)', 'Kepanitiaan pendaftaran, seleksi berkas & tes santri baru.', isDark),
-              ],
-            ),
+            child: _isLoadingApi
+                ? Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        const SizedBox(
+                          width: 28,
+                          height: 28,
+                          child: CircularProgressIndicator(strokeWidth: 2.5, color: Color(0xFF3B82F6)),
+                        ),
+                        const SizedBox(height: 12),
+                        Text(
+                          "Memuat susunan struktur...",
+                          style: GoogleFonts.outfit(color: context.subTitleColor, fontSize: 13),
+                        ),
+                      ],
+                    ),
+                  )
+                : TabBarView(
+                    controller: _tabController,
+                    children: [
+                      // 1. PMQ
+                      _buildStructureList('pmq', 'Pendidikan Murottilil Qur\'an (PMQ)', 'Lembaga khusus tahfidz dan tahsin Al-Qur\'an pesantren.', isDark),
+                      // 2. Pondok
+                      _buildStructureList('pondok', 'Pondok Pesantren Al-Hamid', 'Dewan Penyantun, Pengurus Putra, Putri & Jam\'iyyah Santri.', isDark),
+                      // 3. Sambangan
+                      _buildStructureList('sambangan', 'Panitia Sambangan Santri', 'Kepanitiaan acara kunjungan rutin wali santri bulanan.', isDark),
+                      // 4. Haflah
+                      _buildStructureList('haflah', 'Panitia Haflah Akhirussanah', 'Kepanitiaan wisuda santri dan pengajian akbar tahunan.', isDark),
+                      // 5. PSB
+                      _buildStructureList('psb', 'Panitia Penerimaan Santri Baru (PSB)', 'Kepanitiaan pendaftaran, seleksi berkas & tes santri baru.', isDark),
+                    ],
+                  ),
           ),
         ],
       ),
@@ -350,32 +219,29 @@ class _StrukturLembagaScreenState extends State<StrukturLembagaScreen>
         ),
       ),
       child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Container(
-            padding: const EdgeInsets.all(6),
-            decoration: BoxDecoration(
-              color: const Color(0xFF3B82F6).withOpacity(0.12),
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: const Icon(Icons.calendar_month_rounded, size: 16, color: Color(0xFF3B82F6)),
+          Row(
+            children: [
+              Icon(Icons.calendar_today_rounded, size: 14, color: context.subTitleColor),
+              const SizedBox(width: 8),
+              Text(
+                "Tahun Ajaran:",
+                style: GoogleFonts.outfit(
+                  color: context.subTitleColor,
+                  fontSize: 12,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ],
           ),
-          const SizedBox(width: 10),
-          Text(
-            "Tahun Ajaran:",
-            style: GoogleFonts.outfit(
-              fontSize: 13,
-              fontWeight: FontWeight.w600,
-              color: context.titleColor,
-            ),
-          ),
-          const Spacer(),
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 2),
             decoration: BoxDecoration(
-              color: isDark ? const Color(0xFF0F172A) : Colors.white,
-              borderRadius: BorderRadius.circular(10),
+              color: isDark ? const Color(0xFF1E293B) : Colors.white,
+              borderRadius: BorderRadius.circular(8),
               border: Border.all(
-                color: isDark ? Colors.white12 : Colors.grey.shade300,
+                color: isDark ? Colors.white.withOpacity(0.08) : Colors.black.withOpacity(0.08),
               ),
             ),
             child: DropdownButtonHideUnderline(
@@ -418,15 +284,48 @@ class _StrukturLembagaScreenState extends State<StrukturLembagaScreen>
   }
 
   Widget _buildStructureList(String key, String title, String subtitle, bool isDark) {
-    final list = _liveApiData[key] ?? _structuresData[key] ?? [];
+    final rawList = _liveApiData[key] ?? [];
+
+    // Extract categories
+    final categories = <String>{};
+    for (final item in rawList) {
+      final kat = item['kategori']?.toString() ?? '';
+      if (kat.isNotEmpty) categories.add(kat);
+    }
+
+    // Filter items
+    final filteredList = rawList.where((item) {
+      if (_selectedPondokCategory != 'ALL' && item['kategori'] != _selectedPondokCategory) {
+        return false;
+      }
+      if (_searchQuery.trim().isNotEmpty) {
+        final q = _searchQuery.toLowerCase();
+        final nama = (item['nama'] ?? '').toString().toLowerCase();
+        final jabatan = (item['jabatan'] ?? '').toString().toLowerCase();
+        final alamat = (item['alamat'] ?? '').toString().toLowerCase();
+        final bidang = (item['bidang'] ?? '').toString().toLowerCase();
+        final kategori = (item['kategori'] ?? '').toString().toLowerCase();
+        return nama.contains(q) || jabatan.contains(q) || alamat.contains(q) || bidang.contains(q) || kategori.contains(q);
+      }
+      return true;
+    }).toList();
+
+    // Group filtered items by kategori if categories exist
+    final Map<String, List<Map<String, dynamic>>> grouped = {};
+    if (categories.isNotEmpty && _selectedPondokCategory == 'ALL') {
+      for (final item in filteredList) {
+        final kat = item['kategori']?.toString() ?? 'Lainnya';
+        grouped.putIfAbsent(kat, () => []).add(item);
+      }
+    }
 
     return SingleChildScrollView(
       physics: const BouncingScrollPhysics(),
-      padding: const EdgeInsets.all(20),
+      padding: const EdgeInsets.all(16),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Header info
+          // Header info banner
           Container(
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
@@ -435,6 +334,13 @@ class _StrukturLembagaScreenState extends State<StrukturLembagaScreen>
               border: Border.all(
                 color: const Color(0xFF3B82F6).withOpacity(0.25),
               ),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(isDark ? 0.2 : 0.03),
+                  blurRadius: 10,
+                  offset: const Offset(0, 4),
+                )
+              ],
             ),
             child: Row(
               children: [
@@ -473,74 +379,277 @@ class _StrukturLembagaScreenState extends State<StrukturLembagaScreen>
               ],
             ),
           ),
-          const SizedBox(height: 20),
+          const SizedBox(height: 14),
 
-          Text(
-            "SUSUNAN STRUKTUR PENGURUS",
-            style: GoogleFonts.outfit(
-              color: context.subTitleColor,
-              fontSize: 11,
-              fontWeight: FontWeight.bold,
-              letterSpacing: 1.2,
+          // Search bar
+          Container(
+            decoration: BoxDecoration(
+              color: isDark ? const Color(0xFF131C2E) : Colors.white,
+              borderRadius: BorderRadius.circular(14),
+              border: Border.all(
+                color: isDark ? Colors.white.withOpacity(0.08) : Colors.black.withOpacity(0.08),
+              ),
             ),
+            child: TextField(
+              controller: _searchController,
+              onChanged: (val) => setState(() => _searchQuery = val),
+              style: GoogleFonts.outfit(color: context.titleColor, fontSize: 13),
+              decoration: InputDecoration(
+                hintText: "Cari nama pengurus, jabatan, daerah asal...",
+                hintStyle: GoogleFonts.outfit(color: context.subTitleColor, fontSize: 12),
+                prefixIcon: Icon(Icons.search_rounded, color: context.subTitleColor, size: 20),
+                suffixIcon: _searchQuery.isNotEmpty
+                    ? IconButton(
+                        icon: const Icon(Icons.close_rounded, size: 16),
+                        onPressed: () {
+                          _searchController.clear();
+                          setState(() => _searchQuery = '');
+                        },
+                      )
+                    : null,
+                border: InputBorder.none,
+                contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+              ),
+            ),
+          ),
+
+          // Category Pills Filter (if categories exist)
+          if (categories.isNotEmpty) ...[
+            const SizedBox(height: 10),
+            SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              physics: const BouncingScrollPhysics(),
+              child: Row(
+                children: [
+                  _buildCategoryChip("Semua (${rawList.length})", 'ALL', isDark),
+                  ...categories.map((cat) {
+                    final count = rawList.where((i) => i['kategori'] == cat).length;
+                    return _buildCategoryChip("$cat ($count)", cat, isDark);
+                  }),
+                ],
+              ),
+            ),
+          ],
+
+          const SizedBox(height: 18),
+
+          // Header List Title
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                "SUSUNAN STRUKTUR PENGURUS",
+                style: GoogleFonts.outfit(
+                  color: context.subTitleColor,
+                  fontSize: 11,
+                  fontWeight: FontWeight.bold,
+                  letterSpacing: 1.2,
+                ),
+              ),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF3B82F6).withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Text(
+                  "${filteredList.length} Personel",
+                  style: GoogleFonts.outfit(
+                    color: const Color(0xFF3B82F6),
+                    fontSize: 10,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+            ],
           ),
           const SizedBox(height: 12),
 
-          ...list.map((item) => _buildPersonCard(item, isDark)),
+          if (filteredList.isEmpty)
+            Container(
+              padding: const EdgeInsets.all(32),
+              alignment: Alignment.center,
+              child: Column(
+                children: [
+                  Icon(Icons.search_off_rounded, size: 40, color: context.subTitleColor.withOpacity(0.5)),
+                  const SizedBox(height: 10),
+                  Text(
+                    "Tidak ada data pengurus yang cocok.",
+                    style: GoogleFonts.outfit(color: context.subTitleColor, fontSize: 13),
+                  ),
+                ],
+              ),
+            )
+          else if (grouped.isNotEmpty)
+            ...grouped.entries.map((entry) {
+              return Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Container(
+                    margin: const EdgeInsets.only(top: 10, bottom: 8),
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    decoration: BoxDecoration(
+                      color: isDark ? const Color(0xFF1E293B) : const Color(0xFFEFF6FF),
+                      borderRadius: BorderRadius.circular(10),
+                      border: Border.all(
+                        color: const Color(0xFF3B82F6).withOpacity(0.15),
+                      ),
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Row(
+                          children: [
+                            Container(
+                              width: 4,
+                              height: 14,
+                              decoration: BoxDecoration(
+                                color: const Color(0xFF3B82F6),
+                                borderRadius: BorderRadius.circular(2),
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            Text(
+                              entry.key,
+                              style: GoogleFonts.outfit(
+                                color: isDark ? Colors.white : const Color(0xFF1E3A8A),
+                                fontSize: 12,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ],
+                        ),
+                        Text(
+                          "${entry.value.length} Personel",
+                          style: GoogleFonts.outfit(
+                            color: const Color(0xFF3B82F6),
+                            fontSize: 10,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  ...entry.value.map((item) => _buildPersonCard(item, isDark)),
+                ],
+              );
+            })
+          else
+            ...filteredList.map((item) => _buildPersonCard(item, isDark)),
         ],
+      ),
+    );
+  }
+
+  Widget _buildCategoryChip(String label, String value, bool isDark) {
+    final isSelected = _selectedPondokCategory == value;
+    return GestureDetector(
+      onTap: () => setState(() => _selectedPondokCategory = value),
+      child: Container(
+        margin: const EdgeInsets.only(right: 8),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+        decoration: BoxDecoration(
+          color: isSelected
+              ? const Color(0xFF3B82F6)
+              : (isDark ? const Color(0xFF1E293B) : const Color(0xFFF1F5F9)),
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(
+            color: isSelected
+                ? const Color(0xFF3B82F6)
+                : (isDark ? Colors.white.withOpacity(0.08) : Colors.black.withOpacity(0.08)),
+          ),
+        ),
+        child: Text(
+          label,
+          style: GoogleFonts.outfit(
+            color: isSelected
+                ? Colors.white
+                : (isDark ? Colors.white70 : const Color(0xFF475569)),
+            fontSize: 11,
+            fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
+          ),
+        ),
       ),
     );
   }
 
   Widget _buildPersonCard(Map<String, dynamic> item, bool isDark) {
     final bool isHeader = item['isHeader'] == true;
+    final String nama = item['nama']?.toString() ?? '-';
+    final String jabatan = item['jabatan']?.toString() ?? '-';
+    final String alamat = item['alamat']?.toString() ?? '';
+    final String bidang = item['bidang']?.toString() ?? '-';
+    final String kontak = item['kontak']?.toString() ?? '-';
+    final String? fotoUrl = item['foto_url']?.toString();
+    final bool hasValidContact = kontak != '-' && kontak.trim().isNotEmpty;
+    final bool isKoordinator = bidang.toLowerCase().contains('koordinator');
 
     return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      padding: const EdgeInsets.all(16),
+      margin: const EdgeInsets.only(bottom: 10),
+      padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
         color: isDark ? const Color(0xFF131C2E) : Colors.white,
-        borderRadius: BorderRadius.circular(18),
+        borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          color: isHeader
-              ? const Color(0xFF3B82F6).withOpacity(0.4)
-              : (isDark ? Colors.white.withOpacity(0.06) : Colors.black.withOpacity(0.06)),
-          width: isHeader ? 1.5 : 1.0,
+          color: isKoordinator
+              ? const Color(0xFFF59E0B).withOpacity(0.4)
+              : (isHeader
+                  ? const Color(0xFF3B82F6).withOpacity(0.4)
+                  : (isDark ? Colors.white.withOpacity(0.06) : Colors.black.withOpacity(0.06))),
+          width: (isHeader || isKoordinator) ? 1.4 : 1.0,
         ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(isDark ? 0.2 : 0.02),
+            blurRadius: 6,
+            offset: const Offset(0, 2),
+          )
+        ],
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          CircleAvatar(
-            radius: 22,
-            backgroundColor: isHeader
-                ? const Color(0xFF3B82F6).withOpacity(0.18)
-                : const Color(0xFF10B981).withOpacity(0.12),
-            child: Icon(
-              isHeader ? Icons.shield_rounded : Icons.person_rounded,
-              color: isHeader ? const Color(0xFF3B82F6) : const Color(0xFF10B981),
-              size: 24,
-            ),
-          ),
-          const SizedBox(width: 14),
+          // Avatar
+          if (fotoUrl != null && fotoUrl.isNotEmpty)
+            ClipRRect(
+              borderRadius: BorderRadius.circular(12),
+              child: Image.network(
+                fotoUrl,
+                width: 44,
+                height: 44,
+                fit: BoxFit.cover,
+                errorBuilder: (_, __, ___) => _buildFallbackAvatar(nama, isHeader, isKoordinator),
+              ),
+            )
+          else
+            _buildFallbackAvatar(nama, isHeader, isKoordinator),
+
+          const SizedBox(width: 12),
+
+          // Main Info
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
+                // Role Badge & Status
                 Row(
                   children: [
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2.5),
                       decoration: BoxDecoration(
-                        color: isHeader
-                            ? const Color(0xFF3B82F6).withOpacity(0.15)
-                            : (isDark ? Colors.white10 : Colors.black.withOpacity(0.05)),
+                        color: isKoordinator
+                            ? const Color(0xFFF59E0B).withOpacity(0.15)
+                            : (isHeader
+                                ? const Color(0xFF3B82F6).withOpacity(0.15)
+                                : const Color(0xFF6366F1).withOpacity(0.1)),
                         borderRadius: BorderRadius.circular(6),
                       ),
                       child: Text(
-                        item['status'] as String,
+                        jabatan,
                         style: GoogleFonts.outfit(
-                          color: isHeader ? const Color(0xFF3B82F6) : context.subTitleColor,
+                          color: isKoordinator
+                              ? const Color(0xFFD97706)
+                              : (isHeader ? const Color(0xFF2563EB) : const Color(0xFF4F46E5)),
                           fontSize: 10,
                           fontWeight: FontWeight.bold,
                         ),
@@ -548,52 +657,117 @@ class _StrukturLembagaScreenState extends State<StrukturLembagaScreen>
                     ),
                   ],
                 ),
-                const SizedBox(height: 6),
+                const SizedBox(height: 5),
+
+                // Person Name
                 Text(
-                  item['jabatan'] as String,
+                  nama,
                   style: GoogleFonts.outfit(
                     color: context.titleColor,
                     fontSize: 14,
                     fontWeight: FontWeight.bold,
                   ),
                 ),
-                const SizedBox(height: 2),
-                Text(
-                  item['nama'] as String,
-                  style: GoogleFonts.outfit(
-                    color: isHeader
-                        ? const Color(0xFF3B82F6)
-                        : (isDark ? const Color(0xFFA5B4FC) : const Color(0xFF4338CA)),
-                    fontSize: 13,
-                    fontWeight: FontWeight.w600,
+
+                // Location Badge
+                if (alamat.isNotEmpty && alamat != '-') ...[
+                  const SizedBox(height: 3),
+                  Row(
+                    children: [
+                      const Icon(Icons.location_on_rounded, size: 12, color: Color(0xFFEC4899)),
+                      const SizedBox(width: 3),
+                      Text(
+                        alamat,
+                        style: GoogleFonts.outfit(
+                          color: isDark ? const Color(0xFFF472B6) : const Color(0xFFDB2777),
+                          fontSize: 11,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ],
                   ),
-                ),
-                const SizedBox(height: 6),
-                Text(
-                  "Tugas: ${item['bidang']}",
-                  style: GoogleFonts.outfit(
-                    color: context.subTitleColor,
-                    fontSize: 11,
+                ],
+
+                // Role / Bidang / Keterangan
+                if (bidang.isNotEmpty && bidang != '-') ...[
+                  const SizedBox(height: 4),
+                  Text(
+                    bidang,
+                    style: GoogleFonts.outfit(
+                      color: context.subTitleColor,
+                      fontSize: 11,
+                      fontStyle: FontStyle.italic,
+                    ),
                   ),
-                ),
-                const SizedBox(height: 4),
-                Row(
-                  children: [
-                    Icon(Icons.phone_in_talk_rounded, size: 12, color: context.subTitleColor),
-                    const SizedBox(width: 4),
-                    Text(
-                      item['kontak'] as String,
-                      style: GoogleFonts.outfit(
-                        color: context.subTitleColor,
-                        fontSize: 11,
+                ],
+
+                // Contact if available
+                if (hasValidContact) ...[
+                  const SizedBox(height: 6),
+                  GestureDetector(
+                    onTap: () => _launchWhatsApp(kontak),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF10B981).withOpacity(0.12),
+                        borderRadius: BorderRadius.circular(6),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const Icon(Icons.phone_in_talk_rounded, size: 11, color: Color(0xFF10B981)),
+                          const SizedBox(width: 4),
+                          Text(
+                            "Hubungi: $kontak",
+                            style: GoogleFonts.outfit(
+                              color: const Color(0xFF059669),
+                              fontSize: 10,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ],
                       ),
                     ),
-                  ],
-                ),
+                  ),
+                ],
               ],
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildFallbackAvatar(String name, bool isHeader, bool isKoordinator) {
+    final clean = name.replaceAll(RegExp(r'^(Bpk\.|Ibu\.|Sdr\.|Sdri\.|Kyai|Umi|Ust\.|Usth\.)\s+', caseSensitive: false), '').trim();
+    final initial = clean.isNotEmpty ? clean.substring(0, clean.length >= 2 ? 2 : 1).toUpperCase() : '?';
+
+    Color bg = const Color(0xFF3B82F6).withOpacity(0.15);
+    Color fg = const Color(0xFF2563EB);
+
+    if (isKoordinator) {
+      bg = const Color(0xFFF59E0B).withOpacity(0.18);
+      fg = const Color(0xFFD97706);
+    } else if (isHeader) {
+      bg = const Color(0xFF10B981).withOpacity(0.18);
+      fg = const Color(0xFF059669);
+    }
+
+    return Container(
+      width: 44,
+      height: 44,
+      decoration: BoxDecoration(
+        color: bg,
+        borderRadius: BorderRadius.circular(12),
+      ),
+      alignment: Alignment.center,
+      child: Text(
+        initial,
+        style: GoogleFonts.outfit(
+          color: fg,
+          fontSize: 14,
+          fontWeight: FontWeight.w800,
+        ),
       ),
     );
   }

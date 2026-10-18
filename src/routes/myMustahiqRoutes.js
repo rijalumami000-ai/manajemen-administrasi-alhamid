@@ -3319,7 +3319,7 @@ function registerMyMustahiqRoutes(app) {
   // STRUKTUR ORGANISASI (all types for app)
   // ═══════════════════════════════════════════════════════════════
   router.get('/struktur', asyncHandler(async (req, res) => {
-    let { tipe, tahun_ajaran_id } = req.query;
+    let { tipe, tahun_ajaran_id, kategori } = req.query;
     tipe = tipe || 'madrasah_diniyah';
 
     // Map common aliases from app tabs
@@ -3329,7 +3329,7 @@ function registerMyMustahiqRoutes(app) {
 
     let query = `
       SELECT 
-        s.id, s.tipe, s.jabatan, s.guru_id, s.nama_custom, s.keterangan, s.no_urut, s.tahun_ajaran_id,
+        s.id, s.tipe, s.kategori, s.jabatan, s.guru_id, s.nama_custom, s.alamat, s.keterangan, s.no_urut, s.tahun_ajaran_id,
         g.nama AS guru_nama, g.no_hp AS guru_no_hp, g.foto_url AS guru_foto_url
       FROM struktur_organisasi s
       LEFT JOIN guru g ON s.guru_id = g.id
@@ -3337,11 +3337,16 @@ function registerMyMustahiqRoutes(app) {
     const params = [];
     let paramIdx = 1;
 
-    if (tipe === 'pondok') {
-      query += ` WHERE s.tipe IN ('pondok_putra', 'pondok_putri')`;
+    if (tipe === 'pondok' || tipe === 'pondok_pesantren') {
+      query += ` WHERE s.tipe IN ('dewan_penyantun', 'pondok_putra', 'pondok_putri', 'jamiyyah', 'pondok_pesantren')`;
     } else {
       query += ` WHERE s.tipe = $${paramIdx++}`;
       params.push(tipe);
+    }
+
+    if (kategori) {
+      query += ` AND s.kategori = $${paramIdx++}`;
+      params.push(kategori);
     }
 
     if (tahun_ajaran_id) {

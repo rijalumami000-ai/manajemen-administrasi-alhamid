@@ -7,8 +7,11 @@ export const strukturService = {
   },
 
   // Fetch structure cards by type
-  async fetchStruktur(tipe, tahunAjaranId) {
-    const qp = tahunAjaranId ? `?tahun_ajaran_id=${tahunAjaranId}` : '';
+  async fetchStruktur(tipe, tahunAjaranId, kategori) {
+    const params = new URLSearchParams();
+    if (tahunAjaranId) params.append('tahun_ajaran_id', tahunAjaranId);
+    if (kategori) params.append('kategori', kategori);
+    const qp = params.toString() ? `?${params.toString()}` : '';
     return apiGet(`/struktur/${tipe}${qp}`, { noCache: true });
   },
 

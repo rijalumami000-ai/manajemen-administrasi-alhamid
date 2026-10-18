@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { 
   User, 
   Phone, 
@@ -13,7 +13,14 @@ import {
   BookOpen,
   Calendar,
   Sparkles,
-  UserCheck
+  UserCheck,
+  Search,
+  MapPin,
+  LayoutGrid,
+  Table as TableIcon,
+  Crown,
+  Award,
+  Users
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { strukturService } from '../services/strukturService';
@@ -25,20 +32,26 @@ import { PageHeader, LoadingState, ErrorState, useToast } from '../components/co
 import './StrukturOrganisasi.scss';
 
 const TABS = [
-  { key: 'pondok_putra', label: 'Pondok Putra', icon: Building, color: 'accent-blue' },
-  { key: 'pondok_putri', label: 'Pondok Putri', icon: Building, color: 'accent-purple' },
-  { key: 'pmq', label: 'Struktur PMQ', icon: BookOpen, color: 'accent-emerald' },
-  { key: 'panitia_sambangan', label: 'Panitia Sambangan', icon: Calendar, color: 'accent-amber' },
-  { key: 'panitia_haflah', label: 'Panitia Haflah', icon: Sparkles, color: 'accent-cyan' },
-  { key: 'panitia_psb', label: 'Panitia PSB', icon: UserCheck, color: 'accent-slate' },
+  { key: 'dewan_penyantun', label: 'Dewan Penyantun', icon: Crown, color: 'accent-amber', desc: 'Pengasuh Ndalem, Dewan Penasihat & Pembina Asrama' },
+  { key: 'pondok_putra', label: 'Pengurus Putra', icon: Building, color: 'accent-blue', desc: 'Dewan Harian, Dewan Pleno, PJ Kamar & Ketua Kamar Putra' },
+  { key: 'pondok_putri', label: 'Pengurus Putri', icon: Building, color: 'accent-purple', desc: 'Dewan Harian, Dewan Pleno, PJ Komplek & Ketua Kamar Putri' },
+  { key: 'jamiyyah', label: 'Jam\'iyyah Santri', icon: Users, color: 'accent-emerald', desc: 'Jam\'iyyah Pusat, Jam\'iyyah Putra & Jam\'iyyah Putri' },
+  { key: 'pmq', label: 'Struktur PMQ', icon: BookOpen, color: 'accent-cyan', desc: 'Pendidikan Murottilil Qur\'an' },
+  { key: 'panitia_sambangan', label: 'Panitia Sambangan', icon: Calendar, color: 'accent-amber', desc: 'Kepanitiaan Sambangan & Kunjungan Santri' },
+  { key: 'panitia_haflah', label: 'Panitia Haflah', icon: Sparkles, color: 'accent-rose', desc: 'Kepanitiaan Haflah Akhirussanah' },
+  { key: 'panitia_psb', label: 'Panitia PSB', icon: UserCheck, color: 'accent-slate', desc: 'Penerimaan Santri Baru' },
 ];
 
 export function StrukturKepesantrenan() {
   const { isAdmin } = useAuth();
   const toast = useToast();
   
-  // Active Tab
-  const [activeTab, setActiveTab] = useState('pondok_putra');
+  // Active Tab & View Mode
+  const [activeTab, setActiveTab] = useState('dewan_penyantun');
+  const [viewMode, setViewMode] = useState('grid'); // 'grid' | 'table'
+  const [searchQuery, setSearchQuery] = useState('');
+  const [selectedKategori, setSelectedKategori] = useState('ALL');
+  
   const [loading, setLoading] = useState(false);
   const [strukturData, setStrukturData] = useState([]);
   const [guruList, setGuruList] = useState([]);
@@ -52,15 +65,19 @@ export function StrukturKepesantrenan() {
   const [selectedNode, setSelectedNode] = useState(null);
   const [selectedGuruId, setSelectedGuruId] = useState(null);
   const [customName, setCustomName] = useState('');
+  const [alamat, setAlamat] = useState('');
+  const [kategori, setKategori] = useState('');
   const [keterangan, setKeterangan] = useState('');
   const [saveLoading, setSaveLoading] = useState(false);
   const [formErrors, setFormErrors] = useState({});
 
-  // Add Dynamic Position Modal
+  // Add Position Modal
   const [addPosModalOpen, setAddPosModalOpen] = useState(false);
   const [newJabatan, setNewJabatan] = useState('');
+  const [newKategori, setNewKategori] = useState('');
   const [newNama, setNewNama] = useState('');
   const [newGuruId, setNewGuruId] = useState(null);
+  const [newAlamat, setNewAlamat] = useState('');
   const [newKeterangan, setNewKeterangan] = useState('');
   const [addPosLoading, setAddPosLoading] = useState(false);
 
@@ -91,7 +108,7 @@ export function StrukturKepesantrenan() {
     setLoading(true);
     try {
       const data = await strukturService.fetchStruktur(tipe, tahunId);
-      setStrukturData(data);
+      setStrukturData(data || []);
     } catch (error) {
       console.error(error);
       toast.error('Gagal memuat data struktur: ' + error.message);
@@ -103,7 +120,7 @@ export function StrukturKepesantrenan() {
   const loadGuru = async () => {
     try {
       const data = await guruService.fetchGuru();
-      setGuruList(data);
+      setGuruList(data || []);
     } catch (error) {
       console.error(error);
     }
@@ -117,13 +134,54 @@ export function StrukturKepesantrenan() {
   useEffect(() => {
     if (selectedTahunAjaran !== null) {
       loadStruktur(activeTab, selectedTahunAjaran);
+      setSelectedKategori('ALL');
     }
   }, [activeTab, selectedTahunAjaran]);
+
+  // Extract distinct categories in active dataset
+  const categoriesInTab = useMemo(() => {
+    const set = new Set();
+    strukturData.forEach(item => {
+      if (item.kategori) set.add(item.kategori);
+    });
+    return Array.from(set);
+  }, [strukturData]);
+
+  // Filtered dataset based on search and category
+  const filteredData = useMemo(() => {
+    return strukturData.filter(item => {
+      const matchKategori = selectedKategori === 'ALL' || item.kategori === selectedKategori;
+      if (!matchKategori) return false;
+
+      if (!searchQuery.trim()) return true;
+      const q = searchQuery.toLowerCase();
+      const nama = (item.guru_nama || item.nama_custom || '').toLowerCase();
+      const jabatan = (item.jabatan || '').toLowerCase();
+      const alm = (item.alamat || '').toLowerCase();
+      const ket = (item.keterangan || '').toLowerCase();
+      const kat = (item.kategori || '').toLowerCase();
+
+      return nama.includes(q) || jabatan.includes(q) || alm.includes(q) || ket.includes(q) || kat.includes(q);
+    });
+  }, [strukturData, selectedKategori, searchQuery]);
+
+  // Group filtered items by category
+  const groupedData = useMemo(() => {
+    const groups = {};
+    filteredData.forEach(item => {
+      const groupKey = item.kategori || 'Kepengurusan Umum';
+      if (!groups[groupKey]) groups[groupKey] = [];
+      groups[groupKey].push(item);
+    });
+    return groups;
+  }, [filteredData]);
 
   const handleEditClick = (node) => {
     setSelectedNode(node);
     setSelectedGuruId(node.guru_id ? String(node.guru_id) : null);
     setCustomName(node.nama_custom || '');
+    setAlamat(node.alamat || '');
+    setKategori(node.kategori || '');
     setKeterangan(node.keterangan || '');
     setFormErrors({});
     setEditModalOpen(true);
@@ -148,6 +206,8 @@ export function StrukturKepesantrenan() {
           id: selectedNode.id,
           guru_id: selectedGuruId,
           nama_custom: customName,
+          alamat: alamat,
+          kategori: kategori,
           keterangan: keterangan,
           tahun_ajaran_id: selectedTahunAjaran
         });
@@ -155,9 +215,11 @@ export function StrukturKepesantrenan() {
       } else {
         await strukturService.addStruktur({
           tipe: selectedNode.tipe || activeTab,
+          kategori: kategori || selectedNode.kategori,
           jabatan: selectedNode.jabatan,
           guru_id: selectedGuruId,
           nama_custom: customName,
+          alamat: alamat,
           keterangan: keterangan,
           no_urut: selectedNode.no_urut || 99,
           tahun_ajaran_id: selectedTahunAjaran
@@ -190,9 +252,11 @@ export function StrukturKepesantrenan() {
     try {
       await strukturService.addStruktur({
         tipe: activeTab,
+        kategori: newKategori.trim() || null,
         jabatan: newJabatan.trim(),
         guru_id: newGuruId,
         nama_custom: newNama.trim() || null,
+        alamat: newAlamat.trim() || null,
         keterangan: newKeterangan.trim() || null,
         no_urut: strukturData.length + 1,
         tahun_ajaran_id: selectedTahunAjaran
@@ -200,7 +264,9 @@ export function StrukturKepesantrenan() {
       toast.success(`Berhasil menambahkan posisi ${newJabatan}`);
       setAddPosModalOpen(false);
       setNewJabatan('');
+      setNewKategori('');
       setNewNama('');
+      setNewAlamat('');
       setNewGuruId(null);
       setNewKeterangan('');
       loadStruktur(activeTab, selectedTahunAjaran);
@@ -239,7 +305,7 @@ export function StrukturKepesantrenan() {
 
   const getAvatarColor = (name) => {
     if (!name || name === 'Belum diisi') return '#cbd5e1';
-    const colors = ['#3b82f6', '#8b5cf6', '#ec4899', '#f59e0b', '#10b981', '#06b6d4'];
+    const colors = ['#3b82f6', '#8b5cf6', '#ec4899', '#f59e0b', '#10b981', '#06b6d4', '#6366f1'];
     return colors[name.length % colors.length];
   };
 
@@ -249,101 +315,192 @@ export function StrukturKepesantrenan() {
     return 'Belum diisi';
   };
 
-  const renderCard = (node, accentClass, isDeletable = false) => {
-    if (!node.id) return <div className="org-card-placeholder">Memuat data...</div>;
-
-    const isPlaceholderCard = String(node.id).startsWith('placeholder-');
-    const displayName = getDisplayName(node);
-    const hasPerson = (node.guru_id || node.nama_custom) && !isPlaceholderCard;
-    const initial = hasPerson ? displayName.slice(0, 2).toUpperCase() : '?';
-
-    const handleCardEditClick = () => {
-      if (isPlaceholderCard) {
-        setSelectedNode({
-          id: null,
-          tipe: node.tipe,
-          jabatan: node.jabatan,
-          no_urut: node.no_urut
-        });
-        setSelectedGuruId(null);
-        setCustomName('');
-        setKeterangan('');
-        setFormErrors({});
-        setEditModalOpen(true);
-      } else {
-        handleEditClick(node);
-      }
-    };
-
-    return (
-      <div className={`org-node-card ${accentClass} ${!hasPerson ? 'is-empty' : ''}`}>
-        <div className="node-badge">{node.jabatan}</div>
-        
-        <div className="node-content">
-          {node.guru_foto_url && !isPlaceholderCard ? (
-            <img 
-              src={node.guru_foto_url} 
-              alt={displayName} 
-              className="node-avatar-image" 
-            />
-          ) : (
-            <div 
-              className="node-avatar" 
-              style={{ backgroundColor: getAvatarColor(displayName) }}
-            >
-              {initial}
-            </div>
-          )}
-          
-          <div className="node-info">
-            <h4 className="person-name" title={displayName}>{displayName}</h4>
-            {node.guru_no_hp && !isPlaceholderCard && (
-              <span className="person-phone">
-                <Phone size={11} style={{ marginRight: '4px' }} />
-                {node.guru_no_hp}
-              </span>
-            )}
-            {node.keterangan && !isPlaceholderCard && (
-              <span className="person-note" title={node.keterangan}>
-                <Info size={11} style={{ marginRight: '4px' }} />
-                {node.keterangan}
-              </span>
-            )}
-          </div>
-
-          {isAdmin() && (
-            <div className="card-actions-row">
-              <button 
-                type="button" 
-                onClick={handleCardEditClick}
-                className="action-icon-btn edit-btn node-edit-btn"
-                title="Tugaskan Jabatan"
-              >
-                <Plus size={14} />
-              </button>
-              {isDeletable && !isPlaceholderCard && (
-                <button 
-                  type="button"
-                  onClick={() => handleDeleteMemberClick(node.id, node.jabatan, displayName)}
-                  className="action-icon-btn delete-btn node-delete-btn"
-                  title="Hapus Personel"
-                >
-                  <Trash2 size={14} />
-                </button>
-              )}
-            </div>
-          )}
-        </div>
-      </div>
-    );
-  };
-
   const guruOptions = guruList.map(g => ({
     value: String(g.id),
     label: `${g.nama} (${g.nip || 'Guru/Ustadz'})`
   }));
 
-  // Render tree structure for each kepesantrenan tab
+  // Render Card in Grid
+  const renderCard = (node, accentColor = 'blue') => {
+    const displayName = getDisplayName(node);
+    const hasPerson = node.guru_id || node.nama_custom;
+    const initial = hasPerson ? displayName.replace(/^(Bpk\.|Ibu\.|Sdr\.|Sdri\.|Kyai|Umi|Ust\.|Usth\.)\s+/i, '').slice(0, 2).toUpperCase() : '?';
+
+    const isKoordinator = node.keterangan && node.keterangan.toLowerCase().includes('koordinator');
+    const isPimpinan = node.no_urut <= 2;
+
+    return (
+      <div 
+        key={node.id} 
+        className={`org-node-card-modern ${isKoordinator || isPimpinan ? 'is-lead' : ''}`}
+        style={{
+          background: 'rgba(255, 255, 255, 0.85)',
+          backdropFilter: 'blur(16px)',
+          WebkitBackdropFilter: 'blur(16px)',
+          borderRadius: '16px',
+          border: isKoordinator ? '1.5px solid rgba(245, 158, 11, 0.4)' : '1px solid rgba(226, 232, 240, 0.8)',
+          boxShadow: isKoordinator ? '0 10px 25px -5px rgba(245, 158, 11, 0.12)' : '0 4px 16px -2px rgba(0, 0, 0, 0.04)',
+          padding: '16px',
+          display: 'flex',
+          flexDirection: 'column',
+          justifyContent: 'space-between',
+          transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
+          position: 'relative'
+        }}
+      >
+        <div>
+          {/* Header Role Badge */}
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '8px', marginBottom: '12px' }}>
+            <span 
+              style={{
+                fontSize: '11px',
+                fontWeight: 700,
+                padding: '3px 9px',
+                borderRadius: '8px',
+                letterSpacing: '0.3px',
+                background: isKoordinator ? 'rgba(245, 158, 11, 0.15)' : 'rgba(59, 130, 246, 0.1)',
+                color: isKoordinator ? '#b45309' : '#1d4ed8',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '4px'
+              }}
+            >
+              {isKoordinator && <Award size={12} />}
+              {node.jabatan}
+            </span>
+
+            {isAdmin() && (
+              <div style={{ display: 'flex', gap: '4px' }}>
+                <button
+                  type="button"
+                  onClick={() => handleEditClick(node)}
+                  title="Edit Personel"
+                  style={{
+                    background: 'none',
+                    border: 'none',
+                    cursor: 'pointer',
+                    padding: '4px',
+                    borderRadius: '6px',
+                    color: '#64748b'
+                  }}
+                >
+                  <Plus size={14} />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleDeleteMemberClick(node.id, node.jabatan, displayName)}
+                  title="Hapus"
+                  style={{
+                    background: 'none',
+                    border: 'none',
+                    cursor: 'pointer',
+                    padding: '4px',
+                    borderRadius: '6px',
+                    color: '#ef4444'
+                  }}
+                >
+                  <Trash2 size={13} />
+                </button>
+              </div>
+            )}
+          </div>
+
+          {/* Person Content */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '10px' }}>
+            {node.guru_foto_url ? (
+              <img 
+                src={node.guru_foto_url} 
+                alt={displayName} 
+                style={{
+                  width: '44px',
+                  height: '44px',
+                  borderRadius: '12px',
+                  objectFit: 'cover',
+                  border: '2px solid rgba(255, 255, 255, 0.9)',
+                  boxShadow: '0 4px 10px rgba(0, 0, 0, 0.08)'
+                }}
+              />
+            ) : (
+              <div 
+                style={{
+                  width: '44px',
+                  height: '44px',
+                  borderRadius: '12px',
+                  backgroundColor: getAvatarColor(displayName),
+                  color: '#ffffff',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  fontSize: '15px',
+                  fontWeight: 800,
+                  boxShadow: '0 4px 10px rgba(0, 0, 0, 0.08)'
+                }}
+              >
+                {initial}
+              </div>
+            )}
+
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div 
+                style={{
+                  fontSize: '14px',
+                  fontWeight: 700,
+                  color: '#0f172a',
+                  whiteSpace: 'nowrap',
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis'
+                }}
+                title={displayName}
+              >
+                {displayName}
+              </div>
+
+              {node.alamat && node.alamat !== '-' && (
+                <div style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '11px', color: '#64748b', marginTop: '2px' }}>
+                  <MapPin size={11} style={{ color: '#ec4899', flexShrink: 0 }} />
+                  <span style={{ fontWeight: 600 }}>{node.alamat}</span>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+
+        {/* Footer Note or Phone */}
+        {(node.keterangan || node.guru_no_hp) && (
+          <div 
+            style={{
+              paddingTop: '8px',
+              borderTop: '1px solid rgba(226, 232, 240, 0.6)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              fontSize: '11px',
+              color: '#64748b',
+              marginTop: '4px'
+            }}
+          >
+            <span style={{ fontStyle: 'italic', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={node.keterangan}>
+              {node.keterangan || '-'}
+            </span>
+            {node.guru_no_hp && (
+              <a 
+                href={`https://wa.me/${node.guru_no_hp.replace(/\D/g, '')}`} 
+                target="_blank" 
+                rel="noreferrer"
+                style={{ display: 'inline-flex', alignItems: 'center', gap: '3px', color: '#10b981', fontWeight: 600, textDecoration: 'none', marginLeft: '6px' }}
+                title="Hubungi via WhatsApp"
+              >
+                <Phone size={11} />
+                <span>WA</span>
+              </a>
+            )}
+          </div>
+        )}
+      </div>
+    );
+  };
+
+  // Render Tab Content
   const renderTabContent = () => {
     if (!strukturData.length) {
       return (
@@ -363,68 +520,147 @@ export function StrukturKepesantrenan() {
       );
     }
 
-    // Top leadership node (no_urut 1)
-    const topNode = strukturData.find(n => n.no_urut === 1) || strukturData[0];
-    const secondaryNodes = strukturData.filter(n => n.no_urut >= 2 && n.no_urut <= 3);
-    const regularNodes = strukturData.filter(n => n.no_urut > 3);
+    if (viewMode === 'table') {
+      return (
+        <div style={{ overflowX: 'auto', background: 'rgba(255, 255, 255, 0.8)', borderRadius: '16px', border: '1px solid rgba(226, 232, 240, 0.8)', boxShadow: '0 4px 15px rgba(0, 0, 0, 0.03)' }}>
+          <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '13px' }}>
+            <thead>
+              <tr style={{ background: 'rgba(241, 245, 249, 0.8)', borderBottom: '1px solid #e2e8f0', color: '#334155' }}>
+                <th style={{ padding: '12px 16px', width: '60px' }}>No</th>
+                <th style={{ padding: '12px 16px' }}>Jabatan / Penugasan</th>
+                <th style={{ padding: '12px 16px' }}>Nama Personel</th>
+                <th style={{ padding: '12px 16px' }}>Asal Daerah</th>
+                <th style={{ padding: '12px 16px' }}>Keterangan / Peran</th>
+                {isAdmin() && <th style={{ padding: '12px 16px', textAlign: 'center', width: '90px' }}>Aksi</th>}
+              </tr>
+            </thead>
+            <tbody>
+              {filteredData.map((node, idx) => {
+                const displayName = getDisplayName(node);
+                return (
+                  <tr key={node.id} style={{ borderBottom: '1px solid #f1f5f9', transition: 'background 0.15s' }}>
+                    <td style={{ padding: '12px 16px', fontWeight: 600, color: '#94a3b8' }}>{idx + 1}</td>
+                    <td style={{ padding: '12px 16px', fontWeight: 700, color: '#0f172a' }}>
+                      <div style={{ display: 'flex', flexDirection: 'column' }}>
+                        <span>{node.jabatan}</span>
+                        {node.kategori && <span style={{ fontSize: '10px', color: '#6366f1', fontWeight: 600 }}>{node.kategori}</span>}
+                      </div>
+                    </td>
+                    <td style={{ padding: '12px 16px', fontWeight: 600, color: '#1e293b' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <div style={{ width: '28px', height: '28px', borderRadius: '8px', backgroundColor: getAvatarColor(displayName), color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '11px', fontWeight: 700 }}>
+                          {displayName.slice(0, 2).toUpperCase()}
+                        </div>
+                        <span>{displayName}</span>
+                      </div>
+                    </td>
+                    <td style={{ padding: '12px 16px', color: '#475569' }}>
+                      {node.alamat && node.alamat !== '-' ? (
+                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', background: '#fdf2f8', color: '#db2777', padding: '2px 8px', borderRadius: '6px', fontSize: '11px', fontWeight: 600 }}>
+                          <MapPin size={10} /> {node.alamat}
+                        </span>
+                      ) : '-'}
+                    </td>
+                    <td style={{ padding: '12px 16px', color: '#64748b', fontSize: '12px' }}>{node.keterangan || '-'}</td>
+                    {isAdmin() && (
+                      <td style={{ padding: '12px 16px', textAlign: 'center' }}>
+                        <div style={{ display: 'inline-flex', gap: '4px' }}>
+                          <button
+                            type="button"
+                            onClick={() => handleEditClick(node)}
+                            style={{ background: '#f1f5f9', border: 'none', borderRadius: '6px', padding: '6px', cursor: 'pointer', color: '#3b82f6' }}
+                            title="Edit"
+                          >
+                            <Plus size={13} />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleDeleteMemberClick(node.id, node.jabatan, displayName)}
+                            style={{ background: '#fef2f2', border: 'none', borderRadius: '6px', padding: '6px', cursor: 'pointer', color: '#ef4444' }}
+                            title="Hapus"
+                          >
+                            <Trash2 size={13} />
+                          </button>
+                        </div>
+                      </td>
+                    )}
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      );
+    }
+
+    // Grid View grouped by category
+    const groupKeys = Object.keys(groupedData);
 
     return (
-      <div className="org-tree-wrapper animate-fade-in">
-        {/* Level 1: Pimpinan Utama */}
-        {topNode && (
-          <div className="org-row level-1">
-            {renderCard(topNode, 'accent-amber')}
-          </div>
-        )}
-
-        {topNode && secondaryNodes.length > 0 && (
-          <div className="tree-connector-vertical"></div>
-        )}
-
-        {/* Level 2: Koordinator / Wakil / Sekretaris */}
-        {secondaryNodes.length > 0 && (
-          <div className={`org-row level-2 ${secondaryNodes.length === 2 ? 'split-2' : ''}`}>
-            {secondaryNodes.map(node => renderCard(node, 'accent-blue', true))}
-          </div>
-        )}
-
-        {secondaryNodes.length > 0 && regularNodes.length > 0 && (
-          <div className="tree-connector-vertical"></div>
-        )}
-
-        {/* Level 3: Divisi / Anggota / Pengurus */}
-        {regularNodes.length > 0 && (
-          <div className="org-row level-3 multiple-row">
-            <div className="multiple-header">
-              <span className="multiple-title">Jajaran Pengurus & Divisi</span>
-              {isAdmin() && (
-                <button 
-                  type="button"
-                  onClick={() => setAddPosModalOpen(true)}
-                  className="add-member-btn"
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '32px' }}>
+        {groupKeys.map(kategoriKey => {
+          const items = groupedData[kategoriKey];
+          return (
+            <div key={kategoriKey} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+              {/* Group Header Badge */}
+              <div 
+                style={{ 
+                  display: 'flex', 
+                  alignItems: 'center', 
+                  justifyContent: 'space-between',
+                  background: 'linear-gradient(135deg, rgba(248, 250, 252, 0.9) 0%, rgba(241, 245, 249, 0.8) 100%)',
+                  padding: '12px 18px',
+                  borderRadius: '14px',
+                  border: '1px solid rgba(226, 232, 240, 0.8)'
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                  <div style={{ width: '8px', height: '22px', borderRadius: '4px', background: 'linear-gradient(to bottom, #3b82f6, #8b5cf6)' }}></div>
+                  <h3 style={{ margin: 0, fontSize: '16px', fontWeight: 800, color: '#0f172a', letterSpacing: '-0.3px' }}>
+                    {kategoriKey}
+                  </h3>
+                </div>
+                <span 
+                  style={{ 
+                    fontSize: '11px', 
+                    fontWeight: 700, 
+                    padding: '4px 10px', 
+                    borderRadius: '20px', 
+                    background: '#e0e7ff', 
+                    color: '#4338ca' 
+                  }}
                 >
-                  <Plus size={14} />
-                  <span>Tambah Jabatan / Anggota</span>
-                </button>
-              )}
+                  {items.length} Personel
+                </span>
+              </div>
+
+              {/* Cards Grid: 3 columns on desktop, 2 on tablet, 1 on mobile */}
+              <div 
+                style={{ 
+                  display: 'grid', 
+                  gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', 
+                  gap: '16px' 
+                }}
+              >
+                {items.map(node => renderCard(node))}
+              </div>
             </div>
-            <div className="multiple-cards-container">
-              {regularNodes.map(node => renderCard(node, 'accent-emerald', true))}
-            </div>
-          </div>
-        )}
+          );
+        })}
       </div>
     );
   };
 
+  const activeTabMeta = TABS.find(t => t.key === activeTab);
+
   return (
     <div className="struktur-organisasi-page">
       <PageHeader
-        title="🏛️ Struktur Kepengurusan Pesantren & Umum"
-        subtitle="Kelola susunan pengurus umum: Pondok Pesantren, PMQ, Panitia Sambangan, Haflah, dan PSB"
+        title="🏛️ Struktur Kepengurusan Pondok Pesantren"
+        subtitle="Masa Khidmah 2026 - 2027 M. Pondok Pesantren Al-Hamid"
         extra={
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
-            <div style={{ minWidth: '220px' }}>
+            <div style={{ minWidth: '200px' }}>
               <CustomSelect
                 value={selectedTahunAjaran ? String(selectedTahunAjaran) : ''}
                 onChange={(val) => setSelectedTahunAjaran(val ? Number(val) : '')}
@@ -463,19 +699,41 @@ export function StrukturKepesantrenan() {
         }
       />
 
-      <div className="content-layout">
+      <div className="content-layout" style={{ padding: '24px' }}>
+        {/* Navigation Tabs */}
         <div className="custom-tabs-container">
-          <div className="custom-tabs-nav-row" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid rgba(226, 232, 240, 0.6)', paddingBottom: '0', marginBottom: '24px', overflowX: 'auto' }}>
-            <div className="custom-tabs-nav" style={{ display: 'flex', gap: '12px', borderBottom: 'none', marginBottom: 0, paddingBottom: 0, flexWrap: 'nowrap' }}>
+          <div 
+            className="custom-tabs-nav-row" 
+            style={{ 
+              display: 'flex', 
+              justifyContent: 'space-between', 
+              alignItems: 'center', 
+              borderBottom: '1px solid rgba(226, 232, 240, 0.8)', 
+              paddingBottom: '12px', 
+              marginBottom: '20px', 
+              overflowX: 'auto',
+              gap: '12px'
+            }}
+          >
+            <div className="custom-tabs-nav" style={{ display: 'flex', gap: '8px', borderBottom: 'none', marginBottom: 0, paddingBottom: 0, flexWrap: 'nowrap' }}>
               {TABS.map(tab => {
                 const Icon = tab.icon;
+                const isActive = activeTab === tab.key;
                 return (
                   <button 
                     key={tab.key}
                     type="button"
-                    className={`custom-tabs-tab ${activeTab === tab.key ? 'active' : ''}`}
+                    className={`custom-tabs-tab ${isActive ? 'active' : ''}`}
                     onClick={() => setActiveTab(tab.key)}
-                    style={{ whiteSpace: 'nowrap', display: 'inline-flex', alignItems: 'center', gap: '8px' }}
+                    style={{ 
+                      whiteSpace: 'nowrap', 
+                      display: 'inline-flex', 
+                      alignItems: 'center', 
+                      gap: '8px',
+                      padding: '8px 16px',
+                      borderRadius: '10px',
+                      fontWeight: isActive ? 700 : 500
+                    }}
                   >
                     <Icon size={15} />
                     <span>{tab.label}</span>
@@ -485,11 +743,139 @@ export function StrukturKepesantrenan() {
             </div>
           </div>
 
+          {/* Subheader Toolbar: Search, Category Filter & View Mode */}
+          <div 
+            style={{ 
+              display: 'flex', 
+              justifyContent: 'space-between', 
+              alignItems: 'center', 
+              flexWrap: 'wrap', 
+              gap: '12px', 
+              marginBottom: '24px',
+              background: 'rgba(248, 250, 252, 0.7)',
+              padding: '12px 16px',
+              borderRadius: '12px',
+              border: '1px solid rgba(226, 232, 240, 0.6)'
+            }}
+          >
+            {/* Live Search */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flex: '1 1 260px', position: 'relative' }}>
+              <Search size={15} style={{ position: 'absolute', left: '12px', color: '#94a3b8' }} />
+              <input 
+                type="text" 
+                placeholder="Cari nama pengurus, jabatan, daerah asal..." 
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                style={{
+                  width: '100%',
+                  height: '38px',
+                  paddingLeft: '36px',
+                  paddingRight: '12px',
+                  borderRadius: '10px',
+                  border: '1px solid #cbd5e1',
+                  background: '#ffffff',
+                  fontSize: '13px'
+                }}
+              />
+            </div>
+
+            {/* Category Pills Filter */}
+            {categoriesInTab.length > 0 && (
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', overflowX: 'auto', flexWrap: 'wrap' }}>
+                <button
+                  type="button"
+                  onClick={() => setSelectedKategori('ALL')}
+                  style={{
+                    padding: '5px 12px',
+                    borderRadius: '8px',
+                    border: 'none',
+                    cursor: 'pointer',
+                    fontSize: '12px',
+                    fontWeight: selectedKategori === 'ALL' ? 700 : 500,
+                    background: selectedKategori === 'ALL' ? '#3b82f6' : '#f1f5f9',
+                    color: selectedKategori === 'ALL' ? '#ffffff' : '#64748b'
+                  }}
+                >
+                  Semua ({strukturData.length})
+                </button>
+                {categoriesInTab.map(cat => (
+                  <button
+                    key={cat}
+                    type="button"
+                    onClick={() => setSelectedKategori(cat)}
+                    style={{
+                      padding: '5px 12px',
+                      borderRadius: '8px',
+                      border: 'none',
+                      cursor: 'pointer',
+                      fontSize: '12px',
+                      fontWeight: selectedKategori === cat ? 700 : 500,
+                      background: selectedKategori === cat ? '#3b82f6' : '#f1f5f9',
+                      color: selectedKategori === cat ? '#ffffff' : '#64748b',
+                      whiteSpace: 'nowrap'
+                    }}
+                  >
+                    {cat}
+                  </button>
+                ))}
+              </div>
+            )}
+
+            {/* View Mode Toggle */}
+            <div style={{ display: 'flex', background: '#e2e8f0', borderRadius: '8px', padding: '2px' }}>
+              <button
+                type="button"
+                onClick={() => setViewMode('grid')}
+                title="Tampilan Kartu"
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '4px',
+                  padding: '6px 12px',
+                  borderRadius: '6px',
+                  border: 'none',
+                  background: viewMode === 'grid' ? '#ffffff' : 'transparent',
+                  color: viewMode === 'grid' ? '#0f172a' : '#64748b',
+                  fontWeight: viewMode === 'grid' ? 700 : 500,
+                  fontSize: '12px',
+                  cursor: 'pointer'
+                }}
+              >
+                <LayoutGrid size={13} />
+                <span>Kartu</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setViewMode('table')}
+                title="Tampilan Tabel"
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '4px',
+                  padding: '6px 12px',
+                  borderRadius: '6px',
+                  border: 'none',
+                  background: viewMode === 'table' ? '#ffffff' : 'transparent',
+                  color: viewMode === 'table' ? '#0f172a' : '#64748b',
+                  fontWeight: viewMode === 'table' ? 700 : 500,
+                  fontSize: '12px',
+                  cursor: 'pointer'
+                }}
+              >
+                <TableIcon size={13} />
+                <span>Tabel</span>
+              </button>
+            </div>
+          </div>
+
+          {/* Content Area */}
           <div className="custom-tabs-content">
             {loading ? (
               <div className="loading-container">
                 <div className="loading-spinner" style={{ width: '40px', height: '40px', borderWidth: '3px' }}></div>
-                <span style={{ marginTop: '12px', fontSize: '14px', fontWeight: 500, color: '#64748b' }}>Memuat struktur kepesantrenan...</span>
+                <span style={{ marginTop: '12px', fontSize: '14px', fontWeight: 500, color: '#64748b' }}>
+                  Memuat data kepengurusan...
+                </span>
               </div>
             ) : (
               renderTabContent()
@@ -498,23 +884,32 @@ export function StrukturKepesantrenan() {
         </div>
       </div>
 
-      {/* Modal Tugaskan Jabatan */}
+      {/* Modal Tugaskan / Edit Personel */}
       <CustomModal
         open={editModalOpen}
         onClose={() => setEditModalOpen(false)}
-        title="Tugaskan Jabatan"
-        subtitle={`Tugaskan personel untuk posisi ${selectedNode?.jabatan || ''}`}
+        title="Edit / Tugaskan Personel"
+        subtitle={`Posisi: ${selectedNode?.jabatan || ''}`}
         icon={<ShieldCheck />}
-        width={460}
+        width={480}
         destroyOnClose
         onOk={handleSave}
         okText={saveLoading ? 'Menyimpan...' : 'Simpan Perubahan'}
         okLoading={saveLoading}
       >
         <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+          <FloatingInput
+            label="Kategori / Bidang"
+            name="kategori"
+            value={kategori}
+            onChange={(e) => setKategori(e.target.value)}
+            disabled={saveLoading}
+            placeholder="Contoh: Dewan Harian Putra, Seksi Keamanan"
+          />
+
           <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
             <CustomSelect
-              label="Pilih Guru / Ustadz"
+              label="Pilih Guru / Ustadz Terdaftar"
               value={selectedGuruId}
               onChange={(val) => {
                 setSelectedGuruId(val);
@@ -523,40 +918,42 @@ export function StrukturKepesantrenan() {
                   setFormErrors({});
                 }
               }}
-              placeholder="Pilih dari daftar guru"
+              placeholder="Pilih dari database guru (opsional)"
               options={guruOptions}
               allowClear
               disabled={saveLoading}
             />
-            <span style={{ fontSize: '11px', color: '#94a3b8', paddingLeft: '4px' }}>
-              Pilih guru yang terdaftar dalam database.
-            </span>
           </div>
 
-          <div style={{ textAlign: 'center', fontSize: '12px', fontWeight: 700, color: '#94a3b8', margin: '4px 0', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px' }}>
+          <div style={{ textAlign: 'center', fontSize: '11px', fontWeight: 700, color: '#94a3b8', margin: '2px 0', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px' }}>
             <div style={{ flex: 1, height: '1px', background: 'rgba(226, 232, 240, 0.8)' }}></div>
-            <span>Atau input nama eksternal / kustom</span>
+            <span>Atau Nama Personel Kustom / Santri</span>
             <div style={{ flex: 1, height: '1px', background: 'rgba(226, 232, 240, 0.8)' }}></div>
           </div>
 
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-            <FloatingInput
-              label="Nama Kustom (Luar Database)"
-              name="customName"
-              value={customName}
-              onChange={(e) => {
-                setCustomName(e.target.value);
-                if (e.target.value) {
-                  setSelectedGuruId(null);
-                  setFormErrors({});
-                }
-              }}
-              disabled={!!selectedGuruId || saveLoading}
-            />
-            <span style={{ fontSize: '11px', color: '#94a3b8', paddingLeft: '4px' }}>
-              Digunakan jika personel bukan dari daftar guru (misal: pengurus santri/wali).
-            </span>
-          </div>
+          <FloatingInput
+            label="Nama Personel *"
+            name="customName"
+            value={customName}
+            onChange={(e) => {
+              setCustomName(e.target.value);
+              if (e.target.value) {
+                setSelectedGuruId(null);
+                setFormErrors({});
+              }
+            }}
+            disabled={!!selectedGuruId || saveLoading}
+            placeholder="Contoh: Sdr. Bara Alvin Azkia / Bpk. Indra Pratama"
+          />
+
+          <FloatingInput
+            label="Asal Daerah / Alamat"
+            name="alamat"
+            value={alamat}
+            onChange={(e) => setAlamat(e.target.value)}
+            disabled={saveLoading}
+            placeholder="Contoh: Katibung, Sidomulyo, Way Sulan, Cirebon"
+          />
 
           <FloatingInput
             label="Catatan / Bidang / Keterangan"
@@ -564,7 +961,7 @@ export function StrukturKepesantrenan() {
             value={keterangan}
             onChange={(e) => setKeterangan(e.target.value)}
             disabled={saveLoading}
-            placeholder="Contoh: SK Pengurus, masa bakti, atau bidang tugas"
+            placeholder="Contoh: Koordinator Seksi, Wakil PJ: Bpk. Sifaul Huda"
           />
         </div>
       </CustomModal>
@@ -573,10 +970,10 @@ export function StrukturKepesantrenan() {
       <CustomModal
         open={addPosModalOpen}
         onClose={() => setAddPosModalOpen(false)}
-        title="Tambah Jabatan Baru"
-        subtitle={`Tambahkan posisi baru ke dalam ${TABS.find(t => t.key === activeTab)?.label || 'struktur'}`}
+        title="Tambah Jabatan / Posisi Baru"
+        subtitle={`Tambahkan ke bagian ${activeTabMeta?.label || 'struktur'}`}
         icon={<Plus />}
-        width={460}
+        width={480}
         destroyOnClose
         onOk={handleAddCustomPosition}
         okText={addPosLoading ? 'Menyimpan...' : 'Tambah Jabatan'}
@@ -584,40 +981,54 @@ export function StrukturKepesantrenan() {
       >
         <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
           <FloatingInput
-            label="Nama Jabatan / Divisi *"
+            label="Nama Jabatan / Posisi *"
             value={newJabatan}
             onChange={(e) => setNewJabatan(e.target.value)}
-            placeholder="Contoh: Sie Keamanan Asrama, Koordinator Konsumsi"
+            placeholder="Contoh: Seksi Keamanan, PJ Kamar B1"
+          />
+
+          <FloatingInput
+            label="Kategori / Kelompok Bagian"
+            value={newKategori}
+            onChange={(e) => setNewKategori(e.target.value)}
+            placeholder="Contoh: Dewan Pleno Putra, PJ Kamar Putra"
           />
 
           <CustomSelect
-            label="Pilih Guru / Ustadz"
+            label="Pilih Guru / Ustadz (Opsional)"
             value={newGuruId}
             onChange={(val) => {
               setNewGuruId(val);
               if (val) setNewNama('');
             }}
-            placeholder="Pilih dari daftar guru"
+            placeholder="Pilih dari daftar guru jika ada"
             options={guruOptions}
             allowClear
           />
 
           <FloatingInput
-            label="Atau Nama Kustom Personel"
+            label="Atau Nama Personel Kustom / Santri *"
             value={newNama}
             onChange={(e) => {
               setNewNama(e.target.value);
               if (e.target.value) setNewGuruId(null);
             }}
-            placeholder="Nama lengkap personel"
+            placeholder="Contoh: Bpk. Kelvin Kastawa"
             disabled={!!newGuruId}
+          />
+
+          <FloatingInput
+            label="Asal Daerah / Alamat"
+            value={newAlamat}
+            onChange={(e) => setNewAlamat(e.target.value)}
+            placeholder="Contoh: Sidomulyo, Katibung, Cintamulya"
           />
 
           <FloatingInput
             label="Keterangan / Bidang Tugas"
             value={newKeterangan}
             onChange={(e) => setNewKeterangan(e.target.value)}
-            placeholder="Uraian tugas atau keterangan tambahan"
+            placeholder="Contoh: Koordinator Seksi, Anggota Seksi"
           />
         </div>
       </CustomModal>
