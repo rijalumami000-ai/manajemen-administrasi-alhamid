@@ -1,10 +1,9 @@
 import { useState, useEffect, useMemo } from 'react';
-import { UserCheck, UserX, Plus, RotateCcw, Edit2, Trash2 } from 'lucide-react';
+import { UserCheck, UserX, Plus, RotateCcw, Trash2 } from 'lucide-react';
 import { alumniService } from '../services/alumniService';
 import { AlumniStats } from '../components/features/AlumniStats';
 import { AlumniCard } from '../components/features/AlumniCard';
 import { MigrateSantriModal } from '../components/features/MigrateSantriModal';
-import { AlumniEditModal } from '../components/features/AlumniEditModal';
 import { AlumniDetailModal } from '../components/features/AlumniDetailModal';
 import { PageHeader, LoadingState, ErrorState, EmptyState } from '../components/common';
 import { CustomTabs } from '../components/ui/CustomTabs';
@@ -25,13 +24,10 @@ export function Alumni() {
   const [filterTahunLulus, setFilterTahunLulus] = useState('');
 
   const [isMigrateModalOpen, setIsMigrateModalOpen] = useState(false);
-  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
-  const [editingAlumni, setEditingAlumni] = useState(null);
   const [detailAlumniId, setDetailAlumniId] = useState(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [migrateModalError, setMigrateModalError] = useState('');
-  const [editModalError, setEditModalError] = useState('');
 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -119,25 +115,6 @@ export function Alumni() {
     }
   };
 
-  const handleEditClick = (alumni) => {
-    setEditingAlumni(alumni);
-    setEditModalError('');
-    setIsEditModalOpen(true);
-  };
-
-  const handleEditSubmit = async (data) => {
-    setIsSubmitting(true);
-    setEditModalError('');
-    try {
-      await alumniService.updateAlumni(editingAlumni.id, data);
-      setIsEditModalOpen(false);
-      await loadAlumni();
-    } catch (err) {
-      setEditModalError(err.message || 'Gagal memperbarui data');
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
 
   const handleDeleteClick = async (id, nama) => {
     if (!confirm(`Apakah Anda yakin ingin menghapus data ${nama}?`)) return;
@@ -236,7 +213,6 @@ export function Alumni() {
                   key={alumni.id}
                   alumni={alumni}
                   onDetail={handleDetailClick}
-                  onEdit={handleEditClick}
                   onDelete={handleDeleteClick}
                 />
               ))}
@@ -298,8 +274,13 @@ export function Alumni() {
                                 Reaktifkan
                               </button>
                             )}
-                            <button type="button" onClick={() => handleEditClick(record)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#2196f3' }}>
-                              <Edit2 size={16} />
+                            <button
+                              type="button"
+                              className="btn-custom btn-secondary"
+                              style={{ padding: '4px 8px', fontSize: '12px' }}
+                              onClick={() => handleDetailClick(record.id)}
+                            >
+                              Detail
                             </button>
                             <button type="button" onClick={() => handleDeleteClick(record.id, record.nama)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#ef4444' }}>
                               <Trash2 size={16} />
@@ -347,15 +328,6 @@ export function Alumni() {
         santriList={santriList}
         isSubmitting={isSubmitting}
         error={migrateModalError}
-      />
-
-      <AlumniEditModal
-        isOpen={isEditModalOpen}
-        onClose={() => setIsEditModalOpen(false)}
-        onSubmit={handleEditSubmit}
-        editData={editingAlumni}
-        isSubmitting={isSubmitting}
-        error={editModalError}
       />
 
       <AlumniDetailModal

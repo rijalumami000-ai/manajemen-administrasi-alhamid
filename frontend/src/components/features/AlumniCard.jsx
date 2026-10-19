@@ -2,7 +2,7 @@ import { User, Phone, Mail, MapPin, Trophy, Calendar, Briefcase, GraduationCap, 
 import { formatDate } from '../../utils/formatters';
 import './AlumniCard.scss';
 
-export function AlumniCard({ alumni, onDetail, onEdit, onDelete }) {
+export function AlumniCard({ alumni, onDetail, onDelete }) {
   // Get initials for avatar
   const getInitials = (name) => {
     if (!name) return 'AL';
@@ -21,8 +21,17 @@ export function AlumniCard({ alumni, onDetail, onEdit, onDelete }) {
 
       {/* Header section */}
       <div className="card-header-section">
-        <div className="alumni-avatar-circle">
-          <span>{getInitials(alumni.nama)}</span>
+        <div className="alumni-avatar-circle" style={{ overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          {alumni.foto_url ? (
+            <img
+              src={alumni.foto_url}
+              alt={alumni.nama}
+              style={{ width: '100%', height: '100%', borderRadius: '50%', objectFit: 'cover' }}
+              onError={(e) => { e.currentTarget.style.display = 'none'; }}
+            />
+          ) : (
+            <span>{getInitials(alumni.nama)}</span>
+          )}
         </div>
         
         <div className="alumni-title-info">
@@ -120,18 +129,10 @@ export function AlumniCard({ alumni, onDetail, onEdit, onDelete }) {
           className="action-btn detail-btn"
           onClick={() => onDetail(alumni.id)}
           title="Lihat detail lengkap"
+          style={{ flex: 1 }}
         >
           <Eye size={13} />
           <span>Detail</span>
-        </button>
-        <button
-          type="button"
-          className="action-btn edit-btn"
-          onClick={() => onEdit(alumni)}
-          title="Ubah data alumni"
-        >
-          <Edit size={13} />
-          <span>Edit</span>
         </button>
         <button
           type="button"

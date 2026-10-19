@@ -289,17 +289,23 @@ class _SetoranHafalanScreenState extends State<SetoranHafalanScreen> {
                     // Header Info Santri
                     Row(
                       children: [
-                        CircleAvatar(
-                          radius: 20,
-                          backgroundColor: const Color(0xFF3B82F6),
-                          backgroundImage: santri['foto_url'] != null ? NetworkImage(santri['foto_url']) : null,
-                          child: santri['foto_url'] == null
-                              ? Text(
-                                  (santri['nama'] ?? 'S').substring(0, 1).toUpperCase(),
-                                  style: GoogleFonts.outfit(color: Colors.white, fontWeight: FontWeight.bold),
-                                )
-                              : null,
-                        ),
+                        () {
+                          final rawFoto = santri['foto_url']?.toString();
+                          final hasFoto = rawFoto != null && rawFoto.trim().isNotEmpty;
+                          final fullFoto = hasFoto ? _apiService.getFullImageUrl(rawFoto) : null;
+
+                          return CircleAvatar(
+                            radius: 20,
+                            backgroundColor: const Color(0xFF3B82F6).withOpacity(0.12),
+                            backgroundImage: fullFoto != null ? NetworkImage(fullFoto) : null,
+                            child: fullFoto == null
+                                ? Text(
+                                    (santri['nama'] ?? 'S').substring(0, 1).toUpperCase(),
+                                    style: GoogleFonts.outfit(color: const Color(0xFF3B82F6), fontWeight: FontWeight.bold),
+                                  )
+                                : null,
+                          );
+                        }(),
                         const SizedBox(width: 12),
                         Expanded(
                           child: Column(
@@ -1776,13 +1782,13 @@ class _SetoranHafalanScreenState extends State<SetoranHafalanScreen> {
               scrollDirection: Axis.horizontal,
               child: Row(
                 children: [
-                  _buildScaleBadge("🏆 Mumtaz", "${skalaAktif['mumtaz']?['min']} - ${skalaAktif['mumtaz']?['max']}", const Color(0xFF10B981)),
+                  _buildScaleBadge("Mumtaz", "${skalaAktif['mumtaz']?['min']} - ${skalaAktif['mumtaz']?['max']}", const Color(0xFF10B981)),
                   const SizedBox(width: 6),
-                  _buildScaleBadge("🌟 Jayyid", "${skalaAktif['jayyid']?['min']} - ${skalaAktif['jayyid']?['max']}", const Color(0xFF3B82F6)),
+                  _buildScaleBadge("Jayyid", "${skalaAktif['jayyid']?['min']} - ${skalaAktif['jayyid']?['max']}", const Color(0xFF3B82F6)),
                   const SizedBox(width: 6),
-                  _buildScaleBadge("⚡ Mutawassith", "${skalaAktif['mutawassith']?['min']} - ${skalaAktif['mutawassith']?['max']}", const Color(0xFFD97706)),
+                  _buildScaleBadge("Mutawassith", "${skalaAktif['mutawassith']?['min']} - ${skalaAktif['mutawassith']?['max']}", const Color(0xFFD97706)),
                   const SizedBox(width: 6),
-                  _buildScaleBadge("📖 Rodi'", "${skalaAktif['rodi']?['min']} - ${skalaAktif['rodi']?['max']}", const Color(0xFFEF4444)),
+                  _buildScaleBadge("Rodi'", "${skalaAktif['rodi']?['min']} - ${skalaAktif['rodi']?['max']}", const Color(0xFFEF4444)),
                 ],
               ),
             ),
@@ -1793,16 +1799,16 @@ class _SetoranHafalanScreenState extends State<SetoranHafalanScreen> {
               child: Row(
                 children: [
                   if (skalaBab['mumtaz'] != null)
-                    _buildScaleBadge("🏆 Mumtaz", "${skalaBab['mumtaz']?['range_text'] ?? ''} (${skalaBab['mumtaz']?['bab_nama'] ?? ''})", const Color(0xFF10B981)),
+                    _buildScaleBadge("Mumtaz", "${skalaBab['mumtaz']?['range_text'] ?? ''} (${skalaBab['mumtaz']?['bab_nama'] ?? ''})", const Color(0xFF10B981)),
                   const SizedBox(width: 6),
                   if (skalaBab['jayyid'] != null)
-                    _buildScaleBadge("🌟 Jayyid", "${skalaBab['jayyid']?['range_text'] ?? ''}", const Color(0xFF3B82F6)),
+                    _buildScaleBadge("Jayyid", "${skalaBab['jayyid']?['range_text'] ?? ''}", const Color(0xFF3B82F6)),
                   const SizedBox(width: 6),
                   if (skalaBab['mutawassith'] != null)
-                    _buildScaleBadge("⚡ Mutawassith", "${skalaBab['mutawassith']?['range_text'] ?? ''}", const Color(0xFFD97706)),
+                    _buildScaleBadge("Mutawassith", "${skalaBab['mutawassith']?['range_text'] ?? ''}", const Color(0xFFD97706)),
                   const SizedBox(width: 6),
                   if (skalaBab['rodi'] != null)
-                    _buildScaleBadge("📖 Rodi'", "${skalaBab['rodi']?['range_text'] ?? ''}", const Color(0xFFEF4444)),
+                    _buildScaleBadge("Rodi'", "${skalaBab['rodi']?['range_text'] ?? ''}", const Color(0xFFEF4444)),
                 ],
               ),
             ),
@@ -1980,17 +1986,23 @@ class _SetoranHafalanScreenState extends State<SetoranHafalanScreen> {
               Row(
                 crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
-                  CircleAvatar(
-                    radius: 18,
-                    backgroundColor: const Color(0xFF3B82F6),
-                    backgroundImage: santri['foto_url'] != null ? NetworkImage(santri['foto_url']) : null,
-                    child: santri['foto_url'] == null
-                        ? Text(
-                            (santri['nama'] ?? 'S').substring(0, 1).toUpperCase(),
-                            style: GoogleFonts.outfit(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12),
-                          )
-                        : null,
-                  ),
+                  () {
+                    final rawFoto = santri['foto_url']?.toString();
+                    final hasFoto = rawFoto != null && rawFoto.trim().isNotEmpty;
+                    final fullFoto = hasFoto ? _apiService.getFullImageUrl(rawFoto) : null;
+
+                    return CircleAvatar(
+                      radius: 20,
+                      backgroundColor: const Color(0xFF3B82F6).withOpacity(0.12),
+                      backgroundImage: fullFoto != null ? NetworkImage(fullFoto) : null,
+                      child: fullFoto == null
+                          ? Text(
+                              (santri['nama'] ?? 'S').substring(0, 1).toUpperCase(),
+                              style: GoogleFonts.outfit(color: const Color(0xFF3B82F6), fontWeight: FontWeight.bold, fontSize: 13),
+                            )
+                          : null,
+                    );
+                  }(),
                   const SizedBox(width: 10),
                   Expanded(
                     child: Column(

@@ -993,139 +993,129 @@ class _TabAdministratifState extends State<TabAdministratif> {
   // ── 5. MATERI SIDANG CLUSTER (PDF) ────────────────────────────────────────
   Widget _buildMateriSidangCluster(BuildContext context, bool isDark) {
     final subSidangs = [
-      {'title': 'Sidang Madin', 'badge': 'Kurikulum & KKM', 'index': 0},
-      {'title': 'Sidang PMQ', 'badge': 'Tahfidz & Tartil', 'index': 1},
-      {'title': 'Sidang Pondok', 'badge': 'Tata Tertib & Qonun', 'index': 2},
-      {'title': 'Sidang Haflah', 'badge': 'SK Wisuda & RAB', 'index': 3},
+      {
+        'title': 'Sidang Madin',
+        'desc': 'Kurikulum & KKM',
+        'icon': Icons.menu_book_rounded,
+        'color': const Color(0xFF3B82F6),
+        'index': 0,
+      },
+      {
+        'title': 'Sidang PMQ',
+        'desc': 'Tahfidz & Tartil',
+        'icon': Icons.auto_stories_rounded,
+        'color': const Color(0xFF10B981),
+        'index': 1,
+      },
+      {
+        'title': 'Sidang Pondok',
+        'desc': 'Tata Tertib & Qonun',
+        'icon': Icons.account_balance_rounded,
+        'color': const Color(0xFFF59E0B),
+        'index': 2,
+      },
+      {
+        'title': 'Sidang Haflah',
+        'desc': 'SK Wisuda & RAB',
+        'icon': Icons.celebration_rounded,
+        'color': const Color(0xFFEC4899),
+        'index': 3,
+      },
     ];
 
-    return Column(
-      children: [
-        // Hero Card
-        GestureDetector(
+    Widget buildCard(Map<String, dynamic> item) {
+      final Color col = item['color'] as Color;
+      return Expanded(
+        child: GestureDetector(
           onTap: () {
             Navigator.push(
               context,
-              MaterialPageRoute(builder: (context) => const MateriSidangScreen()),
+              MaterialPageRoute(
+                builder: (context) => MateriSidangScreen(
+                  initialTabIndex: item['index'] as int,
+                ),
+              ),
             );
           },
           child: Container(
-            width: double.infinity,
-            padding: const EdgeInsets.all(18),
+            padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
-              gradient: LinearGradient(
-                colors: isDark
-                    ? [const Color(0xFF7F1D1D), const Color(0xFF0F172A)]
-                    : [const Color(0xFFFEF2F2), const Color(0xFFFEE2E2)],
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-              ),
-              borderRadius: BorderRadius.circular(22),
+              color: isDark ? const Color(0xFF131C2E) : Colors.white,
+              borderRadius: BorderRadius.circular(20),
               border: Border.all(
-                color: const Color(0xFFEF4444).withOpacity(0.4),
-                width: 1.5,
+                color: col.withOpacity(isDark ? 0.35 : 0.22),
+                width: 1.2,
               ),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withOpacity(isDark ? 0.3 : 0.05),
+                  color: Colors.black.withOpacity(isDark ? 0.25 : 0.03),
                   blurRadius: 10,
                   offset: const Offset(0, 4),
                 ),
               ],
             ),
-            child: Row(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Container(
-                  padding: const EdgeInsets.all(14),
-                  decoration: BoxDecoration(
-                    color: isDark ? Colors.white10 : Colors.white,
-                    borderRadius: BorderRadius.circular(16),
-                  ),
-                  child: const Icon(
-                    Icons.picture_as_pdf_rounded,
-                    color: Color(0xFFEF4444),
-                    size: 30,
-                  ),
-                ),
-                const SizedBox(width: 16),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        "Portal Dokumen Sidang",
-                        style: GoogleFonts.outfit(
-                          color: isDark ? Colors.white : const Color(0xFF991B1B),
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                        ),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(10),
+                      decoration: BoxDecoration(
+                        color: col.withOpacity(0.12),
+                        borderRadius: BorderRadius.circular(14),
                       ),
-                      const SizedBox(height: 4),
-                      Text(
-                        "Buka naskah ketetapan, notulensi rapat pleno, dan draf resmi dalam format PDF pembaca digital.",
-                        style: GoogleFonts.outfit(
-                          color: isDark ? Colors.white70 : const Color(0xFFB91C1C),
-                          fontSize: 11,
-                          height: 1.3,
-                        ),
-                      ),
-                    ],
-                  ),
+                      child: Icon(item['icon'] as IconData, color: col, size: 22),
+                    ),
+                    Icon(Icons.arrow_forward_rounded, size: 16, color: col),
+                  ],
                 ),
-                const SizedBox(width: 6),
-                const Icon(Icons.arrow_forward_ios_rounded, color: Color(0xFFEF4444), size: 14),
+                const SizedBox(height: 14),
+                Text(
+                  item['title'] as String,
+                  style: GoogleFonts.outfit(
+                    color: context.titleColor,
+                    fontSize: 15,
+                    fontWeight: FontWeight.bold,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  item['desc'] as String,
+                  style: GoogleFonts.outfit(
+                    color: context.subTitleColor,
+                    fontSize: 10.5,
+                    height: 1.3,
+                  ),
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                ),
               ],
             ),
           ),
         ),
-        const SizedBox(height: 14),
+      );
+    }
 
-        // 4 Quick Mini Buttons
+    return Column(
+      children: [
         Row(
-          children: subSidangs.map((s) {
-            return Expanded(
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 4),
-                child: GestureDetector(
-                  onTap: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => MateriSidangScreen(
-                          initialTabIndex: s['index'] as int,
-                        ),
-                      ),
-                    );
-                  },
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
-                    decoration: BoxDecoration(
-                      color: isDark ? const Color(0xFF131C2E) : Colors.white,
-                      borderRadius: BorderRadius.circular(14),
-                      border: Border.all(
-                        color: const Color(0xFFEF4444).withOpacity(isDark ? 0.3 : 0.2),
-                      ),
-                    ),
-                    child: Column(
-                      children: [
-                        const Icon(Icons.description_rounded, color: Color(0xFFEF4444), size: 18),
-                        const SizedBox(height: 6),
-                        Text(
-                          s['title'] as String,
-                          style: GoogleFonts.outfit(
-                            color: context.titleColor,
-                            fontSize: 11,
-                            fontWeight: FontWeight.bold,
-                          ),
-                          textAlign: TextAlign.center,
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              ),
-            );
-          }).toList(),
+          children: [
+            buildCard(subSidangs[0]),
+            const SizedBox(width: 10),
+            buildCard(subSidangs[1]),
+          ],
+        ),
+        const SizedBox(height: 10),
+        Row(
+          children: [
+            buildCard(subSidangs[2]),
+            const SizedBox(width: 10),
+            buildCard(subSidangs[3]),
+          ],
         ),
       ],
     );

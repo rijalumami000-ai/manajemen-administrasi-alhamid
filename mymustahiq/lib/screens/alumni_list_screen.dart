@@ -336,6 +336,10 @@ class _AlumniListScreenState extends State<AlumniListScreen> {
                               final kelas = item['kelas_terakhir'] ?? '-';
                               final tahun = item['tahun_lulus']?.toString() ?? '-';
 
+                              final rawFoto = item['foto_url']?.toString();
+                              final hasFoto = rawFoto != null && rawFoto.trim().isNotEmpty;
+                              final fullFoto = hasFoto ? _apiService.getFullImageUrl(rawFoto) : null;
+
                               return Container(
                                 decoration: BoxDecoration(
                                   color: context.cardBg,
@@ -352,14 +356,18 @@ class _AlumniListScreenState extends State<AlumniListScreen> {
                                 child: ListTile(
                                   contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                                   leading: CircleAvatar(
-                                    backgroundColor: accentColor.withOpacity(0.1),
-                                    child: Text(
-                                      nama[0].toUpperCase(),
-                                      style: GoogleFonts.outfit(
-                                        color: accentColor,
-                                        fontWeight: FontWeight.bold,
-                                      ),
-                                    ),
+                                    radius: 22,
+                                    backgroundColor: accentColor.withOpacity(0.12),
+                                    backgroundImage: fullFoto != null ? NetworkImage(fullFoto) : null,
+                                    child: fullFoto == null
+                                        ? Text(
+                                            (nama.isNotEmpty ? nama[0] : '?').toUpperCase(),
+                                            style: GoogleFonts.outfit(
+                                              color: accentColor,
+                                              fontWeight: FontWeight.bold,
+                                            ),
+                                          )
+                                        : null,
                                   ),
                                   title: Text(
                                     nama,

@@ -149,11 +149,6 @@ class _StatistikPesantrenScreenState extends State<StatistikPesantrenScreen> {
                         // 4. RINCIAN PER ANGKATAN
                         _buildAngkatanBreakdown(context, isDark),
 
-                        const SizedBox(height: 22),
-
-                        // 5. TOP KAMAR / ASRAMA DISTRIBUTION
-                        if (_kamarList.isNotEmpty) _buildTopKamarCard(context, isDark),
-
                         const SizedBox(height: 30),
                       ],
                     ),
@@ -709,66 +704,5 @@ class _StatistikPesantrenScreenState extends State<StatistikPesantrenScreen> {
     );
   }
 
-  // ── 5. TOP KAMAR ASRAMA ───────────────────────────────────────────────────
-  Widget _buildTopKamarCard(BuildContext context, bool isDark) {
-    return Container(
-      padding: const EdgeInsets.all(18),
-      decoration: BoxDecoration(
-        color: isDark ? const Color(0xFF131D2E) : Colors.white,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(
-          color: isDark ? const Color(0xFF334155).withOpacity(0.5) : const Color(0xFFE2E8F0),
-        ),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              const Icon(Icons.meeting_room_rounded, size: 18, color: Color(0xFF8B5CF6)),
-              const SizedBox(width: 8),
-              Text(
-                "Distribusi Asrama Terbanyak",
-                style: GoogleFonts.outfit(
-                  fontSize: 14.5,
-                  fontWeight: FontWeight.bold,
-                  color: context.titleColor,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 12),
-          ..._kamarList.take(5).map((km) {
-            final nama = km['kamar'] ?? '-';
-            final total = km['total'] ?? 0;
-            final l = km['putra'] ?? 0;
-            final p = km['putri'] ?? 0;
 
-            return Padding(
-              padding: const EdgeInsets.symmetric(vertical: 6),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: Text(
-                      nama,
-                      style: GoogleFonts.outfit(fontSize: 12.5, fontWeight: FontWeight.w600, color: context.titleColor),
-                    ),
-                  ),
-                  Text(
-                    "$total Santri",
-                    style: GoogleFonts.outfit(fontSize: 12, fontWeight: FontWeight.bold, color: const Color(0xFF8B5CF6)),
-                  ),
-                  const SizedBox(width: 8),
-                  Text(
-                    "($l L / $p P)",
-                    style: GoogleFonts.outfit(fontSize: 10.5, color: context.subTitleColor),
-                  ),
-                ],
-              ),
-            );
-          }),
-        ],
-      ),
-    );
-  }
 }

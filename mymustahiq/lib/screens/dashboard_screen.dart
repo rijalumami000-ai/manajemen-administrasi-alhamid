@@ -269,6 +269,47 @@ class _DashboardScreenState extends State<DashboardScreen> {
           ),
         ),
         actions: [
+          // Theme Toggle Shortcut (Samping Icon Sinyal)
+          Tooltip(
+            message: context.isDarkMode ? 'Beralih ke Mode Terang' : 'Beralih ke Mode Gelap',
+            child: GestureDetector(
+              onTap: () {
+                final newMode = !context.isDarkMode;
+                ThemeManager().toggleTheme(newMode);
+                ScaffoldMessenger.of(context).hideCurrentSnackBar();
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Row(
+                      children: [
+                        Icon(
+                          newMode ? Icons.dark_mode_rounded : Icons.light_mode_rounded,
+                          color: Colors.white,
+                          size: 18,
+                        ),
+                        const SizedBox(width: 8),
+                        Text(
+                          newMode ? 'Mode Gelap Aktif' : 'Mode Terang Aktif',
+                          style: GoogleFonts.outfit(fontSize: 13, color: Colors.white),
+                        ),
+                      ],
+                    ),
+                    backgroundColor: newMode ? const Color(0xFF1E293B) : const Color(0xFF064E3B),
+                    behavior: SnackBarBehavior.floating,
+                    duration: const Duration(seconds: 1),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                  ),
+                );
+              },
+              child: Center(
+                child: Icon(
+                  context.isDarkMode ? Icons.light_mode_rounded : Icons.dark_mode_rounded,
+                  color: context.isDarkMode ? const Color(0xFFFBBF24) : context.titleColor,
+                  size: 21,
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(width: 14),
           StreamBuilder<ConnectivityResult>(
             stream: NetworkService().onTypeChange,
             initialData: NetworkService().currentType,

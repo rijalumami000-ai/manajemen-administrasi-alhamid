@@ -36,12 +36,12 @@ class _StrukturLembagaScreenState extends State<StrukturLembagaScreen>
   @override
   void initState() {
     super.initState();
-    // 9 Main Tabs:
-    // 0: Pondok, 1: Jam'iyyah, 2: PMQ, 3: Madin, 4: Panitia Semester, 5: Sambangan, 6: Haflah, 7: PSB, 8: Dewan Penyantun
+    // 8 Main Tabs:
+    // 0: Pondok (Putra, Dewan Penyantun, Putri), 1: Madin, 2: PMQ, 3: Jam'iyyah, 4: Panitia Semester, 5: Sambangan, 6: Haflah, 7: PSB
     _tabController = TabController(
-      length: 9,
+      length: 8,
       vsync: this,
-      initialIndex: widget.initialTabIndex.clamp(0, 8),
+      initialIndex: widget.initialTabIndex.clamp(0, 7),
     );
     _tabController.addListener(() {
       if (!_tabController.indexIsChanging) {
@@ -112,7 +112,7 @@ class _StrukturLembagaScreenState extends State<StrukturLembagaScreen>
           final mapped = res.map<Map<String, dynamic>>((item) {
             final displayName = (item['guru_nama'] ?? item['santri_nama'] ?? item['nama_custom'] ?? '-').toString();
             final isHead = (item['no_urut'] == 1);
-            final foto = item['guru_foto_url'] ?? item['santri_foto_url'];
+            final foto = item['guru_foto_url'] ?? item['santri_foto_url'] ?? item['foto_url'] ?? item['foto'];
             final alamat = item['alamat'] ?? item['santri_alamat'] ?? '';
 
             return {
@@ -198,14 +198,13 @@ class _StrukturLembagaScreenState extends State<StrukturLembagaScreen>
           unselectedLabelStyle: GoogleFonts.outfit(fontWeight: FontWeight.w500, fontSize: 13),
           tabs: const [
             Tab(text: "Struktur Pondok"),
-            Tab(text: "Jam'iyyah Santri"),
-            Tab(text: "Struktur PMQ"),
             Tab(text: "Madrasah Diniyah"),
+            Tab(text: "Struktur PMQ"),
+            Tab(text: "Jam'iyyah Santri"),
             Tab(text: "Panitia Semester"),
             Tab(text: "Panitia Sambangan"),
             Tab(text: "Panitia Haflah"),
             Tab(text: "Panitia PSB"),
-            Tab(text: "Dewan Penyantun"),
           ],
         ),
       ),
@@ -234,14 +233,14 @@ class _StrukturLembagaScreenState extends State<StrukturLembagaScreen>
                 : TabBarView(
                     controller: _tabController,
                     children: [
-                      // 0. Pondok (Separated Putra & Putri with toggle)
+                      // 0. Pondok (Separated Putra, Dewan Penyantun, & Putri)
                       _buildPondokScreen(isDark),
 
-                      // 1. Jam'iyyah Santri (Top-level tab)
+                      // 1. Madrasah Diniyah
                       _buildStandardTabScreen(
-                        key: 'jamiyyah',
-                        title: "Jam'iyyah Santri Al-Hamid",
-                        subtitle: "Jam'iyyah Pusat, Jam'iyyah Putra, dan Jam'iyyah Putri.",
+                        key: 'madrasah_diniyah',
+                        title: "Madrasah Diniyah Al-Hamid",
+                        subtitle: "Pimpinan madrasah, bagian kurikulum, tata usaha, & asatidz.",
                         isDark: isDark,
                       ),
 
@@ -253,11 +252,11 @@ class _StrukturLembagaScreenState extends State<StrukturLembagaScreen>
                         isDark: isDark,
                       ),
 
-                      // 3. Madrasah Diniyah
+                      // 3. Jam'iyyah Santri (Top-level tab)
                       _buildStandardTabScreen(
-                        key: 'madrasah_diniyah',
-                        title: "Madrasah Diniyah Al-Hamid",
-                        subtitle: "Pimpinan madrasah, bagian kurikulum, tata usaha, & asatidz.",
+                        key: 'jamiyyah',
+                        title: "Jam'iyyah Santri Al-Hamid",
+                        subtitle: "Jam'iyyah Pusat, Jam'iyyah Putra, dan Jam'iyyah Putri.",
                         isDark: isDark,
                       ),
 
@@ -285,14 +284,6 @@ class _StrukturLembagaScreenState extends State<StrukturLembagaScreen>
                         key: 'psb',
                         title: "Panitia Penerimaan Santri Baru (PSB)",
                         subtitle: "Pendaftaran online, tes baca kitab, administrasi & seleksi berkas.",
-                        isDark: isDark,
-                      ),
-
-                      // 8. Dewan Penyantun
-                      _buildStandardTabScreen(
-                        key: 'dewan_penyantun',
-                        title: "Dewan Penyantun & Penasihat",
-                        subtitle: "Pengasuh Ndalem, Dewan Penasihat, & Pembina Asrama.",
                         isDark: isDark,
                       ),
                     ],
@@ -356,7 +347,7 @@ class _StrukturLembagaScreenState extends State<StrukturLembagaScreen>
                   final active = (ta['is_active'] == true);
                   return DropdownMenuItem<int?>(
                     value: ta['id'] as int?,
-                    child: Text("${ta['nama'] ?? '-'}${active ? ' (Aktif)' : ''}"),
+                    child: Text("${ta['kode'] ?? ta['nama'] ?? '-'}${active ? ' (Aktif)' : ''}"),
                   );
                 }).toList(),
                 onChanged: (val) {
@@ -375,7 +366,14 @@ class _StrukturLembagaScreenState extends State<StrukturLembagaScreen>
 
   // ── 0. PONDOK SCREEN (Putra & Putri Split) ──────────────────────────────
   Widget _buildPondokScreen(bool isDark) {
-    final currentKey = _selectedPondokGender == 'Putra' ? 'pondok_putra' : 'pondok_putri';
+    String currentKey;
+    if (_selectedPondokGender == 'Dewan Penyantun') {
+      currentKey = 'dewan_penyantun';
+    } else if (_selectedPondokGender == 'Putri') {
+      currentKey = 'pondok_putri';
+    } else {
+      currentKey = 'pondok_putra';
+    }
     final rawList = _liveApiData[currentKey] ?? [];
 
     // Distinct categories (e.g. Dewan Harian, Dewan Pleno, Ketua Kamar, PJ Kamar)
@@ -403,7 +401,7 @@ class _StrukturLembagaScreenState extends State<StrukturLembagaScreen>
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Gender Segmented Switch (Putra vs Putri)
+          // Sub-Tab Segmented Switch (Putra | Dewan Penyantun | Putri)
           Container(
             padding: const EdgeInsets.all(4),
             decoration: BoxDecoration(
@@ -438,16 +436,57 @@ class _StrukturLembagaScreenState extends State<StrukturLembagaScreen>
                         children: [
                           Icon(
                             Icons.man_rounded,
-                            size: 18,
+                            size: 17,
                             color: _selectedPondokGender == 'Putra' ? Colors.white : context.subTitleColor,
                           ),
-                          const SizedBox(width: 6),
-                          Text(
-                            "Pengurus Putra",
-                            style: GoogleFonts.outfit(
-                              fontWeight: FontWeight.bold,
-                              fontSize: 13,
-                              color: _selectedPondokGender == 'Putra' ? Colors.white : context.subTitleColor,
+                          const SizedBox(width: 4),
+                          Flexible(
+                            child: Text(
+                              "Pengurus Putra",
+                              style: GoogleFonts.outfit(
+                                fontWeight: FontWeight.bold,
+                                fontSize: 11.5,
+                                color: _selectedPondokGender == 'Putra' ? Colors.white : context.subTitleColor,
+                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+                Expanded(
+                  child: GestureDetector(
+                    onTap: () => setState(() => _selectedPondokGender = 'Dewan Penyantun'),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(vertical: 10),
+                      decoration: BoxDecoration(
+                        color: _selectedPondokGender == 'Dewan Penyantun'
+                            ? const Color(0xFF10B981)
+                            : Colors.transparent,
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(
+                            Icons.verified_user_rounded,
+                            size: 15,
+                            color: _selectedPondokGender == 'Dewan Penyantun' ? Colors.white : context.subTitleColor,
+                          ),
+                          const SizedBox(width: 4),
+                          Flexible(
+                            child: Text(
+                              "Dewan Penyantun",
+                              style: GoogleFonts.outfit(
+                                fontWeight: FontWeight.bold,
+                                fontSize: 11.5,
+                                color: _selectedPondokGender == 'Dewan Penyantun' ? Colors.white : context.subTitleColor,
+                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
                             ),
                           ),
                         ],
@@ -471,16 +510,20 @@ class _StrukturLembagaScreenState extends State<StrukturLembagaScreen>
                         children: [
                           Icon(
                             Icons.woman_rounded,
-                            size: 18,
+                            size: 17,
                             color: _selectedPondokGender == 'Putri' ? Colors.white : context.subTitleColor,
                           ),
-                          const SizedBox(width: 6),
-                          Text(
-                            "Pengurus Putri",
-                            style: GoogleFonts.outfit(
-                              fontWeight: FontWeight.bold,
-                              fontSize: 13,
-                              color: _selectedPondokGender == 'Putri' ? Colors.white : context.subTitleColor,
+                          const SizedBox(width: 4),
+                          Flexible(
+                            child: Text(
+                              "Pengurus Putri",
+                              style: GoogleFonts.outfit(
+                                fontWeight: FontWeight.bold,
+                                fontSize: 11.5,
+                                color: _selectedPondokGender == 'Putri' ? Colors.white : context.subTitleColor,
+                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
                             ),
                           ),
                         ],
@@ -1315,10 +1358,11 @@ class _StrukturLembagaScreenState extends State<StrukturLembagaScreen>
     required double size,
     required bool isKoor,
   }) {
-    if (fotoUrl != null && fotoUrl.isNotEmpty) {
+    if (fotoUrl != null && fotoUrl.trim().isNotEmpty) {
+      final fullUrl = _apiService.getFullImageUrl(fotoUrl.trim());
       return ClipOval(
         child: Image.network(
-          fotoUrl,
+          fullUrl,
           width: size,
           height: size,
           fit: BoxFit.cover,

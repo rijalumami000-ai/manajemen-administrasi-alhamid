@@ -1260,22 +1260,6 @@ class _TabAkunState extends State<TabAkun> {
                   trailing: _buildStatusBadge(_passwordEnabled),
                   onTap: _handleManagePassword,
                 ),
-                _buildDivider(),
-
-                // Theme Selection
-                _buildSwitchTile(
-                  icon: Icons.dark_mode_outlined,
-                  title: "Mode Gelap",
-                  subtitle: "Tampilan visual kontras tinggi",
-                  color: const Color(0xFF8B5CF6),
-                  value: ThemeManager().isDarkMode,
-                  onChanged: (val) {
-                    setState(() {
-                      ThemeManager().toggleTheme(val);
-                    });
-                    _showToast(val ? "Mode Gelap aktif" : "Mode Terang aktif", const Color(0xFF8B5CF6));
-                  },
-                ),
               ],
             ),
 

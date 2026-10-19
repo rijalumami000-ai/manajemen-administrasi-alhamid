@@ -222,18 +222,27 @@ class _AlumniDetailScreenState extends State<AlumniDetailScreen> with SingleTick
             ),
             child: Row(
               children: [
-                CircleAvatar(
-                  radius: 32,
-                  backgroundColor: const Color(0xFF10B981).withOpacity(0.1),
-                  child: Text(
-                    (alumni['nama']?.toString() ?? 'P')[0].toUpperCase(),
-                    style: GoogleFonts.outfit(
-                      color: const Color(0xFF10B981),
-                      fontSize: 28,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ),
+                () {
+                  final rawFoto = identitas?['foto_url']?.toString() ?? alumni['foto_url']?.toString();
+                  final hasFoto = rawFoto != null && rawFoto.trim().isNotEmpty;
+                  final fullFoto = hasFoto ? _apiService.getFullImageUrl(rawFoto) : null;
+
+                  return CircleAvatar(
+                    radius: 32,
+                    backgroundColor: const Color(0xFF10B981).withOpacity(0.12),
+                    backgroundImage: fullFoto != null ? NetworkImage(fullFoto) : null,
+                    child: fullFoto == null
+                        ? Text(
+                            (alumni['nama']?.toString() ?? 'P')[0].toUpperCase(),
+                            style: GoogleFonts.outfit(
+                              color: const Color(0xFF10B981),
+                              fontSize: 28,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          )
+                        : null,
+                  );
+                }(),
                 const SizedBox(width: 18),
                 Expanded(
                   child: Column(

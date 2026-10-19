@@ -16,20 +16,28 @@ const {
  */
 async function getAllAlumni(tipe = null, tahunAjaranId = null) {
   try {
-    let query = 'SELECT * FROM alumni WHERE 1=1';
+    let query = `
+      SELECT a.*, 
+             s.foto_url, 
+             s.jenis_kelamin, 
+             s.nisn
+      FROM alumni a
+      LEFT JOIN santri s ON a.santri_id = s.id OR (a.santri_id IS NULL AND a.nis = s.nis)
+      WHERE 1=1
+    `;
     const params = [];
 
     if (tipe) {
       params.push(tipe);
-      query += ` AND tipe = $${params.length}`;
+      query += ` AND a.tipe = $${params.length}`;
     }
 
     if (tahunAjaranId) {
       params.push(parseInt(tahunAjaranId, 10));
-      query += ` AND tahun_ajaran_id = $${params.length}`;
+      query += ` AND a.tahun_ajaran_id = $${params.length}`;
     }
 
-    query += ' ORDER BY tahun_lulus DESC, nama';
+    query += ' ORDER BY a.tahun_lulus DESC, a.nama';
 
     const result = await db.query(query, params);
     return result.rows;
@@ -43,30 +51,38 @@ async function getAllAlumni(tipe = null, tahunAjaranId = null) {
  */
 async function searchAlumni(searchQuery, tahunLulus, tipe = null, tahunAjaranId = null) {
   try {
-    let query = 'SELECT * FROM alumni WHERE 1=1';
+    let query = `
+      SELECT a.*, 
+             s.foto_url, 
+             s.jenis_kelamin, 
+             s.nisn
+      FROM alumni a
+      LEFT JOIN santri s ON a.santri_id = s.id OR (a.santri_id IS NULL AND a.nis = s.nis)
+      WHERE 1=1
+    `;
     const params = [];
 
     if (searchQuery) {
       params.push(`%${searchQuery}%`);
-      query += ` AND (nama ILIKE $${params.length} OR nis ILIKE $${params.length})`;
+      query += ` AND (a.nama ILIKE $${params.length} OR a.nis ILIKE $${params.length})`;
     }
 
     if (tahunLulus) {
       params.push(parseInt(tahunLulus, 10));
-      query += ` AND tahun_lulus = $${params.length}`;
+      query += ` AND a.tahun_lulus = $${params.length}`;
     }
 
     if (tipe) {
       params.push(tipe);
-      query += ` AND tipe = $${params.length}`;
+      query += ` AND a.tipe = $${params.length}`;
     }
 
     if (tahunAjaranId) {
       params.push(parseInt(tahunAjaranId, 10));
-      query += ` AND tahun_ajaran_id = $${params.length}`;
+      query += ` AND a.tahun_ajaran_id = $${params.length}`;
     }
 
-    query += ' ORDER BY tahun_lulus DESC, nama';
+    query += ' ORDER BY a.tahun_lulus DESC, a.nama';
 
     const result = await db.query(query, params);
     return result.rows;
@@ -350,13 +366,6 @@ async function getAlumniDetail(id) {
     const santriId = alumniData.santri_id;
     let identitasSantri = null;
 
-    let riwayat = {
-      kelas: [],
-      kamar: [],
-      prestasi: [],
-      pelanggaran: []
-    };
-
     if (santriId || alumniData.nis) {
       const santriParams = santriId ? [santriId] : [alumniData.nis];
       const santriDetail = await db.query(`
@@ -381,56 +390,104 @@ async function getAlumniDetail(id) {
         await db.query('UPDATE alumni SET santri_id = $1 WHERE id = $2', [detailSantriId, id]);
         alumniData.santri_id = detailSantriId;
       }
-
-      if (detailSantriId) {
-        // Kelas history
-        const kelasHistory = await db.query(`
-          SELECT skh.*,
-                 kd.nama AS kelas_diniyah,
-                 ks.nama AS kelas_sekolah
-          FROM santri_kelas_history skh
-          LEFT JOIN kelas kd ON skh.kelas_diniyah_id = kd.id
-          LEFT JOIN kelas ks ON skh.kelas_sekolah_id = ks.id
-          WHERE skh.santri_id = $1
-          ORDER BY skh.tanggal_mulai DESC
-        `, [detailSantriId]);
-
-        // Kamar history
-        const kamarHistory = await db.query(`
-          SELECT skh.*, k.nama AS kamar, k.gedung, k.lantai
-          FROM santri_kamar_history skh
-          LEFT JOIN kamar k ON skh.kamar_id = k.id
-          WHERE skh.santri_id = $1
-          ORDER BY skh.tanggal_mulai DESC
-        `, [detailSantriId]);
-
-        // Prestasi
-        const prestasi = await db.query(`
-          SELECT * FROM prestasi
-          WHERE santri_id = $1
-          ORDER BY tanggal DESC
-        `, [detailSantriId]);
-
-        // Pelanggaran
-        const pelanggaran = await db.query(`
-          SELECT * FROM pelanggaran
-          WHERE santri_id = $1
-          ORDER BY tanggal DESC
-        `, [detailSantriId]);
-
-        riwayat = {
-          kelas: kelasHistory.rows,
-          kamar: kamarHistory.rows,
-          prestasi: prestasi.rows,
-          pelanggaran: pelanggaran.rows
-        };
-      }
     }
+
+    const effectiveSantriId = alumniData.santri_id || (identitasSantri ? identitasSantri.id : null);
+
+    let historyList = [];
+    let kamarHistoryList = [];
+    let prestasiList = [];
+    let pelanggaranList = [];
+
+    if (effectiveSantriId) {
+      // 1. Riwayat Akademik riil dari Buku Induk (santri_tahun_ajaran)
+      const staRes = await db.query(`
+        SELECT 
+          sta.id,
+          sta.santri_id,
+          sta.tahun_ajaran_id,
+          ta.kode AS tahun_ajaran,
+          ta.tahun_mulai,
+          ta.tahun_selesai,
+          kd.nama AS kelas_diniyah,
+          ks.nama AS kelas_sekolah,
+          k.nama AS kamar,
+          k.gedung,
+          k.lantai,
+          sta.status,
+          sta.catatan,
+          sta.aktif_ganjil,
+          sta.aktif_genap
+        FROM santri_tahun_ajaran sta
+        JOIN tahun_ajaran ta ON sta.tahun_ajaran_id = ta.id
+        LEFT JOIN kelas kd ON sta.kelas_diniyah_id = kd.id
+        LEFT JOIN kelas ks ON sta.kelas_sekolah_id = ks.id
+        LEFT JOIN kamar k ON sta.kamar_id = k.id
+        WHERE sta.santri_id = $1
+        ORDER BY ta.tahun_mulai ASC, sta.id ASC
+      `, [effectiveSantriId]);
+
+      historyList = staRes.rows;
+
+      // Extract unique kamar records across years
+      const kamarMap = new Map();
+      for (const row of staRes.rows) {
+        if (row.kamar && !kamarMap.has(row.kamar)) {
+          kamarMap.set(row.kamar, {
+            kamar: row.kamar,
+            gedung: row.gedung,
+            lantai: row.lantai,
+            tanggal_mulai: row.tahun_mulai ? `${row.tahun_mulai}-07-01` : null,
+            tahun_ajaran: row.tahun_ajaran
+          });
+        }
+      }
+      kamarHistoryList = Array.from(kamarMap.values());
+
+      // Prestasi
+      const presRes = await db.query(`
+        SELECT id, santri_id, jenis, jenis AS prestasi, tanggal, deskripsi, deskripsi AS keterangan, penghargaan, penghargaan AS kegiatan, tahun_ajaran_id
+        FROM prestasi
+        WHERE santri_id = $1
+        ORDER BY tanggal DESC
+      `, [effectiveSantriId]);
+      prestasiList = presRes.rows;
+
+      // Pelanggaran
+      const pelRes = await db.query(`
+        SELECT id, santri_id, jenis, jenis AS pelanggaran, tanggal, deskripsi, deskripsi AS keterangan, sanksi, tahun_ajaran_id
+        FROM pelanggaran
+        WHERE santri_id = $1
+        ORDER BY tanggal DESC
+      `, [effectiveSantriId]);
+      pelanggaranList = pelRes.rows;
+    }
+
+    const combinedSantri = {
+      ...(identitasSantri || {}),
+      ...(alumniData || {}),
+      foto_url: (identitasSantri && identitasSantri.foto_url) || alumniData.foto_url,
+      jenis_kelamin: (identitasSantri && identitasSantri.jenis_kelamin) || alumniData.jenis_kelamin,
+      kamar: (identitasSantri && identitasSantri.kamar) || alumniData.kamar,
+      nama_ayah: (identitasSantri && identitasSantri.nama_ayah) || alumniData.nama_ayah,
+      nama_ibu: (identitasSantri && identitasSantri.nama_ibu) || alumniData.nama_ibu,
+      no_hp_ayah: (identitasSantri && identitasSantri.no_hp_ayah) || alumniData.no_hp_ayah,
+      no_hp_ibu: (identitasSantri && identitasSantri.no_hp_ibu) || alumniData.no_hp_ibu,
+    };
 
     return {
       alumni: alumniData,
       identitas: identitasSantri,
-      riwayat
+      santri: combinedSantri,
+      history: historyList,
+      prestasi: prestasiList,
+      pelanggaran: pelanggaranList,
+      riwayat: {
+        kelas: historyList,
+        kamar: kamarHistoryList,
+        prestasi: prestasiList,
+        pelanggaran: pelanggaranList
+      }
     };
   } catch (error) {
     if (error instanceof NotFoundError) throw error;
