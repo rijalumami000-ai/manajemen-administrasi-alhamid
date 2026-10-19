@@ -75,7 +75,7 @@ export function AlumniDetailModal({ isOpen, onClose, alumniId }) {
             <div className="info-group">
               <h5>Data Identitas Santri</h5>
               <div className="info-item"><span>Nama Lengkap:</span> <strong>{santri.nama || '-'}</strong></div>
-              <div className="info-item"><span>NIS / NISN:</span> <strong>{santri.nis || '-'}{santri.nisn ? ` / ${santri.nisn}` : ''}</strong></div>
+              <div className="info-item"><span>NIS:</span> <strong>{santri.nis || '-'}</strong></div>
               <div className="info-item"><span>NIK:</span> <strong>{santri.nik || '-'}</strong></div>
               <div className="info-item"><span>Jenis Kelamin:</span> <strong>{formatGender(santri.jenis_kelamin)}</strong></div>
               <div className="info-item"><span>TTL:</span> <strong>{santri.tempat_lahir ? `${santri.tempat_lahir}, ` : ''}{santri.tanggal_lahir ? formatDate(santri.tanggal_lahir) : '-'}</strong></div>

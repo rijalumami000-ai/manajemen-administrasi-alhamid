@@ -19,8 +19,7 @@ async function getAllAlumni(tipe = null, tahunAjaranId = null) {
     let query = `
       SELECT a.*, 
              s.foto_url, 
-             s.jenis_kelamin, 
-             s.nisn
+             s.jenis_kelamin
       FROM alumni a
       LEFT JOIN santri s ON a.santri_id = s.id OR (a.santri_id IS NULL AND a.nis = s.nis)
       WHERE 1=1
@@ -54,8 +53,7 @@ async function searchAlumni(searchQuery, tahunLulus, tipe = null, tahunAjaranId 
     let query = `
       SELECT a.*, 
              s.foto_url, 
-             s.jenis_kelamin, 
-             s.nisn
+             s.jenis_kelamin
       FROM alumni a
       LEFT JOIN santri s ON a.santri_id = s.id OR (a.santri_id IS NULL AND a.nis = s.nis)
       WHERE 1=1
