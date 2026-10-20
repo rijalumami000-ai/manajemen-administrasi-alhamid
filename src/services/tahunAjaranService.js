@@ -65,9 +65,11 @@ async function syncSantriToSpecificTahunAjaran(santriId, tahunAjaranId, options 
 
   console.log(`✅ Inserted/Updated santri_tahun_ajaran:`, result.rows[0]);
 
-  // Sync to alumni table if status is pindah/keluar, or delete if active again
-  if (status === 'pindah' || status === 'keluar') {
-    console.log(`🔄 Student ${santriId} status is ${status}. Syncing to alumni table as 'pindah'...`);
+  // Sync to alumni table if status is pindah/keluar/lulus/alumni, or delete if active again
+  if (status === 'pindah' || status === 'keluar' || status === 'lulus' || status === 'alumni') {
+    const isLulus = status === 'lulus' || status === 'alumni' || (catatan && catatan.toLowerCase().includes('lulus'));
+    const tipeAlumni = isLulus ? 'alumni' : 'pindah';
+    console.log(`🔄 Student ${santriId} status is ${status}. Syncing to alumni table as '${tipeAlumni}'...`);
     // Get student details
     const santriResult = await client.query(`
       SELECT s.nis, s.nik, s.nama, s.tempat_lahir, s.tanggal_lahir, s.alamat,
@@ -111,11 +113,11 @@ async function syncSantriToSpecificTahunAjaran(santriId, tahunAjaranId, options 
         tahunLulus,
         kelasTerakhir,
         santri.alamat,
-        catatan || `Pindah/keluar pada tahun ajaran ${yearKode}`,
+        catatan || (isLulus ? `Lulus pada tahun ajaran ${yearKode}` : `Pindah/keluar pada tahun ajaran ${yearKode}`),
         tahunAjaranId,
-        'pindah'
+        tipeAlumni
       ]);
-      console.log(`✅ Alumni record (pindah) synced successfully for santri ${santriId}`);
+      console.log(`✅ Alumni record (${tipeAlumni}) synced successfully for santri ${santriId}`);
     }
   } else {
     // Delete from alumni if student becomes active again

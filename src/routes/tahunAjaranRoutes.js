@@ -473,7 +473,7 @@ function registerTahunAjaranRoutes(app) {
           row.alamat,
           row.catatan || `Pindah/keluar pada tahun ajaran ${source.kode}`,
           source.id,
-          'pindah'
+          (row.status === 'lulus' || row.status === 'alumni' || (row.catatan && row.catatan.toLowerCase().includes('lulus'))) ? 'alumni' : 'pindah'
         ]);
         nonMigratedPindahCount++;
       }

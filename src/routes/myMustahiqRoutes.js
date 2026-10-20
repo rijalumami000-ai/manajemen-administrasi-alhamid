@@ -348,7 +348,7 @@ function registerMyMustahiqRoutes(app) {
       FROM santri_tahun_ajaran sta
       JOIN santri s ON sta.santri_id = s.id
       LEFT JOIN kamar k ON sta.kamar_id = k.id
-      WHERE sta.kelas_diniyah_id = $1 AND sta.tahun_ajaran_id = $2 AND sta.status IN ('aktif', 'alumni')
+      WHERE sta.kelas_diniyah_id = $1 AND sta.tahun_ajaran_id = $2 AND COALESCE(sta.status, 'aktif') IN ('aktif', 'draft', 'tidak_naik', 'lulus', 'alumni')
     `;
     if (isGenap) {
       queryStr += ` AND sta.aktif_genap = TRUE`;
@@ -1377,7 +1377,7 @@ function registerMyMustahiqRoutes(app) {
       SELECT sta.santri_id AS id, sta.nama, sta.nis, s.foto_url, sta.jenis_kelamin
       FROM santri_tahun_ajaran sta
       JOIN santri s ON sta.santri_id = s.id
-      WHERE sta.kelas_diniyah_id = $1 AND sta.tahun_ajaran_id = $2 AND sta.status IN ('aktif', 'alumni')
+      WHERE sta.kelas_diniyah_id = $1 AND sta.tahun_ajaran_id = $2 AND COALESCE(sta.status, 'aktif') IN ('aktif', 'draft', 'tidak_naik', 'lulus', 'alumni')
     `;
     if (isGenap) {
       studentsQuery += ` AND sta.aktif_genap = TRUE`;
@@ -2769,7 +2769,7 @@ function registerMyMustahiqRoutes(app) {
       SELECT sta.santri_id AS id, sta.nis, sta.nama, s.foto_url
       FROM santri_tahun_ajaran sta
       JOIN santri s ON s.id = sta.santri_id
-      WHERE sta.kelas_diniyah_id = $1 AND sta.tahun_ajaran_id = $2 AND sta.status IN ('aktif', 'alumni')
+      WHERE sta.kelas_diniyah_id = $1 AND sta.tahun_ajaran_id = $2 AND COALESCE(sta.status, 'aktif') IN ('aktif', 'draft', 'tidak_naik', 'lulus', 'alumni')
     `;
     if (isGenap) santriQuery += ' AND sta.aktif_genap = TRUE';
     else santriQuery += ' AND sta.aktif_ganjil = TRUE';
@@ -2845,7 +2845,7 @@ function registerMyMustahiqRoutes(app) {
     rekapClassArr.sort((a, b) => b.total_nilai - a.total_nilai);
     rekapClassArr.forEach((item, idx) => {
       item.peringkat_sistem = idx + 1;
-      item.peringkat = item.peringkat_manual || item.peringkat_sistem;
+      item.peringkat = item.peringkat_manual ? item.peringkat_manual : null;
     });
 
     const rankResultMap = {};
@@ -3019,7 +3019,7 @@ function registerMyMustahiqRoutes(app) {
     let santriQuery = `
       SELECT sta.santri_id AS id, sta.nis, sta.nama
       FROM santri_tahun_ajaran sta
-      WHERE sta.kelas_diniyah_id = $1 AND sta.tahun_ajaran_id = $2 AND sta.status IN ('aktif', 'alumni')
+      WHERE sta.kelas_diniyah_id = $1 AND sta.tahun_ajaran_id = $2 AND COALESCE(sta.status, 'aktif') IN ('aktif', 'draft', 'tidak_naik', 'lulus', 'alumni')
     `;
     if (isGenap) santriQuery += ' AND sta.aktif_genap = TRUE';
     else santriQuery += ' AND sta.aktif_ganjil = TRUE';
