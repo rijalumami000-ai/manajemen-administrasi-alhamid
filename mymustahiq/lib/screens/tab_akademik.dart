@@ -579,7 +579,7 @@ class _TabAkademikState extends State<TabAkademik> {
       },
       {
         'title': 'Jadwal Imam Tarawih & Bilal',
-        'desc': 'Daftar imam sholat Isya\', Tarawih, Bilal, dan juz tilawah per malam.',
+        'desc': 'Daftar imam sholat Isya\', Tarawih, dan Bilal.',
         'icon': Icons.mosque_rounded,
         'badge': 'Sholat Tarawih',
         'color': const Color(0xFF0D9488),

@@ -629,7 +629,10 @@ class _LaporanAkademikScreenState extends State<LaporanAkademikScreen> {
                       children: [
                         _buildStatChip('Total Nilai', '${rapor['total_nilai'] ?? 0}', const Color(0xFF10B981)),
                         _buildStatChip('Rata-Rata', '${rapor['rata_rata'] ?? 0}', const Color(0xFF3B82F6)),
-                        _buildStatChip('Peringkat', '${rapor['peringkat'] ?? '-'}', const Color(0xFF8B5CF6), isBold: true),
+                        if (rapor['peringkat'] != null &&
+                            rapor['peringkat'].toString().trim().isNotEmpty &&
+                            rapor['peringkat'].toString() != '-')
+                          _buildStatChip('Peringkat', '${rapor['peringkat']}', const Color(0xFF8B5CF6), isBold: true),
                       ],
                     ),
                     // Catatan Wali Kelas

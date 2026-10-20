@@ -135,7 +135,7 @@ class _InputPelanggaranPrestasiScreenState extends State<InputPelanggaranPrestas
           }
         : null;
 
-    String selectedJenis = isEdit ? (existing['jenis'] ?? 'Ringan') : 'Ringan';
+    final jenisCtrl = TextEditingController(text: isEdit ? (existing['jenis'] ?? '') : '');
     DateTime selectedDate = isEdit && existing['tanggal'] != null
         ? (DateTime.tryParse(existing['tanggal'].toString()) ?? DateTime.now())
         : DateTime.now();
@@ -308,48 +308,20 @@ class _InputPelanggaranPrestasiScreenState extends State<InputPelanggaranPrestas
 
                   const SizedBox(height: 14),
 
-                  // 3. Tingkat Pelanggaran
-                  Text("Tingkat Pelanggaran *", style: GoogleFonts.outfit(fontWeight: FontWeight.w600, fontSize: 13, color: context.titleColor)),
+                  // 3. Jenis Pelanggaran
+                  Text("Jenis Pelanggaran *", style: GoogleFonts.outfit(fontWeight: FontWeight.w600, fontSize: 13, color: context.titleColor)),
                   const SizedBox(height: 6),
-                  Row(
-                    children: ['Ringan', 'Sedang', 'Berat'].map((jenis) {
-                      final isSelected = selectedJenis == jenis;
-                      Color btnColor = jenis == 'Ringan'
-                          ? const Color(0xFFF59E0B)
-                          : jenis == 'Sedang'
-                              ? const Color(0xFFF97316)
-                              : const Color(0xFFEF4444);
-
-                      return Expanded(
-                        child: Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 4),
-                          child: GestureDetector(
-                            onTap: () => setModalState(() => selectedJenis = jenis),
-                            child: Container(
-                              padding: const EdgeInsets.symmetric(vertical: 10),
-                              decoration: BoxDecoration(
-                                color: isSelected ? btnColor.withOpacity(0.18) : (isDark ? const Color(0xFF1E293B) : const Color(0xFFF1F5F9)),
-                                borderRadius: BorderRadius.circular(12),
-                                border: Border.all(
-                                  color: isSelected ? btnColor : Colors.transparent,
-                                  width: 1.5,
-                                ),
-                              ),
-                              child: Center(
-                                child: Text(
-                                  jenis,
-                                  style: GoogleFonts.outfit(
-                                    fontSize: 12.5,
-                                    fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
-                                    color: isSelected ? btnColor : context.subTitleColor,
-                                  ),
-                                ),
-                              ),
-                            ),
-                          ),
-                        ),
-                      );
-                    }).toList(),
+                  TextField(
+                    controller: jenisCtrl,
+                    style: GoogleFonts.outfit(color: context.titleColor, fontSize: 13),
+                    decoration: InputDecoration(
+                      hintText: "Contoh: Terlambat, Tidak Mengerjakan Tugas, dll...",
+                      hintStyle: GoogleFonts.outfit(color: context.subTitleColor, fontSize: 12.5),
+                      filled: true,
+                      fillColor: isDark ? const Color(0xFF1E293B) : const Color(0xFFF1F5F9),
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: BorderSide.none),
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                    ),
                   ),
 
                   const SizedBox(height: 14),
@@ -438,6 +410,10 @@ class _InputPelanggaranPrestasiScreenState extends State<InputPelanggaranPrestas
                                 setModalState(() => formError = "Santri wajib dipilih!");
                                 return;
                               }
+                              if (jenisCtrl.text.trim().isEmpty) {
+                                setModalState(() => formError = "Jenis pelanggaran wajib diisi!");
+                                return;
+                              }
                               if (deskripsiCtrl.text.trim().isEmpty) {
                                 setModalState(() => formError = "Deskripsi pelanggaran wajib diisi!");
                                 return;
@@ -451,7 +427,7 @@ class _InputPelanggaranPrestasiScreenState extends State<InputPelanggaranPrestas
                               try {
                                 final payload = {
                                   'santri_id': selectedSantri['id'],
-                                  'jenis': selectedJenis,
+                                  'jenis': jenisCtrl.text.trim(),
                                   'tanggal': selectedDate.toIso8601String().split('T')[0],
                                   'deskripsi': deskripsiCtrl.text.trim(),
                                   'sanksi': sanksiCtrl.text.trim(),
@@ -515,7 +491,7 @@ class _InputPelanggaranPrestasiScreenState extends State<InputPelanggaranPrestas
           }
         : null;
 
-    String selectedJenis = isEdit ? (existing['jenis'] ?? 'Akademik') : 'Akademik';
+    final jenisCtrl = TextEditingController(text: isEdit ? (existing['jenis'] ?? '') : '');
     DateTime selectedDate = isEdit && existing['tanggal'] != null
         ? (DateTime.tryParse(existing['tanggal'].toString()) ?? DateTime.now())
         : DateTime.now();
@@ -685,40 +661,19 @@ class _InputPelanggaranPrestasiScreenState extends State<InputPelanggaranPrestas
 
                   const SizedBox(height: 14),
 
-                  // Kategori Prestasi
-                  Text("Kategori Prestasi *", style: GoogleFonts.outfit(fontWeight: FontWeight.w600, fontSize: 13, color: context.titleColor)),
+                  // Jenis / Kategori Prestasi
+                  Text("Jenis / Nama Prestasi *", style: GoogleFonts.outfit(fontWeight: FontWeight.w600, fontSize: 13, color: context.titleColor)),
                   const SizedBox(height: 6),
-                  SingleChildScrollView(
-                    scrollDirection: Axis.horizontal,
-                    child: Row(
-                      children: ['Akademik', 'Tahfidz Al-Qur\'an', 'Kitab Kuning', 'Pidato / Da\'i', 'Olahraga', 'Lainnya'].map((jenis) {
-                        final isSelected = selectedJenis == jenis;
-                        return Padding(
-                          padding: const EdgeInsets.only(right: 6),
-                          child: GestureDetector(
-                            onTap: () => setModalState(() => selectedJenis = jenis),
-                            child: Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                              decoration: BoxDecoration(
-                                color: isSelected ? const Color(0xFFF59E0B).withOpacity(0.18) : (isDark ? const Color(0xFF1E293B) : const Color(0xFFF1F5F9)),
-                                borderRadius: BorderRadius.circular(10),
-                                border: Border.all(
-                                  color: isSelected ? const Color(0xFFF59E0B) : Colors.transparent,
-                                  width: 1.5,
-                                ),
-                              ),
-                              child: Text(
-                                jenis,
-                                style: GoogleFonts.outfit(
-                                  fontSize: 12,
-                                  fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
-                                  color: isSelected ? const Color(0xFFF59E0B) : context.subTitleColor,
-                                ),
-                              ),
-                            ),
-                          ),
-                        );
-                      }).toList(),
+                  TextField(
+                    controller: jenisCtrl,
+                    style: GoogleFonts.outfit(color: context.titleColor, fontSize: 13),
+                    decoration: InputDecoration(
+                      hintText: "Contoh: Juara 1 MQK, Hafalan 30 Juz, dll...",
+                      hintStyle: GoogleFonts.outfit(color: context.subTitleColor, fontSize: 12.5),
+                      filled: true,
+                      fillColor: isDark ? const Color(0xFF1E293B) : const Color(0xFFF1F5F9),
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: BorderSide.none),
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
                     ),
                   ),
 
@@ -807,8 +762,8 @@ class _InputPelanggaranPrestasiScreenState extends State<InputPelanggaranPrestas
                                 setModalState(() => formError = "Santri wajib dipilih!");
                                 return;
                               }
-                              if (deskripsiCtrl.text.trim().isEmpty) {
-                                setModalState(() => formError = "Nama prestasi wajib diisi!");
+                              if (jenisCtrl.text.trim().isEmpty) {
+                                setModalState(() => formError = "Jenis / Nama prestasi wajib diisi!");
                                 return;
                               }
 
@@ -820,7 +775,7 @@ class _InputPelanggaranPrestasiScreenState extends State<InputPelanggaranPrestas
                               try {
                                 final payload = {
                                   'santri_id': selectedSantri['id'],
-                                  'jenis': selectedJenis,
+                                  'jenis': jenisCtrl.text.trim(),
                                   'tanggal': selectedDate.toIso8601String().split('T')[0],
                                   'deskripsi': deskripsiCtrl.text.trim(),
                                   'penghargaan': penghargaanCtrl.text.trim(),
@@ -1241,11 +1196,12 @@ class _InputPelanggaranPrestasiScreenState extends State<InputPelanggaranPrestas
               final deskripsi = item['deskripsi'] ?? '-';
               final sanksi = item['sanksi'] ?? '-';
 
-              Color tagColor = jenis == 'Ringan'
-                  ? const Color(0xFFF59E0B)
-                  : jenis == 'Sedang'
-                      ? const Color(0xFFF97316)
-                      : const Color(0xFFEF4444);
+              Color tagColor = const Color(0xFFEF4444);
+              if (jenis.toString().toLowerCase().contains('ringan')) {
+                tagColor = const Color(0xFFF59E0B);
+              } else if (jenis.toString().toLowerCase().contains('sedang')) {
+                tagColor = const Color(0xFFF97316);
+              }
 
               return Container(
                 margin: const EdgeInsets.only(bottom: 12),

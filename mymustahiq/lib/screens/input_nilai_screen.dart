@@ -12,10 +12,11 @@ class InputNilaiScreen extends StatefulWidget {
   State<InputNilaiScreen> createState() => _InputNilaiScreenState();
 }
 
-class _InputNilaiScreenState extends State<InputNilaiScreen> {
+class _InputNilaiScreenState extends State<InputNilaiScreen> with SingleTickerProviderStateMixin {
   final ApiService _apiService = ApiService();
   bool _isLoading = true;
   bool _isDataLoading = false;
+  bool _isSavingAll = false;
 
   List<dynamic> _tahunAjaranList = [];
   Map<String, dynamic>? _selectedTahunAjaran;
@@ -24,7 +25,7 @@ class _InputNilaiScreenState extends State<InputNilaiScreen> {
   List<dynamic> _classes = [];
   int? _selectedKelasId;
 
-  // Grade form data
+  // Grade form data from API
   Map<String, dynamic>? _classDetail;
   int? _kategoriEvaluasiId;
   int? _muhafadzohMapelId;
@@ -33,16 +34,45 @@ class _InputNilaiScreenState extends State<InputNilaiScreen> {
   List<dynamic> _mataPelajaran = [];
   Map<String, dynamic> _nilaiExisting = {};
 
+  // Active subject selection for tabs with multiple subjects
+  int? _selectedRegulerMapelId;
+  int? _selectedTaftisyMapelId;
+
+  // Grade inputs state: key is "${santriId}_${mapelId}"
+  final Map<String, TextEditingController> _scoreControllers = {};
+  final Map<String, String?> _teksValues = {};
+  final Map<String, String?> _predikatValues = {};
+  final Map<String, bool> _savingStudentMap = {};
+
+  late TabController _tabController;
+
   @override
   void initState() {
     super.initState();
+    _tabController = TabController(length: 4, vsync: this);
     _initializeFilters();
+  }
+
+  @override
+  void dispose() {
+    _tabController.dispose();
+    for (final c in _scoreControllers.values) {
+      c.dispose();
+    }
+    super.dispose();
+  }
+
+  TextEditingController _getScoreController(int santriId, int mapelId, {String defaultVal = ''}) {
+    final key = '${santriId}_$mapelId';
+    if (!_scoreControllers.containsKey(key)) {
+      _scoreControllers[key] = TextEditingController(text: defaultVal);
+    }
+    return _scoreControllers[key]!;
   }
 
   Future<void> _initializeFilters() async {
     setState(() => _isLoading = true);
     try {
-      // 1. Load academic years list
       final taResult = await _apiService.getTahunAjaranList();
       _tahunAjaranList = taResult['tahunAjaran'] ?? [];
       _selectedSemester = taResult['activeSemester'] ?? 'Ganjil';
@@ -54,7 +84,6 @@ class _InputNilaiScreenState extends State<InputNilaiScreen> {
         );
       }
 
-      // 2. Load classes for the active academic year
       if (_selectedTahunAjaran != null) {
         final classesData = await _apiService.getClasses(
           tahunAjaranId: _selectedTahunAjaran!['id'],
@@ -70,13 +99,15 @@ class _InputNilaiScreenState extends State<InputNilaiScreen> {
     } catch (e) {
       _showSnackBar(e.toString(), isError: true);
     } finally {
-      setState(() => _isLoading = false);
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
     }
   }
 
   Future<void> _loadGradeEntryForm() async {
     if (_selectedKelasId == null || _selectedTahunAjaran == null) return;
-    
+
     setState(() => _isDataLoading = true);
     try {
       final data = await _apiService.getInputNilaiSantri(
@@ -92,29 +123,99 @@ class _InputNilaiScreenState extends State<InputNilaiScreen> {
       _students = data['santri'] ?? [];
       _mataPelajaran = data['mataPelajaran'] ?? [];
       _nilaiExisting = Map<String, dynamic>.from(data['nilaiExisting'] ?? {});
+
+      // Ensure default selections for sub-tabs
+      final regList = _regulerMapels;
+      if (regList.isNotEmpty) {
+        if (_selectedRegulerMapelId == null || !regList.any((m) => m['id'] == _selectedRegulerMapelId)) {
+          _selectedRegulerMapelId = regList.first['id'] as int;
+        }
+      } else {
+        _selectedRegulerMapelId = null;
+      }
+
+      final tafList = _taftisyMapels;
+      if (tafList.isNotEmpty) {
+        if (_selectedTaftisyMapelId == null || !tafList.any((m) => m['id'] == _selectedTaftisyMapelId)) {
+          _selectedTaftisyMapelId = tafList.first['id'] as int;
+        }
+      } else {
+        _selectedTaftisyMapelId = null;
+      }
+
+      _syncControllersWithExistingGrades();
     } catch (e) {
       _showSnackBar(e.toString(), isError: true);
     } finally {
-      setState(() => _isDataLoading = false);
+      if (mounted) {
+        setState(() => _isDataLoading = false);
+      }
     }
   }
 
-  void _showSnackBar(String message, {bool isError = false}) {
-    if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(message, style: GoogleFonts.outfit()),
-        backgroundColor: isError ? Colors.redAccent : const Color(0xFF10B981),
-        behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      ),
-    );
+  void _syncControllersWithExistingGrades() {
+    for (final santri in _students) {
+      final santriId = santri['id'] as int;
+      final sIdStr = santriId.toString();
+      final studentGrades = _nilaiExisting[sIdStr] as Map<String, dynamic>? ?? {};
+
+      for (final mapel in _mataPelajaran) {
+        final mapelId = mapel['id'] as int;
+        final mIdStr = mapelId.toString();
+        final existing = studentGrades[mIdStr];
+        final key = '${santriId}_$mapelId';
+        final tipeInput = mapel['tipe_input']?.toString() ?? 'Angka';
+
+        if (tipeInput == 'Teks') {
+          final parsed = _parseStoredCapaian(existing);
+          _teksValues[key] = parsed['bab'];
+          _predikatValues[key] = existing?['predikat']?.toString() ?? '';
+        } else {
+          final scoreVal = existing?['nilai'] != null ? _formatNilai(existing['nilai']) : '';
+          if (!_scoreControllers.containsKey(key)) {
+            _scoreControllers[key] = TextEditingController(text: scoreVal);
+          } else {
+            _scoreControllers[key]!.text = scoreVal;
+          }
+          final double? score = double.tryParse(scoreVal);
+          _predikatValues[key] = score != null
+              ? _calculatePredikat(score, mapel['konfigurasi'])
+              : (existing?['predikat']?.toString() ?? '');
+        }
+      }
+    }
+  }
+
+  Map<String, String> _parseStoredCapaian(dynamic existingGrade) {
+    if (existingGrade == null || existingGrade['capaian'] == null) {
+      return {'bab': '', 'desc': ''};
+    }
+    final String saved = existingGrade['capaian'].toString();
+    final int idx = saved.indexOf(' - ');
+    if (idx != -1) {
+      return {
+        'bab': saved.substring(0, idx).trim(),
+        'desc': saved.substring(idx + 3).trim(),
+      };
+    }
+    return {'bab': saved.trim(), 'desc': ''};
+  }
+
+  String _formatNilai(dynamic nilai) {
+    if (nilai == null) return '';
+    final d = double.tryParse(nilai.toString());
+    if (d != null) {
+      if (d == d.toInt()) {
+        return d.toInt().toString();
+      }
+      return d.toString();
+    }
+    return nilai.toString();
   }
 
   String _calculatePredikat(double? score, dynamic konfigurasi) {
     if (score == null) return '';
-    
-    // Use dynamic configuration if provided
+
     if (konfigurasi != null && konfigurasi is Map) {
       for (var entry in konfigurasi.entries) {
         var pred = entry.key.toString();
@@ -131,10 +232,9 @@ class _InputNilaiScreenState extends State<InputNilaiScreen> {
           }
         }
       }
-      return ''; // No match found in config
+      return '';
     }
 
-    // Default hardcoded fallback
     if (score >= 90) return 'Mumtaz';
     if (score >= 80) return 'Jayyid';
     if (score >= 70) return 'Mutawassith';
@@ -142,524 +242,739 @@ class _InputNilaiScreenState extends State<InputNilaiScreen> {
     return "Rodi'";
   }
 
-  String _formatNilai(dynamic nilai) {
-    if (nilai == null) return '';
-    final d = double.tryParse(nilai.toString());
-    if (d != null) {
-      if (d == d.toInt()) {
-        return d.toInt().toString();
-      }
-      return d.toString();
-    }
-    return nilai.toString();
+  void _showSnackBar(String message, {bool isError = false}) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message, style: GoogleFonts.outfit()),
+        backgroundColor: isError ? Colors.redAccent : const Color(0xFF10B981),
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      ),
+    );
   }
 
-  bool _isGradeFilled(dynamic g) {
-    if (g == null) return false;
-    if (g['nilai'] != null && g['nilai'].toString().trim().isNotEmpty) return true;
-    if (g['capaian'] != null && g['capaian'].toString().trim().isNotEmpty) return true;
-    if (g['predikat'] != null && g['predikat'].toString().trim().isNotEmpty) return true;
-    return false;
-  }
-
-  int _getGradeProgress(int santriId) {
-    final sIdStr = santriId.toString();
-    if (!_nilaiExisting.containsKey(sIdStr)) return 0;
-    
-    final studentGrades = _nilaiExisting[sIdStr] as Map<String, dynamic>;
-    int filled = 0;
-    
-    // Check muhafadzoh
-    if (_muhafadzohMapelId != null && studentGrades.containsKey(_muhafadzohMapelId.toString())) {
-      final g = studentGrades[_muhafadzohMapelId.toString()];
-      if (_isGradeFilled(g)) filled++;
-    }
-    
-    // Check qiroah
-    if (_qiroatulMapelId != null && studentGrades.containsKey(_qiroatulMapelId.toString())) {
-      final g = studentGrades[_qiroatulMapelId.toString()];
-      if (_isGradeFilled(g)) filled++;
-    }
-    
-    // Check others (including Taftisyul Kutub and Reguler subjects)
-    for (final mapel in _mataPelajaran) {
-      final mId = mapel['id'].toString();
-      if (mId == _muhafadzohMapelId?.toString() || mId == _qiroatulMapelId?.toString()) continue;
-      if (studentGrades.containsKey(mId)) {
-        final g = studentGrades[mId];
-        if (_isGradeFilled(g)) filled++;
+  // ── MATA PELAJARAN CATEGORY HELPERS ───────────────────────────────────────
+  Map<String, dynamic>? get _muhafadzohMapel {
+    if (_muhafadzohMapelId != null) {
+      for (final m in _mataPelajaran) {
+        if (m['id'] == _muhafadzohMapelId) return Map<String, dynamic>.from(m);
       }
     }
-    
-    return filled;
+    for (final m in _mataPelajaran) {
+      final n = (m['nama'] ?? '').toString().toLowerCase();
+      final j = (m['jenis'] ?? '').toString().toLowerCase();
+      if (j == 'muhafadzoh' || n.contains('muhafadzoh')) {
+        return Map<String, dynamic>.from(m);
+      }
+    }
+    return null;
   }
 
-  int _getTotalSubjectsCount() {
-    int total = _mataPelajaran.length;
-    // Ensure muhafadzoh & qiroah are counted if they exist but not in schedule list
-    if (_muhafadzohMapelId != null && !_mataPelajaran.any((m) => m['id'] == _muhafadzohMapelId)) {
-      total++;
+  Map<String, dynamic>? get _qiroatulMapel {
+    if (_qiroatulMapelId != null) {
+      for (final m in _mataPelajaran) {
+        if (m['id'] == _qiroatulMapelId) return Map<String, dynamic>.from(m);
+      }
     }
-    if (_qiroatulMapelId != null && !_mataPelajaran.any((m) => m['id'] == _qiroatulMapelId)) {
-      total++;
+    for (final m in _mataPelajaran) {
+      final n = (m['nama'] ?? '').toString().toLowerCase();
+      final j = (m['jenis'] ?? '').toString().toLowerCase();
+      if (j == 'qiroah' || n.contains('qiroah')) {
+        return Map<String, dynamic>.from(m);
+      }
     }
-    return total;
+    return null;
   }
 
-  void _showStudentGradesEditPanel(Map<String, dynamic> santri) {
+  List<Map<String, dynamic>> get _taftisyMapels {
+    return _mataPelajaran.where((m) {
+      final mId = m['id'];
+      if (mId == _muhafadzohMapelId || mId == _qiroatulMapelId) return false;
+      final j = (m['jenis'] ?? '').toString().toLowerCase();
+      final n = (m['nama'] ?? '').toString().toLowerCase();
+      return j.contains('taftisy') || n.contains('taftisy');
+    }).map((m) => Map<String, dynamic>.from(m)).toList();
+  }
+
+  List<Map<String, dynamic>> get _regulerMapels {
+    return _mataPelajaran.where((m) {
+      final mId = m['id'];
+      if (mId == _muhafadzohMapelId || mId == _qiroatulMapelId) return false;
+      final j = (m['jenis'] ?? '').toString().toLowerCase();
+      final n = (m['nama'] ?? '').toString().toLowerCase();
+      if (j.contains('taftisy') || n.contains('taftisy')) return false;
+      if (j.contains('muhafadzoh') || n.contains('muhafadzoh')) return false;
+      if (j.contains('qiroah') || n.contains('qiroah')) return false;
+      return true;
+    }).map((m) => Map<String, dynamic>.from(m)).toList();
+  }
+
+  String get _selectedKelasName {
+    if (_selectedKelasId == null || _classes.isEmpty) return "Pilih Kelas";
+    final cls = _classes.firstWhere(
+      (c) => c['id'] == _selectedKelasId,
+      orElse: () => null,
+    );
+    return cls != null ? (cls['nama']?.toString() ?? 'Pilih Kelas') : "Pilih Kelas";
+  }
+
+  // ── SAVE SINGLE STUDENT GRADE ─────────────────────────────────────────────
+  Future<void> _saveSingleStudentGrade(Map<String, dynamic> santri, Map<String, dynamic> mapel) async {
     final santriId = santri['id'] as int;
-    final sIdStr = santriId.toString();
-    final studentGrades = Map<String, dynamic>.from(_nilaiExisting[sIdStr] ?? {});
+    final mapelId = mapel['id'] as int;
+    final key = '${santriId}_$mapelId';
+    final tipeInput = mapel['tipe_input']?.toString() ?? 'Angka';
 
-    // Helper function to extract bab and description from stored capaian for Teks format
-    Map<String, String> parseStoredCapaian(dynamic existingGrade) {
-      if (existingGrade == null || existingGrade['capaian'] == null) {
-        return {'bab': '', 'desc': ''};
+    setState(() => _savingStudentMap[key] = true);
+    try {
+      double? nilaiAngka;
+      String? predikat;
+      String? capaian;
+
+      if (tipeInput == 'Teks') {
+        final selectedBab = _teksValues[key];
+        if (selectedBab != null && selectedBab.isNotEmpty && selectedBab != '__KOSONG__') {
+          capaian = selectedBab;
+          predikat = _predikatValues[key];
+        }
+      } else {
+        final text = _getScoreController(santriId, mapelId).text.trim();
+        if (text.isNotEmpty) {
+          nilaiAngka = double.tryParse(text);
+          predikat = _predikatValues[key] ?? _calculatePredikat(nilaiAngka, mapel['konfigurasi']);
+        }
       }
-      final String saved = existingGrade['capaian'].toString();
-      final int idx = saved.indexOf(' - ');
-      if (idx != -1) {
-        return {
-          'bab': saved.substring(0, idx).trim(),
-          'desc': saved.substring(idx + 3).trim(),
+
+      final payloadItem = {
+        'santri_id': santriId,
+        'mata_pelajaran_id': mapelId,
+        'nilai_angka': nilaiAngka,
+        'predikat': predikat,
+        'capaian': capaian,
+      };
+
+      await _apiService.saveInputNilai(
+        tahunAjaranId: _selectedTahunAjaran!['id'],
+        kategoriEvaluasiId: _kategoriEvaluasiId!,
+        data: [payloadItem],
+      );
+
+      final sIdStr = santriId.toString();
+      final mIdStr = mapelId.toString();
+      if (!_nilaiExisting.containsKey(sIdStr)) _nilaiExisting[sIdStr] = {};
+      _nilaiExisting[sIdStr][mIdStr] = {
+        'nilai': nilaiAngka,
+        'predikat': predikat,
+        'capaian': capaian,
+      };
+
+      _showSnackBar("Nilai ${santri['nama']} berhasil disimpan!");
+    } catch (e) {
+      _showSnackBar(e.toString(), isError: true);
+    } finally {
+      if (mounted) {
+        setState(() => _savingStudentMap[key] = false);
+      }
+    }
+  }
+
+  // ── SAVE ALL STUDENTS FOR A MAPEL IN TAB ──────────────────────────────────
+  Future<void> _saveAllStudentsInTab(Map<String, dynamic> mapel) async {
+    final mapelId = mapel['id'] as int;
+    final tipeInput = mapel['tipe_input']?.toString() ?? 'Angka';
+
+    setState(() => _isSavingAll = true);
+    try {
+      final List<Map<String, dynamic>> items = [];
+      for (final santri in _students) {
+        final santriId = santri['id'] as int;
+        final key = '${santriId}_$mapelId';
+
+        double? nilaiAngka;
+        String? predikat;
+        String? capaian;
+
+        if (tipeInput == 'Teks') {
+          final selectedBab = _teksValues[key];
+          if (selectedBab != null && selectedBab.isNotEmpty && selectedBab != '__KOSONG__') {
+            capaian = selectedBab;
+            predikat = _predikatValues[key];
+          }
+        } else {
+          final text = _getScoreController(santriId, mapelId).text.trim();
+          if (text.isNotEmpty) {
+            nilaiAngka = double.tryParse(text);
+            predikat = _predikatValues[key] ?? _calculatePredikat(nilaiAngka, mapel['konfigurasi']);
+          }
+        }
+
+        items.add({
+          'santri_id': santriId,
+          'mata_pelajaran_id': mapelId,
+          'nilai_angka': nilaiAngka,
+          'predikat': predikat,
+          'capaian': capaian,
+        });
+      }
+
+      await _apiService.saveInputNilai(
+        tahunAjaranId: _selectedTahunAjaran!['id'],
+        kategoriEvaluasiId: _kategoriEvaluasiId!,
+        data: items,
+      );
+
+      for (final item in items) {
+        final sIdStr = item['santri_id'].toString();
+        final mIdStr = item['mata_pelajaran_id'].toString();
+        if (!_nilaiExisting.containsKey(sIdStr)) _nilaiExisting[sIdStr] = {};
+        _nilaiExisting[sIdStr][mIdStr] = {
+          'nilai': item['nilai_angka'],
+          'predikat': item['predikat'],
+          'capaian': item['capaian'],
         };
       }
-      return {'bab': saved.trim(), 'desc': ''};
+
+      _showSnackBar("Semua nilai untuk ${mapel['nama']} berhasil disimpan!");
+    } catch (e) {
+      _showSnackBar(e.toString(), isError: true);
+    } finally {
+      if (mounted) {
+        setState(() => _isSavingAll = false);
+      }
     }
+  }
 
-    // Prepare lists of form items
-    final List<Map<String, dynamic>> formItems = [];
+  // ── POPUP DIALOG GRID MINI KELAS (4 BARIS KESAMPING) ──────────────────────
+  void _showClassSelectionDialog(BuildContext context) {
+    final isDark = context.isDarkMode;
+    final dialogBg = isDark ? const Color(0xFF0F172A) : Colors.white;
 
-    // 1. Muhafadzoh Akbar
-    if (_muhafadzohMapelId != null) {
-      final mIdStr = _muhafadzohMapelId.toString();
-      final existing = studentGrades[mIdStr];
-      final mapelData = _mataPelajaran.firstWhere((m) => m['id'] == _muhafadzohMapelId, orElse: () => <String, dynamic>{});
-      final String tipeInput = mapelData['tipe_input']?.toString() ?? 'Angka';
-      final parsed = parseStoredCapaian(existing);
-      
-      formItems.add({
-        'mapel_id': _muhafadzohMapelId,
-        'title': 'Muhafadzoh Akbar',
-        'is_special': true,
-        'tipe_input': tipeInput,
-        'konfigurasi': mapelData['konfigurasi'],
-        'controller': TextEditingController(text: tipeInput == 'Teks' ? parsed['bab'] : (existing != null && existing['nilai'] != null ? _formatNilai(existing['nilai']) : '')),
-        'predikat_controller': TextEditingController(text: existing?['predikat'] ?? ''),
-        'capaian_controller': TextEditingController(text: tipeInput == 'Teks' ? parsed['desc']! : (existing?['capaian'] ?? '')),
-      });
-    }
-
-    // 2. Qiroatul Kitab
-    if (_qiroatulMapelId != null) {
-      final mIdStr = _qiroatulMapelId.toString();
-      final existing = studentGrades[mIdStr];
-      formItems.add({
-        'mapel_id': _qiroatulMapelId,
-        'title': 'Qiroatul Kitab',
-        'is_special': true,
-        'is_qiroah': true,
-        'tipe_input': 'Angka',
-        'konfigurasi': null,
-        'controller': TextEditingController(text: existing != null && existing['nilai'] != null ? _formatNilai(existing['nilai']) : ''),
-        'predikat_controller': TextEditingController(text: existing?['predikat'] ?? ''),
-        'capaian_controller': TextEditingController(text: existing?['capaian'] ?? ''),
-      });
-    }
-
-    // 3. Taftisyul Kutub
-    final taftisyMapels = _mataPelajaran.where((m) {
-      final mId = m['id'] as int;
-      if (mId == _muhafadzohMapelId || mId == _qiroatulMapelId) return false;
-      return m['jenis'] == 'Taftisy' || m['jenis'] == 'Taftisyul Kutub' || m['nama'].toString().toLowerCase().contains('taftisy');
-    }).toList();
-
-    for (final mapel in taftisyMapels) {
-      final mId = mapel['id'] as int;
-      final mIdStr = mId.toString();
-      final existing = studentGrades[mIdStr];
-      final String tipeInput = mapel['tipe_input']?.toString() ?? 'Teks';
-      final parsed = parseStoredCapaian(existing);
-      
-      formItems.add({
-        'mapel_id': mId,
-        'title': mapel['nama'] ?? 'Taftisyul Kutub',
-        'is_special': true,
-        'tipe_input': tipeInput,
-        'konfigurasi': mapel['konfigurasi'],
-        'controller': TextEditingController(text: tipeInput == 'Teks' ? parsed['bab'] : (existing != null && existing['nilai'] != null ? _formatNilai(existing['nilai']) : '')),
-        'predikat_controller': TextEditingController(text: existing?['predikat'] ?? ''),
-        'capaian_controller': TextEditingController(text: tipeInput == 'Teks' ? parsed['desc']! : (existing?['capaian'] ?? '')),
-      });
-    }
-
-    // 4. Reguler subjects
-    for (final mapel in _mataPelajaran) {
-      final mId = mapel['id'] as int;
-      if (mId == _muhafadzohMapelId || mId == _qiroatulMapelId) continue;
-      
-      final isTaftisy = mapel['jenis'] == 'Taftisy' || mapel['jenis'] == 'Taftisyul Kutub' || mapel['nama'].toString().toLowerCase().contains('taftisy');
-      if (isTaftisy) continue;
-      
-      final mIdStr = mId.toString();
-      final existing = studentGrades[mIdStr];
-      final String tipeInput = mapel['tipe_input']?.toString() ?? 'Angka';
-      final parsed = parseStoredCapaian(existing);
-      
-      formItems.add({
-        'mapel_id': mId,
-        'title': mapel['nama'] as String,
-        'is_special': false,
-        'tipe_input': tipeInput,
-        'konfigurasi': mapel['konfigurasi'],
-        'controller': TextEditingController(text: tipeInput == 'Teks' ? parsed['bab'] : (existing != null && existing['nilai'] != null ? _formatNilai(existing['nilai']) : '')),
-        'predikat_controller': TextEditingController(text: existing?['predikat'] ?? ''),
-        'capaian_controller': TextEditingController(text: tipeInput == 'Teks' ? parsed['desc']! : (existing?['capaian'] ?? '')),
-      });
-    }
-
-    showModalBottomSheet(
+    showDialog(
       context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (context) {
-        final isDark = context.isDarkMode;
-        final panelBg = isDark ? const Color(0xFF1E293B) : Colors.white;
-        final textStyle = GoogleFonts.outfit(color: isDark ? Colors.white : Colors.black87);
-        final titleColor = isDark ? Colors.white : Colors.black87;
-
-        return StatefulBuilder(
-          builder: (context, setModalState) {
-            return Container(
-              height: MediaQuery.of(context).size.height * 0.85,
-              decoration: BoxDecoration(
-                color: panelBg,
-                borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
-              ),
-              padding: const EdgeInsets.only(top: 24, left: 20, right: 20, bottom: 20),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  // Top Title
-                  Row(
-                    children: [
-                      CircleAvatar(
-                        radius: 20,
-                        backgroundColor: isDark ? Colors.white10 : Colors.black.withOpacity(0.1),
-                        backgroundImage: santri['foto_url'] != null
-                            ? NetworkImage(_apiService.getFullImageUrl(santri['foto_url'] as String))
-                            : null,
-                        child: santri['foto_url'] == null
-                            ? Icon(
-                                santri['jenis_kelamin'] == 'P' ? Icons.female_rounded : Icons.male_rounded,
-                                color: Colors.grey,
-                                size: 24,
-                              )
-                            : null,
+      builder: (ctx) {
+        return Dialog(
+          backgroundColor: dialogBg,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+          insetPadding: const EdgeInsets.symmetric(horizontal: 18, vertical: 24),
+          child: Container(
+            padding: const EdgeInsets.all(20),
+            constraints: const BoxConstraints(maxWidth: 440),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFF97316).withOpacity(0.14),
+                        borderRadius: BorderRadius.circular(10),
                       ),
-                      const SizedBox(width: 14),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              santri['nama'] as String,
-                              style: GoogleFonts.outfit(
-                                fontSize: 16,
-                                fontWeight: FontWeight.bold,
-                                color: titleColor,
-                              ),
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                            Text(
-                              "NIS: ${santri['nis'] ?? '-'}",
-                              style: GoogleFonts.outfit(fontSize: 11, color: isDark ? Colors.white54 : Colors.black54),
-                            ),
-                          ],
-                        ),
-                      ),
-                      IconButton(
-                        icon: const Icon(Icons.close_rounded),
-                        onPressed: () => Navigator.pop(context),
-                      ),
-                    ],
-                  ),
-                  const Divider(height: 24),
-                  
-                  // Grade entry list
-                  Expanded(
-                    child: ListView.builder(
-                      physics: const BouncingScrollPhysics(),
-                      itemCount: formItems.length,
-                      itemBuilder: (context, index) {
-                        final item = formItems[index];
-                        final scoreCtrl = item['controller'] as TextEditingController;
-                        final predCtrl = item['predikat_controller'] as TextEditingController;
-                        final descCtrl = item['capaian_controller'] as TextEditingController;
-
-                        return Container(
-                          margin: const EdgeInsets.only(bottom: 16),
-                          padding: const EdgeInsets.all(16),
-                          decoration: BoxDecoration(
-                            color: isDark ? Colors.white.withOpacity(0.03) : Colors.black.withOpacity(0.02),
-                            borderRadius: BorderRadius.circular(16),
-                            border: Border.all(
-                              color: isDark ? Colors.white.withOpacity(0.05) : Colors.black.withOpacity(0.04),
+                      child: const Icon(Icons.grid_view_rounded, size: 20, color: Color(0xFFF97316)),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            "Pilih Kelas",
+                            style: GoogleFonts.outfit(
+                              fontSize: 17,
+                              fontWeight: FontWeight.bold,
+                              color: context.titleColor,
                             ),
                           ),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              // Subject Title
-                              Text(
-                                item['title'] as String,
+                          Text(
+                            "Pilih kelas santri untuk input nilai",
+                            style: GoogleFonts.outfit(fontSize: 12, color: context.subTitleColor),
+                          ),
+                        ],
+                      ),
+                    ),
+                    IconButton(
+                      icon: Icon(Icons.close_rounded, color: context.subTitleColor),
+                      onPressed: () => Navigator.pop(ctx),
+                      constraints: const BoxConstraints(),
+                      padding: EdgeInsets.zero,
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 16),
+                if (_classes.isEmpty)
+                  Padding(
+                    padding: const EdgeInsets.all(24.0),
+                    child: Center(
+                      child: Text(
+                        "Tidak ada kelas tersedia.",
+                        style: GoogleFonts.outfit(color: context.subTitleColor),
+                      ),
+                    ),
+                  )
+                else
+                  ConstrainedBox(
+                    constraints: BoxConstraints(maxHeight: MediaQuery.of(context).size.height * 0.55),
+                    child: SingleChildScrollView(
+                      physics: const BouncingScrollPhysics(),
+                      child: GridView.builder(
+                        shrinkWrap: true,
+                        physics: const NeverScrollableScrollPhysics(),
+                        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                          crossAxisCount: 4,
+                          crossAxisSpacing: 8,
+                          mainAxisSpacing: 8,
+                          childAspectRatio: 1.25,
+                        ),
+                        itemCount: _classes.length,
+                        itemBuilder: (c, idx) {
+                          final cls = _classes[idx];
+                          final id = cls['id'] as int;
+                          final nama = cls['nama']?.toString() ?? '-';
+                          final isSelected = id == _selectedKelasId;
+
+                          return GestureDetector(
+                            onTap: () {
+                              Navigator.pop(ctx);
+                              if (id != _selectedKelasId) {
+                                setState(() {
+                                  _selectedKelasId = id;
+                                });
+                                _loadGradeEntryForm();
+                              }
+                            },
+                            child: Container(
+                              decoration: BoxDecoration(
+                                color: isSelected
+                                    ? const Color(0xFFF97316)
+                                    : (isDark ? const Color(0xFF1E293B) : const Color(0xFFF1F5F9)),
+                                borderRadius: BorderRadius.circular(12),
+                                border: Border.all(
+                                  color: isSelected
+                                      ? const Color(0xFFF97316)
+                                      : (isDark ? Colors.white12 : Colors.black12),
+                                  width: isSelected ? 1.5 : 1,
+                                ),
+                                boxShadow: isSelected
+                                    ? [
+                                        BoxShadow(
+                                          color: const Color(0xFFF97316).withOpacity(0.35),
+                                          blurRadius: 6,
+                                          offset: const Offset(0, 2),
+                                        )
+                                      ]
+                                    : null,
+                              ),
+                              alignment: Alignment.center,
+                              padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 6),
+                              child: Text(
+                                nama,
+                                textAlign: TextAlign.center,
+                                maxLines: 2,
+                                overflow: TextOverflow.ellipsis,
                                 style: GoogleFonts.outfit(
-                                  fontSize: 14,
-                                  fontWeight: FontWeight.bold,
-                                  color: isDark ? const Color(0xFFFB923C) : const Color(0xFFC2410C),
+                                  fontSize: 12,
+                                  fontWeight: isSelected ? FontWeight.bold : FontWeight.w600,
+                                  color: isSelected ? Colors.white : context.titleColor,
                                 ),
                               ),
-                              const SizedBox(height: 12),
-                              
-                              // Determine if predikat should be shown
-                              // Show predikat only for Muhafadzoh and Taftisyul Kutub
-                              // Hide for Qiroatul Kitab and Reguler (Ujian Tulis)
-                              Builder(builder: (context) {
-                                final bool isQiroah = item['is_qiroah'] == true;
-                                final bool isSpecial = item['is_special'] == true;
-                                final bool showPredikat = isSpecial && !isQiroah;
-                                
-                                return Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    // Score and optional Predicate Row
-                                    Row(
-                                      children: [
-                                        // Score Input
-                                        Expanded(
-                                          flex: showPredikat ? 2 : 1,
-                                          child: item['tipe_input'] == 'Teks'
-                                              ? DropdownButtonFormField<String>(
-                                                  value: scoreCtrl.text.isEmpty
-                                                      ? null
-                                                      : ((item['konfigurasi'] as List<dynamic>? ?? []).any((c) => c['bab'].toString() == scoreCtrl.text)
-                                                          ? scoreCtrl.text
-                                                          : null),
-                                                  dropdownColor: panelBg,
-                                                  style: textStyle,
-                                                  decoration: _inputDecoration("Pilih Capaian / Teks", isDark).copyWith(
-                                                    suffixIcon: scoreCtrl.text.isNotEmpty
-                                                        ? IconButton(
-                                                            icon: const Icon(Icons.clear_rounded, size: 18),
-                                                            tooltip: "Kosongkan Nilai",
-                                                            onPressed: () {
-                                                              setModalState(() {
-                                                                scoreCtrl.clear();
-                                                                predCtrl.clear();
-                                                              });
-                                                            },
-                                                          )
-                                                        : null,
-                                                  ),
-                                                  items: [
-                                                    DropdownMenuItem<String>(
-                                                      value: '__KOSONG__',
-                                                      child: Text(
-                                                        '-- Belum Dipilih / Kosongkan --',
-                                                        style: textStyle.copyWith(
-                                                          color: isDark ? Colors.white54 : Colors.black45,
-                                                          fontStyle: FontStyle.italic,
-                                                          fontSize: 12.5,
-                                                        ),
-                                                      ),
-                                                    ),
-                                                    ...(item['konfigurasi'] as List<dynamic>? ?? [])
-                                                        .map<DropdownMenuItem<String>>((c) {
-                                                      return DropdownMenuItem<String>(
-                                                        value: c['bab'].toString(),
-                                                        child: Text(c['bab'].toString(), style: textStyle),
-                                                      );
-                                                    }),
-                                                  ],
-                                                  onChanged: (val) {
-                                                    setModalState(() {
-                                                      if (val == null || val == '__KOSONG__') {
-                                                        scoreCtrl.text = '';
-                                                        predCtrl.text = '';
-                                                      } else {
-                                                        scoreCtrl.text = val;
-                                                        final cfg = (item['konfigurasi'] as List<dynamic>?)?.firstWhere(
-                                                            (c) => c['bab'].toString() == val, orElse: () => null);
-                                                        predCtrl.text = cfg != null ? (cfg['predikat']?.toString() ?? '') : '';
-                                                      }
-                                                    });
-                                                  },
-                                                )
-                                              : TextField(
-                                                  controller: scoreCtrl,
-                                                  keyboardType: TextInputType.number,
-                                                  style: textStyle,
-                                                  decoration: _inputDecoration("Nilai (0-100)", isDark),
-                                                  onChanged: (val) {
-                                                    final double? score = double.tryParse(val);
-                                                    if (score != null) {
-                                                      setModalState(() {
-                                                        predCtrl.text = _calculatePredikat(score, item['konfigurasi']);
-                                                      });
-                                                    } else {
-                                                      setModalState(() {
-                                                        predCtrl.text = '';
-                                                      });
-                                                    }
-                                                  },
-                                                ),
-                                        ),
-                                        if (showPredikat) ...[
-                                          const SizedBox(width: 12),
-                                          // Predicate Input
-                                          Expanded(
-                                            flex: 1,
-                                            child: TextField(
-                                              controller: predCtrl,
-                                              textAlign: TextAlign.center,
-                                              maxLength: 2,
-                                              style: textStyle.copyWith(fontWeight: FontWeight.bold),
-                                              decoration: _inputDecoration("Predikat", isDark).copyWith(
-                                                counterText: "",
-                                              ),
-                                            ),
-                                          ),
-                                        ],
-                                      ],
-                                    ),
-                                  ],
-                                );
-                              }),
-                            ],
-                          ),
-                        );
-                      },
+                            ),
+                          );
+                        },
+                      ),
                     ),
                   ),
-                  
-                  const SizedBox(height: 12),
-                  
-                  // Save button
-                  ElevatedButton(
-                    onPressed: () async {
-                      Navigator.pop(context); // Close bottomsheet
-                      setState(() => _isDataLoading = true);
-
-                      // Package grades data
-                      final List<Map<String, dynamic>> gradesToSave = [];
-                      for (final item in formItems) {
-                        final mId = item['mapel_id'] as int;
-                        final scoreText = (item['controller'] as TextEditingController).text.trim();
-                        final pred = (item['predikat_controller'] as TextEditingController).text.trim();
-                        final desc = (item['capaian_controller'] as TextEditingController).text.trim();
-
-                        final bool isTeks = item['tipe_input'] == 'Teks';
-                        final double? score = isTeks ? null : double.tryParse(scoreText);
-                        
-                        // For 'Teks', scoreText holds the "bab" which goes to capaian. 
-                        // We also append desc if there's any extra note.
-                        String finalCapaian = '';
-                        if (isTeks) {
-                          if (scoreText.isNotEmpty && scoreText != '__KOSONG__') {
-                            finalCapaian = desc.isNotEmpty ? "$scoreText - $desc" : scoreText;
-                          } else {
-                            finalCapaian = '';
-                          }
-                        } else {
-                          finalCapaian = desc;
-                        }
-
-                        gradesToSave.add({
-                          'santri_id': santriId,
-                          'mata_pelajaran_id': mId,
-                          'nilai_angka': score,
-                          'predikat': isTeks && (scoreText.isEmpty || scoreText == '__KOSONG__') ? null : (pred.isNotEmpty ? pred : null),
-                          'capaian': finalCapaian.isNotEmpty ? finalCapaian : null,
-                        });
-                      }
-
-                      try {
-                        await _apiService.saveInputNilai(
-                          tahunAjaranId: _selectedTahunAjaran!['id'],
-                          kategoriEvaluasiId: _kategoriEvaluasiId!,
-                          data: gradesToSave,
-                        );
-                        _showSnackBar("Nilai ${santri['nama']} berhasil disimpan!");
-                        await _loadGradeEntryForm();
-                      } catch (e) {
-                        _showSnackBar(e.toString(), isError: true);
-                      } finally {
-                        setState(() => _isDataLoading = false);
-                      }
-                    },
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: isDark ? const Color(0xFFFB923C) : const Color(0xFFC2410C),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                      padding: const EdgeInsets.symmetric(vertical: 16),
-                      elevation: 0,
-                    ),
-                    child: Text(
-                      "Simpan Nilai Santri",
-                      style: GoogleFonts.outfit(fontWeight: FontWeight.bold, fontSize: 15, color: Colors.white),
-                    ),
-                  ),
-                ],
-              ),
-            );
-          },
+              ],
+            ),
+          ),
         );
       },
     );
   }
 
-  InputDecoration _inputDecoration(String label, bool isDark) {
-    return InputDecoration(
-      labelText: label,
-      labelStyle: GoogleFonts.outfit(color: isDark ? Colors.white38 : Colors.black38, fontSize: 13),
-      filled: true,
-      fillColor: isDark ? Colors.white.withOpacity(0.03) : Colors.black.withOpacity(0.015),
-      border: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(12),
-        borderSide: BorderSide(color: isDark ? Colors.white12 : Colors.black12),
+  // ── BUILD INDIVIDUAL STUDENT CARD IN TAB ──────────────────────────────────
+  Widget _buildStudentCard(Map<String, dynamic> santri, Map<String, dynamic> mapel, bool isDark) {
+    final santriId = santri['id'] as int;
+    final mapelId = mapel['id'] as int;
+    final key = '${santriId}_$mapelId';
+    final tipeInput = mapel['tipe_input']?.toString() ?? 'Angka';
+    final isSaving = _savingStudentMap[key] == true;
+
+    final sIdStr = santriId.toString();
+    final mIdStr = mapelId.toString();
+    final existingGrade = _nilaiExisting[sIdStr]?[mIdStr];
+    final bool hasExisting = existingGrade != null &&
+        ((existingGrade['nilai'] != null && existingGrade['nilai'].toString().isNotEmpty) ||
+            (existingGrade['capaian'] != null && existingGrade['capaian'].toString().isNotEmpty));
+
+    final predikatText = _predikatValues[key] ?? '';
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: isDark ? const Color(0xFF131D2E) : Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: isDark ? const Color(0xFF334155).withOpacity(0.5) : const Color(0xFFE2E8F0),
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(isDark ? 0.2 : 0.03),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
       ),
-      focusedBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(12),
-        borderSide: BorderSide(color: isDark ? const Color(0xFFFB923C) : const Color(0xFFC2410C), width: 1.5),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          // Header Row: Avatar, Name, NIS, Saved Indicator
+          Row(
+            children: [
+              CircleAvatar(
+                radius: 18,
+                backgroundColor: const Color(0xFFF97316).withOpacity(0.12),
+                backgroundImage: santri['foto_url'] != null && santri['foto_url'].toString().trim().isNotEmpty
+                    ? NetworkImage(_apiService.getFullImageUrl(santri['foto_url'] as String))
+                    : null,
+                child: (santri['foto_url'] == null || santri['foto_url'].toString().trim().isEmpty)
+                    ? Icon(
+                        santri['jenis_kelamin'] == 'P' ? Icons.female_rounded : Icons.male_rounded,
+                        color: const Color(0xFFF97316),
+                        size: 20,
+                      )
+                    : null,
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      santri['nama'] ?? '-',
+                      style: GoogleFonts.outfit(
+                        fontSize: 13.5,
+                        fontWeight: FontWeight.bold,
+                        color: context.titleColor,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    Text(
+                      "NIS: ${santri['nis'] ?? '-'}",
+                      style: GoogleFonts.outfit(fontSize: 11, color: context.subTitleColor),
+                    ),
+                  ],
+                ),
+              ),
+              if (hasExisting)
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF10B981).withOpacity(0.12),
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: const Color(0xFF10B981).withOpacity(0.3)),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Icon(Icons.check_circle_rounded, size: 12, color: Color(0xFF10B981)),
+                      const SizedBox(width: 4),
+                      Text(
+                        "Tersimpan",
+                        style: GoogleFonts.outfit(fontSize: 10, fontWeight: FontWeight.bold, color: const Color(0xFF10B981)),
+                      ),
+                    ],
+                  ),
+                ),
+            ],
+          ),
+
+          const SizedBox(height: 12),
+
+          // Input Row: Field Input + Live Predikat + Simpan Button
+          Row(
+            children: [
+              // Field Input: Dropdown if Teks, TextField if Angka
+              Expanded(
+                child: tipeInput == 'Teks'
+                    ? Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 12),
+                        decoration: BoxDecoration(
+                          color: isDark ? const Color(0xFF1E293B) : const Color(0xFFF1F5F9),
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(
+                            color: isDark ? Colors.white12 : Colors.black12,
+                          ),
+                        ),
+                        child: DropdownButton<String>(
+                          value: _teksValues[key] == null || _teksValues[key]!.isEmpty ? null : _teksValues[key],
+                          isExpanded: true,
+                          underline: const SizedBox(),
+                          dropdownColor: isDark ? const Color(0xFF1E293B) : Colors.white,
+                          style: GoogleFonts.outfit(color: context.titleColor, fontSize: 13, fontWeight: FontWeight.w600),
+                          hint: Text("Pilih Capaian...", style: GoogleFonts.outfit(color: context.subTitleColor, fontSize: 12)),
+                          items: [
+                            DropdownMenuItem<String>(
+                              value: '__KOSONG__',
+                              child: Text(
+                                '-- Kosongkan --',
+                                style: GoogleFonts.outfit(color: context.subTitleColor, fontStyle: FontStyle.italic, fontSize: 12),
+                              ),
+                            ),
+                            ...(mapel['konfigurasi'] as List<dynamic>? ?? []).map<DropdownMenuItem<String>>((c) {
+                              final bab = c['bab'].toString();
+                              return DropdownMenuItem<String>(
+                                value: bab,
+                                child: Text(bab, style: GoogleFonts.outfit(fontSize: 12.5)),
+                              );
+                            }),
+                          ],
+                          onChanged: (val) {
+                            setState(() {
+                              if (val == null || val == '__KOSONG__') {
+                                _teksValues[key] = '';
+                                _predikatValues[key] = '';
+                              } else {
+                                _teksValues[key] = val;
+                                final cfg = (mapel['konfigurasi'] as List<dynamic>?)?.firstWhere(
+                                  (c) => c['bab'].toString() == val,
+                                  orElse: () => null,
+                                );
+                                _predikatValues[key] = cfg != null ? (cfg['predikat']?.toString() ?? '') : '';
+                              }
+                            });
+                          },
+                        ),
+                      )
+                    : TextField(
+                        controller: _getScoreController(santriId, mapelId),
+                        keyboardType: TextInputType.number,
+                        style: GoogleFonts.outfit(color: context.titleColor, fontSize: 13, fontWeight: FontWeight.bold),
+                        decoration: InputDecoration(
+                          hintText: "Nilai (0-100)",
+                          hintStyle: GoogleFonts.outfit(color: context.subTitleColor, fontSize: 12),
+                          filled: true,
+                          fillColor: isDark ? const Color(0xFF1E293B) : const Color(0xFFF1F5F9),
+                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
+                          contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                        ),
+                        onChanged: (val) {
+                          final double? score = double.tryParse(val);
+                          setState(() {
+                            _predikatValues[key] = score != null ? _calculatePredikat(score, mapel['konfigurasi']) : '';
+                          });
+                        },
+                      ),
+              ),
+
+              // Optional Predikat Badge
+              if (predikatText.isNotEmpty) ...[
+                const SizedBox(width: 8),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFF97316).withOpacity(0.12),
+                    borderRadius: BorderRadius.circular(10),
+                    border: Border.all(color: const Color(0xFFF97316).withOpacity(0.3)),
+                  ),
+                  child: Text(
+                    predikatText,
+                    style: GoogleFonts.outfit(
+                      fontSize: 12,
+                      fontWeight: FontWeight.bold,
+                      color: const Color(0xFFF97316),
+                    ),
+                  ),
+                ),
+              ],
+
+              const SizedBox(width: 8),
+
+              // Button Simpan Per Card
+              ElevatedButton(
+                onPressed: isSaving ? null : () => _saveSingleStudentGrade(santri, mapel),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFFF97316),
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 11),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  elevation: 0,
+                ),
+                child: isSaving
+                    ? const SizedBox(
+                        width: 14,
+                        height: 14,
+                        child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                      )
+                    : Text(
+                        "Simpan",
+                        style: GoogleFonts.outfit(fontWeight: FontWeight.bold, fontSize: 12.5),
+                      ),
+              ),
+            ],
+          ),
+        ],
       ),
-      contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+    );
+  }
+
+  // ── BUILD TAB CONTENT WITH STUDENTS LIST ──────────────────────────────────
+  Widget _buildTabContent(Map<String, dynamic>? mapel, bool isDark, {Widget? subHeader}) {
+    if (_isDataLoading) {
+      return const Center(child: CircularProgressIndicator(color: Color(0xFFF97316)));
+    }
+
+    if (_students.isEmpty) {
+      return Center(
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(Icons.people_alt_outlined, size: 54, color: const Color(0xFFF97316).withOpacity(0.4)),
+              const SizedBox(height: 14),
+              Text(
+                "Tidak ada santri aktif di kelas ini.",
+                style: GoogleFonts.outfit(fontSize: 14, fontWeight: FontWeight.bold, color: context.titleColor),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                "Pilih kelas lain atau periksa data kesiswaan di kelas ini.",
+                style: GoogleFonts.outfit(fontSize: 12, color: context.subTitleColor),
+                textAlign: TextAlign.center,
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
+    if (mapel == null) {
+      return Center(
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(Icons.menu_book_rounded, size: 54, color: context.subTitleColor.withOpacity(0.4)),
+              const SizedBox(height: 14),
+              Text(
+                "Mata pelajaran belum tersedia.",
+                style: GoogleFonts.outfit(fontSize: 14, fontWeight: FontWeight.bold, color: context.titleColor),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                "Mata pelajaran untuk kategori ini tidak dikonfigurasi pada kelas atau tingkat ini.",
+                style: GoogleFonts.outfit(fontSize: 12, color: context.subTitleColor),
+                textAlign: TextAlign.center,
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
+    final tipeInput = mapel['tipe_input']?.toString() ?? 'Angka';
+
+    return Column(
+      children: [
+        if (subHeader != null) subHeader,
+
+        // Tab Top Action Bar: Mapel Info & Bulk Save Button
+        Container(
+          margin: const EdgeInsets.only(left: 18, right: 18, bottom: 10),
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+          decoration: BoxDecoration(
+            color: isDark ? const Color(0xFF131D2E) : Colors.white,
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(
+              color: isDark ? const Color(0xFF334155).withOpacity(0.5) : const Color(0xFFE2E8F0),
+            ),
+          ),
+          child: Row(
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      mapel['nama'] ?? '-',
+                      style: GoogleFonts.outfit(fontSize: 13.5, fontWeight: FontWeight.bold, color: context.titleColor),
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    Text(
+                      "Format: ${tipeInput == 'Teks' ? 'Pilihan Capaian / Teks' : 'Nilai Angka (0-100)'} • ${_students.length} Santri",
+                      style: GoogleFonts.outfit(fontSize: 11, color: context.subTitleColor),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 8),
+              ElevatedButton.icon(
+                onPressed: _isSavingAll ? null : () => _saveAllStudentsInTab(mapel),
+                icon: _isSavingAll
+                    ? const SizedBox(
+                        width: 14,
+                        height: 14,
+                        child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                      )
+                    : const Icon(Icons.done_all_rounded, size: 16),
+                label: Text(
+                  "Simpan Semua",
+                  style: GoogleFonts.outfit(fontSize: 11.5, fontWeight: FontWeight.bold),
+                ),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF10B981),
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                  elevation: 0,
+                ),
+              ),
+            ],
+          ),
+        ),
+
+        // Students List
+        Expanded(
+          child: ListView.builder(
+            physics: const BouncingScrollPhysics(),
+            padding: const EdgeInsets.only(left: 18, right: 18, bottom: 24),
+            itemCount: _students.length,
+            itemBuilder: (context, index) {
+              final santri = _students[index];
+              return _buildStudentCard(santri, mapel, isDark);
+            },
+          ),
+        ),
+      ],
     );
   }
 
   @override
   Widget build(BuildContext context) {
     final isDark = context.isDarkMode;
-    final primaryBgColor = context.scaffoldBg;
-    final cardBgColor = context.cardBg;
-    final headingColor = isDark ? Colors.white : const Color(0xFF1E293B);
-    final subColor = isDark ? const Color(0xFFFB923C) : const Color(0xFFC2410C);
 
     return Scaffold(
-      backgroundColor: primaryBgColor,
+      backgroundColor: context.scaffoldBg,
       appBar: AppBar(
-        backgroundColor: Colors.transparent,
+        backgroundColor: isDark ? const Color(0xFF0F172A) : Colors.white,
         elevation: 0,
         leading: IconButton(
-          icon: Icon(Icons.arrow_back_ios_new_rounded, color: isDark ? Colors.white : Colors.black87),
+          icon: Icon(Icons.arrow_back_ios_new_rounded, color: context.titleColor, size: 20),
           onPressed: () => Navigator.pop(context),
         ),
         title: Text(
           "Input Nilai",
-          style: GoogleFonts.outfit(color: isDark ? Colors.white : Colors.black87, fontWeight: FontWeight.bold, fontSize: 18),
+          style: GoogleFonts.outfit(color: context.titleColor, fontWeight: FontWeight.bold, fontSize: 17),
         ),
         centerTitle: true,
         actions: [
           IconButton(
-            icon: Icon(Icons.menu_book_rounded, color: isDark ? Colors.white : Colors.black87),
+            icon: Icon(Icons.menu_book_rounded, color: context.titleColor, size: 21),
             onPressed: () => MuhafadzohInfoBottomSheet.show(
               context,
               tahunAjaranId: _selectedTahunAjaran?['id'],
@@ -668,7 +983,7 @@ class _InputNilaiScreenState extends State<InputNilaiScreen> {
             tooltip: "Ketentuan Nilai Muhafadzoh",
           ),
           IconButton(
-            icon: Icon(Icons.chrome_reader_mode_rounded, color: isDark ? Colors.white : Colors.black87),
+            icon: Icon(Icons.chrome_reader_mode_rounded, color: context.titleColor, size: 21),
             onPressed: () => QiroahMaqroBottomSheet.show(
               context,
               tahunAjaranId: _selectedTahunAjaran?['id'],
@@ -679,319 +994,318 @@ class _InputNilaiScreenState extends State<InputNilaiScreen> {
         ],
       ),
       body: _isLoading
-          ? const Center(child: CircularProgressIndicator(color: Colors.orange))
-          : Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20.0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  // Filter header
-                  Container(
-                    decoration: BoxDecoration(
-                      color: cardBgColor,
-                      borderRadius: BorderRadius.circular(20),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withOpacity(isDark ? 0.2 : 0.03),
-                          blurRadius: 10,
-                          offset: const Offset(0, 4),
-                        )
-                      ],
-                      border: Border.all(
-                        color: isDark ? Colors.white.withOpacity(0.08) : Colors.black.withOpacity(0.05),
-                      ),
+          ? const Center(child: CircularProgressIndicator(color: Color(0xFFF97316)))
+          : Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                // ── TOP FILTER CARD (Tahun, Semester, & Class Popup Picker) ─
+                Container(
+                  margin: const EdgeInsets.only(left: 18, right: 18, top: 12, bottom: 8),
+                  padding: const EdgeInsets.all(14),
+                  decoration: BoxDecoration(
+                    color: isDark ? const Color(0xFF131D2E) : Colors.white,
+                    borderRadius: BorderRadius.circular(18),
+                    border: Border.all(
+                      color: isDark ? const Color(0xFF334155).withOpacity(0.5) : const Color(0xFFE2E8F0),
                     ),
-                    padding: const EdgeInsets.all(16),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                        Row(
-                          children: [
-                            // Year dropdown
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    "Tahun Ajaran",
-                                    style: GoogleFonts.outfit(fontSize: 11, color: isDark ? Colors.white60 : Colors.black54),
-                                  ),
-                                  DropdownButton<Map<String, dynamic>>(
-                                    dropdownColor: cardBgColor,
-                                    value: _selectedTahunAjaran,
-                                    isExpanded: true,
-                                    underline: const SizedBox(),
-                                    style: GoogleFonts.outfit(color: headingColor, fontSize: 14, fontWeight: FontWeight.bold),
-                                    items: _tahunAjaranList.map<DropdownMenuItem<Map<String, dynamic>>>((ta) {
-                                      return DropdownMenuItem<Map<String, dynamic>>(
-                                        value: ta as Map<String, dynamic>,
-                                        child: Text(ta['kode'] as String),
-                                      );
-                                    }).toList(),
-                                    onChanged: (val) {
-                                      if (val != null) {
-                                        setState(() {
-                                          _selectedTahunAjaran = val;
-                                          _isLoading = true;
-                                        });
-                                        // Reload classes and form
-                                        _apiService.getClasses(tahunAjaranId: val['id'], semester: _selectedSemester).then((classesData) {
-                                          _classes = classesData['classes'] ?? [];
-                                          if (_classes.isNotEmpty) {
-                                            _selectedKelasId = _classes.first['id'] as int;
-                                          } else {
-                                            _selectedKelasId = null;
-                                          }
-                                          _loadGradeEntryForm().then((_) {
-                                            setState(() => _isLoading = false);
-                                          });
-                                        });
-                                      }
-                                    },
-                                  ),
-                                ],
-                              ),
-                            ),
-                            const SizedBox(width: 16),
-                            // Semester dropdown
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    "Semester",
-                                    style: GoogleFonts.outfit(fontSize: 11, color: isDark ? Colors.white60 : Colors.black54),
-                                  ),
-                                  DropdownButton<String>(
-                                    dropdownColor: cardBgColor,
-                                    value: _selectedSemester,
-                                    isExpanded: true,
-                                    underline: const SizedBox(),
-                                    style: GoogleFonts.outfit(color: headingColor, fontSize: 14, fontWeight: FontWeight.bold),
-                                    items: const [
-                                      DropdownMenuItem(value: "Ganjil", child: Text("Ganjil")),
-                                      DropdownMenuItem(value: "Genap", child: Text("Genap")),
-                                    ],
-                                    onChanged: (val) {
-                                      if (val != null) {
-                                        setState(() {
-                                          _selectedSemester = val;
-                                          _isLoading = true;
-                                        });
-                                        _loadGradeEntryForm().then((_) {
-                                          setState(() => _isLoading = false);
-                                        });
-                                      }
-                                    },
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ],
-                        ),
-                        const Divider(height: 20),
-                        // Kelas selection
-                        Row(
-                          children: [
-                            Icon(Icons.class_rounded, size: 16, color: subColor),
-                            const SizedBox(width: 8),
-                            Text(
-                              "Pilih Kelas:",
-                              style: GoogleFonts.outfit(fontSize: 12, fontWeight: FontWeight.bold, color: headingColor),
-                            ),
-                            const SizedBox(width: 12),
-                            Expanded(
-                              child: DropdownButton<int?>(
-                                dropdownColor: cardBgColor,
-                                value: _selectedKelasId,
-                                isExpanded: true,
-                                underline: const SizedBox(),
-                                style: GoogleFonts.outfit(color: headingColor, fontSize: 13, fontWeight: FontWeight.bold),
-                                items: _classes.map<DropdownMenuItem<int?>>((c) {
-                                  return DropdownMenuItem<int?>(
-                                    value: c['id'] as int,
-                                    child: Text(c['nama'] as String),
-                                  );
-                                }).toList(),
-                                onChanged: (val) {
-                                  if (val != null) {
-                                    setState(() {
-                                      _selectedKelasId = val;
-                                      _isDataLoading = true;
-                                    });
-                                    _loadGradeEntryForm();
-                                  }
-                                },
-                              ),
-                            ),
-                          ],
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: 18),
-
-                  // Student list loader
-                  Expanded(
-                    child: _isDataLoading
-                        ? const Center(child: CircularProgressIndicator(color: Colors.orange))
-                        : _students.isEmpty
-                            ? Center(
-                                child: Column(
-                                  mainAxisAlignment: MainAxisAlignment.center,
-                                  children: [
-                                    Icon(Icons.people_alt_outlined, size: 64, color: subColor.withOpacity(0.4)),
-                                    const SizedBox(height: 16),
-                                    Text(
-                                      "Tidak ada santri aktif.",
-                                      style: GoogleFonts.outfit(fontSize: 15, fontWeight: FontWeight.bold, color: headingColor),
-                                    ),
-                                    const SizedBox(height: 4),
-                                    Text(
-                                      "Tidak ada santri aktif di kelas ini pada tahun ajaran terpilih.",
-                                      textAlign: TextAlign.center,
-                                      style: GoogleFonts.outfit(fontSize: 11, color: isDark ? Colors.white60 : Colors.black54),
-                                    ),
-                                  ],
-                                ),
-                              )
-                            : Column(
-                                crossAxisAlignment: CrossAxisAlignment.stretch,
-                                children: [
-                                  Padding(
-                                    padding: const EdgeInsets.only(left: 6.0, bottom: 8),
-                                    child: Text(
-                                      "Daftar Santri (${_students.length} Orang)",
-                                      style: GoogleFonts.outfit(fontSize: 13, fontWeight: FontWeight.bold, color: isDark ? Colors.white70 : Colors.black54),
-                                    ),
-                                  ),
-                                  Expanded(
-                                    child: ListView.builder(
-                                      physics: const BouncingScrollPhysics(),
-                                      itemCount: _students.length,
-                                      itemBuilder: (context, index) {
-                                        final santri = _students[index];
-                                        return _buildStudentCard(santri, cardBgColor, isDark, headingColor, subColor);
-                                      },
-                                    ),
-                                  ),
-                                ],
-                              ),
-                  ),
-                ],
-              ),
-            ),
-    );
-  }
-
-  Widget _buildStudentCard(Map<String, dynamic> santri, Color cardBg, bool isDark, Color headingColor, Color subColor) {
-    final santriId = santri['id'] as int;
-    final filled = _getGradeProgress(santriId);
-    final total = _getTotalSubjectsCount();
-    final bool isComplete = filled == total && total > 0;
-
-    return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      decoration: BoxDecoration(
-        color: cardBg,
-        borderRadius: BorderRadius.circular(18),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(isDark ? 0.15 : 0.02),
-            blurRadius: 8,
-            offset: const Offset(0, 3),
-          )
-        ],
-        border: Border.all(
-          color: isDark ? Colors.white.withOpacity(0.05) : Colors.black.withOpacity(0.03),
-        ),
-      ),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(18),
-        child: Material(
-          color: Colors.transparent,
-          child: InkWell(
-            onTap: () => _showStudentGradesEditPanel(santri),
-            child: Padding(
-              padding: const EdgeInsets.all(14.0),
-              child: Row(
-                children: [
-                  // Photo/Avatar
-                  CircleAvatar(
-                    radius: 24,
-                    backgroundColor: isDark ? Colors.white10 : Colors.black.withOpacity(0.1),
-                    backgroundImage: santri['foto_url'] != null
-                        ? NetworkImage(_apiService.getFullImageUrl(santri['foto_url'] as String))
-                        : null,
-                    child: santri['foto_url'] == null
-                        ? Icon(
-                            santri['jenis_kelamin'] == 'P' ? Icons.female_rounded : Icons.male_rounded,
-                            color: Colors.grey,
-                            size: 28,
-                          )
-                        : null,
-                  ),
-                  const SizedBox(width: 14),
-                  // Name and NIS
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          santri['nama'] ?? '-',
-                          style: GoogleFonts.outfit(fontSize: 14, fontWeight: FontWeight.bold, color: headingColor),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                        const SizedBox(height: 4),
-                        Text(
-                          "NIS: ${santri['nis'] ?? '-'}",
-                          style: GoogleFonts.outfit(fontSize: 11, color: isDark ? Colors.white54 : Colors.black54),
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  // Grade progress badge
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.end,
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-                        decoration: BoxDecoration(
-                          color: isComplete
-                              ? const Color(0xFF10B981).withOpacity(0.1)
-                              : subColor.withOpacity(0.1),
-                          borderRadius: BorderRadius.circular(10),
-                        ),
-                        child: Text(
-                          "$filled / $total Nilai",
-                          style: GoogleFonts.outfit(
-                            fontSize: 10,
-                            fontWeight: FontWeight.bold,
-                            color: isComplete ? const Color(0xFF10B981) : subColor,
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: 4),
-                      Row(
-                        children: [
-                          Text(
-                            "Input",
-                            style: GoogleFonts.outfit(fontSize: 11, fontWeight: FontWeight.bold, color: subColor),
-                          ),
-                          const SizedBox(width: 2),
-                          Icon(Icons.chevron_right_rounded, size: 14, color: subColor),
-                        ],
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(isDark ? 0.2 : 0.03),
+                        blurRadius: 8,
+                        offset: const Offset(0, 2),
                       ),
                     ],
                   ),
-                ],
-              ),
+                  child: Column(
+                    children: [
+                      // Year & Semester Row
+                      Row(
+                        children: [
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  "Tahun Ajaran",
+                                  style: GoogleFonts.outfit(fontSize: 11, color: context.subTitleColor),
+                                ),
+                                DropdownButton<Map<String, dynamic>>(
+                                  dropdownColor: isDark ? const Color(0xFF1E293B) : Colors.white,
+                                  value: _selectedTahunAjaran,
+                                  isExpanded: true,
+                                  underline: const SizedBox(),
+                                  style: GoogleFonts.outfit(color: context.titleColor, fontSize: 13, fontWeight: FontWeight.bold),
+                                  items: _tahunAjaranList.map<DropdownMenuItem<Map<String, dynamic>>>((ta) {
+                                    return DropdownMenuItem<Map<String, dynamic>>(
+                                      value: ta as Map<String, dynamic>,
+                                      child: Text(ta['kode'] as String),
+                                    );
+                                  }).toList(),
+                                  onChanged: (val) {
+                                    if (val != null) {
+                                      setState(() {
+                                        _selectedTahunAjaran = val;
+                                        _isLoading = true;
+                                      });
+                                      _apiService.getClasses(tahunAjaranId: val['id'], semester: _selectedSemester).then((classesData) {
+                                        _classes = classesData['classes'] ?? [];
+                                        if (_classes.isNotEmpty) {
+                                          _selectedKelasId = _classes.first['id'] as int;
+                                        } else {
+                                          _selectedKelasId = null;
+                                        }
+                                        _loadGradeEntryForm().then((_) {
+                                          setState(() => _isLoading = false);
+                                        });
+                                      });
+                                    }
+                                  },
+                                ),
+                              ],
+                            ),
+                          ),
+                          const SizedBox(width: 14),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  "Semester",
+                                  style: GoogleFonts.outfit(fontSize: 11, color: context.subTitleColor),
+                                ),
+                                DropdownButton<String>(
+                                  dropdownColor: isDark ? const Color(0xFF1E293B) : Colors.white,
+                                  value: _selectedSemester,
+                                  isExpanded: true,
+                                  underline: const SizedBox(),
+                                  style: GoogleFonts.outfit(color: context.titleColor, fontSize: 13, fontWeight: FontWeight.bold),
+                                  items: const [
+                                    DropdownMenuItem(value: "Ganjil", child: Text("Ganjil")),
+                                    DropdownMenuItem(value: "Genap", child: Text("Genap")),
+                                  ],
+                                  onChanged: (val) {
+                                    if (val != null) {
+                                      setState(() {
+                                        _selectedSemester = val;
+                                        _isLoading = true;
+                                      });
+                                      _loadGradeEntryForm().then((_) {
+                                        setState(() => _isLoading = false);
+                                      });
+                                    }
+                                  },
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+
+                      const SizedBox(height: 10),
+
+                      // Class Picker Button (Triggers 4-column mini-grid popup)
+                      GestureDetector(
+                        onTap: () => _showClassSelectionDialog(context),
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                          decoration: BoxDecoration(
+                            color: isDark ? const Color(0xFF1E293B) : const Color(0xFFF1F5F9),
+                            borderRadius: BorderRadius.circular(14),
+                            border: Border.all(
+                              color: const Color(0xFFF97316).withOpacity(0.4),
+                              width: 1.2,
+                            ),
+                          ),
+                          child: Row(
+                            children: [
+                              const Icon(Icons.school_rounded, size: 18, color: Color(0xFFF97316)),
+                              const SizedBox(width: 10),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      "Kelas Terpilih",
+                                      style: GoogleFonts.outfit(fontSize: 10.5, color: context.subTitleColor, fontWeight: FontWeight.w500),
+                                    ),
+                                    Text(
+                                      _selectedKelasName,
+                                      style: GoogleFonts.outfit(fontSize: 13.5, fontWeight: FontWeight.bold, color: context.titleColor),
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                                decoration: BoxDecoration(
+                                  color: const Color(0xFFF97316).withOpacity(0.12),
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Text(
+                                      "Ganti",
+                                      style: GoogleFonts.outfit(fontSize: 11.5, fontWeight: FontWeight.bold, color: const Color(0xFFF97316)),
+                                    ),
+                                    const SizedBox(width: 4),
+                                    const Icon(Icons.grid_view_rounded, size: 13, color: Color(0xFFF97316)),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+
+                // ── TAB BAR FOR GRADE PARTS ─────────────────────────────────
+                Container(
+                  margin: const EdgeInsets.symmetric(horizontal: 18, vertical: 6),
+                  decoration: BoxDecoration(
+                    color: isDark ? const Color(0xFF1E293B) : const Color(0xFFF1F5F9),
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                  child: TabBar(
+                    controller: _tabController,
+                    isScrollable: true,
+                    tabAlignment: TabAlignment.start,
+                    indicator: BoxDecoration(
+                      color: const Color(0xFFF97316),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    labelColor: Colors.white,
+                    unselectedLabelColor: context.subTitleColor,
+                    labelStyle: GoogleFonts.outfit(fontWeight: FontWeight.bold, fontSize: 12),
+                    unselectedLabelStyle: GoogleFonts.outfit(fontWeight: FontWeight.w500, fontSize: 12),
+                    indicatorSize: TabBarIndicatorSize.tab,
+                    dividerColor: Colors.transparent,
+                    padding: const EdgeInsets.all(4),
+                    tabs: const [
+                      Tab(text: "Muhafadzoh Akbar"),
+                      Tab(text: "Qiroatul Kitab"),
+                      Tab(text: "Taftisyul Kutub"),
+                      Tab(text: "Ujian Tulis"),
+                    ],
+                  ),
+                ),
+
+                const SizedBox(height: 6),
+
+                // ── TAB VIEWS CONTENT ───────────────────────────────────────
+                Expanded(
+                  child: TabBarView(
+                    controller: _tabController,
+                    children: [
+                      // 1. Tab Muhafadzoh Akbar
+                      _buildTabContent(_muhafadzohMapel, isDark),
+
+                      // 2. Tab Qiroatul Kitab
+                      _buildTabContent(_qiroatulMapel, isDark),
+
+                      // 3. Tab Taftisyul Kutub
+                      Builder(builder: (context) {
+                        final taftisyList = _taftisyMapels;
+                        Map<String, dynamic>? activeTaftisy;
+                        if (taftisyList.isNotEmpty) {
+                          activeTaftisy = taftisyList.firstWhere(
+                            (m) => m['id'] == _selectedTaftisyMapelId,
+                            orElse: () => taftisyList.first,
+                          );
+                        }
+
+                        Widget? subHeader;
+                        if (taftisyList.length > 1) {
+                          subHeader = Container(
+                            height: 38,
+                            margin: const EdgeInsets.only(left: 18, right: 18, bottom: 8),
+                            child: ListView.builder(
+                              scrollDirection: Axis.horizontal,
+                              itemCount: taftisyList.length,
+                              itemBuilder: (ctx, i) {
+                                final m = taftisyList[i];
+                                final isSel = m['id'] == activeTaftisy?['id'];
+                                return Padding(
+                                  padding: const EdgeInsets.only(right: 6),
+                                  child: ChoiceChip(
+                                    label: Text(m['nama'] ?? '-'),
+                                    selected: isSel,
+                                    onSelected: (val) {
+                                      if (val) setState(() => _selectedTaftisyMapelId = m['id']);
+                                    },
+                                    selectedColor: const Color(0xFFF97316),
+                                    backgroundColor: isDark ? const Color(0xFF1E293B) : const Color(0xFFF1F5F9),
+                                    labelStyle: GoogleFonts.outfit(
+                                      fontSize: 11.5,
+                                      fontWeight: isSel ? FontWeight.bold : FontWeight.w500,
+                                      color: isSel ? Colors.white : context.titleColor,
+                                    ),
+                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                                  ),
+                                );
+                              },
+                            ),
+                          );
+                        }
+
+                        return _buildTabContent(activeTaftisy, isDark, subHeader: subHeader);
+                      }),
+
+                      // 4. Tab Ujian Tulis (Reguler Subjects)
+                      Builder(builder: (context) {
+                        final regList = _regulerMapels;
+                        Map<String, dynamic>? activeReguler;
+                        if (regList.isNotEmpty) {
+                          activeReguler = regList.firstWhere(
+                            (m) => m['id'] == _selectedRegulerMapelId,
+                            orElse: () => regList.first,
+                          );
+                        }
+
+                        Widget? subHeader;
+                        if (regList.isNotEmpty) {
+                          subHeader = Container(
+                            height: 38,
+                            margin: const EdgeInsets.only(left: 18, right: 18, bottom: 8),
+                            child: ListView.builder(
+                              scrollDirection: Axis.horizontal,
+                              itemCount: regList.length,
+                              itemBuilder: (ctx, i) {
+                                final m = regList[i];
+                                final isSel = m['id'] == activeReguler?['id'];
+                                return Padding(
+                                  padding: const EdgeInsets.only(right: 6),
+                                  child: ChoiceChip(
+                                    label: Text(m['nama'] ?? '-'),
+                                    selected: isSel,
+                                    onSelected: (val) {
+                                      if (val) setState(() => _selectedRegulerMapelId = m['id']);
+                                    },
+                                    selectedColor: const Color(0xFFF97316),
+                                    backgroundColor: isDark ? const Color(0xFF1E293B) : const Color(0xFFF1F5F9),
+                                    labelStyle: GoogleFonts.outfit(
+                                      fontSize: 11.5,
+                                      fontWeight: isSel ? FontWeight.bold : FontWeight.w500,
+                                      color: isSel ? Colors.white : context.titleColor,
+                                    ),
+                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                                  ),
+                                );
+                              },
+                            ),
+                          );
+                        }
+
+                        return _buildTabContent(activeReguler, isDark, subHeader: subHeader);
+                      }),
+                    ],
+                  ),
+                ),
+              ],
             ),
-          ),
-        ),
-      ),
     );
   }
 }
