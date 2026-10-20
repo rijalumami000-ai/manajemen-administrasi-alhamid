@@ -67,8 +67,18 @@ async function syncSantriToSpecificTahunAjaran(santriId, tahunAjaranId, options 
 
   // Sync to alumni table if status is pindah/keluar/lulus/alumni, or delete if active again
   if (status === 'pindah' || status === 'keluar' || status === 'lulus' || status === 'alumni') {
-    const isLulus = status === 'lulus' || status === 'alumni' || (catatan && catatan.toLowerCase().includes('lulus'));
-    const tipeAlumni = isLulus ? 'alumni' : 'pindah';
+    let tipeAlumni = 'pindah';
+    const cLower = (catatan || '').toLowerCase();
+    if (status === 'alumni' || cLower.includes('diniyah')) {
+      tipeAlumni = 'alumni';
+    } else if (cLower.includes('aliyah')) {
+      tipeAlumni = 'lulus_aliyah';
+    } else if (cLower.includes('mts')) {
+      tipeAlumni = 'lulus_mts';
+    } else if (status === 'lulus' || cLower.includes('lulus')) {
+      tipeAlumni = 'lulus_mts';
+    }
+    const isLulus = tipeAlumni !== 'pindah';
     console.log(`🔄 Student ${santriId} status is ${status}. Syncing to alumni table as '${tipeAlumni}'...`);
     // Get student details
     const santriResult = await client.query(`

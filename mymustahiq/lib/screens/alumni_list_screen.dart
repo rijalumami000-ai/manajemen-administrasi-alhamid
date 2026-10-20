@@ -23,6 +23,7 @@ class _AlumniListScreenState extends State<AlumniListScreen> {
   final ApiService _apiService = ApiService();
   final TextEditingController _searchController = TextEditingController();
 
+  late String _currentTipe;
   bool _isLoading = true;
   String? _errorMessage;
   List<dynamic> _alumniList = [];
@@ -35,6 +36,7 @@ class _AlumniListScreenState extends State<AlumniListScreen> {
   @override
   void initState() {
     super.initState();
+    _currentTipe = widget.tipe;
     _loadFiltersAndData();
   }
 
@@ -43,6 +45,8 @@ class _AlumniListScreenState extends State<AlumniListScreen> {
     _searchController.dispose();
     super.dispose();
   }
+
+  String? get _apiTipe => _currentTipe == 'all' ? null : _currentTipe;
 
   Future<void> _loadFiltersAndData() async {
     setState(() {
@@ -65,14 +69,14 @@ class _AlumniListScreenState extends State<AlumniListScreen> {
 
       // 2. Fetch list of alumni/pindah with current filters
       final data = await _apiService.getAlumni(
-        tipe: widget.tipe,
+        tipe: _apiTipe,
         search: _searchController.text.isNotEmpty ? _searchController.text : null,
         tahunLulus: _selectedTahunLulus,
         tahunAjaranId: _selectedTahunAjaran?['id'],
       );
 
       // 3. Extract unique graduation years from total alumni dataset for filter
-      final rawAll = await _apiService.getAlumni(tipe: widget.tipe);
+      final rawAll = await _apiService.getAlumni(tipe: _apiTipe);
       final years = rawAll
           .map((a) => a['tahun_lulus']?.toString())
           .where((y) => y != null && y.isNotEmpty)
@@ -104,7 +108,7 @@ class _AlumniListScreenState extends State<AlumniListScreen> {
     });
     try {
       final data = await _apiService.getAlumni(
-        tipe: widget.tipe,
+        tipe: _apiTipe,
         search: _searchController.text.isNotEmpty ? _searchController.text : null,
         tahunLulus: _selectedTahunLulus,
         tahunAjaranId: _selectedTahunAjaran?['id'],
@@ -130,6 +134,86 @@ class _AlumniListScreenState extends State<AlumniListScreen> {
       _selectedTahunAjaran = null;
     });
     _fetchData();
+  }
+
+  Color _getCategoryColor(String? tipe) {
+    switch (tipe) {
+      case 'lulus_mts':
+        return const Color(0xFF0284C7);
+      case 'lulus_aliyah':
+        return const Color(0xFF8B5CF6);
+      case 'pindah':
+        return const Color(0xFFF59E0B);
+      case 'alumni':
+      default:
+        return const Color(0xFF10B981);
+    }
+  }
+
+  String _getCategoryLabel(String? tipe) {
+    switch (tipe) {
+      case 'lulus_mts':
+        return 'Lulus MTs';
+      case 'lulus_aliyah':
+        return 'Lulus Aliyah';
+      case 'pindah':
+        return 'Pindah / Mutasi';
+      case 'alumni':
+      default:
+        return 'Alumni Diniyah';
+    }
+  }
+
+  Widget _buildCategoryChips(bool isDark) {
+    final categories = [
+      {'key': 'all', 'label': 'Semua Data', 'color': const Color(0xFF64748B)},
+      {'key': 'alumni', 'label': 'Alumni Diniyah', 'color': const Color(0xFF10B981)},
+      {'key': 'lulus_mts', 'label': 'Lulus MTs', 'color': const Color(0xFF0284C7)},
+      {'key': 'lulus_aliyah', 'label': 'Lulus Aliyah', 'color': const Color(0xFF8B5CF6)},
+      {'key': 'pindah', 'label': 'Pindah / Mutasi', 'color': const Color(0xFFF59E0B)},
+    ];
+
+    return SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
+      physics: const BouncingScrollPhysics(),
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+      child: Row(
+        children: categories.map((cat) {
+          final isSelected = _currentTipe == cat['key'];
+          final Color col = cat['color'] as Color;
+          return Padding(
+            padding: const EdgeInsets.only(right: 8),
+            child: GestureDetector(
+              onTap: () {
+                setState(() => _currentTipe = cat['key'] as String);
+                _fetchData();
+              },
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 200),
+                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
+                decoration: BoxDecoration(
+                  color: isSelected
+                      ? col
+                      : (isDark ? const Color(0xFF1E293B) : const Color(0xFFF1F5F9)),
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(
+                    color: isSelected ? col : (isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0)),
+                  ),
+                ),
+                child: Text(
+                  cat['label'] as String,
+                  style: GoogleFonts.outfit(
+                    color: isSelected ? Colors.white : (isDark ? const Color(0xFFCBD5E1) : const Color(0xFF475569)),
+                    fontSize: 12,
+                    fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
+                  ),
+                ),
+              ),
+            ),
+          );
+        }).toList(),
+      ),
+    );
   }
 
   @override
@@ -281,6 +365,9 @@ class _AlumniListScreenState extends State<AlumniListScreen> {
             ),
           ),
 
+          // Category Chips Bar
+          _buildCategoryChips(isDark),
+
           // List content
           Expanded(
             child: _isLoading
@@ -335,6 +422,9 @@ class _AlumniListScreenState extends State<AlumniListScreen> {
                               final nis = item['nis'] ?? '-';
                               final kelas = item['kelas_terakhir'] ?? '-';
                               final tahun = item['tahun_lulus']?.toString() ?? '-';
+                              final itemTipe = item['tipe']?.toString();
+                              final itemColor = _getCategoryColor(itemTipe);
+                              final itemLabel = _getCategoryLabel(itemTipe);
 
                               final rawFoto = item['foto_url']?.toString();
                               final hasFoto = rawFoto != null && rawFoto.trim().isNotEmpty;
@@ -357,13 +447,13 @@ class _AlumniListScreenState extends State<AlumniListScreen> {
                                   contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                                   leading: CircleAvatar(
                                     radius: 22,
-                                    backgroundColor: accentColor.withOpacity(0.12),
+                                    backgroundColor: itemColor.withOpacity(0.12),
                                     backgroundImage: fullFoto != null ? NetworkImage(fullFoto) : null,
                                     child: fullFoto == null
                                         ? Text(
                                             (nama.isNotEmpty ? nama[0] : '?').toUpperCase(),
                                             style: GoogleFonts.outfit(
-                                              color: accentColor,
+                                              color: itemColor,
                                               fontWeight: FontWeight.bold,
                                             ),
                                           )
@@ -392,22 +482,29 @@ class _AlumniListScreenState extends State<AlumniListScreen> {
                                     crossAxisAlignment: CrossAxisAlignment.end,
                                     children: [
                                       Container(
-                                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                        padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
                                         decoration: BoxDecoration(
-                                          color: accentColor.withOpacity(0.1),
-                                          borderRadius: BorderRadius.circular(8),
+                                          color: itemColor.withOpacity(0.12),
+                                          borderRadius: BorderRadius.circular(6),
                                         ),
                                         child: Text(
-                                          widget.tipe == 'pindah' ? 'Keluar: $tahun' : 'Lulus: $tahun',
+                                          itemLabel,
                                           style: GoogleFonts.outfit(
-                                            color: accentColor,
-                                            fontSize: 9,
+                                            color: itemColor,
+                                            fontSize: 9.5,
                                             fontWeight: FontWeight.bold,
                                           ),
                                         ),
                                       ),
                                       const SizedBox(height: 4),
-                                      const Icon(Icons.arrow_forward_ios_rounded, size: 12, color: Colors.grey),
+                                      Text(
+                                        itemTipe == 'pindah' ? 'Keluar: $tahun' : 'Lulus: $tahun',
+                                        style: GoogleFonts.outfit(
+                                          color: context.subTitleColor,
+                                          fontSize: 9.5,
+                                          fontWeight: FontWeight.w500,
+                                        ),
+                                      ),
                                     ],
                                   ),
                                   onTap: () {
@@ -416,7 +513,13 @@ class _AlumniListScreenState extends State<AlumniListScreen> {
                                       MaterialPageRoute(
                                         builder: (context) => AlumniDetailScreen(
                                           alumniId: item['id'] as int,
-                                          title: widget.tipe == 'pindah' ? 'Profil Siswa Pindah' : 'Profil Alumni',
+                                          title: itemTipe == 'pindah'
+                                              ? 'Profil Siswa Pindah'
+                                              : (itemTipe == 'lulus_mts'
+                                                  ? 'Profil Lulusan MTs'
+                                                  : (itemTipe == 'lulus_aliyah'
+                                                      ? 'Profil Lulusan Aliyah'
+                                                      : 'Profil Alumni Diniyah')),
                                         ),
                                       ),
                                     );

@@ -41,9 +41,31 @@ export function AlumniCard({ alumni, onDetail, onDelete }) {
           <span className="alumni-nis">NIS: {alumni.nis || '-'}</span>
         </div>
 
-        <div className="alumni-year-badge">
-          <GraduationCap size={12} />
-          <span>Lulus {alumni.tahun_lulus}</span>
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '4px' }}>
+          <div className="alumni-year-badge">
+            <GraduationCap size={12} />
+            <span>{alumni.tipe === 'pindah' ? `Keluar ${alumni.tahun_lulus}` : `Lulus ${alumni.tahun_lulus}`}</span>
+          </div>
+          {alumni.tipe === 'lulus_mts' && (
+            <span style={{ fontSize: '10px', fontWeight: 700, padding: '2px 8px', borderRadius: '6px', background: '#e0f2fe', color: '#0369a1', border: '1px solid #bae6fd' }}>
+              Lulus MTs
+            </span>
+          )}
+          {alumni.tipe === 'lulus_aliyah' && (
+            <span style={{ fontSize: '10px', fontWeight: 700, padding: '2px 8px', borderRadius: '6px', background: '#f3e8ff', color: '#7e22ce', border: '1px solid #e9d5ff' }}>
+              Lulus Aliyah
+            </span>
+          )}
+          {alumni.tipe === 'alumni' && (
+            <span style={{ fontSize: '10px', fontWeight: 700, padding: '2px 8px', borderRadius: '6px', background: '#dcfce7', color: '#15803d', border: '1px solid #bbf7d0' }}>
+              Alumni Diniyah
+            </span>
+          )}
+          {alumni.tipe === 'pindah' && (
+            <span style={{ fontSize: '10px', fontWeight: 700, padding: '2px 8px', borderRadius: '6px', background: '#fef3c7', color: '#b45309', border: '1px solid #fde68a' }}>
+              Pindah
+            </span>
+          )}
         </div>
       </div>
 

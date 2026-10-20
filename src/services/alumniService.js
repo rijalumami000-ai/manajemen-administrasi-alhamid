@@ -27,8 +27,14 @@ async function getAllAlumni(tipe = null, tahunAjaranId = null) {
     const params = [];
 
     if (tipe) {
-      params.push(tipe);
-      query += ` AND a.tipe = $${params.length}`;
+      if (tipe === 'lulus') {
+        query += ` AND a.tipe IN ('lulus_mts', 'lulus_aliyah')`;
+      } else if (tipe === 'alumni_all') {
+        query += ` AND a.tipe != 'pindah'`;
+      } else if (tipe !== 'all') {
+        params.push(tipe);
+        query += ` AND a.tipe = $${params.length}`;
+      }
     }
 
     if (tahunAjaranId) {
@@ -71,8 +77,14 @@ async function searchAlumni(searchQuery, tahunLulus, tipe = null, tahunAjaranId 
     }
 
     if (tipe) {
-      params.push(tipe);
-      query += ` AND a.tipe = $${params.length}`;
+      if (tipe === 'lulus') {
+        query += ` AND a.tipe IN ('lulus_mts', 'lulus_aliyah')`;
+      } else if (tipe === 'alumni_all') {
+        query += ` AND a.tipe != 'pindah'`;
+      } else if (tipe !== 'all') {
+        params.push(tipe);
+        query += ` AND a.tipe = $${params.length}`;
+      }
     }
 
     if (tahunAjaranId) {
@@ -255,7 +267,7 @@ async function getActiveSantri() {
 /**
  * Migrate santri to alumni
  */
-async function migrateSantriToAlumni(santriId, tahunLulus, keterangan) {
+async function migrateSantriToAlumni(santriId, tahunLulus, keterangan, customTipe) {
   // Validate required fields
   validateRequiredFields({ santri_id: santriId, tahun_lulus: tahunLulus }, ['santri_id', 'tahun_lulus']);
   validateField('Tahun Lulus', tahunLulus, validators.year);
@@ -264,7 +276,7 @@ async function migrateSantriToAlumni(santriId, tahunLulus, keterangan) {
     // Check if already alumni
     const existingAlumni = await db.query('SELECT id FROM alumni WHERE santri_id = $1', [santriId]);
     if (existingAlumni.rows.length) {
-      throw new ValidationError('Santri ini sudah masuk data alumni');
+      throw new ValidationError('Santri ini sudah masuk data alumni / kelulusan');
     }
 
     // Get santri data
@@ -286,6 +298,34 @@ async function migrateSantriToAlumni(santriId, tahunLulus, keterangan) {
 
     const santri = santriResult.rows[0];
 
+    // Determine tipe if not explicitly provided
+    let effectiveTipe = customTipe;
+    if (!effectiveTipe) {
+      const ks = (santri.kelas_sekolah || '').toLowerCase();
+      const kd = (santri.kelas_diniyah || '').toLowerCase();
+      if (ks.includes('aliyah') || ks.includes('ma ') || ks.includes('12')) {
+        effectiveTipe = 'lulus_aliyah';
+      } else if (ks.includes('mts') || ks.includes('smp') || ks.includes('9')) {
+        effectiveTipe = 'lulus_mts';
+      } else {
+        effectiveTipe = 'alumni';
+      }
+    }
+
+    // Determine sta status and default notes
+    let staStatus = 'alumni';
+    let defaultKet = 'Lulus Diniyah';
+    if (effectiveTipe === 'lulus_mts') {
+      staStatus = 'lulus';
+      defaultKet = 'Lulus Kelas 3 MTs';
+    } else if (effectiveTipe === 'lulus_aliyah') {
+      staStatus = 'lulus';
+      defaultKet = 'Lulus Kelas 3 Aliyah';
+    } else if (effectiveTipe === 'pindah') {
+      staStatus = 'pindah';
+      defaultKet = 'Pindah / Mutasi';
+    }
+
     // Calculate tahun masuk (estimate: lulus - 6 years)
     const tahunMasuk = tahunLulus - 6;
 
@@ -301,7 +341,7 @@ async function migrateSantriToAlumni(santriId, tahunLulus, keterangan) {
         INSERT INTO santri_kelas_history (santri_id, kelas_diniyah_id, kelas_sekolah_id, tanggal_mulai, tanggal_selesai, keterangan)
         VALUES ($1, $2, $3, $4, $5, $6)
       `, [santriId, santri.kelas_diniyah_id, santri.kelas_sekolah_id,
-          new Date(tahunMasuk, 0, 1), new Date(tahunLulus, 11, 31), 'Migrasi ke alumni']);
+          new Date(tahunMasuk, 0, 1), new Date(tahunLulus, 11, 31), keterangan || defaultKet]);
     }
 
     // Save kamar history before migration
@@ -310,37 +350,37 @@ async function migrateSantriToAlumni(santriId, tahunLulus, keterangan) {
         INSERT INTO santri_kamar_history (santri_id, kamar_id, tanggal_mulai, tanggal_selesai, keterangan)
         VALUES ($1, $2, $3, $4, $5)
       `, [santriId, santri.kamar_id,
-          new Date(tahunMasuk, 0, 1), new Date(tahunLulus, 11, 31), 'Migrasi ke alumni']);
+          new Date(tahunMasuk, 0, 1), new Date(tahunLulus, 11, 31), keterangan || defaultKet]);
     }
 
     // Insert to alumni
     const alumniResult = await db.query(`
       INSERT INTO alumni (
         santri_id, nis, nik, nama, tempat_lahir, tanggal_lahir,
-        tahun_masuk, tahun_lulus, kelas_terakhir, alamat, keterangan
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+        tahun_masuk, tahun_lulus, kelas_terakhir, alamat, keterangan, tipe
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
       RETURNING *
     `, [
       santriId, santri.nis, santri.nik, santri.nama,
       santri.tempat_lahir, santri.tanggal_lahir,
       tahunMasuk, tahunLulus, kelasTerakir, santri.alamat,
-      keterangan
+      keterangan || defaultKet, effectiveTipe
     ]);
 
-    // Update santri status to alumni
+    // Update santri status in active academic year
     await db.query(`
       UPDATE santri_tahun_ajaran sta
-      SET status = 'alumni',
-          catatan = COALESCE($2, catatan),
+      SET status = $2,
+          catatan = COALESCE($3, catatan),
           updated_at = NOW()
       FROM tahun_ajaran ta
       WHERE sta.tahun_ajaran_id = ta.id
         AND ta.is_active = TRUE
         AND sta.santri_id = $1
-    `, [santriId, keterangan || 'Migrasi ke alumni']);
+    `, [santriId, staStatus, keterangan || defaultKet]);
 
     return {
-      message: 'Santri berhasil dimigrasi ke alumni',
+      message: 'Santri berhasil diproses ke data kelulusan / alumni',
       alumni: alumniResult.rows[0]
     };
   } catch (error) {

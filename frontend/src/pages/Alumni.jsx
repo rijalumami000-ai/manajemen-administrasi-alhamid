@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
-import { UserCheck, UserX, Plus, RotateCcw, Trash2 } from 'lucide-react';
+import { UserCheck, UserX, Plus, RotateCcw, Trash2, GraduationCap, BookOpen, Award } from 'lucide-react';
 import { alumniService } from '../services/alumniService';
 import { AlumniStats } from '../components/features/AlumniStats';
 import { AlumniCard } from '../components/features/AlumniCard';
@@ -79,8 +79,18 @@ export function Alumni() {
     });
   };
 
-  const alumniDataList = useMemo(() =>
-    filterData(allAlumni.filter(a => a.tipe === 'alumni' || !a.tipe)),
+  const alumniDiniyahList = useMemo(() =>
+    filterData(allAlumni.filter(a => a.tipe === 'alumni' || (!a.tipe && a.keterangan?.toLowerCase().includes('diniyah')))),
+    [allAlumni, searchKeyword, filterTahunLulus, filterTahunAjaran]
+  );
+
+  const lulusMtsList = useMemo(() =>
+    filterData(allAlumni.filter(a => a.tipe === 'lulus_mts')),
+    [allAlumni, searchKeyword, filterTahunLulus, filterTahunAjaran]
+  );
+
+  const lulusAliyahList = useMemo(() =>
+    filterData(allAlumni.filter(a => a.tipe === 'lulus_aliyah')),
     [allAlumni, searchKeyword, filterTahunLulus, filterTahunAjaran]
   );
 
@@ -195,30 +205,67 @@ export function Alumni() {
     </div>
   );
 
+  const renderCardGrid = (list, emptyMessage) => (
+    <>
+      <FilterBar />
+      {list.length === 0 ? (
+        <EmptyState description={emptyMessage} />
+      ) : (
+        <div className="alumni-cards-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: '16px' }}>
+          {list.map(alumni => (
+            <AlumniCard
+              key={alumni.id}
+              alumni={alumni}
+              onDetail={handleDetailClick}
+              onDelete={handleDeleteClick}
+            />
+          ))}
+        </div>
+      )}
+    </>
+  );
+
   const tabItems = [
     {
       key: 'alumni',
-      label: 'Alumni / Lulusan',
-      icon: <UserCheck size={16} />,
-      badge: alumniDataList.length,
+      label: 'Alumni Diniyah',
+      icon: <GraduationCap size={16} />,
+      badge: alumniDiniyahList.length,
       children: (
-        <>
-          <FilterBar />
-          {alumniDataList.length === 0 ? (
-            <EmptyState description="Tidak ada data alumni yang sesuai" />
-          ) : (
-            <div className="alumni-cards-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: '16px' }}>
-              {alumniDataList.map(alumni => (
-                <AlumniCard
-                  key={alumni.id}
-                  alumni={alumni}
-                  onDetail={handleDetailClick}
-                  onDelete={handleDeleteClick}
-                />
-              ))}
-            </div>
-          )}
-        </>
+        <div>
+          <div style={{ padding: '10px 16px', background: '#ecfdf5', border: '1px solid #a7f3d0', borderRadius: '8px', marginBottom: '16px', fontSize: '13px', color: '#065f46' }}>
+            🎓 <strong>Alumni Madrasah Diniyah:</strong> Data santri yang telah menyelesaikan pendidikan kepesantrenan dan dinyatakan lulus Madrasah Diniyah (Kelas 6 / Mutakhorijin Diniyah).
+          </div>
+          {renderCardGrid(alumniDiniyahList, 'Tidak ada data alumni Diniyah yang sesuai')}
+        </div>
+      )
+    },
+    {
+      key: 'lulus_mts',
+      label: 'Lulusan MTs',
+      icon: <BookOpen size={16} />,
+      badge: lulusMtsList.length,
+      children: (
+        <div>
+          <div style={{ padding: '10px 16px', background: '#f0f9ff', border: '1px solid #bae6fd', borderRadius: '8px', marginBottom: '16px', fontSize: '13px', color: '#0369a1' }}>
+            📖 <strong>Lulusan Madrasah Tsanawiyah (MTs):</strong> Data siswa yang telah menyelesaikan pendidikan formal dan dinyatakan Lulus jenjang MTs (Kelas 3 MTs / Kelas 9).
+          </div>
+          {renderCardGrid(lulusMtsList, 'Tidak ada data lulusan MTs yang sesuai')}
+        </div>
+      )
+    },
+    {
+      key: 'lulus_aliyah',
+      label: 'Lulusan Aliyah',
+      icon: <Award size={16} />,
+      badge: lulusAliyahList.length,
+      children: (
+        <div>
+          <div style={{ padding: '10px 16px', background: '#faf5ff', border: '1px solid #e9d5ff', borderRadius: '8px', marginBottom: '16px', fontSize: '13px', color: '#6b21a8' }}>
+            🏆 <strong>Lulusan Madrasah Aliyah (Aliyah/MA):</strong> Data siswa yang telah menyelesaikan pendidikan formal dan dinyatakan Lulus jenjang Aliyah (Kelas 3 Aliyah / Kelas 12).
+          </div>
+          {renderCardGrid(lulusAliyahList, 'Tidak ada data lulusan Aliyah yang sesuai')}
+        </div>
       )
     },
     {
@@ -227,7 +274,10 @@ export function Alumni() {
       icon: <UserX size={16} />,
       badge: pindahDataList.length,
       children: (
-        <>
+        <div>
+          <div style={{ padding: '10px 16px', background: '#fffbeb', border: '1px solid #fde68a', borderRadius: '8px', marginBottom: '16px', fontSize: '13px', color: '#92400e' }}>
+            🔄 <strong>Siswa Pindah / Mutasi:</strong> Data santri yang mengajukan mutasi keluar atau pindah sekolah/pesantren.
+          </div>
           <FilterBar />
           <div style={{ width: '100%', overflowX: 'auto', background: '#fff', border: '1px solid #e2e8f0', borderRadius: '10px' }}>
             <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
@@ -294,7 +344,7 @@ export function Alumni() {
               </tbody>
             </table>
           </div>
-        </>
+        </div>
       )
     }
   ];
@@ -302,16 +352,16 @@ export function Alumni() {
   return (
     <div className="alumni-page">
       <PageHeader
-        title="📚 Data Alumni & Pindah"
-        subtitle="Kelola data alumni lulusan dan siswa pindah pesantren"
+        title="📚 Data Alumni, Kelulusan & Mutasi"
+        subtitle="Kelola data alumni Diniyah, lulusan MTs / Aliyah, dan santri pindah/mutasi pesantren"
         extra={
           <button type="button" className="btn-custom btn-primary" onClick={handleMigrateClick}>
-            <Plus size={16} /> Tambah dari Santri
+            <Plus size={16} /> Tambah Kelulusan / Mutasi
           </button>
         }
       />
 
-      <AlumniStats alumni={allAlumni.filter(a => a.tipe === 'alumni' || !a.tipe)} />
+      <AlumniStats alumni={allAlumni} />
 
       <div className="alumni-content" style={{ marginTop: '16px' }}>
         <CustomTabs

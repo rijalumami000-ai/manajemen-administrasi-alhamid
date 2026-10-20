@@ -473,7 +473,14 @@ function registerTahunAjaranRoutes(app) {
           row.alamat,
           row.catatan || `Pindah/keluar pada tahun ajaran ${source.kode}`,
           source.id,
-          (row.status === 'lulus' || row.status === 'alumni' || (row.catatan && row.catatan.toLowerCase().includes('lulus'))) ? 'alumni' : 'pindah'
+          (() => {
+            const cLower = (row.catatan || '').toLowerCase();
+            if (row.status === 'alumni' || cLower.includes('diniyah')) return 'alumni';
+            if (cLower.includes('aliyah')) return 'lulus_aliyah';
+            if (cLower.includes('mts')) return 'lulus_mts';
+            if (row.status === 'lulus' || cLower.includes('lulus')) return 'lulus_mts';
+            return 'pindah';
+          })()
         ]);
         nonMigratedPindahCount++;
       }

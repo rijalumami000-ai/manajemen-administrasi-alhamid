@@ -888,24 +888,40 @@ class _TabAdministratifState extends State<TabAdministratif> {
     );
   }
 
-  // ── 4. MUTAKHORIJIN CLUSTER ───────────────────────────────────────────────
+  // ── 4. MUTAKHORIJIN & KELULUSAN CLUSTER ───────────────────────────────────
   Widget _buildMutakhorijinCluster(BuildContext context, bool isDark) {
     final items = [
       {
-        'title': 'Data Alumni',
-        'desc': 'Arsip santri yang telah lulus & menyelesaikan pendidikan.',
+        'title': 'Alumni Diniyah',
+        'desc': 'Arsip santri lulus Madrasah Diniyah (Kelas 6 / Mutakhorijin).',
         'icon': Icons.school_rounded,
-        'badge': 'Lulusan',
+        'badge': 'Alumni Madin',
         'color': const Color(0xFF10B981),
-        'screen': const AlumniListScreen(tipe: 'alumni', title: 'Data Alumni'),
+        'screen': const AlumniListScreen(tipe: 'alumni', title: 'Alumni Diniyah'),
       },
       {
-        'title': 'Migrasi / Pindah',
-        'desc': 'Arsip mutasi santri pindah keluar atau dipindahkan.',
+        'title': 'Lulusan MTs',
+        'desc': 'Arsip siswa lulus pendidikan formal jenjang MTs (Kelas 3 MTs).',
+        'icon': Icons.menu_book_rounded,
+        'badge': 'Formal MTs',
+        'color': const Color(0xFF0284C7),
+        'screen': const AlumniListScreen(tipe: 'lulus_mts', title: 'Lulusan MTs'),
+      },
+      {
+        'title': 'Lulusan Aliyah',
+        'desc': 'Arsip siswa lulus pendidikan formal jenjang MA (Kelas 3 Aliyah).',
+        'icon': Icons.workspace_premium_rounded,
+        'badge': 'Formal MA',
+        'color': const Color(0xFF8B5CF6),
+        'screen': const AlumniListScreen(tipe: 'lulus_aliyah', title: 'Lulusan Aliyah'),
+      },
+      {
+        'title': 'Siswa Pindah',
+        'desc': 'Arsip mutasi santri pindah sekolah / pesantren keluar.',
         'icon': Icons.swap_horiz_rounded,
         'badge': 'Mutasi',
         'color': const Color(0xFFF59E0B),
-        'screen': const AlumniListScreen(tipe: 'pindah', title: 'Siswa Pindah / Migrasi'),
+        'screen': const AlumniListScreen(tipe: 'pindah', title: 'Siswa Pindah / Mutasi'),
       },
     ];
 
@@ -913,80 +929,104 @@ class _TabAdministratifState extends State<TabAdministratif> {
 
     if (filtered.isEmpty) return _buildNoMatchText();
 
-    return Row(
-      children: filtered.map((it) {
+    return GridView.builder(
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      itemCount: filtered.length,
+      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: 2,
+        crossAxisSpacing: 10,
+        mainAxisSpacing: 10,
+        childAspectRatio: 1.15,
+      ),
+      itemBuilder: (context, idx) {
+        final it = filtered[idx];
         final Color col = it['color'] as Color;
-        return Expanded(
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 5),
-            child: GestureDetector(
-              onTap: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (context) => it['screen'] as Widget),
-                );
-              },
-              child: Container(
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: isDark ? const Color(0xFF131C2E) : Colors.white,
-                  borderRadius: BorderRadius.circular(20),
-                  border: Border.all(
-                    color: col.withOpacity(isDark ? 0.35 : 0.2),
-                    width: 1.2,
-                  ),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withOpacity(isDark ? 0.25 : 0.03),
-                      blurRadius: 10,
-                      offset: const Offset(0, 4),
+        return GestureDetector(
+          onTap: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (context) => it['screen'] as Widget),
+            );
+          },
+          child: Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: isDark ? const Color(0xFF131C2E) : Colors.white,
+              borderRadius: BorderRadius.circular(18),
+              border: Border.all(
+                color: col.withOpacity(isDark ? 0.35 : 0.2),
+                width: 1.2,
+              ),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(isDark ? 0.25 : 0.03),
+                  blurRadius: 8,
+                  offset: const Offset(0, 3),
+                ),
+              ],
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: col.withOpacity(0.12),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Icon(it['icon'] as IconData, color: col, size: 20),
+                    ),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                      decoration: BoxDecoration(
+                        color: col.withOpacity(0.12),
+                        borderRadius: BorderRadius.circular(6),
+                      ),
+                      child: Text(
+                        it['badge'] as String,
+                        style: GoogleFonts.outfit(
+                          color: col,
+                          fontSize: 9,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
                     ),
                   ],
                 ),
-                child: Column(
+                Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Container(
-                          padding: const EdgeInsets.all(10),
-                          decoration: BoxDecoration(
-                            color: col.withOpacity(0.12),
-                            borderRadius: BorderRadius.circular(14),
-                          ),
-                          child: Icon(it['icon'] as IconData, color: col, size: 22),
-                        ),
-                        Icon(Icons.arrow_forward_rounded, size: 16, color: col),
-                      ],
-                    ),
-                    const SizedBox(height: 14),
                     Text(
                       it['title'] as String,
                       style: GoogleFonts.outfit(
                         color: context.titleColor,
-                        fontSize: 15,
+                        fontSize: 13,
                         fontWeight: FontWeight.bold,
                       ),
                     ),
-                    const SizedBox(height: 4),
+                    const SizedBox(height: 2),
                     Text(
                       it['desc'] as String,
                       style: GoogleFonts.outfit(
                         color: context.subTitleColor,
-                        fontSize: 10,
-                        height: 1.3,
+                        fontSize: 9.5,
+                        height: 1.2,
                       ),
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
                     ),
                   ],
                 ),
-              ),
+              ],
             ),
           ),
         );
-      }).toList(),
+      },
     );
   }
 

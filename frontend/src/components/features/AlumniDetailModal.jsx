@@ -64,9 +64,12 @@ export function AlumniDetailModal({ isOpen, onClose, alumniId }) {
               <h4 style={{ margin: '0 0 4px 0', fontSize: '16px', fontWeight: 'bold', color: '#0f172a' }}>{santri.nama || '-'}</h4>
               <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', alignItems: 'center' }}>
                 <span style={{ fontSize: '12px', color: '#64748b' }}>NIS: <strong>{santri.nis || '-'}</strong></span>
-                <span style={{ fontSize: '12px', color: '#64748b' }}>•</span>
-                <CustomTag color="blue">{santri.tipe === 'pindah' ? 'Siswa Pindah' : 'Alumni'}</CustomTag>
-                {santri.tahun_lulus && <CustomTag color="green">Lulus {santri.tahun_lulus}</CustomTag>}
+                {santri.tipe === 'lulus_mts' && <CustomTag color="blue">Lulusan MTs</CustomTag>}
+                {santri.tipe === 'lulus_aliyah' && <CustomTag color="purple">Lulusan Aliyah</CustomTag>}
+                {santri.tipe === 'alumni' && <CustomTag color="green">Alumni Diniyah</CustomTag>}
+                {santri.tipe === 'pindah' && <CustomTag color="orange">Siswa Pindah / Mutasi</CustomTag>}
+                {!santri.tipe && <CustomTag color="blue">Alumni</CustomTag>}
+                {santri.tahun_lulus && <CustomTag color="cyan">{santri.tipe === 'pindah' ? `Keluar ${santri.tahun_lulus}` : `Lulus ${santri.tahun_lulus}`}</CustomTag>}
               </div>
             </div>
           </div>

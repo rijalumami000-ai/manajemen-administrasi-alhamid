@@ -265,21 +265,46 @@ class _AlumniDetailScreenState extends State<AlumniDetailScreen> with SingleTick
                         ),
                       ),
                       const SizedBox(height: 6),
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFF10B981).withOpacity(0.1),
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: Text(
-                          alumni['tipe'] == 'pindah' ? 'Siswa Pindah / Migrasi' : 'Alumni',
-                          style: GoogleFonts.outfit(
-                            color: const Color(0xFF10B981),
-                            fontSize: 10,
-                            fontWeight: FontWeight.bold,
+                      () {
+                        final String? t = alumni['tipe']?.toString();
+                        Color bCol;
+                        String bText;
+                        switch (t) {
+                          case 'lulus_mts':
+                            bCol = const Color(0xFF0284C7);
+                            bText = 'Lulusan Formal MTs';
+                            break;
+                          case 'lulus_aliyah':
+                            bCol = const Color(0xFF8B5CF6);
+                            bText = 'Lulusan Formal Aliyah';
+                            break;
+                          case 'pindah':
+                            bCol = const Color(0xFFF59E0B);
+                            bText = 'Siswa Pindah / Mutasi';
+                            break;
+                          case 'alumni':
+                          default:
+                            bCol = const Color(0xFF10B981);
+                            bText = 'Alumni Madrasah Diniyah';
+                            break;
+                        }
+                        return Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                          decoration: BoxDecoration(
+                            color: bCol.withOpacity(0.12),
+                            borderRadius: BorderRadius.circular(8),
+                            border: Border.all(color: bCol.withOpacity(0.3)),
                           ),
-                        ),
-                      ),
+                          child: Text(
+                            bText,
+                            style: GoogleFonts.outfit(
+                              color: bCol,
+                              fontSize: 10.5,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        );
+                      }(),
                     ],
                   ),
                 ),

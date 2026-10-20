@@ -62,8 +62,8 @@ function registerAlumniRoutes(app) {
    * POST /api/alumni/migrate - Migrate santri to alumni
    */
   app.post('/api/alumni/migrate', asyncHandler(async (req, res) => {
-    const { santri_id, tahun_lulus, keterangan } = req.body;
-    const result = await alumniService.migrateSantriToAlumni(santri_id, tahun_lulus, keterangan);
+    const { santri_id, tahun_lulus, keterangan, tipe } = req.body;
+    const result = await alumniService.migrateSantriToAlumni(santri_id, tahun_lulus, keterangan, tipe);
     res.status(201).json(result);
   }));
 

@@ -7,6 +7,7 @@ export function MigrateSantriModal({ isOpen, onClose, onSubmit, santriList, isSu
   const [formData, setFormData] = useState({
     santri_id: '',
     tahun_lulus: '',
+    tipe: 'alumni',
     keterangan: ''
   });
 
@@ -18,6 +19,7 @@ export function MigrateSantriModal({ isOpen, onClose, onSubmit, santriList, isSu
       setFormData({
         santri_id: '',
         tahun_lulus: new Date().getFullYear().toString(),
+        tipe: 'alumni',
         keterangan: ''
       });
       setSelectedSantri(null);
@@ -34,14 +36,30 @@ export function MigrateSantriModal({ isOpen, onClose, onSubmit, santriList, isSu
   };
 
   const handleSantriChange = (santriId) => {
-    setFormData(prev => ({ ...prev, santri_id: santriId }));
+    const santri = santriList.find(s => s.id === Number(santriId));
+    setSelectedSantri(santri || null);
+
+    let detectedTipe = 'alumni';
+    if (santri) {
+      const ks = (santri.kelas_sekolah || '').toLowerCase();
+      const kd = (santri.kelas_diniyah || '').toLowerCase();
+      if (ks.includes('aliyah') || ks.includes('ma ') || ks.includes('12')) {
+        detectedTipe = 'lulus_aliyah';
+      } else if (ks.includes('mts') || ks.includes('smp') || ks.includes('9')) {
+        detectedTipe = 'lulus_mts';
+      } else if (kd.includes('6') || kd.includes('diniyah')) {
+        detectedTipe = 'alumni';
+      }
+    }
+
+    setFormData(prev => ({
+      ...prev,
+      santri_id: santriId,
+      tipe: detectedTipe
+    }));
     if (errors.santri_id) {
       setErrors(prev => ({ ...prev, santri_id: '' }));
     }
-
-    // Find and set selected santri for preview
-    const santri = santriList.find(s => s.id === Number(santriId));
-    setSelectedSantri(santri || null);
   };
 
   const validate = () => {
@@ -111,8 +129,26 @@ export function MigrateSantriModal({ isOpen, onClose, onSubmit, santriList, isSu
 
         <div className="modal-grid">
           <div className="form-group">
+            <label htmlFor="tipe">
+              Status Kelulusan / Migrasi <span className="required">*</span>
+            </label>
+            <select
+              id="tipe"
+              name="tipe"
+              value={formData.tipe}
+              onChange={handleChange}
+              style={{ width: '100%', padding: '8px 12px', borderRadius: '6px', border: '1px solid #cbd5e1' }}
+            >
+              <option value="alumni">Alumni Diniyah (Lulus Madrasah Diniyah)</option>
+              <option value="lulus_mts">Lulusan MTs (Lulus Kelas 3 MTs)</option>
+              <option value="lulus_aliyah">Lulusan Aliyah (Lulus Kelas 3 Aliyah)</option>
+              <option value="pindah">Siswa Pindah / Mutasi Keluar</option>
+            </select>
+          </div>
+
+          <div className="form-group">
             <label htmlFor="tahun_lulus">
-              Tahun Lulus <span className="required">*</span>
+              Tahun Kelulusan / Keluar <span className="required">*</span>
             </label>
             <input
               type="number"
