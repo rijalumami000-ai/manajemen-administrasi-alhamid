@@ -9,7 +9,12 @@ import {
   Trash2,
   Printer,
   FileDown,
-  LayoutGrid
+  LayoutGrid,
+  Check,
+  X,
+  Info,
+  Calendar,
+  GraduationCap
 } from 'lucide-react';
 import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
@@ -790,22 +795,25 @@ export function JadwalPelajaran() {
         isOpen={editModalOpen}
         onClose={() => setEditModalOpen(false)}
         title="Edit Slot Pelajaran"
+        subtitle="Konfigurasi mata pelajaran dan ustadz/ustadzah pengajar"
+        icon={<BookOpen size={20} />}
         maxWidth="max-w-md"
       >
-        <div className="modal-content-wrap">
+        <div className="jadwal-modal-content">
           {/* Active slot banner */}
           <div className="modal-subtab-banner">
-            <div>
-              <span className="banner-label">Kelas:</span>
+            <div className="banner-info-group">
+              <span className="banner-label">Kelas</span>
               <strong className="banner-value">{editingSlot?.kelasNama}</strong>
             </div>
-            <span className="banner-tab-tag">
-              {editingSlot?.malam} • Jam {editingSlot?.jam_ke}
-            </span>
+            <div className="banner-tab-tag">
+              <Clock size={12} />
+              <span>{editingSlot?.malam} • Jam ke-{editingSlot?.jam_ke}</span>
+            </div>
           </div>
 
           {clashWarning && (
-            <div style={{ marginBottom: '14px' }}>
+            <div className="modal-alert-wrap">
               <SmartAlert
                 message={clashWarning.message}
                 description={clashWarning.description}
@@ -815,7 +823,10 @@ export function JadwalPelajaran() {
           )}
 
           <div className="modal-form-group">
-            <label className="modal-label">Mata Pelajaran:</label>
+            <label className="modal-field-label">
+              <BookOpen size={13} className="label-icon text-blue" />
+              <span>Mata Pelajaran</span>
+            </label>
             <CustomSelect
               value={selectedMapelId}
               onChange={setSelectedMapelId}
@@ -827,7 +838,10 @@ export function JadwalPelajaran() {
           </div>
 
           <div className="modal-form-group">
-            <label className="modal-label">Ustadz / Ustadzah (Pengajar):</label>
+            <label className="modal-field-label">
+              <User size={13} className="label-icon text-indigo" />
+              <span>Ustadz / Ustadzah (Pengajar)</span>
+            </label>
             <CustomSelect
               value={selectedGuruId}
               onChange={setSelectedGuruId}
@@ -838,26 +852,35 @@ export function JadwalPelajaran() {
             />
           </div>
 
-          <p className="modal-info-note">
-            💡 <em>Catatan:</em> Kosongkan kedua pilihan di atas jika ingin menghapus/mengosongkan jadwal pada slot ini.
-          </p>
+          <div className="modal-info-callout">
+            <div className="callout-icon-box">
+              <Info size={15} />
+            </div>
+            <div className="callout-content">
+              <span className="callout-title">Petunjuk Pengosongan:</span>
+              <span className="callout-desc">
+                Kosongkan kedua pilihan di atas jika ingin menghapus atau mengosongkan jadwal pada slot ini.
+              </span>
+            </div>
+          </div>
 
           <div className="modal-footer-row">
             <button
               type="button"
-              className="modal-btn-cancel"
+              className="action-pill-btn secondary-pill"
               onClick={() => setEditModalOpen(false)}
               disabled={saveLoading}
             >
-              Batal
+              <X size={14} />
+              <span>Batal</span>
             </button>
             <button
               type="button"
-              className="modal-btn-submit"
+              className="action-pill-btn primary-pill"
               onClick={handleSaveJadwal}
               disabled={saveLoading}
             >
-              {saveLoading && <RefreshCw size={14} className="spin-anim" />}
+              {saveLoading ? <RefreshCw size={14} className="spin-anim" /> : <Check size={14} />}
               <span>Simpan Jadwal</span>
             </button>
           </div>
@@ -869,30 +892,34 @@ export function JadwalPelajaran() {
         isOpen={clearConfirm.isOpen}
         onClose={() => setClearConfirm({ isOpen: false, kelasId: null, malam: '', jamKe: null, kelasNama: '' })}
         title="Kosongkan Slot Pelajaran"
+        subtitle="Konfirmasi pengosongan slot jadwal pelajaran"
+        icon={<AlertTriangle size={20} color="#ef4444" />}
         maxWidth="max-w-md"
       >
-        <div>
-          <div className="delete-confirm-box">
-            <AlertTriangle className="delete-warning-icon" size={24} />
-            <div className="delete-warning-text">
-              Apakah Anda yakin ingin menghapus jadwal pelajaran pada kelas <strong>{clearConfirm.kelasNama}</strong> untuk <strong>{clearConfirm.malam}</strong> Jam <strong>ke-{clearConfirm.jamKe}</strong>?
-            </div>
+        <div className="delete-modal-content">
+          <div className="delete-icon-circle">
+            <AlertTriangle size={28} />
           </div>
+          <h4 className="delete-title">Kosongkan Jadwal Ini?</h4>
+          <p className="delete-warning-text">
+            Apakah Anda yakin ingin mengosongkan jadwal pelajaran pada kelas <strong>{clearConfirm.kelasNama}</strong> untuk <strong>{clearConfirm.malam}</strong> Jam <strong>ke-{clearConfirm.jamKe}</strong>?
+          </p>
           <div className="modal-footer-row">
             <button
               type="button"
-              className="modal-btn-cancel"
+              className="action-pill-btn secondary-pill"
               onClick={() => setClearConfirm({ isOpen: false, kelasId: null, malam: '', jamKe: null, kelasNama: '' })}
             >
-              Batal
+              <X size={14} />
+              <span>Batal</span>
             </button>
             <button
               type="button"
-              className="modal-btn-submit"
-              style={{ background: 'linear-gradient(180deg, #f43f5e 0%, #e11d48 100%)', boxShadow: '0 4px 14px rgba(225, 29, 72, 0.35)' }}
+              className="action-pill-btn danger-pill"
               onClick={handleConfirmClearSlot}
             >
-              Ya, Kosongkan
+              <Trash2 size={14} />
+              <span>Ya, Kosongkan Slot</span>
             </button>
           </div>
         </div>
