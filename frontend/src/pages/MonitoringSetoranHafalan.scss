@@ -3,33 +3,15 @@
 @import '../styles/mixins';
 
 .monitoring-setoran-page {
-  @include container;
-  padding-top: 20px;
+  @include apple-liquid-canvas;
   display: flex;
   flex-direction: column;
   gap: 20px;
-  padding-bottom: 40px;
-  position: relative;
-  min-height: calc(100vh - 80px);
-
-  // Dynamic Ambient Aurora Mesh Canvas Background
-  background: 
-    radial-gradient(circle at 12% 12%, rgba(56, 189, 248, 0.22) 0%, transparent 45%),
-    radial-gradient(circle at 88% 18%, rgba(139, 92, 246, 0.20) 0%, transparent 42%),
-    radial-gradient(circle at 45% 50%, rgba(244, 114, 182, 0.12) 0%, transparent 40%),
-    radial-gradient(circle at 82% 82%, rgba(168, 85, 247, 0.16) 0%, transparent 48%),
-    radial-gradient(circle at 18% 85%, rgba(45, 212, 191, 0.15) 0%, transparent 42%),
-    linear-gradient(180deg, #f8fafc 0%, #f1f5f9 55%, #edf2f7 100%);
-
-  html[data-theme="dark"] & {
-    background: 
-      radial-gradient(circle at 15% 15%, rgba(30, 58, 138, 0.25) 0%, transparent 45%),
-      radial-gradient(circle at 85% 20%, rgba(88, 28, 135, 0.22) 0%, transparent 45%),
-      linear-gradient(135deg, #0b0f17 0%, #0f172a 50%, #1e293b 100%);
-  }
 
   // 1. Floating Glass Header Dock (Sacred Rule: No Title Icon Orb)
   .tactile-page-header {
+    position: relative;
+    z-index: 2;
     background: rgba(255, 255, 255, 0.72);
     backdrop-filter: blur(36px);
     -webkit-backdrop-filter: blur(36px);

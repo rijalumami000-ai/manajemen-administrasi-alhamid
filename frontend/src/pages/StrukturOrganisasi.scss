@@ -8,13 +8,10 @@
 // =============================================================================
 
 .struktur-organisasi-page {
-  position: relative;
-  min-height: calc(100vh - 80px);
-  padding: 24px 28px 56px;
+  @include apple-liquid-canvas;
   display: flex;
   flex-direction: column;
   gap: 20px;
-  overflow-x: hidden;
   font-family: inherit;
 
   // Global button reset inside this page to prevent any unstyled HTML button borders
@@ -24,20 +21,6 @@
     border: none;
     background: transparent;
     box-sizing: border-box;
-  }
-
-  // ── Ambient Aurora Mesh Lighting ───────────────────────────────────────────
-  background: 
-    radial-gradient(circle at 12% 12%, rgba(219, 234, 254, 0.55) 0%, transparent 40%),
-    radial-gradient(circle at 88% 18%, rgba(237, 233, 254, 0.50) 0%, transparent 42%),
-    radial-gradient(circle at 50% 88%, rgba(252, 231, 243, 0.40) 0%, transparent 45%),
-    linear-gradient(135deg, #f8fafc 0%, #f1f5f9 50%, #e2e8f0 100%);
-
-  html[data-theme="dark"] & {
-    background: 
-      radial-gradient(circle at 15% 15%, rgba(30, 58, 138, 0.25) 0%, transparent 45%),
-      radial-gradient(circle at 85% 20%, rgba(88, 28, 135, 0.22) 0%, transparent 45%),
-      linear-gradient(135deg, #0b0f17 0%, #0f172a 50%, #1e293b 100%);
   }
 
   // ── 1. Floating Glass Header Dock (Matches Guru & Kelas Tactile Header) ─────

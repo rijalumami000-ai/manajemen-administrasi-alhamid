@@ -7,73 +7,7 @@
 // =============================================================================
 
 .silabus-page {
-  @include fade-in;
-  position: relative;
-  padding: 24px 32px 48px;
-  max-width: 1600px;
-  margin: 0 auto;
-  min-height: calc(100vh - 80px);
-  border-radius: 28px;
-  overflow: hidden;
-
-  @include respond-to(md) {
-    padding: 16px 16px 36px;
-    border-radius: 20px;
-  }
-
-  // Apple Sequoia Liquid Wallpaper Background Mesh
-  background: 
-    radial-gradient(circle at 10% 10%, rgba(56, 189, 248, 0.28) 0%, transparent 45%),
-    radial-gradient(circle at 90% 12%, rgba(129, 140, 248, 0.24) 0%, transparent 42%),
-    radial-gradient(circle at 50% 50%, rgba(244, 114, 182, 0.14) 0%, transparent 40%),
-    radial-gradient(circle at 86% 82%, rgba(168, 85, 247, 0.2) 0%, transparent 48%),
-    radial-gradient(circle at 12% 86%, rgba(45, 212, 191, 0.18) 0%, transparent 42%),
-    linear-gradient(180deg, #f8fafc 0%, #f1f5f9 55%, #edf2f7 100%);
-
-  html[data-theme="dark"] & {
-    background: 
-      radial-gradient(circle at 10% 10%, rgba(56, 189, 248, 0.12) 0%, transparent 45%),
-      radial-gradient(circle at 90% 15%, rgba(129, 140, 248, 0.1) 0%, transparent 42%),
-      radial-gradient(circle at 85% 80%, rgba(168, 85, 247, 0.1) 0%, transparent 48%),
-      linear-gradient(180deg, #090d16 0%, #0d121f 55%, #080c14 100%);
-  }
-
-  // Refractive Ambient Light Emitters
-  &::before {
-    content: '';
-    position: absolute;
-    top: -80px;
-    left: 6%;
-    width: 580px;
-    height: 580px;
-    border-radius: 50%;
-    background: radial-gradient(circle, rgba(56, 189, 248, 0.24) 0%, rgba(99, 102, 241, 0.12) 50%, transparent 75%);
-    filter: blur(100px);
-    pointer-events: none;
-    z-index: 0;
-
-    html[data-theme="dark"] & {
-      opacity: 0.25;
-    }
-  }
-
-  &::after {
-    content: '';
-    position: absolute;
-    top: 38%;
-    right: 4%;
-    width: 620px;
-    height: 620px;
-    border-radius: 50%;
-    background: radial-gradient(circle, rgba(168, 85, 247, 0.2) 0%, rgba(236, 72, 153, 0.08) 50%, transparent 80%);
-    filter: blur(110px);
-    pointer-events: none;
-    z-index: 0;
-
-    html[data-theme="dark"] & {
-      opacity: 0.2;
-    }
-  }
+  @include apple-liquid-canvas;
 
   // ─── 1. APPLE FLOATING DOCK HEADER ─────────────────────────
   .tactile-page-header {
