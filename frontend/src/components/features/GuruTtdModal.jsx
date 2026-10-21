@@ -138,21 +138,21 @@ export function GuruTtdModal({ isOpen, onClose, guru, onSuccess }) {
           {previewUrl && (
             <button 
               type="button" 
-              className="btn-custom btn-danger" 
+              className="tactile-modal-btn danger" 
               onClick={handleDelete}
               disabled={isUploading}
             >
-              <Trash2 size={16} />
+              <Trash2 size={15} />
               <span>Hapus TTD</span>
             </button>
           )}
           <button 
             type="button" 
-            className="btn-custom btn-secondary" 
+            className="tactile-modal-btn secondary" 
             onClick={() => fileInputRef.current?.click()}
             disabled={isUploading}
           >
-            <Upload size={16} />
+            <Upload size={15} />
             <span>Pilih File</span>
           </button>
         </div>

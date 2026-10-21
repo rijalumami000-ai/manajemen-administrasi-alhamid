@@ -1,1 +1,0 @@
-import{r}from"./rolldown-runtime-DV_9Vvz3.js";import{In as s,Xn as a}from"./react-vendor-DrNiubd6.js";a();var t=s();function e({children:r,color:s="default",className:a="",style:e}){return(0,t.jsx)("span",{className:`custom-tag tag-${s} ${a}`,style:e,children:r})}export{e as t};

@@ -5,27 +5,39 @@
   width: 100%;
   margin-bottom: $lt-space-4;
 
+  // ========= Input Trigger (Apple Frosted Glass Inset) =========
   &__wrapper {
     position: relative;
     display: flex;
     align-items: center;
-    background: $lt-bg-input;
-    border: 1px solid $lt-border-medium;
-    border-radius: $lt-radius-md;
-    transition: all $lt-transition-fast;
+    background: rgba(255, 255, 255, 0.6);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border: 1px solid rgba(203, 213, 225, 0.7);
+    border-top: 1px solid rgba(255, 255, 255, 0.95);
+    border-radius: 12px;
+    box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.85), 0 1px 3px rgba(15, 23, 42, 0.02);
+    transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
     cursor: pointer;
     min-height: 48px;
 
     &:hover {
-      border-color: $lt-text-tertiary;
+      background: rgba(255, 255, 255, 0.82);
+      border-color: rgba(148, 163, 184, 0.85);
+      box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.95), 0 2px 5px rgba(15, 23, 42, 0.04);
     }
 
     [data-theme="dark"] & {
-      background: rgba(30, 41, 59, 0.4);
-      border-color: rgba(255, 255, 255, 0.08);
+      background: rgba(30, 41, 59, 0.5);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-top: 1px solid rgba(255, 255, 255, 0.18);
+      box-shadow: inset 0 1px 1px rgba(0, 0, 0, 0.2);
       
       &:hover {
-        border-color: rgba(255, 255, 255, 0.15);
+        background: rgba(30, 41, 59, 0.7);
+        border-color: rgba(255, 255, 255, 0.2);
       }
     }
   }
@@ -34,8 +46,9 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    padding-left: $lt-space-3;
-    color: $lt-text-tertiary;
+    padding-left: 12px;
+    color: #94a3b8;
+    transition: color 0.18s ease;
 
     [data-theme="dark"] & {
       color: #64748b;
@@ -45,84 +58,90 @@
   &__value-container {
     flex: 1;
     position: relative;
-    padding: 20px $lt-space-3 6px;
+    padding: 20px 12px 6px;
     min-width: 0;
   }
 
   &__value {
     font-family: $lt-font-sans;
-    font-size: $lt-text-base;
-    color: $lt-text-primary;
+    font-size: 13.5px;
+    font-weight: 500;
+    color: #0f172a;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
 
     .placeholder {
       color: transparent;
-      transition: color $lt-transition-fast;
+      transition: color 0.18s ease;
     }
 
     [data-theme="dark"] & {
-      color: #f8fafc;
+      color: #f1f5f9;
     }
   }
 
   &__arrow {
-    padding-right: $lt-space-3;
-    color: $lt-text-tertiary;
+    padding-right: 12px;
+    color: #94a3b8;
     display: flex;
     align-items: center;
-    transition: transform $lt-transition-fast;
+    transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), color 0.18s ease;
 
     &.rotated {
       transform: rotate(180deg);
+      color: #2563eb;
     }
 
     [data-theme="dark"] & {
       color: #64748b;
+
+      &.rotated {
+        color: #60a5fa;
+      }
     }
   }
 
   &__clear-btn {
     background: none;
     border: none;
-    margin-right: $lt-space-3;
+    margin-right: 8px;
     padding: 4px;
-    color: $lt-text-tertiary;
+    color: #94a3b8;
     cursor: pointer;
     display: flex;
     align-items: center;
     justify-content: center;
-    border-radius: 50%;
-    transition: all $lt-transition-fast;
+    border-radius: 6px;
+    transition: all 0.15s ease;
     z-index: 5;
 
     &:hover {
-      color: $lt-error;
-      background: $lt-error-light;
+      color: #ef4444;
+      background: rgba(254, 226, 226, 0.8);
     }
 
     [data-theme="dark"] & {
       color: #64748b;
       &:hover {
         color: #f87171;
-        background: rgba(239, 68, 68, 0.1);
+        background: rgba(239, 68, 68, 0.2);
       }
     }
   }
 
   &__label {
     position: absolute;
-    left: $lt-space-3;
+    left: 12px;
     top: 50%;
     transform: translateY(-50%);
-    font-size: $lt-text-base;
-    color: $lt-text-tertiary;
+    font-size: 13.5px;
+    color: #94a3b8;
     pointer-events: none;
-    transition: all $lt-transition-fast;
+    transition: all 0.18s cubic-bezier(0.16, 1, 0.3, 1);
 
     .required-asterisk {
-      color: $lt-error;
+      color: #ef4444;
     }
 
     [data-theme="dark"] & {
@@ -133,38 +152,23 @@
     }
   }
 
-  // Active state (open or has value)
-  &.active {
-    .ui-custom-select__wrapper {
-      border-color: $lt-text-accent;
-      box-shadow: 0 0 0 3px rgba($lt-text-accent, 0.15);
-    }
-    
-    .ui-custom-select__icon {
-      color: $lt-text-accent;
-    }
-
+  // Floating Label: Has value or active (Clean Neutral Slate)
+  &.active,
+  &.has-value {
     .ui-custom-select__label {
-      top: 10px;
+      top: 9px;
       font-size: 11px;
-      font-weight: 500;
-      color: $lt-text-accent;
+      font-weight: 600;
+      color: #64748b;
     }
 
     .placeholder {
-      color: $lt-text-disabled;
+      color: #94a3b8;
     }
 
     [data-theme="dark"] & {
-      .ui-custom-select__wrapper {
-        border-color: #3b82f6;
-        box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2);
-      }
-      .ui-custom-select__icon {
-        color: #3b82f6;
-      }
       .ui-custom-select__label {
-        color: #3b82f6;
+        color: #94a3b8;
       }
       .placeholder {
         color: #475569;
@@ -172,116 +176,188 @@
     }
   }
 
-  // Dropdown Menu
-  &__dropdown {
-    position: absolute;
-    top: calc(100% + 6px);
-    left: 0;
-    right: 0;
-    background: rgba(255, 255, 255, 0.96);
-    backdrop-filter: blur(12px);
-    -webkit-backdrop-filter: blur(12px);
-    border-radius: 12px;
-    border: 1px solid rgba(0, 0, 0, 0.08);
-    box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.08), 0 8px 16px -6px rgba(0, 0, 0, 0.05);
-    z-index: 999;
-    max-height: 240px;
-    overflow-y: auto;
-    padding: 6px;
-    animation: dropdownFade 0.2s cubic-bezier(0.4, 0, 0.2, 1) forwards;
-
-    &::-webkit-scrollbar {
-      width: 6px;
+  // Active Interaction: Dropdown Open (Apple System Blue Focus Aura)
+  &.is-open {
+    .ui-custom-select__wrapper {
+      background: rgba(255, 255, 255, 0.94);
+      border-color: #3b82f6;
+      box-shadow: 
+        0 0 0 3.5px rgba(59, 130, 246, 0.16),
+        0 2px 8px rgba(59, 130, 246, 0.08),
+        inset 0 1px 1px rgba(255, 255, 255, 0.95);
     }
-    &::-webkit-scrollbar-thumb {
-      background: $lt-border-medium;
-      border-radius: $lt-radius-full;
+    
+    .ui-custom-select__icon {
+      color: #2563eb;
+    }
+
+    .ui-custom-select__label {
+      color: #2563eb;
     }
 
     [data-theme="dark"] & {
-      background: rgba(21, 26, 35, 0.95);
-      border-color: rgba(255, 255, 255, 0.08);
-      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.35);
+      .ui-custom-select__wrapper {
+        background: rgba(30, 41, 59, 0.85);
+        border-color: #3b82f6;
+        box-shadow: 0 0 0 3.5px rgba(59, 130, 246, 0.25);
+      }
+      .ui-custom-select__icon,
+      .ui-custom-select__label {
+        color: #60a5fa;
+      }
+    }
+  }
+
+  // ========= Dropdown Menu (Apple Crystal Liquid Glass) =========
+  &__dropdown {
+    position: absolute;
+    background: rgba(255, 255, 255, 0.94);
+    backdrop-filter: blur(40px) saturate(180%);
+    -webkit-backdrop-filter: blur(40px) saturate(180%);
+    border-radius: 16px;
+    border: 1px solid rgba(255, 255, 255, 0.85);
+    border-top: 1.5px solid rgba(255, 255, 255, 1);
+    box-shadow: 
+      0 24px 56px -10px rgba(15, 23, 42, 0.18),
+      0 8px 20px -4px rgba(15, 23, 42, 0.08),
+      0 0 0 1px rgba(0, 0, 0, 0.05),
+      inset 0 1px 0 rgba(255, 255, 255, 1);
+    z-index: 999999;
+    max-height: 250px;
+    overflow-y: auto;
+    padding: 6px;
+    animation: dropdownPop 0.18s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    transform-origin: top center;
+
+    &.open-upwards {
+      transform: translateY(-100%);
+      transform-origin: bottom center;
+      border-top: 1px solid rgba(255, 255, 255, 0.85);
+      border-bottom: 1.5px solid rgba(255, 255, 255, 1);
+    }
+
+    &::-webkit-scrollbar {
+      width: 5px;
+    }
+    &::-webkit-scrollbar-thumb {
+      background: rgba(203, 213, 225, 0.8);
+      border-radius: 9999px;
+    }
+
+    [data-theme="dark"] & {
+      background: rgba(15, 23, 42, 0.94);
+      backdrop-filter: blur(40px) saturate(180%);
+      -webkit-backdrop-filter: blur(40px) saturate(180%);
+      border: 1px solid rgba(255, 255, 255, 0.14);
+      border-top: 1.5px solid rgba(255, 255, 255, 0.28);
+      box-shadow: 
+        0 28px 60px -10px rgba(0, 0, 0, 0.65),
+        0 0 0 1px rgba(255, 255, 255, 0.06),
+        inset 0 1px 0 rgba(255, 255, 255, 0.18);
 
       &::-webkit-scrollbar-thumb {
-        background: rgba(255, 255, 255, 0.1);
+        background: rgba(255, 255, 255, 0.15);
       }
     }
   }
 
   &__option {
-    padding: 8px 12px;
-    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 9px 12px;
+    margin-bottom: 2px;
+    border-radius: 10px;
     font-size: 13.5px;
-    color: $lt-text-primary;
+    font-weight: 500;
+    color: #1e293b;
     cursor: pointer;
-    transition: all 0.15s ease;
+    transition: all 0.12s cubic-bezier(0.16, 1, 0.3, 1);
+
+    &:last-child {
+      margin-bottom: 0;
+    }
 
     &:hover {
-      background: $lt-bg-hover;
-      color: $lt-text-accent;
+      background: rgba(0, 0, 0, 0.05);
+      color: #0f172a;
+      transform: translateX(2px);
     }
 
     &.selected {
-      background: $lt-bg-active;
-      color: $lt-text-accent;
+      background: rgba(37, 99, 235, 0.12);
+      color: #2563eb;
       font-weight: 600;
+
+      &::after {
+        content: '✓';
+        font-size: 13px;
+        color: #2563eb;
+        font-weight: 700;
+      }
     }
 
     &.empty {
-      color: $lt-text-disabled;
+      color: #94a3b8;
       text-align: center;
-      padding: $lt-space-4;
+      justify-content: center;
+      padding: 14px;
       cursor: default;
-      &:hover { background: transparent; }
+      &:hover { background: transparent; transform: none; }
     }
 
     [data-theme="dark"] & {
       color: #cbd5e1;
 
       &:hover {
-        background: rgba(255, 255, 255, 0.05);
-        color: #3b82f6;
+        background: rgba(255, 255, 255, 0.08);
+        color: #ffffff;
       }
 
       &.selected {
-        background: rgba(59, 130, 246, 0.15);
-        color: #3b82f6;
+        background: rgba(59, 130, 246, 0.22);
+        color: #60a5fa;
+
+        &::after {
+          color: #60a5fa;
+        }
       }
 
       &.empty {
-        color: #475569;
+        color: #64748b;
       }
     }
   }
 
   &.has-error {
     .ui-custom-select__wrapper {
-      border-color: $lt-error;
+      border-color: #ef4444;
+      background: rgba(254, 242, 242, 0.7);
     }
     .ui-custom-select__label {
-      color: $lt-error;
+      color: #ef4444;
     }
-    &.active .ui-custom-select__wrapper {
-      box-shadow: 0 0 0 3px rgba($lt-error, 0.15);
+    &.is-open .ui-custom-select__wrapper {
+      box-shadow: 0 0 0 3.5px rgba(239, 68, 68, 0.18);
     }
 
     [data-theme="dark"] & {
       .ui-custom-select__wrapper {
         border-color: #f87171;
+        background: rgba(239, 68, 68, 0.12);
       }
       .ui-custom-select__label {
         color: #f87171;
       }
-      &.active .ui-custom-select__wrapper {
-        box-shadow: 0 0 0 3px rgba(248, 113, 113, 0.2);
+      &.is-open .ui-custom-select__wrapper {
+        box-shadow: 0 0 0 3.5px rgba(248, 113, 113, 0.25);
       }
     }
   }
 
   &__error {
     font-size: 12px;
-    color: $lt-error;
+    color: #ef4444;
     margin-top: 4px;
     padding-left: 4px;
 
@@ -291,17 +367,17 @@
   }
 
   &.disabled {
-    opacity: 0.7;
+    opacity: 0.65;
     .ui-custom-select__wrapper {
-      background: $lt-bg-muted;
-      border-color: $lt-border-light;
+      background: rgba(241, 245, 249, 0.6);
+      border-color: rgba(226, 232, 240, 0.6);
       cursor: not-allowed;
     }
 
     [data-theme="dark"] & {
       .ui-custom-select__wrapper {
-        background: rgba(255,255,255,0.02);
-        border-color: rgba(255,255,255,0.04);
+        background: rgba(255, 255, 255, 0.02);
+        border-color: rgba(255, 255, 255, 0.04);
       }
     }
   }
@@ -310,11 +386,11 @@
     margin-bottom: 0;
     
     .ui-custom-select__value-container {
-      padding: 12px $lt-space-3;
+      padding: 12px 12px;
     }
 
     .placeholder {
-      color: $lt-text-disabled;
+      color: #94a3b8;
     }
 
     [data-theme="dark"] & {
@@ -325,7 +401,13 @@
   }
 }
 
-@keyframes dropdownFade {
-  from { opacity: 0; transform: translateY(-6px); }
-  to { opacity: 1; transform: translateY(0); }
+@keyframes dropdownPop {
+  from {
+    opacity: 0;
+    transform: translateY(-4px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
 }

@@ -1,1 +1,0 @@
-import{In as r}from"./react-vendor-DrNiubd6.js";import{StrukturKepesantrenan as a}from"./StrukturKepesantrenan-CaP4ZUcK.js";var t=r();function e(){return(0,t.jsx)(a,{defaultTab:"madrasah_diniyah"})}export{e as StrukturOrganisasi,e as default};

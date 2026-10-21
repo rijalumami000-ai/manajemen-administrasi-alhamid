@@ -17,7 +17,7 @@ export function FloatingInput({
   const active = focused || isFilled;
 
   return (
-    <div className={`ui-floating-input ${active ? 'active' : ''} ${error ? 'has-error' : ''} ${disabled ? 'disabled' : ''} ${Icon ? 'has-icon' : ''}`}>
+    <div className={`ui-floating-input ${focused ? 'is-focused' : ''} ${isFilled ? 'has-value' : ''} ${active ? 'active' : ''} ${error ? 'has-error' : ''} ${disabled ? 'disabled' : ''} ${Icon ? 'has-icon' : ''}`}>
       <div className="ui-floating-input__wrapper">
         {Icon && <div className="ui-floating-input__icon"><Icon size={18} /></div>}
         <input

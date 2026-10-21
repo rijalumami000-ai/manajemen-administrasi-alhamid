@@ -5,17 +5,39 @@
   width: 100%;
   margin-bottom: $lt-space-4;
 
+  // ========= Input Wrapper (Apple Frosted Glass Inset) =========
   &__wrapper {
     position: relative;
     display: flex;
     align-items: center;
-    background: $lt-bg-input;
-    border: 1px solid $lt-border-medium;
-    border-radius: $lt-radius-md;
-    transition: all $lt-transition-fast;
+    background: rgba(255, 255, 255, 0.6);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border: 1px solid rgba(203, 213, 225, 0.7);
+    border-top: 1px solid rgba(255, 255, 255, 0.95);
+    border-radius: 12px;
+    box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.85), 0 1px 3px rgba(15, 23, 42, 0.02);
+    transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+    min-height: 48px;
 
     &:hover {
-      border-color: $lt-text-tertiary;
+      background: rgba(255, 255, 255, 0.82);
+      border-color: rgba(148, 163, 184, 0.85);
+      box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.95), 0 2px 5px rgba(15, 23, 42, 0.04);
+    }
+
+    [data-theme="dark"] & {
+      background: rgba(30, 41, 59, 0.5);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-top: 1px solid rgba(255, 255, 255, 0.18);
+      box-shadow: inset 0 1px 1px rgba(0, 0, 0, 0.2);
+
+      &:hover {
+        background: rgba(30, 41, 59, 0.7);
+        border-color: rgba(255, 255, 255, 0.2);
+      }
     }
   }
 
@@ -23,25 +45,35 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    padding-left: $lt-space-3;
-    color: $lt-text-tertiary;
+    padding-left: 12px;
+    color: #94a3b8;
     position: absolute;
     left: 0;
     top: 50%;
     transform: translateY(-50%);
     z-index: 2;
     pointer-events: none;
+    transition: color 0.18s ease;
+
+    [data-theme="dark"] & {
+      color: #64748b;
+    }
   }
 
   &__field {
     width: 100%;
-    padding: 20px $lt-space-3 6px;
+    padding: 20px 12px 6px;
     border: none;
     background: transparent;
     font-family: $lt-font-sans;
-    font-size: $lt-text-base;
-    color: $lt-text-primary;
+    font-size: 13.5px;
+    font-weight: 500;
+    color: #0f172a;
     outline: none;
+
+    [data-theme="dark"] & {
+      color: #f1f5f9;
+    }
 
     &[type="date"] {
       color: transparent;
@@ -55,80 +87,147 @@
 
   &__label {
     position: absolute;
-    left: $lt-space-3;
+    left: 12px;
     top: 50%;
     transform: translateY(-50%);
-    font-size: $lt-text-base;
-    color: $lt-text-tertiary;
+    font-size: 13.5px;
+    color: #94a3b8;
     pointer-events: none;
-    transition: all $lt-transition-fast;
+    transition: all 0.18s cubic-bezier(0.16, 1, 0.3, 1);
 
     .required-asterisk {
-      color: $lt-error;
+      color: #ef4444;
+    }
+
+    [data-theme="dark"] & {
+      color: #64748b;
+      .required-asterisk {
+        color: #f87171;
+      }
     }
   }
 
-  // Active state (focused or has value)
-  &.active {
-    .ui-floating-input__wrapper {
-      border-color: $lt-border-focus;
-      box-shadow: 0 0 0 3px rgba($lt-border-focus, 0.15);
-    }
-    
-    .ui-floating-input__icon {
-      color: $lt-text-accent;
-    }
-
+  // Floating label position: Has value or active (Clean Neutral Slate)
+  &.active,
+  &.has-value {
     .ui-floating-input__label {
-      top: 10px;
+      top: 9px;
       font-size: 11px;
-      font-weight: 500;
-      color: $lt-text-accent;
+      font-weight: 600;
+      color: #64748b;
     }
 
     .ui-floating-input__field[type="date"] {
-      color: $lt-text-primary;
+      color: #0f172a;
+      [data-theme="dark"] & {
+        color: #f1f5f9;
+      }
+    }
+
+    [data-theme="dark"] & {
+      .ui-floating-input__label {
+        color: #94a3b8;
+      }
+    }
+  }
+
+  // Focused state (Apple System Blue Focus Aura)
+  &.is-focused {
+    .ui-floating-input__wrapper {
+      background: rgba(255, 255, 255, 0.94);
+      border-color: #3b82f6;
+      box-shadow: 
+        0 0 0 3.5px rgba(59, 130, 246, 0.16),
+        0 2px 8px rgba(59, 130, 246, 0.08),
+        inset 0 1px 1px rgba(255, 255, 255, 0.95);
+    }
+    
+    .ui-floating-input__icon {
+      color: #2563eb;
+    }
+
+    .ui-floating-input__label {
+      color: #2563eb;
+    }
+
+    [data-theme="dark"] & {
+      .ui-floating-input__wrapper {
+        background: rgba(30, 41, 59, 0.85);
+        border-color: #3b82f6;
+        box-shadow: 0 0 0 3.5px rgba(59, 130, 246, 0.25);
+      }
+      .ui-floating-input__icon,
+      .ui-floating-input__label {
+        color: #60a5fa;
+      }
     }
   }
 
   &.has-icon {
     .ui-floating-input__field {
-      padding-left: 40px;
+      padding-left: 38px;
     }
     .ui-floating-input__label {
-      left: 40px;
+      left: 38px;
     }
-    &.active {
+    &.active,
+    &.has-value {
       .ui-floating-input__label {
-        left: 40px;
+        left: 38px;
       }
     }
   }
 
   &.has-error {
     .ui-floating-input__wrapper {
-      border-color: $lt-error;
+      border-color: #ef4444;
+      background: rgba(254, 242, 242, 0.7);
     }
     .ui-floating-input__label {
-      color: $lt-error;
+      color: #ef4444;
     }
-    &.active .ui-floating-input__wrapper {
-      box-shadow: 0 0 0 3px rgba($lt-error, 0.15);
+    &.is-focused .ui-floating-input__wrapper {
+      box-shadow: 0 0 0 3.5px rgba(239, 68, 68, 0.18);
+    }
+
+    [data-theme="dark"] & {
+      .ui-floating-input__wrapper {
+        border-color: #f87171;
+        background: rgba(239, 68, 68, 0.12);
+      }
+      .ui-floating-input__label {
+        color: #f87171;
+      }
+      &.is-focused .ui-floating-input__wrapper {
+        box-shadow: 0 0 0 3.5px rgba(248, 113, 113, 0.25);
+      }
     }
   }
 
   &__error {
     font-size: 12px;
-    color: $lt-error;
+    color: #ef4444;
     margin-top: 4px;
     padding-left: 4px;
+
+    [data-theme="dark"] & {
+      color: #f87171;
+    }
   }
 
   &.disabled {
-    opacity: 0.7;
+    opacity: 0.65;
     .ui-floating-input__wrapper {
-      background: $lt-bg-muted;
-      border-color: $lt-border-light;
+      background: rgba(241, 245, 249, 0.6);
+      border-color: rgba(226, 232, 240, 0.6);
+      cursor: not-allowed;
+    }
+
+    [data-theme="dark"] & {
+      .ui-floating-input__wrapper {
+        background: rgba(255, 255, 255, 0.02);
+        border-color: rgba(255, 255, 255, 0.04);
+      }
     }
   }
 }

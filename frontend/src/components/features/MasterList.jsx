@@ -1,58 +1,79 @@
+import React from 'react';
 import { Edit, Trash2, BookOpen, Briefcase } from 'lucide-react';
 import './MasterList.scss';
 
 export function MasterList({ items, emptyLabel, onEdit, onDelete, type }) {
   if (!items || items.length === 0) {
     return (
-      <div className="empty-state empty-state-compact">
-        <div className="empty-state-icon">!</div>
-        <h3>Belum ada data</h3>
+      <div className="tactile-glass-empty">
+        <div className="empty-icon-bubble">
+          {type === 'mapel' ? <BookOpen size={28} /> : <Briefcase size={28} />}
+        </div>
+        <h4>Belum Ada Data {type === 'mapel' ? 'Mata Pelajaran' : 'Jabatan'}</h4>
         <p>{emptyLabel}</p>
       </div>
     );
   }
 
   const isMapel = type === 'mapel';
+  const themeClass = isMapel ? 'theme-mapel' : 'theme-jabatan';
 
   return (
     <div className="master-grid-container">
       {items.map((item, index) => (
-        <div key={item.id} className="master-grid-card">
-          <div className="card-top-accent"></div>
-          
-          <div className="card-icon-avatar">
-            {isMapel ? <BookOpen size={18} /> : <Briefcase size={18} />}
-          </div>
+        <article key={item.id} className={`master-liquid-card ${themeClass}`}>
+          {/* Card Header: 3D Lens Orb & Index Badge */}
+          <header className="card-header">
+            <div className="master-lens-orb" title={item.nama}>
+              {isMapel ? <BookOpen size={18} /> : <Briefcase size={18} />}
+            </div>
+            <span className="item-index-badge">#{index + 1}</span>
+          </header>
 
-          <div className="card-details">
-            <span className="item-index">#{index + 1}</span>
-            <h4 className="item-name" title={item.nama || '-'}>
+          {/* Card Body: Details */}
+          <div className="card-body">
+            <h4 className="item-title" title={item.nama || '-'}>
               {item.nama || '-'}
             </h4>
+
+            {isMapel && item.nama_arab && (
+              <span className="arabic-name-tag" dir="rtl" title={`Nama Arab: ${item.nama_arab}`}>
+                {item.nama_arab}
+              </span>
+            )}
+
+            {!isMapel && item.keterangan && (
+              <p className="item-description" title={item.keterangan}>
+                {item.keterangan}
+              </p>
+            )}
           </div>
 
-          <div className="card-actions">
+          {/* Card Footer: Frosted Action Capsules */}
+          <footer className="card-footer">
             <button
               type="button"
-              className="action-btn edit-btn"
+              className="tactile-action-btn edit-btn"
               onClick={() => onEdit(item)}
               aria-label={`Edit ${item.nama || ''}`}
             >
-              <Edit size={12} />
+              <Edit size={13} />
               <span>Edit</span>
             </button>
             <button
               type="button"
-              className="action-btn delete-btn"
+              className="tactile-action-btn delete-btn"
               onClick={() => onDelete(item.id, item.nama)}
               aria-label={`Hapus ${item.nama || ''}`}
             >
-              <Trash2 size={12} />
+              <Trash2 size={13} />
               <span>Hapus</span>
             </button>
-          </div>
-        </div>
+          </footer>
+        </article>
       ))}
     </div>
   );
 }
+
+export default MasterList;

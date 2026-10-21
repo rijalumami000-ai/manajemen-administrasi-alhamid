@@ -1,160 +1,555 @@
-@import '../styles/variables';
-@import '../styles/mixins';
+@import '../styles/variables.scss';
+@import '../styles/mixins.scss';
 
-.guru-page {
-  @include container;
-  padding-top: $spacing-lg;
-  padding-bottom: $spacing-lg;
+// ============================================================================
+// DATA GURU, MATA PELAJARAN & JABATAN - APPLE LIQUID GLASS & CRYSTAL BLUR
+// macOS Sequoia & VisionOS Translucent Acrylic Skeuomorphism (Option A)
+// ============================================================================
+
+.guru-page.tactile-redesign {
   @include fade-in;
+  position: relative;
+  padding: 24px 32px 48px;
+  max-width: 1600px;
+  margin: 0 auto;
+  min-height: calc(100vh - 80px);
+  border-radius: 28px;
+  overflow: hidden;
 
-  .guru-content {
-    background: rgba(20, 24, 33, 0.4) !important;
-    backdrop-filter: blur(12px);
-    -webkit-backdrop-filter: blur(12px);
-    border: 1px solid rgba(255, 255, 255, 0.06) !important;
-    border-radius: 20px !important;
-    padding: 24px !important;
-    margin-top: $spacing-lg;
-    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+  @include respond-to(md) {
+    padding: 16px 16px 36px;
+    border-radius: 20px;
+  }
 
-    @include respond-to(md) {
-      padding: 16px !important;
+  // Apple Sequoia Liquid Wallpaper Background Mesh (Light Default)
+  background: 
+    radial-gradient(circle at 12% 12%, rgba(56, 189, 248, 0.28) 0%, transparent 45%),
+    radial-gradient(circle at 88% 18%, rgba(139, 92, 246, 0.24) 0%, transparent 42%),
+    radial-gradient(circle at 45% 50%, rgba(244, 114, 182, 0.15) 0%, transparent 40%),
+    radial-gradient(circle at 82% 82%, rgba(168, 85, 247, 0.2) 0%, transparent 48%),
+    radial-gradient(circle at 18% 85%, rgba(45, 212, 191, 0.18) 0%, transparent 42%),
+    linear-gradient(180deg, #f8fafc 0%, #f1f5f9 55%, #edf2f7 100%);
+
+  // Refractive Ambient Light Emitters
+  &::before {
+    content: '';
+    position: absolute;
+    top: -80px;
+    left: 8%;
+    width: 580px;
+    height: 580px;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(56, 189, 248, 0.24) 0%, rgba(99, 102, 241, 0.12) 50%, transparent 75%);
+    filter: blur(100px);
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  &::after {
+    content: '';
+    position: absolute;
+    top: 40%;
+    right: 5%;
+    width: 620px;
+    height: 620px;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(168, 85, 247, 0.2) 0%, rgba(236, 72, 153, 0.1) 50%, transparent 80%);
+    filter: blur(110px);
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  // ─── 1. APPLE FLOATING DOCK HEADER ─────────────────────────
+  .tactile-page-header {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 24px;
+    flex-wrap: wrap;
+    margin-bottom: 28px;
+    padding: 20px 26px;
+    border-radius: 24px;
+    z-index: 2;
+
+    // Liquid Glass Surface
+    background: rgba(255, 255, 255, 0.7);
+    backdrop-filter: blur(36px) saturate(200%);
+    -webkit-backdrop-filter: blur(36px) saturate(200%);
+    border: 1px solid rgba(255, 255, 255, 0.8);
+    border-top: 1.5px solid rgba(255, 255, 255, 1);
+
+    box-shadow: 
+      0 20px 48px -12px rgba(15, 23, 42, 0.12),
+      0 6px 14px -3px rgba(15, 23, 42, 0.05),
+      0 0 0 1px rgba(0, 0, 0, 0.03),
+      inset 0 1px 0 rgba(255, 255, 255, 0.95);
+
+    // Specular top edge glint
+    &::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 24px;
+      right: 24px;
+      height: 1px;
+      background: linear-gradient(90deg, transparent 0%, rgba(255, 255, 255, 0.9) 30%, rgba(255, 255, 255, 0.2) 80%, transparent 100%);
+      pointer-events: none;
     }
 
-    // Custom Tabs Styling
-    .custom-tabs-nav {
-      display: flex;
-      gap: $spacing-md;
-      border-bottom: 1px solid rgba(255, 255, 255, 0.06);
-      padding-bottom: 0;
-      margin-bottom: 24px;
-      overflow-x: auto;
-      
-      &::-webkit-scrollbar {
-        height: 4px;
-      }
-      &::-webkit-scrollbar-thumb {
-        background: rgba(255, 255, 255, 0.1);
-        border-radius: $radius-full;
-      }
-    }
-
-    .custom-tabs-tab {
-      background: none;
-      border: none;
-      color: rgba(255, 255, 255, 0.45);
-      font-weight: 600;
-      font-size: 14px;
-      padding: 12px 16px;
-      display: inline-flex;
-      align-items: center;
-      gap: 8px;
-      cursor: pointer;
-      position: relative;
-      transition: all 0.25s ease;
-      white-space: nowrap;
-
-      &:hover {
-        color: #3b82f6;
+    .header-text-block {
+      .page-title {
+        font-size: 25px;
+        font-weight: 800;
+        letter-spacing: -0.5px;
+        color: #0f172a;
+        margin: 0 0 5px 0;
+        line-height: 1.2;
       }
 
-      &::after {
-        content: '';
-        position: absolute;
-        bottom: -1px;
-        left: 0;
-        right: 0;
-        height: 3px;
-        background: transparent;
-        border-radius: 99px;
-        transition: background-color 0.2s ease;
-      }
-
-      &.active {
-        color: #3b82f6;
-        text-shadow: 0 0 10px rgba(59, 130, 246, 0.2);
-
-        &::after {
-          background: #3b82f6;
-        }
-
-        .tab-badge {
-          background: #3b82f6;
-          color: #ffffff;
-          border-color: #3b82f6;
-        }
-      }
-
-      .tab-badge {
-        background: rgba(255, 255, 255, 0.06);
-        color: rgba(255, 255, 255, 0.65);
-        border: 1px solid rgba(255, 255, 255, 0.08);
-        font-size: 10px;
-        font-weight: 700;
-        padding: 2px 7px;
-        border-radius: $radius-full;
-        margin-left: 4px;
-        transition: all 0.25s ease;
-      }
-    }
-
-    .guru-tab-content {
-      margin-top: 0;
-
-      .tab-description {
-        color: rgba(255, 255, 255, 0.45);
-        margin-bottom: 20px;
+      .page-subtitle {
         font-size: 13.5px;
-        font-weight: 500;
+        color: #64748b;
+        margin: 0;
+        line-height: 1.4;
+      }
+    }
+
+    .header-actions-row {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      flex-wrap: wrap;
+
+      // Apple Segmented Control (Data Guru / Mata Pelajaran / Jabatan)
+      .tactile-segmented-control {
+        display: inline-flex;
+        align-items: center;
+        background: rgba(0, 0, 0, 0.05);
+        backdrop-filter: blur(16px);
+        -webkit-backdrop-filter: blur(16px);
+        padding: 3.5px;
+        border-radius: 9999px;
+        border: 1px solid rgba(203, 213, 225, 0.7);
+        border-top: 1px solid rgba(255, 255, 255, 0.95);
+        box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.04);
+
+        .segment-btn {
+          position: relative;
+          background: transparent;
+          border: none;
+          color: #64748b;
+          font-size: 13px;
+          font-weight: 600;
+          padding: 6px 14px;
+          border-radius: 9999px;
+          cursor: pointer;
+          transition: all 0.18s cubic-bezier(0.16, 1, 0.3, 1);
+          display: flex;
+          align-items: center;
+          gap: 6px;
+          white-space: nowrap;
+
+          .segment-count {
+            font-size: 11px;
+            font-weight: 700;
+            padding: 1px 7px;
+            border-radius: 9999px;
+            background: rgba(0, 0, 0, 0.06);
+            color: #64748b;
+          }
+
+          &:hover {
+            color: #0f172a;
+          }
+
+          &.active {
+            color: #0f172a;
+            background: rgba(255, 255, 255, 0.95);
+            box-shadow: 
+              0 2px 8px rgba(15, 23, 42, 0.08),
+              0 0 0 1px rgba(0, 0, 0, 0.04);
+
+            .segment-count {
+              background: rgba(37, 99, 235, 0.12);
+              color: #2563eb;
+            }
+          }
+        }
+      }
+
+      // Apple System Blue Primary Pill Button
+      .tactile-primary-button {
+        position: relative;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 7px;
+        height: 42px;
+        padding: 0 22px;
+        border-radius: 9999px;
+        cursor: pointer;
+        font-size: 13.5px;
+        font-weight: 700;
+        letter-spacing: -0.2px;
+        color: #ffffff;
+
+        background: linear-gradient(180deg, #3b82f6 0%, #2563eb 100%);
+        border: 1px solid rgba(255, 255, 255, 0.35);
+        border-top: 1.5px solid rgba(255, 255, 255, 0.65);
+
+        box-shadow: 
+          0 4px 16px -1px rgba(37, 99, 235, 0.42),
+          inset 0 1px 0 rgba(255, 255, 255, 0.45);
+
+        transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+
+        &:hover {
+          transform: translateY(-1.5px);
+          background: linear-gradient(180deg, #2563eb 0%, #1d4ed8 100%);
+          box-shadow: 
+            0 6px 22px -1px rgba(37, 99, 235, 0.52),
+            inset 0 1px 0 rgba(255, 255, 255, 0.55);
+        }
+
+        &:active {
+          transform: translateY(1px) scale(0.98);
+          box-shadow: 0 2px 6px rgba(37, 99, 235, 0.35);
+        }
+
+        &:focus-visible {
+          outline: 2px solid #60a5fa;
+          outline-offset: 2px;
+        }
       }
     }
   }
 
-  // ============================================
-  // LIGHT MODE OVERRIDES
-  // ============================================
-  [data-theme="light"] & {
-    .guru-content {
-      background: #ffffff !important;
-      border-color: #e2e8f0 !important;
-      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05) !important;
+  // ─── 2. CONTENT BODY & TAB PANELS ──────────────────────────
+  .guru-content-body {
+    position: relative;
+    z-index: 1;
 
-      .custom-tabs-nav {
-        border-color: #e2e8f0;
+    .guru-tab-panel {
+      display: block !important;
+      width: 100%;
+    }
+
+    .tab-info-banner {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 20px;
+      padding: 12px 18px;
+      border-radius: 16px;
+      background: rgba(255, 255, 255, 0.55);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border: 1px solid rgba(255, 255, 255, 0.7);
+      border-top: 1px solid rgba(255, 255, 255, 0.95);
+      box-shadow: 0 4px 12px rgba(15, 23, 42, 0.03);
+
+      .info-text {
+        font-size: 13.5px;
+        font-weight: 500;
+        color: #475569;
+        margin: 0;
       }
 
-      .custom-tabs-tab {
+      .info-count-badge {
+        font-size: 12px;
+        font-weight: 700;
+        padding: 3px 10px;
+        border-radius: 9999px;
+        background: rgba(37, 99, 235, 0.1);
+        color: #2563eb;
+        border: 1px solid rgba(191, 219, 254, 0.7);
+      }
+    }
+
+    // Apple Liquid Glass Table Skeleton Loading
+    .tactile-skeleton-table {
+      background: rgba(255, 255, 255, 0.6);
+      backdrop-filter: blur(24px);
+      -webkit-backdrop-filter: blur(24px);
+      border-radius: 20px;
+      border: 1px solid rgba(255, 255, 255, 0.75);
+      border-top: 1.5px solid rgba(255, 255, 255, 0.98);
+      box-shadow: 0 16px 36px -8px rgba(15, 23, 42, 0.08);
+      overflow: hidden;
+      padding: 16px;
+
+      .skeleton-row {
+        position: relative;
+        height: 54px;
+        border-radius: 12px;
+        margin-bottom: 8px;
+        background: rgba(203, 213, 225, 0.3);
+        overflow: hidden;
+
+        &::after {
+          content: '';
+          position: absolute;
+          inset: 0;
+          transform: translateX(-100%);
+          background: linear-gradient(90deg, transparent 0%, rgba(255, 255, 255, 0.55) 50%, transparent 100%);
+          animation: skeletonShimmer 1.5s infinite;
+        }
+
+        &:last-child {
+          margin-bottom: 0;
+        }
+      }
+    }
+
+    // Frosted Glass Empty State
+    .tactile-glass-empty {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 56px 24px;
+      text-align: center;
+      background: rgba(255, 255, 255, 0.65);
+      backdrop-filter: blur(28px) saturate(180%);
+      -webkit-backdrop-filter: blur(28px) saturate(180%);
+      border: 1px solid rgba(255, 255, 255, 0.75);
+      border-top: 1.5px solid rgba(255, 255, 255, 0.98);
+      border-radius: 22px;
+      box-shadow: 
+        0 16px 36px -8px rgba(15, 23, 42, 0.08),
+        inset 0 1px 0 rgba(255, 255, 255, 0.9);
+      margin: 16px 0;
+
+      .empty-icon-bubble {
+        width: 62px;
+        height: 62px;
+        border-radius: 18px;
+        background: rgba(239, 246, 255, 0.85);
+        border: 1px solid rgba(191, 219, 254, 0.8);
+        border-top: 1px solid #ffffff;
+        color: #3b82f6;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin-bottom: 14px;
+        box-shadow: 0 8px 20px -4px rgba(59, 130, 246, 0.2);
+      }
+
+      h4 {
+        margin: 0 0 6px;
+        font-size: 17px;
+        font-weight: 700;
+        color: #0f172a;
+      }
+
+      p {
+        margin: 0 0 18px;
+        font-size: 13.5px;
         color: #64748b;
+        max-width: 420px;
+        line-height: 1.5;
+      }
+
+      .clear-filter-btn {
+        background: rgba(255, 255, 255, 0.92);
+        border: 1px solid rgba(203, 213, 225, 0.8);
+        border-top: 1px solid #ffffff;
+        color: #2563eb;
+        font-size: 13px;
+        font-weight: 600;
+        padding: 9px 20px;
+        border-radius: 9999px;
+        cursor: pointer;
+        box-shadow: 0 2px 6px rgba(15, 23, 42, 0.05);
+        transition: all 0.18s ease;
 
         &:hover {
-          color: #1d4ed8;
-        }
-
-        &.active {
-          color: #1d4ed8;
-          text-shadow: none;
-
-          &::after {
-            background: #1d4ed8;
-          }
-
-          .tab-badge {
-            background: #1d4ed8;
-            color: #ffffff;
-            border-color: #1d4ed8;
-          }
-        }
-
-        .tab-badge {
-          background: #f1f5f9;
-          color: #475569;
-          border-color: #cbd5e1;
+          background: #ffffff;
+          transform: translateY(-1px);
+          box-shadow: 0 4px 12px rgba(37, 99, 235, 0.15);
         }
       }
+    }
 
-      .guru-tab-content {
-        .tab-description {
-          color: #64748b;
+    // In-Page Frosted Glass Error State
+    .tactile-glass-error {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 48px 24px;
+      text-align: center;
+      background: rgba(254, 242, 242, 0.85);
+      backdrop-filter: blur(28px);
+      -webkit-backdrop-filter: blur(28px);
+      border: 1px solid rgba(254, 202, 202, 0.9);
+      border-top: 1.5px solid rgba(255, 255, 255, 0.95);
+      border-radius: 22px;
+      box-shadow: 0 16px 36px -8px rgba(239, 68, 68, 0.1);
+      margin: 16px 0;
+
+      .error-icon-bubble {
+        width: 56px;
+        height: 56px;
+        border-radius: 18px;
+        background: rgba(254, 226, 226, 0.9);
+        border: 1px solid rgba(252, 165, 165, 0.85);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin-bottom: 14px;
+      }
+
+      h4 {
+        margin: 0 0 6px;
+        font-size: 17px;
+        font-weight: 700;
+        color: #991b1b;
+      }
+
+      p {
+        margin: 0 0 18px;
+        font-size: 13px;
+        color: #b91c1c;
+        max-width: 440px;
+      }
+
+      .retry-btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 7px;
+        background: #ffffff;
+        border: 1px solid rgba(203, 213, 225, 0.8);
+        color: #0f172a;
+        font-size: 13px;
+        font-weight: 600;
+        padding: 9px 20px;
+        border-radius: 9999px;
+        cursor: pointer;
+        box-shadow: 0 2px 6px rgba(15, 23, 42, 0.05);
+        transition: all 0.18s ease;
+
+        &:hover {
+          background: #f8fafc;
+          border-color: #94a3b8;
+          transform: translateY(-1px);
+        }
+      }
+    }
+  }
+
+  @keyframes skeletonShimmer {
+    100% {
+      transform: translateX(100%);
+    }
+  }
+
+  // ==========================================================================
+  // DARK THEME (macOS Dark Mode Liquid Glass)
+  // ==========================================================================
+  [data-theme="dark"] & {
+    background: 
+      radial-gradient(circle at 10% 10%, rgba(56, 189, 248, 0.16) 0%, transparent 45%),
+      radial-gradient(circle at 90% 15%, rgba(129, 140, 248, 0.14) 0%, transparent 42%),
+      radial-gradient(circle at 45% 45%, rgba(217, 70, 239, 0.1) 0%, transparent 40%),
+      radial-gradient(circle at 85% 80%, rgba(168, 85, 247, 0.14) 0%, transparent 48%),
+      radial-gradient(circle at 15% 85%, rgba(14, 165, 233, 0.12) 0%, transparent 42%),
+      linear-gradient(180deg, #090d16 0%, #0f172a 50%, #0b0f19 100%);
+
+    &::before {
+      background: radial-gradient(circle, rgba(56, 189, 248, 0.14) 0%, rgba(30, 58, 138, 0.04) 60%, transparent 75%);
+    }
+
+    &::after {
+      background: radial-gradient(circle, rgba(168, 85, 247, 0.12) 0%, rgba(88, 28, 135, 0.03) 60%, transparent 80%);
+    }
+
+    .tactile-page-header {
+      background: rgba(20, 26, 40, 0.75);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      border-top: 1.5px solid rgba(255, 255, 255, 0.28);
+      box-shadow: 
+        0 24px 60px -15px rgba(0, 0, 0, 0.6),
+        inset 0 1px 0 rgba(255, 255, 255, 0.18);
+
+      .header-text-block {
+        .page-title { color: #f8fafc; }
+        .page-subtitle { color: #94a3b8; }
+      }
+
+      .header-actions-row {
+        .tactile-segmented-control {
+          background: rgba(0, 0, 0, 0.35);
+          border: 1px solid rgba(255, 255, 255, 0.08);
+
+          .segment-btn {
+            color: #94a3b8;
+
+            .segment-count {
+              background: rgba(255, 255, 255, 0.08);
+              color: #cbd5e1;
+            }
+
+            &:hover {
+              color: #ffffff;
+            }
+
+            &.active {
+              color: #ffffff;
+              background: rgba(255, 255, 255, 0.16);
+              box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
+
+              .segment-count {
+                background: rgba(59, 130, 246, 0.3);
+                color: #60a5fa;
+              }
+            }
+          }
+        }
+      }
+    }
+
+    .guru-content-body {
+      .tab-info-banner {
+        background: rgba(30, 41, 59, 0.5);
+        border-color: rgba(255, 255, 255, 0.08);
+        .info-text { color: #cbd5e1; }
+      }
+
+      .tactile-skeleton-table {
+        background: rgba(20, 26, 40, 0.6);
+        border-color: rgba(255, 255, 255, 0.1);
+        .skeleton-row {
+          background: rgba(255, 255, 255, 0.05);
+        }
+      }
+    }
+  }
+
+  // Responsive Breakpoints
+  @media (max-width: 992px) {
+    .tactile-page-header {
+      flex-direction: column;
+      align-items: stretch;
+
+      .header-actions-row {
+        width: 100%;
+        justify-content: space-between;
+
+        .tactile-segmented-control {
+          width: 100%;
+          justify-content: space-between;
+
+          .segment-btn {
+            flex: 1;
+            justify-content: center;
+          }
+        }
+
+        .tactile-primary-button {
+          width: 100%;
         }
       }
     }

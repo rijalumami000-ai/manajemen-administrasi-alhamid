@@ -24,10 +24,14 @@ export function CustomSelect({
   const updateCoords = () => {
     if (containerRef.current) {
       const rect = containerRef.current.getBoundingClientRect();
+      const spaceBelow = window.innerHeight - rect.bottom;
+      const openUpwards = spaceBelow < 220 && rect.top > 220;
+
       setCoords({
-        top: rect.bottom + window.scrollY,
+        top: openUpwards ? (rect.top + window.scrollY - 6) : (rect.bottom + window.scrollY + 6),
         left: rect.left + window.scrollX,
-        width: rect.width
+        width: rect.width,
+        openUpwards
       });
     }
   };
@@ -70,7 +74,7 @@ export function CustomSelect({
 
   return (
     <div 
-      className={`ui-custom-select ${active ? 'active' : ''} ${error ? 'has-error' : ''} ${disabled ? 'disabled' : ''} ${!label ? 'no-label' : ''}`}
+      className={`ui-custom-select ${open ? 'is-open' : ''} ${isFilled ? 'has-value' : ''} ${active ? 'active' : ''} ${error ? 'has-error' : ''} ${disabled ? 'disabled' : ''} ${!label ? 'no-label' : ''}`}
       ref={containerRef}
     >
       <div 
@@ -108,7 +112,7 @@ export function CustomSelect({
 
       {open && createPortal(
         <div 
-          className="ui-custom-select__dropdown"
+          className={`ui-custom-select__dropdown ${coords.openUpwards ? 'open-upwards' : ''}`}
           ref={dropdownRef}
           style={{
             position: 'absolute',

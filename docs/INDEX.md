@@ -7,6 +7,7 @@ Indeks lengkap semua dokumentasi proyek untuk navigasi cepat.
 | Kategori | Link | Deskripsi |
 |----------|------|-----------|
 | 📖 Overview | [README](./README.md) | Halaman utama dokumentasi |
+| 🎨 UI/UX Master | [MASTER_UI_UX_REDESIGN_GUIDELINES](./MASTER_UI_UX_REDESIGN_GUIDELINES.md) | Panduan standar desain kaca Apple (Option A), keamanan API, & migrasi TSX |
 | 📊 Status | [PROJECT_STATUS](./PROJECT_STATUS.md) | Status proyek terkini |
 | 🗺️ Roadmap | [ROADMAP](./ROADMAP.md) | Rencana pengembangan |
 | 🏗️ Structure | [PROJECT_STRUCTURE](./PROJECT_STRUCTURE.md) | Struktur kode proyek |

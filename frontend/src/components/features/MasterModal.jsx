@@ -83,7 +83,7 @@ export function MasterModal({
         <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px', width: '100%' }}>
           <button
             type="button"
-            className="btn-custom btn-secondary"
+            className="tactile-modal-btn secondary"
             onClick={handleCancel}
             disabled={isSubmitting}
           >
@@ -91,7 +91,7 @@ export function MasterModal({
           </button>
           <button
             type="submit"
-            className="btn-custom btn-primary"
+            className="tactile-modal-btn primary"
             onClick={handleSubmit}
             disabled={isSubmitting}
           >
