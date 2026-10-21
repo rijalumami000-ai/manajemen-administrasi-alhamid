@@ -1,1 +1,0 @@
-import{n as r}from"./rolldown-runtime-FPZURlb5.js";import{Fn as a,Yn as t}from"./react-vendor-0GGRmpHA.js";import{StrukturKepesantrenan as n}from"./StrukturKepesantrenan-_rd1Id2j.js";t();var e=a();function o({defaultTab:r="madrasah_diniyah"}){return(0,e.jsx)(n,{defaultTab:r})}export{o as StrukturOrganisasi,o as default};

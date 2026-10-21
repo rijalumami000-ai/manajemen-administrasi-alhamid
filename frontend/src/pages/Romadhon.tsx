@@ -1,5 +1,17 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, Trash2, Edit3, Moon, Users2, BookOpenCheck } from 'lucide-react';
+import {
+  Plus,
+  Trash2,
+  Edit3,
+  Moon,
+  Users2,
+  BookOpenCheck,
+  Clock,
+  User,
+  MapPin,
+  Sparkles,
+  Calendar
+} from 'lucide-react';
 import { romadhonService } from '../services/romadhonService';
 import { nilaiService } from '../services/nilaiService';
 import { CustomModal } from '../components/ui/CustomModal';
@@ -75,7 +87,11 @@ export function Romadhon() {
         (romadhonService as any).fetchImamTarawih(selectedTahunAjaran),
       ]);
       setKajianList(Array.isArray(kajian) ? kajian : []);
-      setTarawihList(Array.isArray(tarawih) ? tarawih : []);
+      // Urutkan tarawih berdasarkan nomor malam (numerik)
+      const sortedTarawih = Array.isArray(tarawih)
+        ? [...tarawih].sort((a, b) => Number(a.malam) - Number(b.malam))
+        : [];
+      setTarawihList(sortedTarawih);
     } catch (err: any) {
       toast.error('Gagal memuat data: ' + err.message);
     } finally {
@@ -111,10 +127,10 @@ export function Romadhon() {
     try {
       if (editingKajian) {
         await (romadhonService as any).updateKajianBalagh(editingKajian.id, kajianForm);
-        toast.success('Data berhasil diperbarui.');
+        toast.success('Data kajian berhasil diperbarui.');
       } else {
         await (romadhonService as any).createKajianBalagh({ ...kajianForm, tahun_ajaran_id: selectedTahunAjaran });
-        toast.success('Data berhasil ditambahkan.');
+        toast.success('Data kajian berhasil ditambahkan.');
       }
       setKajianModalOpen(false);
       loadData();
@@ -163,10 +179,10 @@ export function Romadhon() {
     try {
       if (editingTarawih) {
         await (romadhonService as any).updateImamTarawih(editingTarawih.id, tarawihForm);
-        toast.success('Data berhasil diperbarui.');
+        toast.success('Data imam tarawih berhasil diperbarui.');
       } else {
         await (romadhonService as any).createImamTarawih({ ...tarawihForm, tahun_ajaran_id: selectedTahunAjaran });
-        toast.success('Data berhasil ditambahkan.');
+        toast.success('Data imam tarawih berhasil ditambahkan.');
       }
       setTarawihModalOpen(false);
       loadData();
@@ -204,7 +220,7 @@ export function Romadhon() {
       {/* TACTILE PAGE HEADER */}
       <div className="tactile-page-header">
         <div className="header-text-group">
-          <h2 className="page-title">Jadwal Romadhon</h2>
+          <h2 className="page-title">Jadwal Kegiatan Romadhon</h2>
           <p className="page-subtitle">Kelola jadwal kajian kilatan balagh dan petugas imam tarawih & bilal</p>
         </div>
 
@@ -236,18 +252,18 @@ export function Romadhon() {
           className={`segmented-tab-btn ${activeTab === 'tarawih' ? 'active' : ''}`}
           onClick={() => setActiveTab('tarawih')}
         >
-          <Users2 size={16} />
-          <span>Petugas Imam Tarawih & Bilal</span>
+          <Calendar size={16} />
+          <span>Kalender 30 Malam Tarawih</span>
           <span className="tab-pill-badge purple">{tarawihList.length}</span>
         </button>
       </div>
 
-      {/* TAB 1: KAJIAN BALAGH */}
+      {/* TAB 1: KAJIAN BALAGH (BENTO SESSION CARDS) */}
       {activeTab === 'kajian' && (
         <div className="romadhon-tab-content">
           <div className="romadhon-toolbar">
             <span className="toolbar-info">
-              Tahun Ajaran: <strong>{selectedYearKode || '-'}</strong> • Terdata <strong>{kajianList.length}</strong> jadwal
+              Tahun Ajaran: <strong>{selectedYearKode || '-'}</strong> • Terdata <strong>{kajianList.length}</strong> sesi kajian
             </span>
             <button type="button" className="action-pill-btn primary-pill" onClick={openAddKajian}>
               <Plus size={16} />
@@ -260,65 +276,71 @@ export function Romadhon() {
               <div className="empty-icon-orb">
                 <Moon size={32} />
               </div>
-              <p>Belum ada data jadwal kajian balagh untuk tahun ajaran {selectedYearKode || '-'}.</p>
+              <p>Belum ada jadwal kajian balagh untuk tahun ajaran {selectedYearKode || '-'}.</p>
             </div>
           )}
 
           {Object.entries(groupedKajian).map(([kelas, items]) => (
-            <div key={kelas} className="kelas-group">
-              <div className="kelas-header">
-                <span className="kelas-badge">Kelas {kelas}</span>
-                <span className="kelas-count">{items.length} sesi kajian</span>
+            <div key={kelas} className="kelas-section">
+              <div className="kelas-section-header">
+                <div className="kelas-title-wrap">
+                  <span className="kelas-title">Kelas {kelas}</span>
+                  <span className="kelas-count-pill">{items.length} Sesi Kajian</span>
+                </div>
               </div>
-              <div className="table-responsive">
-                <table className="romadhon-table">
-                  <thead>
-                    <tr>
-                      <th style={{ width: '18%' }}>Waktu</th>
-                      <th style={{ width: '28%' }}>Qori' (Pengampu)</th>
-                      <th style={{ width: '26%' }}>Kitab</th>
-                      <th style={{ width: '18%' }}>Tempat</th>
-                      <th style={{ width: '10%', textAlign: 'center' }}>Aksi</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {items.map(item => (
-                      <tr key={item.id}>
-                        <td className="td-waktu">{item.waktu}</td>
-                        <td>{item.qori}</td>
-                        <td className="td-kitab">{item.kitab}</td>
-                        <td>{item.tempat || '-'}</td>
-                        <td style={{ textAlign: 'center' }}>
-                          <div className="action-btns">
-                            <button
-                              type="button"
-                              className="btn-icon btn-edit"
-                              onClick={() => openEditKajian(item)}
-                              title="Edit Jadwal"
-                            >
-                              <Edit3 size={14} />
-                            </button>
-                            <button
-                              type="button"
-                              className="btn-icon btn-delete"
-                              onClick={() => deleteKajian(item.id)}
-                              title="Hapus Jadwal"
-                            >
-                              <Trash2 size={14} />
-                            </button>
-                          </div>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
+
+              <div className="bento-session-grid">
+                {items.map(item => (
+                  <div key={item.id} className="session-card">
+                    <div className="session-card-top">
+                      <span className="time-chip">
+                        <Clock size={13} />
+                        {item.waktu}
+                      </span>
+                      <div className="action-btns">
+                        <button
+                          type="button"
+                          className="btn-icon btn-edit"
+                          onClick={() => openEditKajian(item)}
+                          title="Edit Jadwal"
+                        >
+                          <Edit3 size={14} />
+                        </button>
+                        <button
+                          type="button"
+                          className="btn-icon btn-delete"
+                          onClick={() => deleteKajian(item.id)}
+                          title="Hapus Jadwal"
+                        >
+                          <Trash2 size={14} />
+                        </button>
+                      </div>
+                    </div>
+
+                    <div className="session-kitab-group">
+                      <span className="kitab-sub">Kitab Pengajian</span>
+                      <h4 className="kitab-title">{item.kitab}</h4>
+                    </div>
+
+                    <div className="session-meta-group">
+                      <div className="meta-item qori">
+                        <User size={14} />
+                        <span>{item.qori}</span>
+                      </div>
+                      <div className="meta-item location">
+                        <MapPin size={14} />
+                        <span>{item.tempat || 'Lokasi belum ditentukan'}</span>
+                      </div>
+                    </div>
+                  </div>
+                ))}
               </div>
             </div>
           ))}
         </div>
       )}
 
-      {/* TAB 2: IMAM TARAWIH & BILAL */}
+      {/* TAB 2: IMAM TARAWIH & BILAL (RAMADAN 30-NIGHT CALENDAR GRID) */}
       {activeTab === 'tarawih' && (
         <div className="romadhon-tab-content">
           <div className="romadhon-toolbar">
@@ -336,57 +358,63 @@ export function Romadhon() {
               <div className="empty-icon-orb">
                 <Moon size={32} />
               </div>
-              <p>Belum ada data jadwal imam tarawih untuk tahun ajaran {selectedYearKode || '-'}.</p>
+              <p>Belum ada jadwal imam tarawih untuk tahun ajaran {selectedYearKode || '-'}.</p>
             </div>
           )}
 
           {tarawihList.length > 0 && (
-            <div className="tarawih-table-card">
-              <div className="table-responsive">
-                <table className="romadhon-table">
-                  <thead>
-                    <tr>
-                      <th style={{ width: '12%', textAlign: 'center' }}>Malam Ke</th>
-                      <th style={{ width: '32%' }}>Imam Sholat</th>
-                      <th style={{ width: '28%' }}>Bilal / Muroqqi</th>
-                      <th style={{ width: '18%' }}>Tempat</th>
-                      <th style={{ width: '10%', textAlign: 'center' }}>Aksi</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {tarawihList.map(item => (
-                      <tr key={item.id}>
-                        <td style={{ textAlign: 'center' }}>
-                          <span className="malam-badge">{item.malam}</span>
-                        </td>
-                        <td className="td-imam">{item.imam}</td>
-                        <td>{item.bilal || '-'}</td>
-                        <td>{item.tempat || '-'}</td>
-                        <td style={{ textAlign: 'center' }}>
-                          <div className="action-btns">
-                            <button
-                              type="button"
-                              className="btn-icon btn-edit"
-                              onClick={() => openEditTarawih(item)}
-                              title="Edit Jadwal"
-                            >
-                              <Edit3 size={14} />
-                            </button>
-                            <button
-                              type="button"
-                              className="btn-icon btn-delete"
-                              onClick={() => deleteTarawih(item.id)}
-                              title="Hapus Jadwal"
-                            >
-                              <Trash2 size={14} />
-                            </button>
-                          </div>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+            <div className="tarawih-calendar-grid">
+              {tarawihList.map(item => (
+                <div key={item.id} className="malam-card">
+                  <div className="malam-card-header">
+                    <span className="malam-badge">
+                      <Sparkles size={13} />
+                      Malam {item.malam}
+                    </span>
+                    <div className="action-btns">
+                      <button
+                        type="button"
+                        className="btn-icon btn-edit"
+                        onClick={() => openEditTarawih(item)}
+                        title="Edit Petugas"
+                      >
+                        <Edit3 size={14} />
+                      </button>
+                      <button
+                        type="button"
+                        className="btn-icon btn-delete"
+                        onClick={() => deleteTarawih(item.id)}
+                        title="Hapus Petugas"
+                      >
+                        <Trash2 size={14} />
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="petugas-group">
+                    <div className="petugas-item imam">
+                      <User size={15} />
+                      <div className="petugas-info">
+                        <span className="role-label">Imam Sholat</span>
+                        <span className="name-value">{item.imam}</span>
+                      </div>
+                    </div>
+
+                    <div className="petugas-item bilal">
+                      <Users2 size={15} />
+                      <div className="petugas-info">
+                        <span className="role-label">Bilal / Muroqqi</span>
+                        <span className="name-value">{item.bilal || '-'}</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="malam-location">
+                    <MapPin size={13} />
+                    <span>{item.tempat || 'Masjid Jami\' Al-Hamid'}</span>
+                  </div>
+                </div>
+              ))}
             </div>
           )}
         </div>

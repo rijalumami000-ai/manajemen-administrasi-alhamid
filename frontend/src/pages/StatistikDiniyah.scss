@@ -1,6 +1,7 @@
 // =============================================================================
-// STATISTIK SISWA DINIYAH SCSS — OPTION A (Apple macOS Sequoia & VisionOS Liquid Glass)
-// Translucent Acrylic, Specular Highlights, 28px Outer Radius, Aurora Mesh
+// STATISTIK SISWA DINIYAH SCSS — OPTION A (Apple macOS Sequoia & VisionOS)
+// Theme: Sapphire & Indigo Modern Analytics
+// Palette: Royal Sapphire (#2563eb), Indigo (#6366f1), Deep Slate (#0f172a), Soft Rose (#ec4899)
 // =============================================================================
 
 @import '../styles/variables';
@@ -13,7 +14,7 @@
   padding-bottom: 40px;
 
   // ============================================================
-  // TACTILE PAGE HEADER (NO ICONS IN TITLE, CLEAN TYPOGRAPHY)
+  // TACTILE PAGE HEADER (NO ICONS IN TITLE, PURE TYPOGRAPHY)
   // ============================================================
   .tactile-page-header {
     display: flex;
@@ -97,8 +98,8 @@
         }
 
         &:focus {
-          border-color: #059669;
-          box-shadow: 0 0 0 3px rgba(5, 150, 105, 0.15);
+          border-color: #2563eb;
+          box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15);
         }
       }
 
@@ -142,7 +143,7 @@
           .tab-pill-active {
             font-size: 10px;
             font-weight: 700;
-            background: #10b981;
+            background: #2563eb;
             color: #ffffff;
             padding: 1px 7px;
             border-radius: 9999px;
@@ -202,7 +203,7 @@
   }
 
   // ============================================================
-  // KPI STATS GRID
+  // KPI STATS GRID (SAPPHIRE & INDIGO)
   // ============================================================
   .stats-kpi-grid {
     display: grid;
@@ -294,24 +295,24 @@
       }
 
       &.total-card .kpi-icon {
-        background: rgba(16, 185, 129, 0.12);
-        color: #059669;
-        border: 1px solid rgba(16, 185, 129, 0.25);
+        background: rgba(37, 99, 235, 0.1);
+        color: #2563eb;
+        border: 1px solid rgba(37, 99, 235, 0.22);
       }
       &.putra-card .kpi-icon {
-        background: rgba(37, 99, 235, 0.12);
-        color: #2563eb;
-        border: 1px solid rgba(37, 99, 235, 0.25);
+        background: rgba(14, 165, 233, 0.1);
+        color: #0284c7;
+        border: 1px solid rgba(14, 165, 233, 0.22);
       }
       &.putri-card .kpi-icon {
-        background: rgba(219, 39, 119, 0.12);
+        background: rgba(219, 39, 119, 0.1);
         color: #db2777;
-        border: 1px solid rgba(219, 39, 119, 0.25);
+        border: 1px solid rgba(219, 39, 119, 0.22);
       }
       &.ratio-card .kpi-icon {
-        background: rgba(124, 58, 237, 0.12);
-        color: #7c3aed;
-        border: 1px solid rgba(124, 58, 237, 0.25);
+        background: rgba(99, 102, 241, 0.1);
+        color: #4f46e5;
+        border: 1px solid rgba(99, 102, 241, 0.22);
       }
     }
   }
@@ -352,6 +353,8 @@
       justify-content: space-between;
       align-items: center;
       margin-bottom: 20px;
+      flex-wrap: wrap;
+      gap: 12px;
 
       h3 {
         margin: 0;
@@ -364,7 +367,7 @@
         letter-spacing: -0.01em;
 
         svg {
-          color: #059669;
+          color: #2563eb;
         }
       }
 
@@ -381,7 +384,7 @@
   }
 
   // ============================================================
-  // TINGKAT LIST PROGRESS BARS
+  // TINGKAT LIST PROGRESS BARS (SAPPHIRE & INDIGO)
   // ============================================================
   .tingkat-list {
     display: flex;
@@ -408,7 +411,7 @@
           font-size: 12.5px;
 
           .count-total strong {
-            color: #059669;
+            color: #2563eb;
             font-weight: 700;
           }
 
@@ -433,7 +436,7 @@
 
         .progress-fill {
           height: 100%;
-          background: linear-gradient(90deg, #10b981 0%, #059669 100%);
+          background: linear-gradient(90deg, #3b82f6 0%, #2563eb 100%);
           border-radius: 9999px;
           transition: width 0.4s ease;
         }
@@ -478,9 +481,9 @@
             border-radius: 9999px;
 
             &.running {
-              background: rgba(16, 185, 129, 0.15);
-              color: #059669;
-              border: 1px solid rgba(16, 185, 129, 0.3);
+              background: rgba(37, 99, 235, 0.12);
+              color: #2563eb;
+              border: 1px solid rgba(37, 99, 235, 0.25);
             }
 
             &.finished {
@@ -521,7 +524,7 @@
           }
 
           &.genap {
-            background: linear-gradient(90deg, #10b981 0%, #059669 100%);
+            background: linear-gradient(90deg, #6366f1 0%, #4f46e5 100%);
 
             &.pending {
               background: #cbd5e1;
@@ -544,6 +547,51 @@
       font-size: 12px;
       color: #64748b;
       line-height: 1.5;
+    }
+  }
+
+  // ============================================================
+  // QUICK TINGKAT FILTER CHIPS
+  // ============================================================
+  .tingkat-filter-chips {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+    margin-bottom: 16px;
+    padding-bottom: 14px;
+    border-bottom: 1px solid rgba(241, 245, 249, 0.9);
+
+    .filter-chip-label {
+      font-size: 12px;
+      font-weight: 600;
+      color: #64748b;
+      margin-right: 4px;
+    }
+
+    .filter-chip {
+      padding: 5px 12px;
+      border-radius: 9999px;
+      border: 1px solid rgba(226, 232, 240, 0.9);
+      background: rgba(255, 255, 255, 0.7);
+      color: #475569;
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+
+      &:hover:not(.active) {
+        background: #ffffff;
+        color: #0f172a;
+        border-color: #cbd5e1;
+      }
+
+      &.active {
+        background: #2563eb;
+        color: #ffffff;
+        border-color: #2563eb;
+        box-shadow: 0 2px 8px rgba(37, 99, 235, 0.3);
+      }
     }
   }
 
@@ -586,23 +634,46 @@
         background: rgba(241, 245, 249, 0.55);
       }
 
+      &.is-empty-class td {
+        opacity: 0.65;
+      }
+
       &:last-child td {
         border-bottom: none;
       }
     }
 
-    .col-kelas strong {
-      color: #0f172a;
-      font-weight: 700;
+    .col-kelas {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+
+      strong {
+        color: #0f172a;
+        font-weight: 700;
+      }
+
+      .empty-pill {
+        font-size: 10px;
+        font-weight: 600;
+        background: rgba(148, 163, 184, 0.15);
+        color: #64748b;
+        padding: 1px 7px;
+        border-radius: 9999px;
+      }
     }
 
     .col-total strong {
-      color: #059669;
+      color: #2563eb;
       font-weight: 700;
+
+      &.zero {
+        color: #94a3b8;
+      }
     }
 
     .col-putra {
-      color: #2563eb;
+      color: #0284c7;
       font-weight: 600;
     }
 
@@ -621,8 +692,37 @@
 
       .mini-fill {
         height: 100%;
-        &.putra { background: #3b82f6; }
-        &.putri { background: #ec4899; }
+        &.putra { background: #0284c7; }
+        &.putri { background: #db2777; }
+      }
+    }
+
+    .proportion-bar-wrap {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+
+      .proportion-track {
+        flex: 1;
+        height: 7px;
+        background: rgba(226, 232, 240, 0.85);
+        border-radius: 9999px;
+        overflow: hidden;
+
+        .proportion-fill {
+          height: 100%;
+          background: linear-gradient(90deg, #3b82f6 0%, #4f46e5 100%);
+          border-radius: 9999px;
+          transition: width 0.3s ease;
+        }
+      }
+
+      .proportion-pct {
+        font-size: 11.5px;
+        font-weight: 700;
+        color: #475569;
+        min-width: 32px;
+        text-align: right;
       }
     }
   }
@@ -657,12 +757,12 @@
       }
 
       &.current {
-        background: rgba(236, 253, 245, 0.85);
-        border-color: rgba(16, 185, 129, 0.4);
-        box-shadow: 0 6px 20px -4px rgba(16, 185, 129, 0.18);
+        background: rgba(239, 246, 255, 0.85);
+        border-color: rgba(37, 99, 235, 0.4);
+        box-shadow: 0 6px 20px -4px rgba(37, 99, 235, 0.2);
 
         .tren-number {
-          color: #059669;
+          color: #2563eb;
         }
       }
 
@@ -678,7 +778,7 @@
         .active-pill {
           font-size: 9.5px;
           font-weight: 800;
-          background: #10b981;
+          background: #2563eb;
           color: #ffffff;
           padding: 1px 6px;
           border-radius: 9999px;

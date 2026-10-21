@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import {
   Users,
   GraduationCap,
@@ -28,6 +28,7 @@ export function StatistikDiniyah() {
   const [tahunAjaranList, setTahunAjaranList] = useState<any[]>([]);
   const [selectedTaId, setSelectedTaId] = useState<string>('');
   const [selectedSemester, setSelectedSemester] = useState<'semua' | 'ganjil' | 'genap'>('semua');
+  const [selectedTingkatFilter, setSelectedTingkatFilter] = useState<string>('semua');
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -89,6 +90,21 @@ export function StatistikDiniyah() {
   const putri = Number(summary.putri) || 0;
   const pctPutra = total > 0 ? Math.round((putra / total) * 100) : 0;
   const pctPutri = total > 0 ? Math.round((putri / total) * 100) : 0;
+
+  // Extract unique tingkat options for quick chips
+  const tingkatChips = useMemo(() => {
+    const list = [{ key: 'semua', label: 'Semua Tingkat' }];
+    perTingkat.forEach(t => {
+      list.push({ key: String(t.tingkat), label: t.nama_tingkat });
+    });
+    return list;
+  }, [perTingkat]);
+
+  // Filtered perKelas based on quick chips
+  const filteredKelas = useMemo(() => {
+    if (selectedTingkatFilter === 'semua') return perKelas;
+    return perKelas.filter(k => String(k.tingkat) === selectedTingkatFilter);
+  }, [perKelas, selectedTingkatFilter]);
 
   return (
     <div className="statistik-diniyah-page">
@@ -180,7 +196,7 @@ export function StatistikDiniyah() {
         <ErrorState message={error} onRetry={loadStatistik} />
       ) : (
         <>
-          {/* Main KPI Stats */}
+          {/* Main KPI Stats (Sapphire & Indigo Palette) */}
           <div className="stats-kpi-grid">
             <div className="kpi-card total-card">
               <div className="kpi-icon"><Users size={24} /></div>
@@ -315,36 +331,61 @@ export function StatistikDiniyah() {
             </div>
           </div>
 
-          {/* Table: Breakdown Detail Per Kelas Diniyah */}
+          {/* Table: Breakdown Detail Per Kelas Diniyah with Quick Filter Chips */}
           <div className="content-card full-width">
             <div className="card-header">
               <h3><School size={18} /> Rincian Jumlah Siswa Per Kelas Diniyah</h3>
-              <span className="badge-count">{perKelas.length} Kelas</span>
+              <span className="badge-count">Menampilkan {filteredKelas.length} dari {perKelas.length} Kelas</span>
             </div>
+
+            {/* Quick Filter Chips per Tingkat */}
+            {tingkatChips.length > 1 && (
+              <div className="tingkat-filter-chips">
+                <span className="filter-chip-label">Filter Tingkat:</span>
+                {tingkatChips.map(chip => (
+                  <button
+                    key={chip.key}
+                    type="button"
+                    className={`filter-chip ${selectedTingkatFilter === chip.key ? 'active' : ''}`}
+                    onClick={() => setSelectedTingkatFilter(chip.key)}
+                  >
+                    {chip.label}
+                  </button>
+                ))}
+              </div>
+            )}
+
             <div className="table-wrapper">
               <table className="stats-table">
                 <thead>
                   <tr>
-                    <th>Kelas</th>
-                    <th>Tingkat</th>
-                    <th>Total Siswa</th>
-                    <th>Putra (L)</th>
-                    <th>Putri (P)</th>
-                    <th>Rasio Gender</th>
-                    <th>Proporsi Kelas</th>
+                    <th style={{ width: '22%' }}>Kelas</th>
+                    <th style={{ width: '14%' }}>Tingkat</th>
+                    <th style={{ width: '14%' }}>Total Siswa</th>
+                    <th style={{ width: '10%' }}>Putra (L)</th>
+                    <th style={{ width: '10%' }}>Putri (P)</th>
+                    <th style={{ width: '14%' }}>Rasio Gender</th>
+                    <th style={{ width: '16%' }}>Proporsi Kelas</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {perKelas.map(k => {
+                  {filteredKelas.map(k => {
                     const kTotal = Number(k.total) || 0;
                     const kPutra = Number(k.putra) || 0;
                     const kPutri = Number(k.putri) || 0;
                     const kPct = total > 0 ? Math.round((kTotal / total) * 100) : 0;
+                    const isEmpty = kTotal === 0;
+
                     return (
-                      <tr key={k.kelas_id}>
-                        <td className="col-kelas"><strong>Kelas {k.nama_kelas}</strong></td>
+                      <tr key={k.kelas_id} className={isEmpty ? 'is-empty-class' : ''}>
+                        <td className="col-kelas">
+                          <strong>Kelas {k.nama_kelas}</strong>
+                          {isEmpty && <span className="empty-pill">Belum Terisi</span>}
+                        </td>
                         <td>{k.tingkat === 99 ? 'Tingkat SP' : (k.tingkat === 0 ? 'Tingkat Sifir' : `Tingkat ${k.tingkat}`)}</td>
-                        <td className="col-total"><strong>{kTotal}</strong> Santri</td>
+                        <td className="col-total">
+                          <strong className={isEmpty ? 'zero' : ''}>{kTotal}</strong> Santri
+                        </td>
                         <td className="col-putra">{kPutra}</td>
                         <td className="col-putri">{kPutri}</td>
                         <td>
@@ -354,11 +395,11 @@ export function StatistikDiniyah() {
                           </div>
                         </td>
                         <td>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                            <div style={{ flex: 1, height: '6px', background: 'rgba(226, 232, 240, 0.9)', borderRadius: '9999px', overflow: 'hidden' }}>
-                              <div style={{ width: `${kPct}%`, height: '100%', background: 'linear-gradient(90deg, #10b981 0%, #059669 100%)', borderRadius: '9999px' }} />
+                          <div className="proportion-bar-wrap">
+                            <div className="proportion-track">
+                              <div className="proportion-fill" style={{ width: `${kPct}%` }} />
                             </div>
-                            <span style={{ fontSize: '11px', fontWeight: 700, color: '#64748b' }}>{kPct}%</span>
+                            <span className="proportion-pct">{kPct}%</span>
                           </div>
                         </td>
                       </tr>
