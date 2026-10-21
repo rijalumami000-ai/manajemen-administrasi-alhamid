@@ -380,8 +380,8 @@ export function Santri() {
   return (
     <div className="santri-page">
       {/* TACTILE PAGE HEADER (NO ICONS IN TITLE, PURE TYPOGRAPHY) */}
-      <div className="tactile-page-header">
-        <div className="header-text-group">
+      <header className="tactile-page-header">
+        <div className="header-text-block">
           <h2 className="page-title">Data Santri</h2>
           <p className="page-subtitle">Kelola status akademik, penempatan kelas, dan kamar santri</p>
         </div>
@@ -476,7 +476,7 @@ export function Santri() {
             <span>Migrasi Tahun Ajaran</span>
           </button>
         </div>
-      </div>
+      </header>
 
       {/* Analytics KPI Dashboard (Toggleable) */}
       {showAnalytics && (

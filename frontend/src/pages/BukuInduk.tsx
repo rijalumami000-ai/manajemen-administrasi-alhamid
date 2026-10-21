@@ -465,8 +465,8 @@ export function BukuInduk() {
   return (
     <div className="module-buku-induk">
       {/* TACTILE PAGE HEADER (NO ICONS IN TITLE, CLEAN TYPOGRAPHY) */}
-      <div className="tactile-page-header">
-        <div className="header-text-group">
+      <header className="tactile-page-header">
+        <div className="header-text-block">
           <h2 className="page-title">Buku Induk Santri</h2>
           <p className="page-subtitle">Manajemen pusat data santri dan arsip kesiswaan lengkap</p>
         </div>
@@ -507,7 +507,7 @@ export function BukuInduk() {
             </>
           )}
         </div>
-      </div>
+      </header>
 
       {/* Insight Banner */}
       <InsightBanner insights={insights} />

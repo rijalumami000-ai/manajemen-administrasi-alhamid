@@ -1,127 +1,121 @@
 @import '../../styles/variables-light.scss';
 
-.ui-search-toolbar {
+// APPLE OPTION A LIQUID GLASS SEARCH TOOLBAR
+.ui-search-toolbar-liquid {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: $lt-space-4;
-  padding: $lt-space-3;
-  background: $lt-bg-card;
-  border-radius: $lt-radius-lg;
-  border: 1px solid $lt-border-light;
-  box-shadow: $lt-shadow-sm;
-  margin-bottom: $lt-space-4;
+  gap: 14px;
+  padding: 10px 14px;
+  background: rgba(255, 255, 255, 0.72);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border-radius: 18px;
+  border: 1px solid rgba(255, 255, 255, 0.85);
+  border-top: 1.5px solid rgba(255, 255, 255, 0.98);
+  box-shadow:
+    0 8px 24px rgba(15, 23, 42, 0.03),
+    inset 0 1px 0 rgba(255, 255, 255, 0.9);
+  margin-bottom: 20px;
   flex-wrap: wrap;
 
-  &__main {
+  .ui-search-toolbar__main {
     display: flex;
     align-items: center;
-    gap: $lt-space-3;
+    gap: 10px;
     flex: 1;
     min-width: 0;
     flex-wrap: wrap;
   }
 
-  &__search {
+  .ui-search-toolbar__search {
     position: relative;
     flex: 1;
-    min-width: 200px;
-    max-width: 350px;
+    min-width: 220px;
+    max-width: 360px;
 
     .search-icon {
       position: absolute;
-      left: $lt-space-3;
+      left: 14px;
       top: 50%;
       transform: translateY(-50%);
-      color: $lt-text-tertiary;
+      color: #94a3b8;
+      pointer-events: none;
     }
 
-    input {
+    .search-liquid-input {
       width: 100%;
-      padding: 10px 16px 10px 38px;
-      background: $lt-bg-input;
-      border: 1px solid $lt-border-medium;
-      border-radius: $lt-radius-md;
-      font-size: $lt-text-sm;
-      color: $lt-text-primary;
-      transition: all $lt-transition-fast;
+      height: 38px;
+      padding: 0 14px 0 38px;
+      background: rgba(255, 255, 255, 0.8);
+      border: 1px solid rgba(203, 213, 225, 0.8);
+      border-radius: 12px;
+      font-size: 13px;
+      color: #0f172a;
+      transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+      outline: none;
 
       &:focus {
-        outline: none;
-        border-color: $lt-border-focus;
-        box-shadow: 0 0 0 3px rgba($lt-border-focus, 0.15);
+        background: #ffffff;
+        border-color: #0052ff;
+        box-shadow: 0 0 0 3px rgba(0, 82, 255, 0.12);
       }
+
       &::placeholder {
-        color: $lt-text-disabled;
+        color: #94a3b8;
       }
     }
   }
 
-  &__filters {
+  .ui-search-toolbar__filters {
     display: flex;
     align-items: center;
-    gap: $lt-space-2;
+    gap: 8px;
+    flex-wrap: wrap;
 
-    .filter-dropdown {
-      select {
-        padding: 10px 32px 10px 14px;
-        background: $lt-bg-input;
-        border: 1px solid $lt-border-medium;
-        border-radius: $lt-radius-md;
-        font-size: $lt-text-sm;
-        color: $lt-text-secondary;
-        cursor: pointer;
-        appearance: none;
-        outline: none;
-        transition: all $lt-transition-fast;
-
-        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%2394A3B8' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
-        background-repeat: no-repeat;
-        background-position: right 10px center;
-
-        &:focus {
-          border-color: $lt-border-focus;
-          box-shadow: 0 0 0 3px rgba($lt-border-focus, 0.15);
-        }
-        &:hover {
-          border-color: $lt-text-tertiary;
-        }
-      }
+    .filter-dropdown-glass {
+      min-width: 150px;
     }
   }
 
-  &__actions {
+  .ui-search-toolbar__actions {
     display: flex;
     align-items: center;
-    gap: $lt-space-3;
+    gap: 10px;
 
-    .btn-reset {
-      display: flex;
+    .btn-reset-glass {
+      display: inline-flex;
       align-items: center;
-      justify-content: center;
-      width: 36px;
-      height: 36px;
-      border-radius: $lt-radius-md;
-      background: $lt-bg-muted;
-      border: 1px solid $lt-border-medium;
-      color: $lt-text-secondary;
+      gap: 5px;
+      height: 34px;
+      padding: 0 12px;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.8);
+      border: 1px solid rgba(203, 213, 225, 0.7);
+      font-size: 12px;
+      font-weight: 600;
+      color: #64748b;
       cursor: pointer;
-      transition: all $lt-transition-fast;
+      transition: all 0.2s ease;
 
       &:hover {
-        background: $lt-bg-hover;
-        color: $lt-text-primary;
-        border-color: $lt-text-tertiary;
+        background: rgba(239, 68, 68, 0.08);
+        border-color: rgba(239, 68, 68, 0.3);
+        color: #dc2626;
+        transform: translateY(-1px);
       }
     }
 
-    .total-badge {
-      padding: 6px 12px;
-      background: $lt-primary-light;
-      color: $lt-primary;
-      border-radius: $lt-radius-full;
-      font-size: $lt-text-sm;
-      font-weight: 600;
+    .total-badge-glass {
+      display: inline-flex;
+      align-items: center;
+      padding: 4px 12px;
+      background: rgba(0, 82, 255, 0.08);
+      border: 1px solid rgba(0, 82, 255, 0.2);
+      border-radius: 999px;
+      font-size: 11.5px;
+      font-weight: 700;
+      color: #0052ff;
       white-space: nowrap;
     }
   }

@@ -1,42 +1,73 @@
 @import '../../styles/variables-light.scss';
 
-.edit-student-form {
+// APPLE OPTION A LIQUID GLASS EDIT STUDENT FORM
+.edit-student-form-vision {
   display: flex;
   flex-direction: column;
-  gap: $lt-space-6;
-  padding-bottom: 260px; // space for sticky actions and dropdowns
+  gap: 18px;
+  padding-bottom: 74px; // space for frosted sticky action shelf
 }
 
-.form-error-banner {
-  background: $lt-error-light;
-  color: darken($lt-error, 10%);
-  border: 1px solid $lt-error-border;
-  padding: $lt-space-3 $lt-space-4;
-  border-radius: $lt-radius-md;
-  font-size: $lt-text-sm;
-  font-weight: 500;
+.form-error-glass-banner {
+  background: rgba(239, 68, 68, 0.08);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border: 1px solid rgba(239, 68, 68, 0.25);
+  border-top: 1.5px solid rgba(255, 255, 255, 0.95);
+  border-radius: 12px;
+  padding: 10px 14px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #dc2626;
 }
 
-.form-section {
-  &__title {
+.form-bento-section {
+  background: rgba(255, 255, 255, 0.65);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  border: 1px solid rgba(226, 232, 240, 0.85);
+  border-top: 1.5px solid #ffffff;
+  border-radius: 16px;
+  padding: 16px 18px;
+  box-shadow: 0 4px 14px rgba(15, 23, 42, 0.02);
+
+  .bento-section-title {
     display: flex;
     align-items: center;
-    gap: $lt-space-2;
-    font-size: $lt-text-base;
-    font-weight: 600;
-    color: $lt-text-primary;
-    margin: 0 0 $lt-space-4;
-    padding-bottom: $lt-space-2;
-    border-bottom: 1px solid $lt-border-light;
+    gap: 8px;
+    font-size: 14px;
+    font-weight: 700;
+    color: #0f172a;
+    margin-bottom: 14px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid rgba(226, 232, 240, 0.6);
 
-    svg { color: $lt-primary; }
+    svg {
+      color: #0052ff;
+    }
+  }
+
+  .sub-section-group {
+    margin-bottom: 14px;
+
+    &:last-child {
+      margin-bottom: 0;
+    }
+
+    .sub-section-label {
+      font-size: 12px;
+      font-weight: 700;
+      color: #475569;
+      display: block;
+      margin-bottom: 8px;
+    }
   }
 }
 
 .form-grid {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
-  gap: $lt-space-4;
+  gap: 12px;
 
   @media (max-width: 640px) {
     grid-template-columns: 1fr;
@@ -47,136 +78,59 @@
   grid-column: 1 / -1;
 }
 
-// Custom Checkbox
-.checkbox-container {
+// Checkbox Custom
+.checkbox-container-custom {
   display: flex;
   align-items: center;
-  position: relative;
-  padding-left: 30px;
-  margin-bottom: 8px;
+  gap: 8px;
   cursor: pointer;
-  font-size: $lt-text-sm;
-  color: $lt-text-primary;
   user-select: none;
+  font-size: 13px;
+  font-weight: 600;
+  color: #0f172a;
+  margin-bottom: 4px;
 
   input {
-    position: absolute;
-    opacity: 0;
+    width: 16px;
+    height: 16px;
     cursor: pointer;
-    height: 0;
-    width: 0;
-
-    &:checked ~ .checkmark {
-      background-color: $lt-primary;
-      border-color: $lt-primary;
-
-      &:after {
-        display: block;
-      }
-    }
-  }
-
-  .checkmark {
-    position: absolute;
-    top: 50%;
-    left: 0;
-    transform: translateY(-50%);
-    height: 20px;
-    width: 20px;
-    background-color: $lt-bg-input;
-    border: 1px solid $lt-border-medium;
-    border-radius: 4px;
-    transition: all $lt-transition-fast;
-
-    &:after {
-      content: "";
-      position: absolute;
-      display: none;
-      left: 6px;
-      top: 2px;
-      width: 5px;
-      height: 10px;
-      border: solid white;
-      border-width: 0 2px 2px 0;
-      transform: rotate(45deg);
-    }
-  }
-
-  &:hover input ~ .checkmark {
-    border-color: $lt-primary;
+    accent-color: #0052ff;
   }
 }
 
-.form-hint {
-  font-size: 12px;
-  color: $lt-text-secondary;
-  margin: 0 0 $lt-space-4;
-  padding-left: 30px;
+.form-hint-text {
+  font-size: 11.5px;
+  color: #64748b;
+  margin: 0 0 12px 24px;
 }
 
-.form-actions-sticky {
+// STICKY FOOTER SHELF
+.form-sticky-footer-shelf {
   position: absolute;
   bottom: 0;
   left: 0;
   right: 0;
-  padding: $lt-space-4 $lt-space-6;
-  background: $lt-bg-elevated;
-  border-top: 1px solid $lt-border-light;
+  padding: 12px 24px;
+  background: rgba(255, 255, 255, 0.88);
+  backdrop-filter: blur(24px) saturate(180%);
+  -webkit-backdrop-filter: blur(24px) saturate(180%);
+  border-top: 1px solid rgba(226, 232, 240, 0.85);
+  box-shadow: 0 -4px 16px rgba(15, 23, 42, 0.04);
   display: flex;
   justify-content: flex-end;
-  gap: $lt-space-3;
+  gap: 10px;
   z-index: 10;
-}
+  border-bottom-left-radius: 22px;
+  border-bottom-right-radius: 22px;
 
-.btn-primary, .btn-secondary {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: $lt-space-2;
-  padding: 10px $lt-space-5;
-  border-radius: $lt-radius-md;
-  font-size: $lt-text-sm;
-  font-weight: 600;
-  transition: all $lt-transition-fast;
-  cursor: pointer;
-  border: none;
-
-  &:disabled {
-    opacity: 0.6;
-    cursor: not-allowed;
+  .spinner-pill {
+    width: 14px;
+    height: 14px;
+    border: 2px solid rgba(255, 255, 255, 0.3);
+    border-top-color: #ffffff;
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
   }
-}
-
-.btn-primary {
-  background: $lt-primary;
-  color: white;
-  box-shadow: $lt-shadow-indigo;
-
-  &:hover:not(:disabled) {
-    background: $lt-primary-hover;
-    transform: translateY(-1px);
-  }
-}
-
-.btn-secondary {
-  background: $lt-bg-muted;
-  color: $lt-text-secondary;
-  border: 1px solid $lt-border-medium;
-
-  &:hover:not(:disabled) {
-    background: $lt-bg-hover;
-    color: $lt-text-primary;
-    border-color: $lt-text-tertiary;
-  }
-}
-
-.loading-spinner {
-  width: 16px;
-  height: 16px;
-  border: 2px solid rgba(255,255,255,0.3);
-  border-radius: 50%;
-  border-top-color: white;
-  animation: spin 1s linear infinite;
 }
 
 @keyframes spin {

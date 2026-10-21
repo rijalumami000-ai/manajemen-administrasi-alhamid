@@ -9,46 +9,9 @@
 
   // ─── Header Tactile Baku ────────────────────────────────────────────────────
   .tactile-page-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    flex-wrap: wrap;
-    gap: 16px;
-
-    .header-title-group {
-      display: flex;
-      flex-direction: column;
-      gap: 4px;
-
-      .page-title {
-        font-size: 25px;
-        font-weight: 800;
-        letter-spacing: -0.025em;
-        color: #0f172a;
-        margin: 0;
-
-        html[data-theme="dark"] & {
-          color: #f8fafc;
-        }
-      }
-
-      .page-subtitle {
-        font-size: 13.5px;
-        color: #64748b;
-        margin: 0;
-
-        html[data-theme="dark"] & {
-          color: #94a3b8;
-        }
-      }
-    }
-
-    .header-actions {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-    }
+    @include apple-tactile-header;
   }
+
 
   // ─── Option A Segmented Control Dock ─────────────────────────────────────────
   .segmented-tabs-dock {

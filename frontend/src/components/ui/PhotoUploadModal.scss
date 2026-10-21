@@ -1,76 +1,136 @@
 @import '../../styles/variables-light.scss';
 
-.photo-upload-modal {
+// APPLE OPTION A LIQUID GLASS PHOTO UPLOAD MODAL
+.photo-upload-modal-vision {
   display: flex;
   flex-direction: column;
-  gap: $lt-space-4;
+  gap: 16px;
 }
 
-.upload-dropzone {
-  border: 2px dashed $lt-border-medium;
-  border-radius: $lt-radius-lg;
-  padding: $lt-space-8 $lt-space-4;
+.photo-dropzone-glass {
+  border: 2px dashed rgba(203, 213, 225, 0.9);
+  background: rgba(248, 250, 252, 0.7);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  border-radius: 18px;
+  padding: 32px 20px;
   text-align: center;
   cursor: pointer;
-  background: $lt-bg-muted;
-  transition: all $lt-transition-fast;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  position: relative;
+  overflow: hidden;
 
   &:hover {
-    border-color: $lt-primary;
-    background: $lt-primary-light;
+    border-color: #0052ff;
+    background: rgba(0, 82, 255, 0.04);
+    box-shadow: 0 8px 24px rgba(0, 82, 255, 0.08);
+
+    .photo-dropzone-orb {
+      transform: scale(1.08) translateY(-2px);
+      box-shadow: 0 8px 22px rgba(0, 82, 255, 0.3);
+    }
   }
 
-  &__icon {
-    color: $lt-primary;
-    margin-bottom: $lt-space-3;
+  .photo-dropzone-orb {
+    width: 54px;
+    height: 54px;
+    border-radius: 16px;
+    background: linear-gradient(135deg, #0052ff 0%, #3b82f6 100%);
+    color: #ffffff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow:
+      0 6px 16px rgba(0, 82, 255, 0.22),
+      inset 0 1px 1px rgba(255, 255, 255, 0.45);
+    margin-bottom: 4px;
+    transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
   }
 
-  h4 {
-    margin: 0 0 $lt-space-2;
-    font-size: $lt-text-base;
-    color: $lt-text-primary;
-    font-weight: 600;
-  }
-
-  p {
+  .dropzone-title {
     margin: 0;
-    font-size: $lt-text-sm;
-    color: $lt-text-secondary;
+    font-size: 14.5px;
+    font-weight: 700;
+    color: #0f172a;
   }
 
-  .hidden-input {
+  .dropzone-subtitle {
+    margin: 0;
+    font-size: 12px;
+    color: #64748b;
+  }
+
+  .photo-spec-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: rgba(0, 82, 255, 0.08);
+    border: 1px solid rgba(0, 82, 255, 0.2);
+    border-radius: 999px;
+    padding: 3px 10px;
+    font-size: 11px;
+    font-weight: 600;
+    color: #0052ff;
+    margin-top: 6px;
+  }
+
+  .hidden-file-input {
     display: none;
   }
 }
 
-.crop-container {
+.crop-workspace-glass {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: $lt-space-4;
+  gap: 16px;
 
-  .ReactCrop {
+  .crop-preview-frame {
     max-width: 100%;
     max-height: 50vh;
-    border-radius: $lt-radius-md;
+    border-radius: 16px;
     overflow: hidden;
-    box-shadow: $lt-shadow-md;
+    background: #0f172a;
+    box-shadow: 0 10px 28px rgba(0, 0, 0, 0.15);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+
+    .ReactCrop {
+      max-width: 100%;
+      max-height: 50vh;
+    }
+
+    .crop-image {
+      max-width: 100%;
+      max-height: 50vh;
+      object-fit: contain;
+      display: block;
+    }
   }
 
-  .crop-image {
-    max-width: 100%;
-    max-height: 50vh;
-    object-fit: contain;
+  .crop-modal-footer {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 12px;
+    width: 100%;
+    padding-top: 12px;
+    border-top: 1px solid rgba(226, 232, 240, 0.7);
+
+    .spinner-ring {
+      width: 14px;
+      height: 14px;
+      border: 2px solid rgba(255, 255, 255, 0.3);
+      border-top-color: #ffffff;
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
   }
 }
 
-.crop-actions {
-  display: flex;
-  width: 100%;
-  gap: $lt-space-3;
-  justify-content: space-between;
-
-  button {
-    flex: 1;
-  }
+@keyframes spin {
+  to { transform: rotate(360deg); }
 }

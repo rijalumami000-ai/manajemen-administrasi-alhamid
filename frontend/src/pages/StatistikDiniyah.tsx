@@ -13,6 +13,7 @@ import {
   Clock
 } from 'lucide-react';
 import { LoadingState, ErrorState } from '../components/common';
+import CustomSelect from '../components/ui/CustomSelect';
 import { apiGet } from '../services/apiClient';
 import {
   StatistikDiniyahResponse,
@@ -109,28 +110,29 @@ export function StatistikDiniyah() {
   return (
     <div className="statistik-diniyah-page">
       {/* TACTILE PAGE HEADER (NO ICONS IN TITLE, PURE TYPOGRAPHY) */}
-      <div className="tactile-page-header">
-        <div className="header-text-group">
+      <header className="tactile-page-header">
+        <div className="header-text-block">
           <h2 className="page-title">Statistik Siswa Madrasah Diniyah</h2>
           <p className="page-subtitle">Analisis demografi jumlah siswa per semester, per tingkat, dan tren tahun ajaran</p>
         </div>
-      </div>
+      </header>
 
       {/* FILTER BAR */}
       <div className="filter-card">
         <div className="filter-item">
           <label><Calendar size={15} /> Tahun Ajaran</label>
-          <select
-            value={selectedTaId}
-            onChange={e => setSelectedTaId(e.target.value)}
-            className="filter-select"
-          >
-            {tahunAjaranList.map(ta => (
-              <option key={ta.id} value={ta.id}>
-                {ta.kode} {ta.is_active ? '★ (Aktif)' : ''}
-              </option>
-            ))}
-          </select>
+          <div style={{ minWidth: 200 }}>
+            <CustomSelect
+              size="sm"
+              value={selectedTaId}
+              onChange={val => setSelectedTaId(val)}
+              options={tahunAjaranList.map(ta => ({
+                value: String(ta.id),
+                label: `${ta.kode} ${ta.is_active ? '★ (Aktif)' : ''}`
+              }))}
+              placeholder="Pilih Tahun Ajaran"
+            />
+          </div>
         </div>
 
         <div className="filter-item">

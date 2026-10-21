@@ -218,8 +218,8 @@ export function Romadhon() {
   return (
     <div className="romadhon-page">
       {/* TACTILE PAGE HEADER */}
-      <div className="tactile-page-header">
-        <div className="header-text-group">
+      <header className="tactile-page-header">
+        <div className="header-text-block">
           <h2 className="page-title">Jadwal Kegiatan Romadhon</h2>
           <p className="page-subtitle">Kelola jadwal kajian kilatan balagh dan petugas imam tarawih & bilal</p>
         </div>
@@ -233,7 +233,7 @@ export function Romadhon() {
             style={{ minWidth: 220 }}
           />
         </div>
-      </div>
+      </header>
 
       {/* SEGMENTED TABS DOCK */}
       <div className="segmented-tabs-dock">

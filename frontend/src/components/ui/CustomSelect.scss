@@ -382,6 +382,36 @@
     }
   }
 
+    &.size-sm {
+    margin-bottom: 0;
+
+    .ui-custom-select__wrapper {
+      min-height: 38px;
+      height: 38px;
+      border-radius: 10px;
+    }
+
+    .ui-custom-select__value-container {
+      padding: 0 10px;
+      display: flex;
+      align-items: center;
+    }
+
+    .ui-custom-select__value {
+      font-size: 13px;
+      line-height: 1;
+    }
+
+    .placeholder {
+      color: #64748b;
+      font-size: 13px;
+    }
+
+    .ui-custom-select__arrow {
+      padding-right: 10px;
+    }
+  }
+
   &.no-label {
     margin-bottom: 0;
     

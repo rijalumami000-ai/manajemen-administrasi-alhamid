@@ -416,3 +416,106 @@
   }
 }
 
+// =============================================================================
+// APPLE FLOATING DOCK HEADER (OPTION A TACTILE HEADER)
+// Strict standard: 24px radius, specular top highlight, zero title icon orb,
+// 25px bold title, 13.5px subtitle, frosted translucent liquid glass dock.
+// =============================================================================
+@mixin apple-tactile-header {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  flex-wrap: wrap;
+  margin-bottom: 24px;
+  padding: 22px 28px;
+  border-radius: 24px;
+  z-index: 2;
+
+  // Liquid Glass Surface
+  background: rgba(255, 255, 255, 0.72);
+  backdrop-filter: blur(32px) saturate(190%);
+  -webkit-backdrop-filter: blur(32px) saturate(190%);
+  border: 1px solid rgba(255, 255, 255, 0.82);
+  border-top: 1.5px solid rgba(255, 255, 255, 0.98);
+
+  box-shadow: 
+    0 20px 48px -12px rgba(15, 23, 42, 0.08),
+    0 4px 12px -2px rgba(15, 23, 42, 0.03),
+    inset 0 1px 1px rgba(255, 255, 255, 0.95);
+
+  // Specular top edge glint
+  &::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 24px;
+    right: 24px;
+    height: 1px;
+    background: linear-gradient(90deg, transparent 0%, rgba(255, 255, 255, 0.95) 30%, rgba(255, 255, 255, 0.2) 80%, transparent 100%);
+    pointer-events: none;
+  }
+
+  html[data-theme="dark"] & {
+    background: rgba(15, 23, 42, 0.65);
+    border-color: rgba(255, 255, 255, 0.08);
+    border-top-color: rgba(255, 255, 255, 0.16);
+    box-shadow: 
+      0 20px 48px -12px rgba(0, 0, 0, 0.45),
+      inset 0 1px 1px rgba(255, 255, 255, 0.06);
+
+    &::before {
+      background: linear-gradient(90deg, transparent 0%, rgba(255, 255, 255, 0.2) 30%, rgba(255, 255, 255, 0.05) 80%, transparent 100%);
+    }
+  }
+
+  @include respond-to(md) {
+    padding: 16px 20px;
+    border-radius: 20px;
+    margin-bottom: 20px;
+  }
+
+  .header-text-block,
+  .header-title-group,
+  .header-text-group {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+
+    .page-title {
+      font-size: 25px;
+      font-weight: 800;
+      letter-spacing: -0.025em;
+      color: #0f172a;
+      margin: 0;
+      line-height: 1.2;
+
+      html[data-theme="dark"] & {
+        color: #f8fafc;
+      }
+    }
+
+    .page-subtitle {
+      font-size: 13.5px;
+      color: #64748b;
+      margin: 0;
+      font-weight: 400;
+      line-height: 1.4;
+
+      html[data-theme="dark"] & {
+        color: #94a3b8;
+      }
+    }
+  }
+
+  .header-actions,
+  .header-actions-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+}
+
+

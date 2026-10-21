@@ -228,8 +228,8 @@ export function Alumni() {
   return (
     <div className="alumni-page">
       {/* HEADER TACTILE BAKU (Murni teks tanpa emoji/orb di samping judul) */}
-      <div className="tactile-page-header no-print">
-        <div className="header-title-group">
+      <header className="tactile-page-header no-print">
+        <div className="header-text-block">
           <h2 className="page-title">Data Alumni, Kelulusan & Mutasi</h2>
           <p className="page-subtitle">Kelola data alumni Diniyah, lulusan MTs / Aliyah, dan santri pindah/mutasi pesantren</p>
         </div>
@@ -239,7 +239,7 @@ export function Alumni() {
             <span>Tambah Kelulusan / Mutasi</span>
           </button>
         </div>
-      </div>
+      </header>
 
       {/* STATS SUMMARY OPTION A */}
       <AlumniStats alumni={allAlumni} />

@@ -231,12 +231,12 @@ export function ScanNilai() {
   return (
     <div className="scan-nilai-page">
       {/* HEADER TACTILE BAKU (Murni teks tanpa emoji/orb) */}
-      <div className="tactile-page-header no-print">
-        <div className="header-title-group">
+      <header className="tactile-page-header no-print">
+        <div className="header-text-block">
           <h2 className="page-title">Pusat Lembar Ujian Tulis & Scanner Desktop</h2>
           <p className="page-subtitle">Cetak lembar nilai ujian F4 per kelas dan unduh aplikasi Windows native untuk pemindaian cerdas berakurasi tinggi</p>
         </div>
-      </div>
+      </header>
 
       {/* OPTION A SEGMENTED CONTROL DOCK */}
       <div className="segmented-tabs-dock no-print" style={{ alignSelf: 'flex-start' }}>

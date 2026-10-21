@@ -17,40 +17,9 @@
   // TACTILE PAGE HEADER (NO ICONS IN TITLE, CLEAN TYPOGRAPHY)
   // ============================================================
   .tactile-page-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: flex-start;
-    gap: 20px;
-    margin-bottom: 24px;
-    padding-bottom: 18px;
-    border-bottom: 1px solid rgba(226, 232, 240, 0.7);
-    flex-wrap: wrap;
-
-    .header-text-group {
-      .page-title {
-        font-size: 25px;
-        font-weight: 700;
-        color: #0f172a;
-        letter-spacing: -0.025em;
-        margin: 0 0 4px 0;
-        line-height: 1.25;
-      }
-
-      .page-subtitle {
-        font-size: 13.5px;
-        color: #64748b;
-        margin: 0;
-        line-height: 1.45;
-      }
-    }
-
-    .header-actions {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      flex-wrap: wrap;
-    }
+    @include apple-tactile-header;
   }
+
 
   // ============================================================
   // ACTION PILL BUTTONS (SAPPHIRE & GLASS SECONDARY)

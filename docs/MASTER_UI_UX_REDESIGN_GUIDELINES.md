@@ -359,7 +359,6 @@ Fase 4: Verifikasi Build & HMR      <───  Fase 3: Refactor ke .tsx & Styli
 | **Akademik Diniyah** | Monitoring Setoran Hafalan (`/monitoring-setoran`) | ✅ Selesai (TSX) | Option A Liquid Glass, 3D Spherical Orbs, TSX |
 | **Akademik Diniyah** | Manajemen Nilai & Rekap (`/nilai`, `/nilai-rekap`) | ✅ Selesai (TSX) | Option A Liquid Glass, Sub-Tabs 4 Bagian (Muhafadzoh Akbar, Qiroatul Kitab, Taftisyul Kutub, Ujian Tulis), Popup Modal Grid 4 Kolom Kelas |
 | **Akademik** | Data Santri (`/santri`) | ⏳ Siap Dikerjakan | Tabel Santri, Filter Kamar/Kelas, Modal Santri |
-| **Akademik** | Pelanggaran & Prestasi (`/pelanggaran-prestasi`) | ⏳ Antrean | Tab Pelanggaran, Prestasi, Kategori Poin |
 | **Ujian** | Lembar Ujian (`/lembar-ujian`) | ⏳ Antrean | Generator Lembar Soal & Jawaban |
 | **Ujian** | Kartu Ujian (`/kartu-ujian`) | ⏳ Antrean | Cetak Kartu Ujian Berfoto & Barcode |
 | **Ujian** | Scan Nilai (`/scan-nilai`) | ⏳ Antrean | OCR / Barcode Scanner Lembar Nilai |
@@ -367,7 +366,10 @@ Fase 4: Verifikasi Build & HMR      <───  Fase 3: Refactor ke .tsx & Styli
 | **Keuangan** | Tagihan Santri (`/tagihan-santri`) | ⏳ Antrean | Invoice SPP, Daftar Tagihan, Status Lunas |
 | **Keuangan** | Buku Kas (`/buku-kas`) | ⏳ Antrean | Arus Kas Masuk & Keluar, Jurnal Umum |
 | **Keuangan** | Cetak Kwitansi (`/cetak-kwitansi`) | ⏳ Antrean | Template Cetak Pembayaran Resmi |
-| **Master** | Data Kamar (`/kamar`) | ⏳ Antrean | Asrama, Kapasitas Santri, Penempatan |
+| **Kepesantrenan** | Data Kamar (`/kamar`) | ✅ Selesai (TSX) | Option A Liquid Glass, Frosted KPI Dock, Putra & Putri Segmented Tabs, 3D Lens Orbs, KamarAnggotaModal |
+| **Kepesantrenan** | Inventaris Pesantren (`/inventaris`) | ✅ Selesai (TSX) | Option A Liquid Glass, Tabs Pondok/Madin/PMQ, KPI Orbs, CustomSelect Filters, VisionOS Table & Delete Halo |
+| **Kepesantrenan** | Pelanggaran & Prestasi (`/pelanggaran-prestasi`) | ✅ Selesai (TSX) | Option A Liquid Glass, Tabs Pelanggaran & Prestasi, 4 KPI Dock Cards, CustomSelect Filter, VisionOS Delete Modal |
+| **Kepesantrenan** | PDF Materi Sidang (`/materi-sidang`) | ✅ Selesai (TSX) | Option A Liquid Glass, 4 Kategori Tabs (Madin, PMQ, Pondok, Haflah), 4 KPI Stat Orbs, Glass Document Cards, File Upload Drag & Drop, VisionOS Delete Modal |
 | **Master** | Data Alumni (`/alumni`) | ⏳ Antrean | Database Lulusan, Tracer Study |
 | **Master** | Manajemen Users (`/users`) | ⏳ Antrean | Akun Pengguna, Role & Hak Akses |
 

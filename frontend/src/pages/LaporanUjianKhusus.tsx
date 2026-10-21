@@ -585,8 +585,8 @@ export const LaporanUjianKhusus = () => {
   return (
     <div className="laporan-page-container">
       {/* HEADER TACTILE BAKU (Murni teks tanpa emoji/orb di judul) */}
-      <div className="tactile-page-header no-print">
-        <div className="header-title-group">
+      <header className="tactile-page-header no-print">
+        <div className="header-text-block">
           <h2 className="page-title">Laporan Hasil Ujian Khusus</h2>
           <p className="page-subtitle">Laporan kumulatif hasil evaluasi ujian Muhafadzoh, Qiroah, dan Taftisy</p>
         </div>
@@ -668,7 +668,7 @@ export const LaporanUjianKhusus = () => {
             )}
           </div>
         </div>
-      </div>
+      </header>
 
       <div className="laporan-frosted-card">
         

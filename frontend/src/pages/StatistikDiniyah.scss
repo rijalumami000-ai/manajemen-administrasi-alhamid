@@ -17,32 +17,9 @@
   // TACTILE PAGE HEADER (NO ICONS IN TITLE, PURE TYPOGRAPHY)
   // ============================================================
   .tactile-page-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: flex-start;
-    gap: 20px;
-    margin-bottom: 24px;
-    padding-bottom: 18px;
-    border-bottom: 1px solid rgba(226, 232, 240, 0.7);
-
-    .header-text-group {
-      .page-title {
-        font-size: 25px;
-        font-weight: 700;
-        color: #0f172a;
-        letter-spacing: -0.025em;
-        margin: 0 0 4px 0;
-        line-height: 1.25;
-      }
-
-      .page-subtitle {
-        font-size: 13.5px;
-        color: #64748b;
-        margin: 0;
-        line-height: 1.45;
-      }
-    }
+    @include apple-tactile-header;
   }
+
 
   // ============================================================
   // FILTER BAR (ACRYLIC GLASS CARD)

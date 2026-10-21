@@ -15,62 +15,8 @@
 
   // ─── 1. APPLE FLOATING DOCK HEADER (STRICT RULE: NO ICON ORB) ───────────────
   .tactile-page-header {
-    background: rgba(255, 255, 255, 0.70);
-    backdrop-filter: blur(28px);
-    -webkit-backdrop-filter: blur(28px);
-    border-radius: 24px;
-    border: 1px solid rgba(255, 255, 255, 0.75);
-    border-top: 1.5px solid rgba(255, 255, 255, 0.98);
-    box-shadow: 
-      0 20px 40px -12px rgba(15, 23, 42, 0.06),
-      0 1px 3px rgba(15, 23, 42, 0.03),
-      inset 0 1px 1px rgba(255, 255, 255, 0.9);
-    padding: 22px 28px;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    gap: 20px;
-    flex-wrap: wrap;
-    position: relative;
-    z-index: 2;
+    @include apple-tactile-header;
 
-    html[data-theme="dark"] & {
-      background: rgba(15, 23, 42, 0.65);
-      border-color: rgba(255, 255, 255, 0.08);
-      border-top-color: rgba(255, 255, 255, 0.15);
-      box-shadow: 
-        0 20px 40px -12px rgba(0, 0, 0, 0.4),
-        inset 0 1px 1px rgba(255, 255, 255, 0.05);
-    }
-
-    .header-text-block {
-      display: flex;
-      flex-direction: column;
-      gap: 4px;
-
-      .page-title {
-        font-size: 25px;
-        font-weight: 800;
-        color: #0f172a;
-        margin: 0;
-        letter-spacing: -0.025em;
-
-        html[data-theme="dark"] & {
-          color: #f8fafc;
-        }
-      }
-
-      .page-subtitle {
-        font-size: 13.5px;
-        color: #64748b;
-        margin: 0;
-        font-weight: 500;
-
-        html[data-theme="dark"] & {
-          color: #94a3b8;
-        }
-      }
-    }
 
     .header-actions-row {
       display: flex;

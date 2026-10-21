@@ -538,8 +538,8 @@ export function LembarUjian() {
   return (
     <div className="lembar-ujian-page">
       {/* HEADER TACTILE BAKU OPTION A (Murni teks tanpa emoji/orb di judul) */}
-      <div className="tactile-page-header no-print">
-        <div className="header-title-group">
+      <header className="tactile-page-header no-print">
+        <div className="header-text-block">
           <h2 className="page-title">Pembuat Lembar Ujian</h2>
           <p className="page-subtitle">Ketik soal ujian pelajaran dan cetak lembar soal dengan tata letak profesional</p>
         </div>
@@ -553,7 +553,7 @@ export function LembarUjian() {
             <span>Preview Lembar</span>
           </button>
         </div>
-      </div>
+      </header>
 
       {/* Global Filter Bar */}
       <div className="frosted-card no-print" style={{ padding: '16px' }}>
