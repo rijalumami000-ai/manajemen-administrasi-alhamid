@@ -120,12 +120,12 @@ export function JadwalPelajaran() {
         }
 
         const gurus: GuruItem[] = await guruService.fetchGuru();
-        setGuruList(gurus);
+        setGuruList(gurus || []);
 
-        const mapels: MapelItem[] = await nilaiService.fetchMapel();
-        setMapelList(mapels);
+        const mapels: MapelItem[] = await guruService.fetchMataPelajaran();
+        setMapelList(mapels || []);
       } catch (err) {
-        console.error(err);
+        console.error('Error initializing jadwal data:', err);
         toast.error('Gagal menginisialisasi data pengaturan jadwal.');
       } finally {
         setLoading(false);
@@ -168,7 +168,8 @@ export function JadwalPelajaran() {
       jam_ke: jamKe,
       kelasNama: classObj?.nama || 'Kelas'
     });
-    setSelectedMapelId(existing?.mapel_id ? String(existing.mapel_id) : null);
+    const existingMapel = existing?.mata_pelajaran_id ?? existing?.mapel_id;
+    setSelectedMapelId(existingMapel ? String(existingMapel) : null);
     setSelectedGuruId(existing?.guru_id ? String(existing.guru_id) : null);
     setClashWarning(null);
     setEditModalOpen(true);
@@ -334,16 +335,21 @@ export function JadwalPelajaran() {
           const j1 = jadwalList.find(j => j.kelas_id === selectedKelasId && j.malam === malam && j.jam_ke === 1);
           const j2 = jadwalList.find(j => j.kelas_id === selectedKelasId && j.malam === malam && j.jam_ke === 2);
 
+          const s1 = j1?.mata_pelajaran_nama || j1?.mapel_nama;
+          const s2 = j2?.mata_pelajaran_nama || j2?.mapel_nama;
+          const g1 = j1?.guru_nama || j1?.guru_panggilan;
+          const g2 = j2?.guru_nama || j2?.guru_panggilan;
+
           tableData.push([
             malam,
             'Jam Ke-1\n(19.30 - 20.30)',
-            j1 ? `${j1.mapel_nama || '-'}\nUst. ${j1.guru_panggilan || j1.guru_nama || '-'}` : 'Draf Kosong'
+            j1 && s1 ? `${s1}\nUst. ${g1 || '-'}` : 'Draf Kosong'
           ]);
 
           tableData.push([
             malam,
             'Jam Ke-2\n(20.30 - 21.30)',
-            j2 ? `${j2.mapel_nama || '-'}\nUst. ${j2.guru_panggilan || j2.guru_nama || '-'}` : 'Draf Kosong'
+            j2 && s2 ? `${s2}\nUst. ${g2 || '-'}` : 'Draf Kosong'
           ]);
         });
 
@@ -417,8 +423,10 @@ export function JadwalPelajaran() {
             const rowData: string[] = [malam, `Ke-${jamKe}`];
             kelasList.forEach(k => {
               const match = jadwalList.find(j => j.kelas_id === k.id && j.malam === malam && j.jam_ke === jamKe);
-              if (match && match.mapel_nama) {
-                rowData.push(`${match.mapel_nama}\n(${match.guru_panggilan || match.guru_nama || 'Ust'})`);
+              const subjectName = match?.mata_pelajaran_nama || match?.mapel_nama;
+              const teacherName = match?.guru_nama || match?.guru_panggilan;
+              if (match && subjectName) {
+                rowData.push(`${subjectName}\n(${teacherName || 'Ust'})`);
               } else {
                 rowData.push('-');
               }
@@ -489,11 +497,15 @@ export function JadwalPelajaran() {
       j => j.kelas_id === kelasId && j.malam === malam && j.jam_ke === jamKe
     );
 
-    if (!slot || !slot.mapel_nama) {
+    const subjectName = slot?.mata_pelajaran_nama || slot?.mapel_nama;
+    const teacherName = slot?.guru_nama || slot?.guru_panggilan;
+    const hasAdminAccess = typeof isAdmin === 'function' ? (isAdmin as () => boolean)() : Boolean(isAdmin);
+
+    if (!slot || !subjectName) {
       return (
         <div className="empty-slot-card">
           <span className="empty-slot-label">Slot Belum Terisi</span>
-          {isAdmin && (
+          {hasAdminAccess && (
             <button 
               type="button" 
               onClick={() => handleOpenEdit(kelasId, malam, jamKe)}
@@ -513,19 +525,19 @@ export function JadwalPelajaran() {
         <div className="slot-info-col">
           <div className="subject-row">
             <BookOpen size={14} className="slot-badge-icon" />
-            <span className="subject-name" title={slot.mapel_nama || ''}>
-              {slot.mapel_nama}
+            <span className="subject-name" title={subjectName}>
+              {subjectName}
             </span>
           </div>
           <div className="teacher-row">
             <User size={13} className="slot-badge-icon teacher-icon" />
-            <span className="teacher-name" title={slot.guru_nama || ''}>
-              {slot.guru_nama || 'Belum Ditentukan'}
+            <span className="teacher-name" title={teacherName || ''}>
+              {teacherName || 'Belum Ditentukan'}
             </span>
           </div>
         </div>
 
-        {isAdmin && (
+        {hasAdminAccess && (
           <div className="slot-action-btns">
             <button 
               type="button"

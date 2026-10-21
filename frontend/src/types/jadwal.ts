@@ -1,6 +1,6 @@
 // =============================================================================
 // JADWAL PELAJARAN HARIAN TYPE DEFINITIONS
-// Refers to backend contract in src/routes/jadwalRoutes.js & services/jadwalService.js
+// Refers to backend contract in src/routes/jadwalPelajaranRoutes.js
 // =============================================================================
 
 export interface JadwalItem {
@@ -10,7 +10,9 @@ export interface JadwalItem {
   tahun_ajaran_id: number;
   malam: string;
   jam_ke: number;
-  mapel_id: number | null;
+  mata_pelajaran_id?: number | null;
+  mata_pelajaran_nama?: string | null;
+  mapel_id?: number | null;
   mapel_nama?: string | null;
   guru_id: number | null;
   guru_nama?: string | null;
@@ -40,6 +42,7 @@ export interface GuruItem {
   id: number;
   nama: string;
   no_hp?: string | null;
+  panggilan?: string | null;
   [key: string]: any;
 }
 
