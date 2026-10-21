@@ -1,251 +1,529 @@
 @import '../../styles/variables-light.scss';
 
-.student-detail-drawer {
+// APPLE OPTION A LIQUID GLASS BENTO PROFILE DRAWER
+.student-bento-profile-drawer {
   display: flex;
   flex-direction: column;
-  gap: $lt-space-6;
-  padding-bottom: $lt-space-8;
+  gap: 16px;
+  padding-bottom: 24px;
 }
 
-.profile-header-block {
+// 1. HERO IDENTITY BENTO CARD
+.hero-identity-bento {
   display: flex;
   align-items: center;
-  gap: $lt-space-5;
-  padding-bottom: $lt-space-5;
-  border-bottom: 1px solid $lt-border-light;
+  gap: 16px;
+  padding: 16px 18px;
+  background: rgba(255, 255, 255, 0.8);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(226, 232, 240, 0.9);
+  border-top: 1.5px solid rgba(255, 255, 255, 0.98);
+  border-radius: 20px;
+  box-shadow:
+    0 10px 24px rgba(15, 23, 42, 0.03),
+    inset 0 1px 0 rgba(255, 255, 255, 0.95);
 
-  .profile-avatar-wrap {
+  .avatar-lens-wrap {
     position: relative;
-    width: 80px;
-    height: 80px;
+    width: 76px;
+    height: 76px;
+    flex-shrink: 0;
 
-    .profile-avatar {
+    .bento-avatar-img {
       width: 100%;
       height: 100%;
-      border-radius: 20px;
+      border-radius: 18px;
       object-fit: cover;
-      border: 2px solid $lt-border-light;
-      box-shadow: $lt-shadow-md;
+      border: 2px solid #ffffff;
+      box-shadow: 0 4px 14px rgba(0, 0, 0, 0.08);
     }
 
-    .profile-avatar-placeholder {
+    .bento-avatar-fallback {
       width: 100%;
       height: 100%;
-      border-radius: 20px;
-      background: $lt-bg-muted;
-      color: $lt-text-tertiary;
+      border-radius: 18px;
+      background: linear-gradient(135deg, #f1f5f9 0%, #e2e8f0 100%);
+      color: #64748b;
       display: flex;
       align-items: center;
       justify-content: center;
-      border: 2px solid $lt-border-light;
+      border: 2px solid #ffffff;
+      box-shadow: 0 4px 14px rgba(0, 0, 0, 0.04);
     }
 
-    .completeness-badge {
+    .avatar-ring-indicator {
       position: absolute;
-      bottom: -10px;
-      right: -10px;
-      background: $lt-bg-card;
+      bottom: -6px;
+      right: -6px;
+      background: #ffffff;
       border-radius: 50%;
-      box-shadow: $lt-shadow-sm;
       padding: 2px;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
     }
   }
 
-  .profile-info {
+  .identity-details {
     flex: 1;
-
-    .profile-name {
-      font-family: $lt-font-sans;
-      font-size: $lt-text-2xl;
-      font-weight: 700;
-      color: $lt-text-primary;
-      margin: 0 0 $lt-space-2;
-      line-height: 1.2;
-    }
-
-    .profile-meta {
-      display: flex;
-      align-items: center;
-      gap: $lt-space-3;
-
-      .nis-badge {
-        font-family: $lt-font-mono;
-        font-size: $lt-text-xs;
-        padding: 4px 8px;
-        background: $lt-primary-light;
-        color: $lt-primary;
-        border-radius: $lt-radius-sm;
-        font-weight: 600;
-      }
-
-      .gender-text {
-        font-size: $lt-text-sm;
-        color: $lt-text-secondary;
-      }
-
-      .year-text {
-        font-size: $lt-text-sm;
-        color: $lt-text-tertiary;
-        font-weight: 500;
-      }
-    }
-  }
-}
-
-.status-keaktifan-summary-card {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: $lt-space-3;
-  padding: $lt-space-3 $lt-space-4;
-  background: $lt-bg-muted;
-  border: 1px solid $lt-border-light;
-  border-radius: $lt-radius-md;
-
-  .summary-col {
+    min-width: 0;
     display: flex;
     flex-direction: column;
-    gap: 4px;
+    gap: 6px;
 
-    .summary-label {
-      font-size: 10px;
-      text-transform: uppercase;
-      letter-spacing: 0.05em;
-      font-weight: 600;
-      color: $lt-text-tertiary;
+    .student-full-name {
+      margin: 0;
+      font-size: 18px;
+      font-weight: 800;
+      color: #0f172a;
+      letter-spacing: -0.02em;
+      line-height: 1.25;
     }
 
-    .summary-val-highlight {
-      font-size: 13px;
-      font-weight: 700;
-      font-family: $lt-font-mono;
-      color: $lt-text-primary;
-    }
-
-    .summary-pill {
-      display: inline-flex;
+    .identity-tags-row {
+      display: flex;
+      flex-wrap: wrap;
       align-items: center;
-      gap: 4px;
-      font-size: 11px;
-      font-weight: 600;
-      padding: 2px 6px;
-      border-radius: 4px;
-      width: fit-content;
+      gap: 6px;
 
-      .pill-dot {
-        width: 5px;
-        height: 5px;
-        border-radius: 50%;
+      .nis-copy-chip {
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+        background: rgba(0, 82, 255, 0.08);
+        border: 1px solid rgba(0, 82, 255, 0.2);
+        color: #0052ff;
+        font-family: monospace;
+        font-size: 11.5px;
+        font-weight: 700;
+        padding: 3px 8px;
+        border-radius: 6px;
+        cursor: pointer;
+        transition: all 0.2s ease;
+
+        &:hover {
+          background: rgba(0, 82, 255, 0.15);
+        }
+
+        .copy-ok {
+          color: #10b981;
+        }
       }
 
-      &.active {
-        background: #ecfdf5;
-        border: 1px solid #a7f3d0;
-        color: #065f46;
-        .pill-dot { background: #10b981; }
+      .gender-capsule-tag {
+        font-size: 11px;
+        font-weight: 600;
+        padding: 3px 8px;
+        border-radius: 999px;
+
+        &.male {
+          background: #eff6ff;
+          color: #1d4ed8;
+          border: 1px solid #bfdbfe;
+        }
+
+        &.female {
+          background: #fdf2f8;
+          color: #be185d;
+          border: 1px solid #fbcfe8;
+        }
       }
 
-      &.lulus {
-        background: #eff6ff;
-        border: 1px solid #bfdbfe;
-        color: #1e40af;
-        .pill-dot { background: #3b82f6; }
-      }
-
-      &.boyong {
-        background: #fffbeb;
-        border: 1px solid #fde68a;
-        color: #92400e;
-        .pill-dot { background: #f59e0b; }
-      }
-
-      &.out {
-        background: #fef2f2;
-        border: 1px solid #fecaca;
-        color: #991b1b;
-        .pill-dot { background: #ef4444; }
+      .year-capsule-tag {
+        font-size: 11px;
+        font-weight: 600;
+        color: #64748b;
+        background: #f1f5f9;
+        padding: 3px 8px;
+        border-radius: 999px;
       }
     }
-  }
-}
 
-.detail-section {
-  &__title {
-    font-size: $lt-text-sm;
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-    color: $lt-text-tertiary;
-    margin: 0 0 $lt-space-4;
-  }
-}
-
-.info-list {
-  display: flex;
-  flex-direction: column;
-  gap: $lt-space-4;
-
-  .info-row {
-    display: flex;
-    align-items: flex-start;
-    gap: $lt-space-3;
-    color: $lt-text-secondary;
-
-    svg {
+    .completeness-bar-wrap {
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
       margin-top: 2px;
-      color: $lt-text-tertiary;
-    }
 
-    .info-label {
-      display: block;
-      font-size: $lt-text-xs;
-      color: $lt-text-tertiary;
-      margin-bottom: 2px;
-    }
+      .completeness-bar-header {
+        display: flex;
+        justify-content: space-between;
+        font-size: 10.5px;
+        font-weight: 600;
+        color: #64748b;
 
-    .info-value {
-      display: block;
-      font-size: $lt-text-base;
-      color: $lt-text-primary;
-      font-weight: 500;
+        .completeness-percent {
+          color: #0052ff;
+          font-weight: 700;
+        }
+      }
+
+      .completeness-track {
+        height: 5px;
+        background: #e2e8f0;
+        border-radius: 999px;
+        overflow: hidden;
+
+        .completeness-fill {
+          height: 100%;
+          background: linear-gradient(90deg, #3b82f6 0%, #10b981 100%);
+          border-radius: 999px;
+          transition: width 0.5s ease;
+        }
+      }
     }
   }
 }
 
-.parent-cards {
-  display: flex;
-  gap: $lt-space-4;
+// 2. TRI-INSTITUTIONAL STATUS BENTO TILES
+.tri-status-bento-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
 
-  .parent-card {
-    flex: 1;
-    padding: $lt-space-4;
-    background: $lt-bg-muted;
-    border-radius: $lt-radius-lg;
-    border: 1px solid $lt-border-light;
+  .status-tile {
+    background: rgba(255, 255, 255, 0.7);
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
+    border: 1px solid rgba(226, 232, 240, 0.9);
+    border-top: 1.5px solid #ffffff;
+    border-radius: 14px;
+    padding: 10px 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    box-shadow: 0 2px 8px rgba(15, 23, 42, 0.02);
 
-    .parent-role {
-      font-size: $lt-text-xs;
-      font-weight: 600;
-      color: $lt-primary;
-      text-transform: uppercase;
-      margin-bottom: $lt-space-2;
+    .status-tile-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+
+      .tile-lead-label {
+        font-size: 10px;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        color: #64748b;
+      }
+
+      .status-pill {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        font-size: 10px;
+        font-weight: 700;
+        padding: 1px 6px;
+        border-radius: 999px;
+
+        .pill-dot {
+          width: 5px;
+          height: 5px;
+          border-radius: 50%;
+        }
+
+        &.status-active {
+          background: #ecfdf5;
+          color: #065f46;
+          border: 1px solid #a7f3d0;
+          .pill-dot { background: #10b981; }
+        }
+
+        &.status-lulus {
+          background: #eff6ff;
+          color: #1e40af;
+          border: 1px solid #bfdbfe;
+          .pill-dot { background: #3b82f6; }
+        }
+
+        &.status-boyong {
+          background: #fffbeb;
+          color: #92400e;
+          border: 1px solid #fde68a;
+          .pill-dot { background: #f59e0b; }
+        }
+
+        &.status-out {
+          background: #fef2f2;
+          color: #991b1b;
+          border: 1px solid #fecaca;
+          .pill-dot { background: #ef4444; }
+        }
+      }
     }
 
-    .parent-name {
-      font-size: $lt-text-base;
-      font-weight: 600;
-      color: $lt-text-primary;
-      margin-bottom: $lt-space-2;
-    }
-
-    .parent-detail {
+    .status-tile-val {
       display: flex;
       align-items: center;
-      gap: $lt-space-2;
-      font-size: $lt-text-sm;
-      color: $lt-text-secondary;
-      margin-top: $lt-space-2;
+      gap: 6px;
+      font-size: 12.5px;
+      font-weight: 700;
+      color: #0f172a;
+      svg {
+        color: #0052ff;
+        flex-shrink: 0;
+      }
+    }
+  }
+}
 
-      svg { color: $lt-text-tertiary; }
+// 3. GENERIC BENTO SECTION CARD
+.bento-section-card {
+  background: rgba(255, 255, 255, 0.7);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(226, 232, 240, 0.9);
+  border-top: 1.5px solid #ffffff;
+  border-radius: 18px;
+  padding: 14px 16px;
+  box-shadow: 0 4px 14px rgba(15, 23, 42, 0.02);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+
+  .bento-section-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+
+    .header-orb {
+      width: 26px;
+      height: 26px;
+      border-radius: 8px;
+      background: rgba(0, 82, 255, 0.1);
+      color: #0052ff;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    h4 {
+      margin: 0;
+      font-size: 13.5px;
+      font-weight: 700;
+      color: #0f172a;
+    }
+  }
+}
+
+// 4. BENTO FIELDS GRID
+.bento-fields-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 8px;
+
+  .bento-field-tile {
+    background: rgba(248, 250, 252, 0.7);
+    border: 1px solid rgba(226, 232, 240, 0.7);
+    border-radius: 10px;
+    padding: 8px 10px;
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+
+    &.full-span {
+      grid-column: span 2;
+    }
+
+    .field-icon-label {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      font-size: 10.5px;
+      font-weight: 600;
+      color: #64748b;
+    }
+
+    .field-value {
+      font-size: 12.5px;
+      font-weight: 600;
+      color: #0f172a;
+
+      .copyable-val {
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+        cursor: pointer;
+        transition: color 0.2s ease;
+
+        &:hover {
+          color: #0052ff;
+        }
+
+        .copy-ok {
+          color: #10b981;
+        }
+      }
+
+      .missing-pill {
+        display: inline-block;
+        font-size: 10.5px;
+        font-weight: 500;
+        color: #94a3b8;
+        background: #f1f5f9;
+        padding: 1px 6px;
+        border-radius: 4px;
+      }
+    }
+  }
+}
+
+// 5. PARENT BENTO BOXES
+.parents-bento-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 10px;
+
+  .parent-bento-box {
+    background: rgba(248, 250, 252, 0.75);
+    border: 1px solid rgba(226, 232, 240, 0.8);
+    border-radius: 12px;
+    padding: 10px 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+
+    .parent-box-header {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+
+      .parent-role-badge {
+        font-size: 9.5px;
+        font-weight: 700;
+        padding: 1px 6px;
+        border-radius: 4px;
+        text-transform: uppercase;
+
+        &.ayah {
+          background: #eff6ff;
+          color: #1e40af;
+          border: 1px solid #bfdbfe;
+        }
+
+        &.ibu {
+          background: #fdf2f8;
+          color: #be185d;
+          border: 1px solid #fbcfe8;
+        }
+      }
+
+      .parent-name-title {
+        font-size: 13px;
+        font-weight: 700;
+        color: #0f172a;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+    }
+
+    .parent-box-details {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+
+      .p-detail-row {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        font-size: 11px;
+        color: #64748b;
+
+        .phone-copyable {
+          display: inline-flex;
+          align-items: center;
+          gap: 4px;
+          color: #0052ff;
+          font-weight: 600;
+          cursor: pointer;
+
+          &:hover {
+            text-decoration: underline;
+          }
+
+          .copy-ok {
+            color: #10b981;
+          }
+        }
+
+        .muted-text {
+          color: #94a3b8;
+        }
+      }
+    }
+  }
+}
+
+// 6. MILESTONES TIMELINE
+.milestones-bento-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+
+  .milestone-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+
+    .milestone-dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: #0052ff;
+      margin-top: 5px;
+      flex-shrink: 0;
+
+      &.gold {
+        background: #f59e0b;
+        box-shadow: 0 0 6px rgba(245, 158, 11, 0.5);
+      }
+    }
+
+    .milestone-info {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+
+      .m-label {
+        font-size: 10.5px;
+        font-weight: 700;
+        color: #64748b;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+      }
+
+      .m-val {
+        font-size: 12.5px;
+        color: #0f172a;
+      }
+
+      .m-sub {
+        font-size: 11px;
+        color: #64748b;
+      }
+
+      .alumni-tags-wrap {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+        margin-top: 4px;
+
+        .alumni-tag {
+          font-size: 11px;
+          background: #f8fafc;
+          border: 1px solid #e2e8f0;
+          padding: 2px 8px;
+          border-radius: 6px;
+          color: #334155;
+        }
+      }
+    }
+
+    &.highlight-alumni {
+      background: rgba(245, 158, 11, 0.05);
+      border: 1px solid rgba(245, 158, 11, 0.2);
+      border-radius: 10px;
+      padding: 8px 10px;
     }
   }
 }

@@ -1,301 +1,504 @@
 @import '../../styles/variables.scss';
 @import '../../styles/mixins.scss';
 
-.tahun-ajaran-board {
-  margin-bottom: $spacing-md;
-  background: #ffffff;
-  padding: $spacing-md;
-  border-radius: $radius-lg;
-  border: 1px solid rgba(0, 0, 0, 0.05);
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.01);
+// APPLE OPTION A LIQUID GLASS COMPACT ACADEMIC DOCK
+.tahun-ajaran-board-dock {
+  margin-bottom: 20px;
+  background: rgba(255, 255, 255, 0.72);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.85);
+  border-top: 1.5px solid rgba(255, 255, 255, 0.95);
+  border-radius: 20px;
+  padding: 12px 16px;
+  box-shadow:
+    0 10px 28px rgba(15, 23, 42, 0.03),
+    0 2px 6px rgba(15, 23, 42, 0.02),
+    inset 0 1px 0 rgba(255, 255, 255, 0.9);
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
 
-  .tahun-ajaran-board-header {
-    margin-bottom: $spacing-md;
-    
-    h3 {
-      font-size: 15px;
-      color: #0f172a;
-      font-weight: $font-weight-bold;
-      margin: 0 0 2px 0;
+  .empty-state-dock {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 12px;
+    font-size: 13px;
+    color: #64748b;
+  }
+}
+
+.academic-dock-main {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+
+  @media (max-width: 900px) {
+    flex-direction: column;
+    align-items: stretch;
+  }
+}
+
+// 1. SPOTLIGHT HERO CAPSULE (LEFT)
+.spotlight-hero-card {
+  flex-shrink: 0;
+  width: 220px;
+  background: linear-gradient(135deg, #ffffff 0%, #f1f5f9 100%);
+  border: 1px solid rgba(203, 213, 225, 0.6);
+  border-top: 1.5px solid #ffffff;
+  border-radius: 14px;
+  padding: 10px 14px;
+  box-shadow: 0 4px 12px rgba(15, 23, 42, 0.03);
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  position: relative;
+  overflow: hidden;
+
+  &.is-live-year {
+    background: linear-gradient(135deg, #0052ff 0%, #1e40af 100%);
+    border-color: rgba(0, 82, 255, 0.3);
+    border-top: 1.5px solid rgba(255, 255, 255, 0.4);
+    box-shadow:
+      0 6px 20px rgba(0, 82, 255, 0.2),
+      inset 0 1px 0 rgba(255, 255, 255, 0.3);
+
+    .spotlight-title {
+      color: rgba(255, 255, 255, 0.8);
     }
 
-    p {
-      font-size: 12px;
+    .spotlight-year-text {
+      color: #ffffff;
+    }
+
+    .metric-pill {
+      color: rgba(255, 255, 255, 0.9);
+      strong { color: #ffffff; }
+    }
+
+    .metric-dot {
+      color: rgba(255, 255, 255, 0.5);
+    }
+  }
+
+  .spotlight-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+
+    .spotlight-title {
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
       color: #64748b;
-      margin: 0;
+    }
+
+    .live-status-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      background: rgba(16, 185, 129, 0.2);
+      border: 1px solid rgba(16, 185, 129, 0.35);
+      color: #ffffff;
+      font-size: 10.5px;
+      font-weight: 700;
+      padding: 1px 7px;
+      border-radius: 999px;
+
+      .pulsing-emerald-dot {
+        width: 6px;
+        height: 6px;
+        border-radius: 50%;
+        background-color: #34d399;
+        box-shadow: 0 0 6px #34d399;
+        animation: pulseEmerald 1.8s infinite ease-in-out;
+      }
+    }
+
+    .archive-status-badge {
+      font-size: 10.5px;
+      font-weight: 600;
+      color: #64748b;
+      background: rgba(100, 116, 139, 0.1);
+      padding: 1px 7px;
+      border-radius: 999px;
+    }
+
+    .coming-status-badge {
+      font-size: 10.5px;
+      font-weight: 600;
+      color: #0284c7;
+      background: rgba(2, 132, 199, 0.1);
+      padding: 1px 7px;
+      border-radius: 999px;
+    }
+  }
+
+  .spotlight-body {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+
+    .spotlight-year-text {
+      font-size: 19px;
+      font-weight: 800;
+      color: #0f172a;
+      letter-spacing: -0.02em;
+      line-height: 1.2;
+    }
+
+    .spotlight-metrics {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 12px;
+
+      .metric-pill {
+        color: #475569;
+        strong {
+          color: #0f172a;
+          font-weight: 700;
+        }
+      }
+
+      .metric-dot {
+        color: #cbd5e1;
+      }
     }
   }
 }
 
-// Timeline Progression Styling
-.timeline-container {
-  overflow-x: auto;
-  padding: $spacing-sm 0;
-  margin-bottom: $spacing-md;
-  border-bottom: 1px dashed rgba(0, 0, 0, 0.06);
-  
-  &::-webkit-scrollbar {
-    height: 4px;
-  }
-  &::-webkit-scrollbar-track {
-    background: rgba(0, 0, 0, 0.01);
-  }
-  &::-webkit-scrollbar-thumb {
-    background: rgba(0, 0, 0, 0.08);
-    border-radius: $radius-full;
+@keyframes pulseEmerald {
+  0% { transform: scale(0.95); opacity: 0.8; }
+  50% { transform: scale(1.15); opacity: 1; }
+  100% { transform: scale(0.95); opacity: 0.8; }
+}
+
+// 2. HORIZONTAL CAPSULE SCROLLER (RIGHT)
+.capsule-scroller-wrap {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+
+  .capsules-header-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+
+    .capsules-section-label {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 12px;
+      font-weight: 600;
+      color: #64748b;
+    }
+
+    .toggle-grid-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: rgba(255, 255, 255, 0.8);
+      border: 1px solid rgba(203, 213, 225, 0.7);
+      border-radius: 999px;
+      padding: 3px 10px;
+      font-size: 11.5px;
+      font-weight: 600;
+      color: #334155;
+      cursor: pointer;
+      transition: all 0.2s ease;
+
+      &:hover {
+        background: #ffffff;
+        color: #0052ff;
+        border-color: #93c5fd;
+        transform: translateY(-1px);
+      }
+
+      &.active {
+        background: #0052ff;
+        color: #ffffff;
+        border-color: #0052ff;
+      }
+    }
   }
 
-  .timeline-track {
+  .capsules-track {
     display: flex;
     align-items: center;
-    min-width: max-content;
-    padding: 0 4px;
+    gap: 8px;
+    overflow-x: auto;
+    padding: 2px 2px 6px 2px;
+    scroll-behavior: smooth;
+
+    &::-webkit-scrollbar {
+      height: 4px;
+    }
+    &::-webkit-scrollbar-track {
+      background: rgba(0, 0, 0, 0.02);
+      border-radius: 999px;
+    }
+    &::-webkit-scrollbar-thumb {
+      background: rgba(148, 163, 184, 0.3);
+      border-radius: 999px;
+      &:hover {
+        background: rgba(148, 163, 184, 0.5);
+      }
+    }
   }
 
-  .timeline-node-wrapper {
-    display: flex;
-    align-items: center;
-  }
-
-  .timeline-node {
-    background: transparent;
-    border: none;
+  .year-capsule-btn {
+    flex-shrink: 0;
+    min-width: 120px;
+    background: rgba(255, 255, 255, 0.85);
+    border: 1px solid rgba(226, 232, 240, 0.8);
+    border-top: 1px solid #ffffff;
+    border-radius: 12px;
+    padding: 6px 12px;
+    text-align: left;
     cursor: pointer;
     display: flex;
     flex-direction: column;
-    align-items: center;
-    gap: 6px;
-    padding: 2px $spacing-md;
-    position: relative;
-    outline: none;
-    transition: all $transition-fast;
-
-    .node-dot {
-      width: 10px;
-      height: 10px;
-      border-radius: $radius-full;
-      background: #cbd5e1;
-      border: 2px solid #ffffff;
-      box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.08);
-      transition: all $transition-base;
-    }
-
-    .node-year {
-      font-size: 12px;
-      font-weight: $font-weight-medium;
-      color: #64748b;
-      transition: all $transition-base;
-    }
-
-    .node-badge {
-      font-size: 9px;
-      font-weight: $font-weight-bold;
-      color: #ffffff;
-      background: #0052FF;
-      padding: 0px 5px;
-      border-radius: $radius-full;
-      position: absolute;
-      top: -10px;
-      box-shadow: 0 1px 4px rgba(0, 82, 255, 0.15);
-    }
+    gap: 2px;
+    transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+    box-shadow: 0 2px 6px rgba(15, 23, 42, 0.02);
 
     &:hover {
-      .node-dot {
-        background: #0052FF;
-        transform: scale(1.1);
-      }
-      .node-year {
-        color: #0f172a;
-      }
+      background: #ffffff;
+      border-color: #93c5fd;
+      transform: translateY(-1.5px);
+      box-shadow: 0 4px 12px rgba(0, 82, 255, 0.08);
     }
 
     &.selected {
-      .node-dot {
-        background: #0052FF;
-        box-shadow: 0 0 0 2px rgba(0, 82, 255, 0.1), 0 0 0 1px rgba(0, 82, 255, 0.6);
-      }
-      .node-year {
-        color: #0052FF;
-        font-weight: $font-weight-bold;
+      background: #ffffff;
+      border-color: #0052ff;
+      box-shadow:
+        0 4px 14px rgba(0, 82, 255, 0.12),
+        0 0 0 2px rgba(0, 82, 255, 0.15);
+
+      .capsule-code {
+        color: #0052ff;
+        font-weight: 800;
       }
     }
 
-    &.active {
-      .node-dot {
+    &.is-active-year:not(.selected) {
+      border-color: #10b981;
+      background: rgba(236, 253, 245, 0.8);
+
+      .capsule-code {
+        color: #065f46;
+      }
+    }
+
+    .capsule-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+
+      .capsule-code {
+        font-size: 13px;
+        font-weight: 700;
+        color: #1e293b;
+      }
+
+      .capsule-active-tag {
+        font-size: 9px;
+        font-weight: 700;
         background: #10b981;
+        color: #ffffff;
+        padding: 0 5px;
+        border-radius: 999px;
       }
     }
-    
-    &.coming {
-      .node-dot {
-        background: #94a3b8;
-        border-style: dashed;
-      }
-    }
-  }
 
-  .timeline-connector {
-    display: flex;
-    align-items: center;
-    color: #e2e8f0;
-    padding: 0 2px;
-    
-    .connector-arrow {
-      color: #cbd5e1;
+    .capsule-bottom {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 6px;
+
+      .capsule-students {
+        font-size: 11px;
+        color: #64748b;
+      }
+
+      .capsule-growth {
+        font-size: 10px;
+        font-weight: 600;
+
+        &.positive {
+          color: #16a34a;
+        }
+        &.negative {
+          color: #dc2626;
+        }
+      }
     }
   }
 }
 
-// Minimalist Year Cards Grid
-.tahun-ajaran-cards-compact {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(210px, 1fr));
-  gap: $spacing-sm;
+// 3. EXPANDABLE HISTORICAL COMPARISON ACCORDION
+.historical-grid-accordion {
+  margin-top: 14px;
+  padding-top: 14px;
+  border-top: 1px dashed rgba(203, 213, 225, 0.7);
+  animation: slideDownFade 0.3s cubic-bezier(0.16, 1, 0.3, 1);
 
-  .tahun-ajaran-card-compact {
-    background: #f8fafc;
-    border: 1px solid #e2e8f0;
-    border-radius: $radius-md;
+  .accordion-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    margin-bottom: 12px;
+
+    h4 {
+      margin: 0;
+      font-size: 13.5px;
+      font-weight: 700;
+      color: #0f172a;
+    }
+
+    .accordion-subtext {
+      font-size: 11.5px;
+      color: #64748b;
+    }
+  }
+
+  .historical-cards-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 10px;
+  }
+
+  .historical-year-card {
+    background: rgba(255, 255, 255, 0.8);
+    border: 1px solid rgba(226, 232, 240, 0.9);
+    border-top: 1px solid #ffffff;
+    border-radius: 12px;
     padding: 10px 12px;
     text-align: left;
     cursor: pointer;
-    position: relative;
-    outline: none;
-    transition: all 0.2s ease-in-out;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.01);
     display: flex;
     flex-direction: column;
     gap: 6px;
+    transition: all 0.2s ease;
 
     &:hover {
-      transform: translateY(-1px);
       background: #ffffff;
+      transform: translateY(-2px);
+      box-shadow: 0 6px 16px rgba(15, 23, 42, 0.05);
       border-color: #cbd5e1;
-      box-shadow: 0 4px 12px rgba(15, 23, 42, 0.03);
     }
 
     &.selected {
-      border-color: #0052FF;
+      border-color: #0052ff;
       background: #ffffff;
-      box-shadow: 0 4px 12px rgba(0, 82, 255, 0.04);
+      box-shadow: 0 6px 18px rgba(0, 82, 255, 0.1);
+
+      .card-year-title {
+        color: #0052ff;
+      }
     }
 
-    // Prominent Active Year Card (Minimalized)
     &.active-year-card {
-      background: linear-gradient(135deg, #0052FF, #1e40af);
-      border-color: #0052FF;
-      color: #ffffff !important;
-      box-shadow: 0 4px 15px rgba(0, 82, 255, 0.15);
+      background: linear-gradient(135deg, #0052ff 0%, #1e40af 100%);
+      color: #ffffff;
+      border-color: #0052ff;
 
-      .year-title {
+      .card-year-title {
         color: #ffffff;
       }
 
-      .status-badge {
-        background: rgba(255, 255, 255, 0.2);
+      .badge-capsule {
+        background: rgba(255, 255, 255, 0.25);
         color: #ffffff;
       }
 
-      .metric-summary {
+      .metric-tag {
         color: rgba(255, 255, 255, 0.85);
         strong { color: #ffffff; }
       }
 
-      .growth-compact {
-        background: rgba(255, 255, 255, 0.15);
-        color: #ffffff;
-      }
-
-      &:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 6px 18px rgba(0, 82, 255, 0.22);
+      .growth-indicator {
+        color: #a7f3d0 !important;
       }
     }
-  }
-}
 
-.card-top-row {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  width: 100%;
+    .card-header-line {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
 
-  .year-title {
-    font-size: 15px;
-    font-weight: $font-weight-bold;
-    color: #1e293b;
-  }
+      .card-year-title {
+        font-size: 14px;
+        font-weight: 700;
+        color: #1e293b;
+      }
 
-  .badge-row {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-  }
+      .badge-capsule {
+        font-size: 10px;
+        font-weight: 600;
+        padding: 2px 7px;
+        border-radius: 999px;
 
-  .active-glow-dot {
-    width: 6px;
-    height: 6px;
-    background-color: #10b981;
-    border-radius: $radius-full;
-    box-shadow: 0 0 8px #10b981;
-    animation: activePulse 1.8s infinite ease-in-out;
-  }
-}
+        &.status-active {
+          background: rgba(16, 185, 129, 0.15);
+          color: #065f46;
+        }
+        &.status-archive {
+          background: rgba(100, 116, 139, 0.1);
+          color: #475569;
+        }
+        &.status-coming {
+          background: rgba(2, 132, 199, 0.1);
+          color: #0369a1;
+        }
+      }
+    }
 
-@keyframes activePulse {
-  0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7); }
-  70% { transform: scale(1); box-shadow: 0 0 0 5px rgba(16, 185, 129, 0); }
-  100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
-}
+    .card-metrics-line {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 11.5px;
 
-.status-badge {
-  font-size: 10px;
-  font-weight: $font-weight-semibold;
-  padding: 1px 6px;
-  border-radius: $radius-full;
-  
-  &.status-success {
-    background: #d1fae5;
-    color: #065f46;
-  }
-  &.status-muted {
-    background: #e2e8f0;
-    color: #475569;
-  }
-  &.status-info {
-    background: #dbeafe;
-    color: #1e40af;
-  }
-}
+      .metric-tag {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        color: #64748b;
 
-.card-bottom-row {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  width: 100%;
-  font-size: 12px;
+        strong {
+          color: #1e293b;
+        }
+      }
+    }
 
-  .metric-summary {
-    color: #64748b;
-    strong {
-      color: #334155;
+    .card-footer-line {
+      .growth-indicator {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        font-size: 10.5px;
+        font-weight: 600;
+
+        &.pos { color: #16a34a; }
+        &.neg { color: #dc2626; }
+      }
     }
   }
+}
 
-  .growth-compact {
-    font-size: 10px;
-    font-weight: $font-weight-bold;
-    padding: 1px 5px;
-    border-radius: $radius-xs;
-
-    &.positive {
-      background: rgba(16, 185, 129, 0.06);
-      color: #059669;
-    }
-    
-    &.negative {
-      background: rgba(239, 68, 68, 0.06);
-      color: #dc2626;
-    }
+@keyframes slideDownFade {
+  from {
+    opacity: 0;
+    transform: translateY(-6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
   }
 }

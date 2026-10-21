@@ -1,90 +1,137 @@
 @import '../../styles/variables-light.scss';
 
-.ui-insight-banner {
-  background: $lt-gradient-primary-soft;
-  border: 1px solid $lt-primary-border;
-  border-radius: $lt-radius-xl;
-  padding: $lt-space-5 $lt-space-6;
-  margin-bottom: $lt-space-6;
+// APPLE OPTION A LIQUID GLASS DATA HEALTH RIBBON
+.ui-insight-ribbon {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  background: rgba(255, 255, 255, 0.72);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.85);
+  border-top: 1.5px solid rgba(255, 255, 255, 0.95);
+  border-radius: 16px;
+  padding: 10px 18px;
+  margin-bottom: 20px;
+  box-shadow:
+    0 8px 24px rgba(15, 23, 42, 0.02),
+    0 2px 6px rgba(15, 23, 42, 0.01),
+    inset 0 1px 0 rgba(255, 255, 255, 0.85);
+  transition: all 0.25s ease;
 
-  .insight-banner__header {
+  @media (max-width: 768px) {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
+    padding: 12px 14px;
+  }
+
+  .insight-ribbon-lead {
     display: flex;
     align-items: center;
-    gap: $lt-space-2;
-    margin-bottom: $lt-space-4;
+    gap: 12px;
+    flex-shrink: 0;
 
-    .insight-banner__icon {
-      font-size: 18px;
+    .ribbon-lens-orb {
+      width: 32px;
+      height: 32px;
+      border-radius: 10px;
+      background: linear-gradient(135deg, #0052ff 0%, #3b82f6 100%);
+      color: #ffffff;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow:
+        0 4px 10px rgba(0, 82, 255, 0.25),
+        inset 0 1px 1px rgba(255, 255, 255, 0.4);
     }
 
-    .insight-banner__title {
-      font-size: $lt-text-base;
-      font-weight: 600;
-      color: $lt-text-primary;
-      letter-spacing: -0.01em;
+    .ribbon-title-wrap {
+      display: flex;
+      flex-direction: column;
+
+      .ribbon-title {
+        font-size: 13px;
+        font-weight: 700;
+        color: #0f172a;
+        line-height: 1.2;
+      }
+
+      .ribbon-subtitle {
+        font-size: 11px;
+        color: #64748b;
+      }
     }
   }
 
-  .insight-banner__items {
+  .insight-ribbon-pills {
     display: flex;
     flex-wrap: wrap;
-    gap: $lt-space-3;
+    align-items: center;
+    gap: 8px;
   }
 }
 
-.insight-item {
+.ribbon-pill {
   display: inline-flex;
   align-items: center;
-  gap: $lt-space-2;
-  padding: $lt-space-2 $lt-space-3;
-  border-radius: $lt-radius-full;
-  font-size: $lt-text-sm;
-  font-weight: 500;
-  transition: transform $lt-transition-fast;
+  gap: 6px;
+  padding: 5px 12px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 600;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
 
   &:hover {
     transform: translateY(-1px);
   }
 
-  &--success {
-    background: $lt-success-light;
-    color: darken($lt-success, 8%);
-    border: 1px solid $lt-success-border;
-  }
-
-  &--warning {
-    background: $lt-warning-light;
-    color: darken($lt-warning, 15%);
-    border: 1px solid $lt-warning-border;
-  }
-
-  &--info {
-    background: $lt-info-light;
-    color: darken($lt-info, 8%);
-    border: 1px solid $lt-info-border;
-  }
-
-  &--error {
-    background: $lt-error-light;
-    color: darken($lt-error, 8%);
-    border: 1px solid $lt-error-border;
-  }
-
-  .insight-item__icon {
-    font-size: 14px;
+  .pill-icon {
+    display: flex;
+    align-items: center;
     line-height: 1;
   }
 
-  .insight-item__text {
-    line-height: 1.3;
-  }
-}
+  &.pill-success {
+    background: rgba(16, 185, 129, 0.08);
+    color: #065f46;
+    border: 1px solid rgba(16, 185, 129, 0.25);
 
-@media (max-width: 768px) {
-  .ui-insight-banner {
-    padding: $lt-space-4;
+    .pill-icon {
+      color: #10b981;
+    }
   }
-  .insight-banner__items {
-    flex-direction: column;
+
+  &.pill-warning {
+    background: rgba(245, 158, 11, 0.08);
+    color: #92400e;
+    border: 1px solid rgba(245, 158, 11, 0.25);
+
+    .pill-icon {
+      color: #f59e0b;
+    }
+  }
+
+  &.pill-error {
+    background: rgba(239, 68, 68, 0.08);
+    color: #991b1b;
+    border: 1px solid rgba(239, 68, 68, 0.25);
+
+    .pill-icon {
+      color: #ef4444;
+    }
+  }
+
+  &.pill-info {
+    background: rgba(0, 82, 255, 0.08);
+    color: #1e40af;
+    border: 1px solid rgba(0, 82, 255, 0.2);
+
+    .pill-icon {
+      color: #0052ff;
+    }
   }
 }
