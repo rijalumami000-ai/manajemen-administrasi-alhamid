@@ -5,255 +5,348 @@
   @include apple-liquid-canvas;
   display: flex;
   flex-direction: column;
-  gap: $spacing-xl;
+  gap: 22px;
 
-  // Header Filters Control
-  .header-actions-row {
+  // ─── Header Tactile Baku ────────────────────────────────────────────────────
+  .tactile-page-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
     flex-wrap: wrap;
     gap: 16px;
 
-    @media (max-width: 576px) {
+    .header-title-group {
+      display: flex;
       flex-direction: column;
-      align-items: stretch;
+      gap: 4px;
+
+      .page-title {
+        font-size: 25px;
+        font-weight: 800;
+        letter-spacing: -0.025em;
+        color: #0f172a;
+        margin: 0;
+
+        html[data-theme="dark"] & {
+          color: #f8fafc;
+        }
+      }
+
+      .page-subtitle {
+        font-size: 13.5px;
+        color: #64748b;
+        margin: 0;
+
+        html[data-theme="dark"] & {
+          color: #94a3b8;
+        }
+      }
     }
 
-    .left-filters {
+    .header-actions-row {
       display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
       gap: 12px;
-      align-items: center;
-      flex-wrap: wrap;
-    }
+      width: 100%;
+      margin-top: 6px;
 
-    .right-buttons {
-      display: flex;
-      gap: 10px;
-      align-items: center;
-      flex-wrap: wrap;
+      @media (max-width: 768px) {
+        flex-direction: column;
+        align-items: stretch;
+      }
+
+      .left-filters {
+        display: flex;
+        gap: 10px;
+        align-items: center;
+        flex-wrap: wrap;
+      }
+
+      .right-buttons {
+        display: flex;
+        gap: 8px;
+        align-items: center;
+        flex-wrap: wrap;
+      }
     }
   }
 
-  // Cards layout
+  // ─── Option A Segmented Control Dock ─────────────────────────────────────────
+  .segmented-tabs-dock {
+    display: inline-flex;
+    align-items: center;
+    background: rgba(255, 255, 255, 0.45);
+    backdrop-filter: blur(24px) saturate(190%);
+    -webkit-backdrop-filter: blur(24px) saturate(190%);
+    padding: 5px;
+    border-radius: 9999px;
+    border: 1px solid rgba(255, 255, 255, 0.7);
+    border-top: 1.5px solid rgba(255, 255, 255, 0.95);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.04), inset 0 1px 1px rgba(255, 255, 255, 0.8);
+    gap: 4px;
+    overflow-x: auto;
+    max-width: 100%;
+    @include custom-scrollbar;
+
+    html[data-theme="dark"] & {
+      background: rgba(15, 23, 42, 0.55);
+      border-color: rgba(255, 255, 255, 0.08);
+      border-top-color: rgba(255, 255, 255, 0.15);
+      box-shadow: 0 12px 32px rgba(0, 0, 0, 0.35), inset 0 1px 1px rgba(255, 255, 255, 0.06);
+    }
+
+    .segmented-tab-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 18px;
+      border-radius: 9999px;
+      border: none;
+      background: transparent;
+      color: #64748b;
+      font-size: 13.5px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+      white-space: nowrap;
+
+      &:hover {
+        color: #0f172a;
+        background: rgba(255, 255, 255, 0.4);
+      }
+
+      &.active {
+        background: rgba(255, 255, 255, 0.95);
+        color: #0f172a;
+        font-weight: 700;
+        box-shadow: 0 4px 14px rgba(0, 0, 0, 0.08), 0 1px 2px rgba(0, 0, 0, 0.04);
+      }
+
+      html[data-theme="dark"] & {
+        color: #94a3b8;
+
+        &:hover {
+          color: #f8fafc;
+          background: rgba(255, 255, 255, 0.06);
+        }
+
+        &.active {
+          background: rgba(255, 255, 255, 0.12);
+          color: #ffffff;
+          box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
+        }
+      }
+    }
+  }
+
+  // ─── Button Matrix Option A ──────────────────────────────────────────────────
+  .action-pill-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 8px 18px;
+    border-radius: 9999px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+    text-decoration: none;
+    border: 1px solid transparent;
+
+    &.primary-pill {
+      background: linear-gradient(135deg, #0052ff 0%, #3b82f6 100%);
+      color: #ffffff;
+      border-top: 1px solid rgba(255, 255, 255, 0.3);
+      box-shadow: 0 4px 14px rgba(0, 82, 255, 0.25);
+
+      &:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 6px 18px rgba(0, 82, 255, 0.35);
+      }
+      &:active {
+        transform: translateY(0);
+      }
+    }
+
+    &.secondary-pill {
+      background: rgba(255, 255, 255, 0.7);
+      color: #334155;
+      border: 1px solid rgba(226, 232, 240, 0.8);
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.03);
+
+      &:hover {
+        background: rgba(255, 255, 255, 0.95);
+        color: #0f172a;
+      }
+
+      html[data-theme="dark"] & {
+        background: rgba(30, 41, 59, 0.6);
+        color: #cbd5e1;
+        border-color: rgba(255, 255, 255, 0.08);
+
+        &:hover {
+          background: rgba(30, 41, 59, 0.9);
+          color: #f8fafc;
+        }
+      }
+    }
+
+    &.success-pill {
+      background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+      color: #ffffff;
+      border-top: 1px solid rgba(255, 255, 255, 0.3);
+      box-shadow: 0 4px 14px rgba(16, 185, 129, 0.25);
+
+      &:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 6px 18px rgba(16, 185, 129, 0.35);
+      }
+    }
+  }
+
+  // ─── Cards layout ────────────────────────────────────────────────────────────
   .laporan-frosted-card {
-    background: rgba(255, 255, 255, 0.7);
-    backdrop-filter: blur(12px);
-    -webkit-backdrop-filter: blur(12px);
-    border-radius: $radius-2xl;
-    border: 1px solid rgba(226, 232, 240, 0.8);
-    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.02);
-    overflow: hidden;
+    background: rgba(255, 255, 255, 0.55);
+    backdrop-filter: blur(20px) saturate(180%);
+    -webkit-backdrop-filter: blur(20px) saturate(180%);
+    border-radius: 20px;
+    border: 1px solid rgba(255, 255, 255, 0.6);
+    border-top: 1.5px solid rgba(255, 255, 255, 0.9);
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.03), inset 0 1px 1px rgba(255, 255, 255, 0.7);
     padding: 24px;
     display: flex;
     flex-direction: column;
     gap: 20px;
 
     html[data-theme="dark"] & {
-      background: rgba(21, 26, 35, 0.6);
+      background: rgba(17, 24, 39, 0.5);
+      border-color: rgba(255, 255, 255, 0.06);
+      border-top-color: rgba(255, 255, 255, 0.14);
+      box-shadow: 0 12px 36px rgba(0, 0, 0, 0.3), inset 0 1px 1px rgba(255, 255, 255, 0.04);
+    }
+  }
+
+  // ─── Quick Class Selection Bar (Tingkatan & Rincian Kelas - Option A) ──────
+  .rapor-class-switcher-bar {
+    padding: 16px 20px;
+    background: rgba(248, 250, 252, 0.85);
+    border-radius: 16px;
+    border: 1px solid rgba(226, 232, 240, 0.8);
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+
+    html[data-theme="dark"] & {
+      background: rgba(15, 20, 28, 0.45);
       border-color: rgba(255, 255, 255, 0.05);
-      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
-    }
-  }
-
-  // Custom Tabs Navigation
-  .custom-tabs-nav {
-    display: flex;
-    gap: 8px;
-    overflow-x: auto;
-    border-bottom: 2px solid rgba(226, 232, 240, 0.6);
-    padding-bottom: 2px;
-
-    &::-webkit-scrollbar {
-      height: 4px;
-    }
-    &::-webkit-scrollbar-thumb {
-      background: rgba(0, 0, 0, 0.1);
-      border-radius: $radius-full;
     }
 
-    html[data-theme="dark"] & {
-      border-bottom-color: rgba(255, 255, 255, 0.05);
-      &::-webkit-scrollbar-thumb {
-        background: rgba(255, 255, 255, 0.1);
-      }
-    }
-  }
-
-  .custom-tabs-tab {
-    background: none;
-    border: none;
-    color: #64748b;
-    font-weight: 700;
-    font-size: 14px;
-    padding: 12px 18px;
-    cursor: pointer;
-    position: relative;
-    transition: all 0.3s ease;
-    white-space: nowrap;
-    display: flex;
-    align-items: center;
-    gap: 8px;
-
-    &:hover {
-      color: #4f46e5;
-    }
-
-    &::after {
-      content: '';
-      position: absolute;
-      bottom: -3px;
-      left: 0;
-      right: 0;
-      height: 3px;
-      background: transparent;
-      border-radius: $radius-full;
-      transition: background-color 0.2s ease;
-    }
-
-    &.active {
-      color: #4f46e5;
-
-      &::after {
-        background: linear-gradient(90deg, #6366f1 0%, #a855f7 100%);
-      }
-    }
-
-    html[data-theme="dark"] & {
-      color: rgba(255, 255, 255, 0.45);
-      
-      &:hover {
-        color: #3b82f6;
-      }
-      
-      &.active {
-        color: #3b82f6;
-        &::after {
-          background: #3b82f6;
-        }
-      }
-    }
-  }
-
-    // Quick Class Selection Bar (Tingkatan & Rincian Kelas - Option A)
-    .rapor-class-switcher-bar {
-      padding: 16px 20px;
-      background: rgba(248, 250, 252, 0.85);
-      border-radius: 16px;
-      border: 1px solid rgba(226, 232, 240, 0.8);
+    .switcher-group {
       display: flex;
-      flex-direction: column;
+      align-items: center;
       gap: 12px;
+      flex-wrap: wrap;
 
-      html[data-theme="dark"] & {
-        background: rgba(15, 20, 28, 0.45);
-        border-color: rgba(255, 255, 255, 0.05);
-      }
-
-      .switcher-group {
+      .switcher-label-wrapper {
         display: flex;
         align-items: center;
-        gap: 12px;
-        flex-wrap: wrap;
+        gap: 6px;
+        min-width: 105px;
 
-        .switcher-label-wrapper {
-          display: flex;
-          align-items: center;
-          gap: 6px;
-          min-width: 105px;
-
-          .switcher-icon {
-            color: #2563eb;
-            html[data-theme="dark"] & { color: #3b82f6; }
-          }
-
-          .switcher-title {
-            font-size: 12px;
-            font-weight: 800;
-            color: #475569;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-
-            html[data-theme="dark"] & { color: #94a3b8; }
-          }
+        .switcher-icon {
+          color: #0052ff;
+          html[data-theme="dark"] & { color: #3b82f6; }
         }
 
-        .switcher-pills {
-          display: flex;
-          gap: 8px;
-          align-items: center;
-          flex-wrap: wrap;
+        .switcher-title {
+          font-size: 12px;
+          font-weight: 800;
+          color: #475569;
+          text-transform: uppercase;
+          letter-spacing: 0.5px;
 
-          .switcher-pill-btn {
-            border: 1px solid rgba(226, 232, 240, 0.9);
-            background: #ffffff;
-            color: #475569;
-            padding: 6px 14px;
-            border-radius: 20px;
-            font-size: 12.5px;
-            font-weight: 700;
-            cursor: pointer;
-            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+          html[data-theme="dark"] & { color: #94a3b8; }
+        }
+      }
+
+      .switcher-pills {
+        display: flex;
+        gap: 8px;
+        align-items: center;
+        flex-wrap: wrap;
+
+        .switcher-pill-btn {
+          border: 1px solid rgba(226, 232, 240, 0.9);
+          background: #ffffff;
+          color: #475569;
+          padding: 6px 14px;
+          border-radius: 9999px;
+          font-size: 12.5px;
+          font-weight: 700;
+          cursor: pointer;
+          transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+
+          html[data-theme="dark"] & {
+            background: #1e293b;
+            border-color: rgba(255, 255, 255, 0.08);
+            color: #cbd5e1;
+          }
+
+          &:hover {
+            border-color: #0052ff;
+            color: #0052ff;
+            transform: translateY(-1px);
+            html[data-theme="dark"] & {
+              border-color: #3b82f6;
+              color: #3b82f6;
+            }
+          }
+
+          &.active {
+            background: linear-gradient(135deg, #0052ff 0%, #3b82f6 100%);
+            color: #ffffff;
+            border-color: #0052ff;
+            box-shadow: 0 4px 12px rgba(0, 82, 255, 0.25);
 
             html[data-theme="dark"] & {
-              background: #1e293b;
-              border-color: rgba(255, 255, 255, 0.08);
-              color: #cbd5e1;
+              border-color: #3b82f6;
+              box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
             }
+          }
 
-            &:hover {
-              border-color: #2563eb;
-              color: #2563eb;
-              transform: translateY(-1px);
-              html[data-theme="dark"] & {
-                border-color: #3b82f6;
-                color: #3b82f6;
-              }
-            }
+          &.sub-class {
+            padding: 5px 16px;
+            border-radius: 10px;
+            font-weight: 800;
 
             &.active {
-              background: linear-gradient(135deg, #3b82f6, #2563eb);
+              background: #0f172a;
+              border-color: #0f172a;
               color: #ffffff;
-              border-color: #2563eb;
-              box-shadow: 0 4px 12px rgba(37, 99, 235, 0.25);
+              box-shadow: 0 4px 10px rgba(15, 23, 42, 0.2);
 
               html[data-theme="dark"] & {
-                background: linear-gradient(135deg, #3b82f6, #2563eb);
-                border-color: #3b82f6;
-                box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
-              }
-            }
-
-            &.sub-class {
-              padding: 5px 16px;
-              border-radius: 8px;
-              font-weight: 800;
-
-              &.active {
-                background: #0f172a;
-                border-color: #0f172a;
-                color: #ffffff;
-                box-shadow: 0 4px 10px rgba(15, 23, 42, 0.2);
-
-                html[data-theme="dark"] & {
-                  background: #f8fafc;
-                  border-color: #f8fafc;
-                  color: #0f172a;
-                  box-shadow: 0 4px 10px rgba(255, 255, 255, 0.2);
-                }
+                background: #f8fafc;
+                border-color: #f8fafc;
+                color: #0f172a;
+                box-shadow: 0 4px 10px rgba(255, 255, 255, 0.2);
               }
             }
           }
         }
       }
     }
+  }
 
-  // Responsive Table Custom
+  // ─── Responsive Table Custom ────────────────────────────────────────────────
   .table-responsive-laporan {
     border-radius: 16px;
     overflow-x: auto;
     border: 1px solid rgba(226, 232, 240, 0.8);
-    box-shadow: 0 4px 15px rgba(0,0,0,0.01);
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.01);
     @include custom-scrollbar;
 
     html[data-theme="dark"] & {
@@ -364,7 +457,7 @@
     }
   }
 
-  // Predicate tag badges
+  // ─── Predicate tag badges ───────────────────────────────────────────────────
   .predikat-badge {
     padding: 6px 12px;
     border-radius: 8px;
@@ -416,7 +509,7 @@
     }
   }
 
-  // Ringkasan grid statistics
+  // ─── Ringkasan grid statistics ──────────────────────────────────────────────
   .ringkasan-summary-grid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
@@ -425,7 +518,7 @@
 
     .summary-widget {
       padding: 16px;
-      border-radius: 12px;
+      border-radius: 14px;
       text-align: center;
       background: rgba(248, 250, 252, 0.8);
       border: 1px solid rgba(226, 232, 240, 0.8);
@@ -455,7 +548,7 @@
     }
   }
 
-  // Floating Action Button Overlay for Mobile
+  // ─── Floating Action Button Overlay for Mobile ──────────────────────────────
   .mobile-fab-column {
     position: fixed;
     bottom: 30px;
@@ -473,10 +566,10 @@
       display: flex;
       align-items: center;
       justify-content: center;
-      box-shadow: 0 4px 15px rgba(99, 102, 241, 0.4);
+      box-shadow: 0 4px 15px rgba(0, 82, 255, 0.3);
       cursor: pointer;
       color: #ffffff;
-      background: #4f46e5;
+      background: #0052ff;
       transition: transform 0.2s;
 
       &:active {
@@ -485,7 +578,7 @@
 
       &.excel {
         background: #10b981;
-        box-shadow: 0 4px 15px rgba(16, 185, 129, 0.4);
+        box-shadow: 0 4px 15px rgba(16, 185, 129, 0.3);
       }
     }
   }
