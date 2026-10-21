@@ -22,6 +22,10 @@ Repositori ini memuat sistem informasi akademik, keuangan, dan kesiswaan pesantr
    - Konversi `.jsx` ke `.tsx` dan `.js` ke `.ts` dilakukan bertahap per halaman/fitur.
    - Wajib mendefinisikan interface di `frontend/src/types/<feature>.ts` terlebih dahulu.
    - Wajib menjalankan `npm run build` di `frontend/` dan memastikan `0 errors` pada setiap penyelesaian tugas.
+5. **KONSISTENSI DESAIN & TIPOGRAFI BAKU**:
+   - Header Halaman (`.tactile-page-header`): **DILARANG** menggunakan ikon orb/lensa di samping judul; teks judul murni `h2.page-title` (25px bold) dan `p.page-subtitle` (13.5px).
+   - Ikon hanya digunakan pada tombol aksi, tab/segmented control, cell tabel, dan status badge.
+   - Wajib mengikuti standar baku konsistensi tombol, modal, inline edit, dropdown, tabel, dan warna sesuai Bagian 4 di [MASTER_UI_UX_REDESIGN_GUIDELINES.md](file:///d:/source/sekolah-info/docs/MASTER_UI_UX_REDESIGN_GUIDELINES.md).
 
 ---
 
