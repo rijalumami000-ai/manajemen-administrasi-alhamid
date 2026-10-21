@@ -37,7 +37,8 @@ export function RaporSantriForms({
   selectedTingkat = null,
   onSelectTingkat,
   onSelectKelasDetail,
-  getTingkatLabel
+  getTingkatLabel,
+  hideClassSwitcher = false
 }) {
   const toast = useToast();
   const [data, setData] = useState([]);
@@ -1239,7 +1240,7 @@ export function RaporSantriForms({
               />
               <button
                 type="button"
-                className="btn-custom btn-secondary btn-auto"
+                className="action-pill-btn"
                 onClick={handleExportExcel}
                 disabled={!data.length}
                 title="Unduh rekapitulasi absensi bulanan lengkap dalam format Excel (.xlsx)"
@@ -1249,7 +1250,7 @@ export function RaporSantriForms({
               </button>
               <button
                 type="button"
-                className="btn-custom btn-secondary btn-auto"
+                className="action-pill-btn"
                 onClick={handleExportPDF}
                 disabled={!data.length}
                 title="Unduh rekapitulasi absensi bulanan resmi & rapi dalam format PDF (.pdf)"
@@ -1259,16 +1260,16 @@ export function RaporSantriForms({
               </button>
               <button
                 type="button"
-                className="btn-custom btn-secondary btn-auto"
+                className="action-pill-btn"
                 onClick={() => setShowBulananModal(true)}
                 title="Ekspor rekap 1 bulan tertentu untuk semua kelas & santri terjaring batasan absen (Alfa, Izin, Sakit)"
               >
-                <CalendarCheck size={14} className="text-indigo-600" />
+                <CalendarCheck size={14} style={{ color: '#2563eb' }} />
                 <span>Rekap Per Bulan</span>
               </button>
               <button
                 type="button"
-                className="btn-custom btn-secondary btn-auto"
+                className="action-pill-btn"
                 onClick={handleExportTemplate}
                 disabled={!data.length}
                 title="Unduh format spreadsheet khusus untuk impor data santri kelas ini"
@@ -1278,7 +1279,7 @@ export function RaporSantriForms({
               </button>
               <button
                 type="button"
-                className="btn-custom btn-secondary btn-auto"
+                className="action-pill-btn"
                 onClick={() => excelInputRef.current?.click()}
                 disabled={!selectedKelasDetail}
                 title="Impor nilai absensi dari file Excel"
@@ -1292,7 +1293,7 @@ export function RaporSantriForms({
           {type === 'kenaikan_kelas' && (
             <button 
               type="button" 
-              className="btn-custom btn-secondary btn-auto" 
+              className="action-pill-btn" 
               onClick={handleAutoFillKenaikan} 
               disabled={!data.length}
             >
@@ -1303,7 +1304,7 @@ export function RaporSantriForms({
           {type === 'catatan' && (
             <button 
               type="button" 
-              className="btn-custom btn-secondary btn-auto" 
+              className="action-pill-btn" 
               onClick={handleAutoFillCatatan} 
               disabled={!data.length}
             >
@@ -1314,7 +1315,7 @@ export function RaporSantriForms({
           {type === 'kepribadian' && (
             <button 
               type="button" 
-              className="btn-custom btn-secondary btn-auto" 
+              className="action-pill-btn" 
               onClick={handleAutoFillKepribadian} 
               disabled={!data.length}
             >
@@ -1324,7 +1325,7 @@ export function RaporSantriForms({
           )}
           <button 
             type="button" 
-            className="btn-custom btn-primary" 
+            className="action-pill-btn primary-pill" 
             onClick={handleSave} 
             loading={saving ? 'true' : undefined} 
             disabled={saving || !data.length}

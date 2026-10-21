@@ -352,14 +352,16 @@ Fase 4: Verifikasi Build & HMR      <───  Fase 3: Refactor ke .tsx & Styli
 | **Akademik** | Data Guru (`/guru`) | ✅ Selesai (TSX) | Option A Liquid Glass, Tabs Guru, Mapel, Jabatan |
 | **Akademik** | Data Kelas (`/kelas`) | ✅ Selesai (TSX) | Liquid Glass, Tab Kelas & Wali Kelas |
 | **Akademik Diniyah** | Struktur Madrasah Diniyah (`/struktur-organisasi`) | ✅ Selesai (TSX) | Option A Liquid Glass, 10 Main Tabs, Categories, 3D Avatars, Section Groups |
+| **Akademik** | Jadwal Pelajaran (`/jadwal-pelajaran`) | ✅ Selesai (TSX) | Matrix Jadwal Mingguan, Filter Kelas/Hari, Option A Liquid Glass |
+| **Akademik** | Silabus Pembelajaran (`/silabus-pembelajaran`) | ✅ Selesai (TSX) | Dokumen Silabus, RPP, Upload Materi, Option A Liquid Glass |
+| **Akademik Diniyah** | Pengaturan & Jadwal (`/nilai-pengaturan`) | ✅ Selesai (TSX) | Option A Liquid Glass, Specular Edge Glints, TSX |
+| **Akademik Diniyah** | Informasi Ujian (`/informasi-ujian`) | ✅ Selesai (TSX) | Jadwal Ujian, Pengawas, Tata Tertib, Option A Liquid Glass |
+| **Akademik Diniyah** | Monitoring Setoran Hafalan (`/monitoring-setoran`) | ✅ Selesai (TSX) | Option A Liquid Glass, 3D Spherical Orbs, TSX |
+| **Akademik Diniyah** | Manajemen Nilai & Rekap (`/nilai`, `/nilai-rekap`) | ✅ Selesai (TSX) | Option A Liquid Glass, Sub-Tabs 4 Bagian (Muhafadzoh Akbar, Qiroatul Kitab, Taftisyul Kutub, Ujian Tulis), Popup Modal Grid 4 Kolom Kelas |
 | **Akademik** | Data Santri (`/santri`) | ⏳ Siap Dikerjakan | Tabel Santri, Filter Kamar/Kelas, Modal Santri |
 | **Akademik** | Pelanggaran & Prestasi (`/pelanggaran-prestasi`) | ⏳ Antrean | Tab Pelanggaran, Prestasi, Kategori Poin |
-| **Akademik** | Jadwal Pelajaran (`/jadwal-pelajaran`) | ⏳ Antrean | Matrix Jadwal Mingguan, Filter Kelas/Hari |
-| **Akademik** | Silabus Pembelajaran (`/silabus`) | ⏳ Antrean | Dokumen Silabus, RPP, Upload Materi |
-| **Ujian** | Manajemen Nilai (`/nilai`) | ⏳ Antrean | Input Nilai, Rekap Semester, Ranking |
 | **Ujian** | Lembar Ujian (`/lembar-ujian`) | ⏳ Antrean | Generator Lembar Soal & Jawaban |
 | **Ujian** | Kartu Ujian (`/kartu-ujian`) | ⏳ Antrean | Cetak Kartu Ujian Berfoto & Barcode |
-| **Ujian** | Informasi Ujian (`/informasi-ujian`) | ⏳ Antrean | Jadwal Ujian, Pengawas, Tata Tertib |
 | **Ujian** | Scan Nilai (`/scan-nilai`) | ⏳ Antrean | OCR / Barcode Scanner Lembar Nilai |
 | **Keuangan** | Dashboard Keuangan | ⏳ Antrean | Ringkasan Arus Kas, Statistik Penerimaan |
 | **Keuangan** | Tagihan Santri (`/tagihan-santri`) | ⏳ Antrean | Invoice SPP, Daftar Tagihan, Status Lunas |

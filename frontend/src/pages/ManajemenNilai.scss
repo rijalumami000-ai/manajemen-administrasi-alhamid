@@ -3,653 +3,977 @@
 
 .nilai-page {
   @include container;
-  padding-top: $spacing-lg;
-  padding-bottom: $spacing-xl;
+  padding-top: 20px;
+  padding-bottom: 40px;
   display: flex;
   flex-direction: column;
-  gap: $spacing-xl;
+  gap: 20px;
+  position: relative;
+  min-height: calc(100vh - 80px);
 
-  // Background Mesh Gradient (Light/Professional Dashboard)
-  html[data-theme="light"] & {
-    background: radial-gradient(at 0% 0%, rgba(99, 102, 241, 0.04) 0px, transparent 50%),
-                radial-gradient(at 100% 0%, rgba(168, 85, 247, 0.04) 0px, transparent 50%),
-                radial-gradient(at 50% 100%, rgba(6, 182, 212, 0.03) 0px, transparent 50%);
+  // Dynamic Ambient Aurora Mesh Canvas Background
+  background: 
+    radial-gradient(circle at 10% 8%, rgba(56, 189, 248, 0.18) 0%, transparent 40%),
+    radial-gradient(circle at 90% 12%, rgba(139, 92, 246, 0.16) 0%, transparent 42%),
+    radial-gradient(circle at 50% 50%, rgba(244, 114, 182, 0.09) 0%, transparent 45%),
+    radial-gradient(circle at 85% 85%, rgba(168, 85, 247, 0.14) 0%, transparent 45%),
+    radial-gradient(circle at 15% 90%, rgba(45, 212, 191, 0.12) 0%, transparent 42%),
+    linear-gradient(180deg, #f8fafc 0%, #f1f5f9 50%, #edf2f7 100%);
+
+  html[data-theme="dark"] & {
+    background: 
+      radial-gradient(circle at 15% 15%, rgba(30, 58, 138, 0.22) 0%, transparent 45%),
+      radial-gradient(circle at 85% 20%, rgba(88, 28, 135, 0.20) 0%, transparent 45%),
+      radial-gradient(circle at 50% 60%, rgba(13, 148, 136, 0.12) 0%, transparent 45%),
+      linear-gradient(135deg, #0b0f17 0%, #0f172a 50%, #1e293b 100%);
   }
 
-  // Header Selectors Row
-  .header-selectors-row {
+  // ── 1. APPLE FLOATING DOCK HEADER ─────────────────────────
+  .tactile-page-header {
+    background: rgba(255, 255, 255, 0.70);
+    backdrop-filter: blur(28px);
+    -webkit-backdrop-filter: blur(28px);
+    border-radius: 24px;
+    border: 1px solid rgba(255, 255, 255, 0.75);
+    border-top: 1.5px solid rgba(255, 255, 255, 0.98);
+    box-shadow: 
+      0 20px 40px -12px rgba(15, 23, 42, 0.06),
+      0 1px 3px rgba(15, 23, 42, 0.03),
+      inset 0 1px 1px rgba(255, 255, 255, 0.9);
+    padding: 22px 28px;
     display: flex;
-    gap: 16px;
+    justify-content: space-between;
     align-items: center;
+    gap: 20px;
     flex-wrap: wrap;
-
-    @media (max-width: 576px) {
-      width: 100%;
-      flex-direction: column;
-      align-items: stretch;
-    }
-
-    .selector-box {
-      min-width: 160px;
-      @media (max-width: 576px) {
-        width: 100%;
-      }
-    }
-  }
-
-  // Segmented control in header
-  .semester-segmented-highlight {
-    background: rgba(226, 232, 240, 0.8) !important;
-    border-radius: 12px !important;
-    padding: 3px !important;
-
-    html[data-theme="dark"] & {
-      background: rgba(30, 41, 59, 0.5) !important;
-    }
-  }
-
-  // Custom Tabs Navigation
-  .custom-tabs-nav {
-    display: flex;
-    gap: 8px;
-    overflow-x: auto;
-    border-bottom: 2px solid rgba(226, 232, 240, 0.6);
-    padding-bottom: 2px;
-    margin-bottom: 24px;
-
-    &::-webkit-scrollbar {
-      height: 4px;
-    }
-    &::-webkit-scrollbar-thumb {
-      background: rgba(0, 0, 0, 0.1);
-      border-radius: $radius-full;
-    }
-
-    html[data-theme="dark"] & {
-      border-bottom-color: rgba(255, 255, 255, 0.05);
-      &::-webkit-scrollbar-thumb {
-        background: rgba(255, 255, 255, 0.1);
-      }
-    }
-  }
-
-  .custom-tabs-tab {
-    background: none;
-    border: none;
-    color: #64748b;
-    font-weight: 700;
-    font-size: 14.5px;
-    padding: 12px 18px;
-    cursor: pointer;
-    position: relative;
     transition: all 0.3s ease;
-    white-space: nowrap;
-    display: flex;
+
+    html[data-theme="dark"] & {
+      background: rgba(15, 23, 42, 0.65);
+      border-color: rgba(255, 255, 255, 0.08);
+      border-top-color: rgba(255, 255, 255, 0.15);
+      box-shadow: 
+        0 20px 40px -12px rgba(0, 0, 0, 0.4),
+        inset 0 1px 1px rgba(255, 255, 255, 0.05);
+    }
+
+    // Strictly NO icon beside the title
+    .header-text-block {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      min-width: 260px;
+
+      .page-title {
+        font-size: 25px;
+        font-weight: 800;
+        letter-spacing: -0.5px;
+        line-height: 1.2;
+        color: #0f172a;
+        margin: 0;
+
+        html[data-theme="dark"] & {
+          color: #f8fafc;
+        }
+      }
+
+      .page-subtitle {
+        font-size: 13.5px;
+        font-weight: 400;
+        color: #64748b;
+        margin: 0;
+        line-height: 1.4;
+
+        html[data-theme="dark"] & {
+          color: #94a3b8;
+        }
+      }
+    }
+
+    .header-actions-row {
+      display: flex;
+      gap: 12px;
+      align-items: center;
+      flex-wrap: wrap;
+
+      @media (max-width: 640px) {
+        width: 100%;
+        justify-content: flex-start;
+      }
+    }
+  }
+
+  // ── 2. CLASS SELECTOR TRIGGER CAPSULE BUTTON ─────────────
+  .class-picker-trigger-btn {
+    display: inline-flex;
     align-items: center;
-    gap: 8px;
+    gap: 10px;
+    height: 42px;
+    padding: 0 18px;
+    border-radius: 9999px;
+    background: rgba(255, 255, 255, 0.85);
+    backdrop-filter: blur(16px);
+    border: 1px solid rgba(203, 213, 225, 0.8);
+    border-top: 1.5px solid rgba(255, 255, 255, 0.98);
+    box-shadow: 0 4px 14px rgba(15, 23, 42, 0.04), inset 0 1px 1px rgba(255, 255, 255, 0.8);
+    cursor: pointer;
+    font-size: 13.5px;
+    font-weight: 700;
+    color: #1e293b;
+    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+
+    html[data-theme="dark"] & {
+      background: rgba(30, 41, 59, 0.65);
+      border-color: rgba(255, 255, 255, 0.1);
+      border-top-color: rgba(255, 255, 255, 0.18);
+      color: #f8fafc;
+      box-shadow: 0 4px 14px rgba(0, 0, 0, 0.3);
+    }
 
     &:hover {
-      color: #4f46e5;
-    }
+      background: #ffffff;
+      border-color: #3b82f6;
+      transform: translateY(-1px);
+      box-shadow: 0 8px 20px rgba(59, 130, 246, 0.15);
 
-    &::after {
-      content: '';
-      position: absolute;
-      bottom: -3px;
-      left: 0;
-      right: 0;
-      height: 3px;
-      background: transparent;
-      border-radius: $radius-full;
-      transition: background-color 0.2s ease;
-    }
-
-    &.active {
-      color: #4f46e5;
-
-      &::after {
-        background: linear-gradient(90deg, #6366f1 0%, #a855f7 100%);
+      html[data-theme="dark"] & {
+        background: rgba(30, 41, 59, 0.85);
+        border-color: #3b82f6;
       }
     }
+
+    &.has-selected {
+      border-color: rgba(59, 130, 246, 0.6);
+      background: rgba(239, 246, 255, 0.9);
+      color: #1d4ed8;
+
+      html[data-theme="dark"] & {
+        background: rgba(30, 58, 138, 0.3);
+        border-color: rgba(59, 130, 246, 0.5);
+        color: #93c5fd;
+      }
+    }
+
+    .class-icon-badge {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 24px;
+      height: 24px;
+      border-radius: 50%;
+      background: rgba(37, 99, 235, 0.12);
+      color: #2563eb;
+
+      html[data-theme="dark"] & {
+        background: rgba(59, 130, 246, 0.2);
+        color: #60a5fa;
+      }
+    }
+
+    .class-trigger-text {
+      font-weight: 700;
+      letter-spacing: -0.2px;
+    }
+
+    .class-trigger-sub {
+      font-size: 11px;
+      font-weight: 600;
+      color: #64748b;
+      padding: 2px 7px;
+      border-radius: 9999px;
+      background: rgba(148, 163, 184, 0.15);
+
+      html[data-theme="dark"] & {
+        color: #94a3b8;
+        background: rgba(255, 255, 255, 0.08);
+      }
+    }
+
+    .chevron-icon {
+      color: #64748b;
+      transition: transform 0.2s;
+    }
+  }
+
+  // ── 3. ACTION PILL BUTTONS ────────────────────────────────
+  .action-pill-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    height: 40px;
+    padding: 0 18px;
+    border-radius: 9999px;
+    font-size: 13px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.25s ease;
+    border: 1px solid rgba(203, 213, 225, 0.8);
+    background: rgba(255, 255, 255, 0.75);
+    backdrop-filter: blur(12px);
+    color: #475569;
+    box-shadow: 0 2px 6px rgba(15, 23, 42, 0.04);
 
     html[data-theme="dark"] & {
-      color: rgba(255, 255, 255, 0.45);
-      
-      &:hover {
-        color: #3b82f6;
+      background: rgba(30, 41, 59, 0.6);
+      border-color: rgba(255, 255, 255, 0.08);
+      color: #cbd5e1;
+    }
+
+    &:hover {
+      background: #ffffff;
+      color: #0f172a;
+      border-color: #cbd5e1;
+      transform: translateY(-1px);
+
+      html[data-theme="dark"] & {
+        background: rgba(30, 41, 59, 0.85);
+        color: #f8fafc;
       }
-      
+    }
+
+    &.primary-pill {
+      background: linear-gradient(180deg, #3b82f6 0%, #2563eb 100%);
+      border: 1px solid rgba(255, 255, 255, 0.35);
+      border-top: 1.5px solid rgba(255, 255, 255, 0.7);
+      color: #ffffff;
+      box-shadow: 0 4px 14px rgba(37, 99, 235, 0.35);
+
+      &:hover {
+        background: linear-gradient(180deg, #2563eb 0%, #1d4ed8 100%);
+        box-shadow: 0 6px 18px rgba(37, 99, 235, 0.45);
+      }
+
+      &:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+        transform: none;
+      }
+    }
+  }
+
+  // ── 4. MAIN SEGMENTED CONTROL TABS DOCK ────────────────────
+  .tactile-tabs-nav {
+    display: flex;
+    gap: 6px;
+    padding: 6px;
+    background: rgba(255, 255, 255, 0.60);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border-radius: 18px;
+    border: 1px solid rgba(255, 255, 255, 0.7);
+    border-top: 1.5px solid rgba(255, 255, 255, 0.95);
+    box-shadow: 0 4px 20px rgba(15, 23, 42, 0.03);
+    overflow-x: auto;
+
+    html[data-theme="dark"] & {
+      background: rgba(15, 23, 42, 0.55);
+      border-color: rgba(255, 255, 255, 0.06);
+      border-top-color: rgba(255, 255, 255, 0.12);
+    }
+
+    .tactile-tab-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 10px 18px;
+      border-radius: 13px;
+      border: none;
+      background: transparent;
+      color: #64748b;
+      font-size: 13.5px;
+      font-weight: 700;
+      cursor: pointer;
+      white-space: nowrap;
+      transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+
+      html[data-theme="dark"] & {
+        color: #94a3b8;
+      }
+
+      &:hover {
+        color: #0f172a;
+        background: rgba(255, 255, 255, 0.5);
+
+        html[data-theme="dark"] & {
+          color: #f8fafc;
+          background: rgba(255, 255, 255, 0.04);
+        }
+      }
+
       &.active {
-        color: #3b82f6;
-        &::after {
-          background: #3b82f6;
+        background: #ffffff;
+        color: #2563eb;
+        box-shadow: 
+          0 4px 12px rgba(15, 23, 42, 0.06),
+          0 1px 2px rgba(15, 23, 42, 0.04);
+
+        html[data-theme="dark"] & {
+          background: rgba(30, 41, 59, 0.85);
+          color: #60a5fa;
+          box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+        }
+      }
+    }
+
+    .tabs-nav-divider {
+      width: 1px;
+      height: 24px;
+      background: rgba(203, 213, 225, 0.7);
+      margin: auto 4px;
+      align-self: center;
+      flex-shrink: 0;
+
+      html[data-theme="dark"] & {
+        background: rgba(255, 255, 255, 0.12);
+      }
+    }
+  }
+
+  // ── 5. SUB-TABS SEGMENTED CONTROL: 4 INPUT SECTIONS ──────
+  .input-sections-container {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  .input-sections-segmented-bar {
+    display: flex;
+    gap: 8px;
+    padding: 6px;
+    background: rgba(255, 255, 255, 0.75);
+    backdrop-filter: blur(20px);
+    border-radius: 18px;
+    border: 1px solid rgba(226, 232, 240, 0.8);
+    border-top: 1.5px solid rgba(255, 255, 255, 0.95);
+    box-shadow: 0 4px 16px rgba(15, 23, 42, 0.03);
+    overflow-x: auto;
+
+    html[data-theme="dark"] & {
+      background: rgba(15, 23, 42, 0.55);
+      border-color: rgba(255, 255, 255, 0.06);
+    }
+
+    .input-section-tab {
+      flex: 1;
+      min-width: 170px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      padding: 12px 16px;
+      border-radius: 13px;
+      border: 1px solid transparent;
+      background: transparent;
+      color: #475569;
+      font-size: 13.5px;
+      font-weight: 700;
+      cursor: pointer;
+      white-space: nowrap;
+      transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+
+      html[data-theme="dark"] & {
+        color: #94a3b8;
+      }
+
+      &:hover {
+        background: rgba(255, 255, 255, 0.6);
+        color: #0f172a;
+        transform: translateY(-1px);
+
+        html[data-theme="dark"] & {
+          background: rgba(255, 255, 255, 0.05);
+          color: #f8fafc;
+        }
+      }
+
+      .tab-icon-orb {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 28px;
+        height: 28px;
+        border-radius: 50%;
+        background: rgba(148, 163, 184, 0.15);
+        color: inherit;
+        transition: all 0.25s ease;
+      }
+
+      &.active {
+        background: #ffffff;
+        box-shadow: 
+          0 8px 20px -4px rgba(15, 23, 42, 0.08),
+          0 1px 3px rgba(15, 23, 42, 0.04);
+        border: 1px solid rgba(226, 232, 240, 0.8);
+        border-top: 1.5px solid rgba(255, 255, 255, 1);
+
+        html[data-theme="dark"] & {
+          background: rgba(30, 41, 59, 0.9);
+          border-color: rgba(255, 255, 255, 0.1);
+          box-shadow: 0 8px 20px -4px rgba(0, 0, 0, 0.4);
+        }
+
+        &.variant-muhafadzoh {
+          color: #7c3aed;
+          .tab-icon-orb {
+            background: rgba(124, 58, 237, 0.12);
+            color: #7c3aed;
+          }
+        }
+        &.variant-qiroah {
+          color: #2563eb;
+          .tab-icon-orb {
+            background: rgba(37, 99, 235, 0.12);
+            color: #2563eb;
+          }
+        }
+        &.variant-taftisy {
+          color: #059669;
+          .tab-icon-orb {
+            background: rgba(16, 185, 129, 0.12);
+            color: #059669;
+          }
+        }
+        &.variant-ujian-tulis {
+          color: #d97706;
+          .tab-icon-orb {
+            background: rgba(217, 119, 6, 0.12);
+            color: #d97706;
+          }
         }
       }
     }
   }
 
-  // Filter Cards Grid
-  .filter-grid-layout {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 24px;
-    margin-bottom: 24px;
+  // ── 6. REGULAR EXAM SUBJECTS SUB-PILLS ────────────────────
+  .regular-mapel-pills-bar {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 12px 18px;
+    background: rgba(255, 255, 255, 0.65);
+    backdrop-filter: blur(16px);
+    border-radius: 16px;
+    border: 1px solid rgba(226, 232, 240, 0.8);
+    overflow-x: auto;
+    flex-wrap: wrap;
 
-    @media (max-width: 992px) {
-      grid-template-columns: 1fr;
+    html[data-theme="dark"] & {
+      background: rgba(15, 23, 42, 0.5);
+      border-color: rgba(255, 255, 255, 0.06);
+    }
+
+    .mapel-pill-label {
+      font-size: 12px;
+      font-weight: 700;
+      color: #64748b;
+      margin-right: 6px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .mapel-sub-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 7px 14px;
+      border-radius: 9999px;
+      border: 1px solid rgba(203, 213, 225, 0.8);
+      background: #ffffff;
+      color: #475569;
+      font-size: 12.5px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all 0.2s ease;
+
+      html[data-theme="dark"] & {
+        background: rgba(30, 41, 59, 0.4);
+        border-color: rgba(255, 255, 255, 0.08);
+        color: #cbd5e1;
+      }
+
+      &:hover {
+        border-color: #3b82f6;
+        color: #2563eb;
+        transform: translateY(-1px);
+      }
+
+      &.active {
+        background: #2563eb;
+        border-color: #2563eb;
+        color: #ffffff;
+        box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);
+      }
     }
   }
 
-  // Cards layout
-  .frosted-card {
-    background: rgba(255, 255, 255, 0.7);
-    backdrop-filter: blur(12px);
-    -webkit-backdrop-filter: blur(12px);
-    border-radius: $radius-2xl;
-    border: 1px solid rgba(226, 232, 240, 0.8);
-    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.02);
+  // ── 7. LIQUID GLASS TABLE CONTAINER ───────────────────────
+  .liquid-glass-table-card {
+    background: rgba(255, 255, 255, 0.75);
+    backdrop-filter: blur(28px);
+    -webkit-backdrop-filter: blur(28px);
+    border-radius: 20px;
+    border: 1px solid rgba(255, 255, 255, 0.75);
+    border-top: 1.5px solid rgba(255, 255, 255, 0.98);
+    box-shadow: 
+      0 20px 40px -12px rgba(15, 23, 42, 0.06),
+      inset 0 1px 1px rgba(255, 255, 255, 0.85);
     overflow: hidden;
     display: flex;
     flex-direction: column;
 
     html[data-theme="dark"] & {
-      background: rgba(21, 26, 35, 0.6);
-      border-color: rgba(255, 255, 255, 0.05);
-      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+      background: rgba(15, 23, 42, 0.65);
+      border-color: rgba(255, 255, 255, 0.08);
+      border-top-color: rgba(255, 255, 255, 0.15);
+      box-shadow: 0 20px 40px -12px rgba(0, 0, 0, 0.4);
     }
 
-    .card-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      padding: 20px 24px;
+    // Quick Class Selection Bar (Tingkatan & Rincian Kelas)
+    .rapor-class-switcher-bar {
+      padding: 16px 24px;
+      background: rgba(248, 250, 252, 0.85);
       border-bottom: 1px solid rgba(226, 232, 240, 0.8);
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
 
       html[data-theme="dark"] & {
+        background: rgba(15, 20, 28, 0.45);
         border-bottom-color: rgba(255, 255, 255, 0.05);
       }
 
-      @media (max-width: 576px) {
-        flex-direction: column;
-        align-items: flex-start;
-        gap: 12px;
-      }
-
-      .card-title-box {
+      .switcher-group {
         display: flex;
         align-items: center;
-        gap: 10px;
+        gap: 12px;
+        flex-wrap: wrap;
 
-        .card-icon {
-          color: #4f46e5;
-          html[data-theme="dark"] & {
-            color: #3b82f6;
+        .switcher-label-wrapper {
+          display: flex;
+          align-items: center;
+          gap: 6px;
+          min-width: 105px;
+
+          .switcher-icon {
+            color: #2563eb;
+            html[data-theme="dark"] & { color: #3b82f6; }
+          }
+
+          .switcher-title {
+            font-size: 12px;
+            font-weight: 800;
+            color: #475569;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+
+            html[data-theme="dark"] & { color: #94a3b8; }
           }
         }
 
-        .card-title {
+        .switcher-pills {
+          display: flex;
+          gap: 8px;
+          align-items: center;
+          flex-wrap: wrap;
+
+          .switcher-pill-btn {
+            border: 1px solid rgba(226, 232, 240, 0.9);
+            background: #ffffff;
+            color: #475569;
+            padding: 6px 14px;
+            border-radius: 20px;
+            font-size: 12.5px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+
+            html[data-theme="dark"] & {
+              background: #1e293b;
+              border-color: rgba(255, 255, 255, 0.08);
+              color: #cbd5e1;
+            }
+
+            &:hover {
+              border-color: #2563eb;
+              color: #2563eb;
+              transform: translateY(-1px);
+              html[data-theme="dark"] & {
+                border-color: #3b82f6;
+                color: #3b82f6;
+              }
+            }
+
+            &.active {
+              background: linear-gradient(135deg, #3b82f6, #2563eb);
+              color: #ffffff;
+              border-color: #2563eb;
+              box-shadow: 0 4px 12px rgba(37, 99, 235, 0.25);
+
+              html[data-theme="dark"] & {
+                background: linear-gradient(135deg, #3b82f6, #2563eb);
+                border-color: #3b82f6;
+                box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+              }
+            }
+
+            &.sub-class {
+              padding: 5px 16px;
+              border-radius: 8px;
+              font-weight: 800;
+
+              &.active {
+                background: #0f172a;
+                border-color: #0f172a;
+                color: #ffffff;
+                box-shadow: 0 4px 10px rgba(15, 23, 42, 0.2);
+
+                html[data-theme="dark"] & {
+                  background: #f8fafc;
+                  border-color: #f8fafc;
+                  color: #0f172a;
+                  box-shadow: 0 4px 10px rgba(255, 255, 255, 0.2);
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+
+    .table-top-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 18px 24px;
+      border-bottom: 1px solid rgba(226, 232, 240, 0.8);
+      flex-wrap: wrap;
+      gap: 12px;
+
+      html[data-theme="dark"] & {
+        border-bottom-color: rgba(255, 255, 255, 0.06);
+      }
+
+      .info-cluster {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+
+        .cluster-title {
           font-size: 15px;
           font-weight: 800;
           color: #0f172a;
           margin: 0;
 
           html[data-theme="dark"] & {
-            color: #ffffff;
+            color: #f8fafc;
+          }
+        }
+
+        .cluster-count-pill {
+          font-size: 11.5px;
+          font-weight: 700;
+          padding: 3px 10px;
+          border-radius: 9999px;
+          background: rgba(37, 99, 235, 0.1);
+          color: #2563eb;
+          border: 1px solid rgba(37, 99, 235, 0.2);
+
+          html[data-theme="dark"] & {
+            background: rgba(59, 130, 246, 0.15);
+            color: #93c5fd;
           }
         }
       }
 
-      .card-actions {
+      .actions-cluster {
         display: flex;
         gap: 10px;
         align-items: center;
       }
     }
 
-    .card-body {
-      padding: 24px;
-    }
-  }
-
-  // Selection Containers
-  .selection-container {
-    display: flex;
-    flex-direction: column;
-    gap: 14px;
-
-    .section-title {
-      font-size: 13.5px;
-      font-weight: 800;
-      color: #334155;
-      margin: 0 0 4px 0;
-      display: flex;
-      align-items: center;
-      gap: 8px;
-
-      html[data-theme="dark"] & {
-        color: #cbd5e1;
-      }
+    .table-responsive-box {
+      overflow-x: auto;
+      @include custom-scrollbar;
     }
 
-    // Grid of Levels
-    .levels-pill-grid {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 10px;
-
-      .level-pill-btn {
-        border: 1px solid rgba(226, 232, 240, 0.8);
-        background: #ffffff;
-        color: #475569;
-        padding: 10px 16px;
-        border-radius: 12px;
-        font-size: 13px;
-        font-weight: 700;
-        cursor: pointer;
-        transition: all 0.25s;
-
-        html[data-theme="dark"] & {
-          background: rgba(30, 41, 59, 0.3);
-          border-color: rgba(255, 255, 255, 0.05);
-          color: #cbd5e1;
-        }
-
-        &:hover {
-          border-color: #4f46e5;
-          transform: translateY(-1px);
-          html[data-theme="dark"] & {
-            border-color: #3b82f6;
-          }
-        }
-
-        &.active {
-          border-color: #4f46e5;
-          background: rgba(99, 102, 241, 0.05);
-          color: #4f46e5;
-          box-shadow: 0 4px 12px rgba(99, 102, 241, 0.05);
-
-          html[data-theme="dark"] & {
-            border-color: #3b82f6;
-            background: rgba(59, 130, 246, 0.05);
-            color: #3b82f6;
-            box-shadow: 0 4px 12px rgba(59, 130, 246, 0.25);
-          }
-        }
-      }
-    }
-
-    // Rincian Kelas Section
-    .class-detail-wrapper {
-      margin-top: 10px;
-      padding-top: 18px;
-      border-top: 1px solid rgba(226, 232, 240, 0.8);
-      display: flex;
-      flex-direction: column;
-      gap: 12px;
-
-      html[data-theme="dark"] & {
-        border-top-color: rgba(255,255,255,0.05);
-      }
-
-      .class-pill-grid {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 8px;
-
-        .class-pill-btn {
-          border: 1px solid rgba(226, 232, 240, 0.8);
-          background: #ffffff;
-          color: #475569;
-          padding: 8px 16px;
-          border-radius: 20px;
-          font-size: 12.5px;
-          font-weight: 700;
-          cursor: pointer;
-          transition: all 0.25s;
-
-          html[data-theme="dark"] & {
-            background: rgba(30, 41, 59, 0.3);
-            border-color: rgba(255, 255, 255, 0.05);
-            color: #cbd5e1;
-          }
-
-          &:hover {
-            border-color: #4f46e5;
-            html[data-theme="dark"] & {
-              border-color: #3b82f6;
-            }
-          }
-
-          &.active {
-            border-color: #4f46e5;
-            background: rgba(99, 102, 241, 0.05);
-            color: #4f46e5;
-
-            html[data-theme="dark"] & {
-              border-color: #3b82f6;
-              background: rgba(59, 130, 246, 0.05);
-              color: #3b82f6;
-            }
-          }
-        }
-      }
-    }
-  }
-
-  // Custom Accordion for subject categories
-  .custom-accordion {
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
-
-    .accordion-section {
-      border: 1px solid rgba(226, 232, 240, 0.8);
-      border-radius: 12px;
-      overflow: hidden;
-      background: #ffffff;
-
-      html[data-theme="dark"] & {
-        border-color: rgba(255, 255, 255, 0.05);
-        background: rgba(30, 41, 59, 0.15);
-      }
-    }
-
-    .accordion-header {
+    .glass-input-table {
       width: 100%;
-      border: none;
-      background: #f8fafc;
-      padding: 12px 16px;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      cursor: pointer;
-      text-align: left;
-      transition: background-color 0.2s;
+      border-collapse: collapse;
 
-      html[data-theme="dark"] & {
-        background: rgba(30, 41, 59, 0.4);
-      }
-
-      &:hover {
-        background: #f1f5f9;
-        html[data-theme="dark"] & {
-          background: rgba(30, 41, 59, 0.6);
-        }
-      }
-
-      .accordion-title {
-        font-size: 11px;
-        font-weight: 800;
+      thead tr th {
+        background: rgba(248, 250, 252, 0.85);
+        backdrop-filter: blur(8px);
+        color: #475569;
+        font-weight: 700;
+        font-size: 12px;
         text-transform: uppercase;
         letter-spacing: 0.5px;
-        color: #475569;
-        html[data-theme="dark"] & {
-          color: #cbd5e1;
-        }
-      }
-
-      .chevron-icon {
-        color: #64748b;
-        transition: transform 0.2s;
-        &.rotated {
-          transform: rotate(180deg);
-        }
-      }
-    }
-
-    .accordion-content {
-      padding: 16px;
-      border-top: 1px solid rgba(226, 232, 240, 0.8);
-      html[data-theme="dark"] & {
-        border-top-color: rgba(255,255,255,0.05);
-      }
-    }
-
-    // Grid of subject cards inside accordion
-    .mapel-buttons-grid {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 10px;
-
-      .mapel-select-btn {
-        border: 1px solid rgba(226, 232, 240, 0.8);
-        background: #ffffff;
-        padding: 10px 16px;
-        border-radius: 12px;
-        cursor: pointer;
-        display: flex;
-        align-items: center;
-        gap: 8px;
-        transition: all 0.2s ease;
+        padding: 14px 18px;
+        border-bottom: 1.5px solid rgba(226, 232, 240, 0.9);
+        white-space: nowrap;
 
         html[data-theme="dark"] & {
-          background: rgba(30, 41, 59, 0.3);
-          border-color: rgba(255, 255, 255, 0.05);
+          background: rgba(30, 41, 59, 0.6);
+          color: #94a3b8;
+          border-bottom-color: rgba(255, 255, 255, 0.08);
         }
+      }
 
-        .bullet-color {
-          width: 8px;
-          height: 8px;
-          border-radius: 50%;
-          background: #64748b;
-          
-          &.blue { background: #3b82f6; }
-          &.purple { background: #a855f7; }
-          &.gold { background: #eab308; }
-        }
+      tbody tr {
+        transition: background-color 0.15s ease;
+        border-bottom: 1px solid rgba(226, 232, 240, 0.7);
 
-        span:not(.bullet-color) {
-          font-size: 13px;
-          font-weight: 700;
-          color: #334155;
-          html[data-theme="dark"] & {
-            color: #cbd5e1;
-          }
+        html[data-theme="dark"] & {
+          border-bottom-color: rgba(255, 255, 255, 0.05);
         }
 
         &:hover {
-          border-color: #cbd5e1;
-          transform: translateY(-1px);
-        }
-
-        &.active {
-          border-color: #4f46e5;
-          background: rgba(99, 102, 241, 0.05);
-          box-shadow: 0 4px 12px rgba(99, 102, 241, 0.05);
-
-          span:not(.bullet-color) {
-            color: #4f46e5;
-          }
+          background: rgba(255, 255, 255, 0.85);
 
           html[data-theme="dark"] & {
-            border-color: #3b82f6;
-            background: rgba(59, 130, 246, 0.05);
-            span:not(.bullet-color) {
-              color: #3b82f6;
-            }
+            background: rgba(255, 255, 255, 0.02);
           }
+        }
+
+        td {
+          padding: 12px 18px;
+          vertical-align: middle;
         }
       }
     }
   }
 
-  // Responsive Table
-  .table-responsive-nilai {
-    border-radius: 16px;
-    overflow-x: auto;
-    border: 1px solid rgba(226, 232, 240, 0.8);
-    box-shadow: 0 4px 15px rgba(0,0,0,0.01);
-    @include custom-scrollbar;
+  // ── 8. PERSON CELL WITH 3D SPHERICAL AVATAR ───────────────
+  .person-lens-cell {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+
+    .lens-orb-avatar {
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, #60a5fa 0%, #2563eb 100%);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 800;
+      font-size: 13px;
+      color: #ffffff;
+      box-shadow: 
+        0 4px 10px rgba(37, 99, 235, 0.25),
+        inset 0 1px 1px rgba(255, 255, 255, 0.8);
+      flex-shrink: 0;
+    }
+
+    .person-name-stack {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+
+      .person-name {
+        font-size: 13.5px;
+        font-weight: 700;
+        color: #0f172a;
+        line-height: 1.25;
+
+        html[data-theme="dark"] & {
+          color: #f8fafc;
+        }
+      }
+
+      .person-nis {
+        font-size: 11px;
+        font-weight: 500;
+        font-family: monospace;
+        color: #64748b;
+
+        html[data-theme="dark"] & {
+          color: #94a3b8;
+        }
+      }
+    }
+  }
+
+  // ── 9. TACTILE INPUT CONTROLS INSIDE TABLE ────────────────
+  .tactile-number-input {
+    width: 120px;
+    height: 40px;
+    border-radius: 12px;
+    border: 1px solid rgba(203, 213, 225, 0.8);
+    background: #ffffff;
+    font-size: 14px;
+    font-weight: 700;
+    color: #0f172a;
+    text-align: center;
+    outline: none;
+    transition: all 0.2s ease;
+    box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.04);
 
     html[data-theme="dark"] & {
-      border-color: rgba(255, 255, 255, 0.05);
-    }
-  }
-
-  .custom-data-table {
-    width: 100%;
-    border-collapse: collapse;
-
-    thead {
-      tr {
-        th {
-          background: #f8fafc;
-          color: #475569;
-          font-weight: 800;
-          font-size: 12.5px;
-          text-transform: uppercase;
-          letter-spacing: 0.5px;
-          border-bottom: 2px solid rgba(226, 232, 240, 0.8);
-          border-right: 1px solid rgba(226, 232, 240, 0.8);
-          padding: 14px 16px;
-          white-space: nowrap;
-
-          html[data-theme="dark"] & {
-            background: #1e293b;
-            color: #cbd5e1;
-            border-bottom-color: rgba(255, 255, 255, 0.05);
-            border-right-color: rgba(255, 255, 255, 0.05);
-          }
-
-          &:last-child {
-            border-right: none;
-          }
-        }
-      }
+      background: rgba(30, 41, 59, 0.7);
+      border-color: rgba(255, 255, 255, 0.1);
+      color: #f8fafc;
     }
 
-    tbody {
-      tr {
-        td {
-          border-bottom: 1px solid rgba(226, 232, 240, 0.8);
-          border-right: 1px solid rgba(226, 232, 240, 0.8);
-          padding: 10px 16px;
-          background: #ffffff;
-          color: #334155;
-          font-size: 13.5px;
-          vertical-align: middle;
-
-          html[data-theme="dark"] & {
-            border-bottom-color: rgba(255, 255, 255, 0.05);
-            border-right-color: rgba(255, 255, 255, 0.05);
-            background: rgba(21, 26, 35, 0.3);
-            color: #cbd5e1;
-          }
-
-          &:last-child {
-            border-right: none;
-          }
-
-          &.student-name-cell {
-            font-weight: 700;
-            color: #1e293b;
-            html[data-theme="dark"] & {
-              color: #f8fafc;
-            }
-          }
-
-          &.student-nis-cell {
-            font-family: monospace;
-            color: #64748b;
-            html[data-theme="dark"] & {
-              color: #94a3b8;
-            }
-          }
-        }
-
-        &:hover {
-          td {
-            background: rgba(248, 250, 252, 0.5);
-            html[data-theme="dark"] & {
-              background: rgba(255, 255, 255, 0.015);
-            }
-          }
-        }
-      }
-    }
-  }
-
-  // Inputs inside table cells
-  .cell-input-number {
-    width: 100px;
-    border: 1px solid rgba(226, 232, 240, 0.9);
-    border-radius: 8px;
-    padding: 8px 12px;
-    font-size: 13px;
-    color: #1e293b;
-    background: #ffffff;
-    transition: all 0.2s;
-    outline: none;
-    text-align: center;
-
-    &:hover { border-color: #cbd5e1; }
     &:focus {
       border-color: #3b82f6;
-      box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.15);
-    }
-
-    html[data-theme="dark"] & {
-      border-color: rgba(255,255,255,0.08);
-      background: rgba(30, 41, 59, 0.4);
-      color: #f8fafc;
-      &:hover { border-color: rgba(255,255,255,0.15); }
-      &:focus { border-color: #3b82f6; }
+      box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.18);
     }
   }
 
-  // Predicate tag badges
-  .predikat-badge {
-    padding: 6px 12px;
-    border-radius: 8px;
-    font-size: 11.5px;
-    font-weight: 800;
-    display: inline-block;
-    text-transform: uppercase;
-    letter-spacing: 0.3px;
+  // Taftisy Segmented Toggle
+  .taftisy-toggle-wrap {
+    display: inline-flex;
+    gap: 4px;
+    padding: 3px;
+    background: rgba(241, 245, 249, 0.8);
+    border-radius: 12px;
+    border: 1px solid rgba(226, 232, 240, 0.9);
 
-    &.mumtaz {
-      background: rgba(234, 179, 8, 0.1);
-      color: #b25900;
-      border: 1px solid rgba(234, 179, 8, 0.2);
+    html[data-theme="dark"] & {
+      background: rgba(30, 41, 59, 0.5);
+      border-color: rgba(255, 255, 255, 0.08);
     }
-    &.jayyid {
-      background: rgba(16, 185, 129, 0.1);
-      color: #047857;
-      border: 1px solid rgba(16, 185, 129, 0.2);
-    }
-    &.mutawasith {
-      background: rgba(59, 130, 246, 0.1);
-      color: #1d4ed8;
-      border: 1px solid rgba(59, 130, 246, 0.2);
-    }
-    &.rodi {
-      background: rgba(239, 68, 68, 0.1);
-      color: #b91c1c;
-      border: 1px solid rgba(239, 68, 68, 0.2);
-    }
-    &.empty {
-      background: #f1f5f9;
+
+    .taftisy-pill-opt {
+      padding: 6px 14px;
+      border-radius: 9px;
+      border: none;
+      background: transparent;
+      font-size: 12px;
+      font-weight: 700;
       color: #64748b;
-      border: 1px solid rgba(226, 232, 240, 0.8);
-      html[data-theme="dark"] & {
-        background: #1e293b;
-        color: #94a3b8;
-        border-color: rgba(255,255,255,0.05);
+      cursor: pointer;
+      transition: all 0.2s;
+
+      &:hover {
+        color: #0f172a;
+      }
+
+      &.active-tam {
+        background: #10b981;
+        color: #ffffff;
+        box-shadow: 0 2px 8px rgba(16, 185, 129, 0.3);
+      }
+
+      &.active-naqish {
+        background: #ef4444;
+        color: #ffffff;
+        box-shadow: 0 2px 8px rgba(239, 68, 68, 0.3);
       }
     }
   }
 
-  // Auto Save Indicator floating message
+  // ── 10. PREDIKAT CHIP PILLS ───────────────────────────────
+  .predikat-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 6px 12px;
+    border-radius: 9999px;
+    font-size: 11.5px;
+    font-weight: 800;
+    letter-spacing: 0.3px;
+    text-transform: uppercase;
+
+    &.mumtaz {
+      background: rgba(234, 179, 8, 0.12);
+      color: #b45309;
+      border: 1px solid rgba(234, 179, 8, 0.3);
+    }
+    &.jayyid {
+      background: rgba(16, 185, 129, 0.12);
+      color: #059669;
+      border: 1px solid rgba(16, 185, 129, 0.3);
+    }
+    &.mutawassith {
+      background: rgba(37, 99, 235, 0.12);
+      color: #2563eb;
+      border: 1px solid rgba(37, 99, 235, 0.3);
+    }
+    &.rodi {
+      background: rgba(239, 68, 68, 0.12);
+      color: #dc2626;
+      border: 1px solid rgba(239, 68, 68, 0.3);
+    }
+    &.empty {
+      background: rgba(148, 163, 184, 0.12);
+      color: #64748b;
+      border: 1px solid rgba(148, 163, 184, 0.2);
+    }
+  }
+
+  // ── 11. EMPTY STATE HERO ──────────────────────────────────
+  .liquid-empty-hero {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 60px 24px;
+    text-align: center;
+    background: rgba(255, 255, 255, 0.65);
+    backdrop-filter: blur(20px);
+    border-radius: 24px;
+    border: 1px solid rgba(255, 255, 255, 0.7);
+    border-top: 1.5px solid rgba(255, 255, 255, 0.95);
+
+    html[data-theme="dark"] & {
+      background: rgba(15, 23, 42, 0.5);
+      border-color: rgba(255, 255, 255, 0.06);
+    }
+
+    .empty-orb-icon {
+      width: 68px;
+      height: 68px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, rgba(59, 130, 246, 0.15) 0%, rgba(147, 51, 234, 0.15) 100%);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #3b82f6;
+      margin-bottom: 16px;
+    }
+
+    .empty-title {
+      font-size: 17px;
+      font-weight: 800;
+      color: #0f172a;
+      margin: 0 0 6px 0;
+
+      html[data-theme="dark"] & {
+        color: #f8fafc;
+      }
+    }
+
+    .empty-desc {
+      font-size: 13.5px;
+      color: #64748b;
+      max-width: 440px;
+      margin: 0 0 20px 0;
+      line-height: 1.5;
+
+      html[data-theme="dark"] & {
+        color: #94a3b8;
+      }
+    }
+  }
+
+  // ── 12. AUTO-SAVE FLOATING PILL ───────────────────────────
   .auto-save-indicator {
     position: fixed;
     bottom: 24px;
     right: 24px;
     z-index: 1000;
-    background: #ffffff;
-    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
-    border: 1px solid rgba(226, 232, 240, 0.8);
+    background: rgba(255, 255, 255, 0.9);
+    backdrop-filter: blur(16px);
+    box-shadow: 0 10px 30px rgba(15, 23, 42, 0.12);
+    border: 1px solid rgba(226, 232, 240, 0.9);
+    border-top: 1.5px solid rgba(255, 255, 255, 1);
     padding: 10px 18px;
-    border-radius: 30px;
+    border-radius: 9999px;
     display: flex;
     align-items: center;
     gap: 8px;
@@ -658,35 +982,32 @@
     animation: slide-up-save 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 
     html[data-theme="dark"] & {
-      background: #1e293b;
-      border-color: rgba(255,255,255,0.05);
-      box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+      background: rgba(15, 23, 42, 0.85);
+      border-color: rgba(255, 255, 255, 0.1);
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
     }
 
     &.saving {
-      color: #3b82f6;
-      border-left: 4px solid #3b82f6;
+      color: #2563eb;
       .spinner {
         width: 14px;
         height: 14px;
-        border: 2px solid rgba(59, 130, 246, 0.2);
-        border-top-color: #3b82f6;
+        border: 2px solid rgba(37, 99, 235, 0.2);
+        border-top-color: #2563eb;
         border-radius: 50%;
         animation: rot-save 0.8s linear infinite;
       }
     }
 
     &.saved {
-      color: #10b981;
-      border-left: 4px solid #10b981;
+      color: #059669;
       .icon-check {
-        color: #10b981;
+        color: #059669;
       }
     }
 
     &.error {
-      color: #ef4444;
-      border-left: 4px solid #ef4444;
+      color: #dc2626;
     }
   }
 
@@ -698,125 +1019,177 @@
   @keyframes rot-save {
     to { transform: rotate(360deg); }
   }
+}
 
-  // Manual rank modal inputs list
-  .rank-adjust-list {
+// ── 13. CLASS SELECTION MODAL: 4 COLUMNS GRID ─────────────
+.class-grid-modal-body {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  padding: 4px 0;
+
+  .tingkat-filter-pills {
     display: flex;
-    flex-direction: column;
-    gap: 12px;
-    max-height: 400px;
-    overflow-y: auto;
-    padding-right: 6px;
+    gap: 6px;
+    overflow-x: auto;
+    padding-bottom: 6px;
     @include custom-scrollbar;
 
-    .rank-adjust-row {
+    .tingkat-chip {
+      padding: 6px 14px;
+      border-radius: 9999px;
+      border: 1px solid rgba(203, 213, 225, 0.8);
+      background: #ffffff;
+      color: #475569;
+      font-size: 12px;
+      font-weight: 700;
+      cursor: pointer;
+      white-space: nowrap;
+      transition: all 0.2s ease;
+
+      html[data-theme="dark"] & {
+        background: rgba(30, 41, 59, 0.6);
+        border-color: rgba(255, 255, 255, 0.08);
+        color: #cbd5e1;
+      }
+
+      &:hover {
+        border-color: #3b82f6;
+        color: #2563eb;
+      }
+
+      &.active {
+        background: #2563eb;
+        border-color: #2563eb;
+        color: #ffffff;
+        box-shadow: 0 4px 10px rgba(37, 99, 235, 0.25);
+      }
+    }
+  }
+
+  // 4 Columns Grid as explicitly requested by user!
+  .mini-classes-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 12px;
+    max-height: 480px;
+    overflow-y: auto;
+    padding-right: 4px;
+    @include custom-scrollbar;
+
+    @media (max-width: 900px) {
+      grid-template-columns: repeat(2, 1fr);
+    }
+
+    @media (max-width: 480px) {
+      grid-template-columns: 1fr;
+    }
+
+    .mini-class-card {
       display: flex;
-      align-items: center;
-      justify-content: space-between;
-      background: #f8fafc;
-      padding: 10px 16px;
-      border-radius: 10px;
-      border: 1px solid rgba(226, 232, 240, 0.8);
+      flex-direction: column;
+      gap: 8px;
+      padding: 16px;
+      border-radius: 16px;
+      border: 1px solid rgba(226, 232, 240, 0.9);
+      border-top: 1.5px solid rgba(255, 255, 255, 0.98);
+      background: rgba(255, 255, 255, 0.85);
+      backdrop-filter: blur(12px);
+      box-shadow: 0 4px 14px rgba(15, 23, 42, 0.03);
+      cursor: pointer;
+      text-align: left;
+      transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 
       html[data-theme="dark"] & {
-        background: rgba(30, 41, 59, 0.2);
-        border-color: rgba(255,255,255,0.05);
+        background: rgba(30, 41, 59, 0.55);
+        border-color: rgba(255, 255, 255, 0.08);
+        box-shadow: 0 4px 14px rgba(0, 0, 0, 0.25);
       }
 
-      .student-info {
-        display: flex;
-        flex-direction: column;
-        gap: 2px;
+      &:hover {
+        border-color: #3b82f6;
+        transform: translateY(-2px);
+        box-shadow: 0 10px 24px rgba(59, 130, 246, 0.15);
 
-        .name {
-          font-size: 13.5px;
-          font-weight: 700;
-          color: #1e293b;
-          html[data-theme="dark"] & {
-            color: #f8fafc;
-          }
-        }
-        .desc {
-          font-size: 11px;
-          color: #64748b;
-          html[data-theme="dark"] & {
-            color: #cbd5e1;
-          }
+        html[data-theme="dark"] & {
+          background: rgba(30, 41, 59, 0.8);
         }
       }
 
-      .input-wrapper {
+      &.active {
+        border-color: #2563eb;
+        background: rgba(239, 246, 255, 0.95);
+        box-shadow: 0 8px 24px rgba(37, 99, 235, 0.2);
+
+        html[data-theme="dark"] & {
+          background: rgba(30, 58, 138, 0.35);
+          border-color: #3b82f6;
+        }
+
+        .class-card-name {
+          color: #2563eb;
+          html[data-theme="dark"] & {
+            color: #60a5fa;
+          }
+        }
+      }
+
+      .card-top-meta {
         display: flex;
+        justify-content: space-between;
         align-items: center;
-        gap: 8px;
 
-        span {
-          font-size: 11.5px;
-          font-weight: 700;
-          color: #64748b;
-        }
+        .tingkat-badge {
+          font-size: 10.5px;
+          font-weight: 800;
+          padding: 2px 8px;
+          border-radius: 9999px;
+          background: rgba(37, 99, 235, 0.1);
+          color: #2563eb;
+          letter-spacing: 0.3px;
 
-        .rank-input {
-          width: 80px;
-          border: 1px solid rgba(226, 232, 240, 0.9);
-          border-radius: 8px;
-          padding: 6px 10px;
-          font-size: 13px;
-          text-align: center;
-          outline: none;
-          
-          &:focus { border-color: #3b82f6; }
           html[data-theme="dark"] & {
-            border-color: rgba(255,255,255,0.05);
-            background: #1e293b;
-            color: #ffffff;
+            background: rgba(59, 130, 246, 0.15);
+            color: #93c5fd;
           }
         }
+
+        .check-indicator {
+          color: #2563eb;
+        }
+      }
+
+      .class-card-name {
+        font-size: 15px;
+        font-weight: 800;
+        color: #0f172a;
+        margin: 0;
+        line-height: 1.25;
+
+        html[data-theme="dark"] & {
+          color: #f8fafc;
+        }
+      }
+
+      .class-card-footer {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-top: 4px;
+        font-size: 11.5px;
+        color: #64748b;
+
+        html[data-theme="dark"] & {
+          color: #94a3b8;
+        }
+
+        .santri-pill {
+          display: flex;
+          align-items: center;
+          gap: 4px;
+          font-weight: 600;
+        }
       }
     }
-  }
-
-  // Loader / Empty inside core page
-  .page-loading-box {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    min-height: 300px;
-    gap: 12px;
-    color: #64748b;
-
-    .spinner {
-      width: 32px;
-      height: 32px;
-      border: 3px solid rgba(0, 0, 0, 0.1);
-      border-top-color: #4f46e5;
-      border-radius: 50%;
-      animation: rot-page 1s linear infinite;
-
-      html[data-theme="dark"] & {
-        border-color: rgba(255,255,255,0.05);
-        border-top-color: #3b82f6;
-      }
-    }
-  }
-
-  .page-empty-box {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    padding: 60px 20px;
-    text-align: center;
-    color: #94a3b8;
-    gap: 12px;
-
-    .empty-icon {
-      opacity: 0.5;
-    }
-  }
-
-  @keyframes rot-page {
-    to { transform: rotate(360deg); }
   }
 }

@@ -12,7 +12,8 @@ import {
   FileText, 
   Grid,
   Info,
-  ChevronDown
+  ChevronDown,
+  Layers
 } from 'lucide-react';
 import { nilaiService } from '../services/nilaiService';
 import { settingsService } from '../services/settingsService';
@@ -1141,23 +1142,56 @@ export const LaporanUjianKhusus = () => {
           <>
             {viewMode === 'detail' ? (
               <>
-                <div className="inner-filter-bar">
-                  
-                  {/* Levels toggles */}
-                  <div className="segmented-pills-row">
-                    {tingkatOptions.map(opt => (
-                      <button
-                        key={opt.value}
-                        type="button"
-                        className={`pill-btn ${selectedTingkat === opt.value ? 'active' : ''}`}
-                        onClick={() => setSelectedTingkat(opt.value)}
-                      >
-                        {opt.label}
-                      </button>
-                    ))}
+                {/* Quick Class Selection Bar (Tingkatan & Rincian Kelas - Option A Liquid Glass) */}
+                <div className="rapor-class-switcher-bar">
+                  <div className="switcher-group">
+                    <div className="switcher-label-wrapper">
+                      <Layers size={14} className="switcher-icon" />
+                      <span className="switcher-title">Tingkatan:</span>
+                    </div>
+                    <div className="switcher-pills">
+                      {tingkatOptions.map(opt => (
+                        <button
+                          key={opt.value}
+                          type="button"
+                          className={`switcher-pill-btn ${selectedTingkat === opt.value ? 'active' : ''}`}
+                          onClick={() => {
+                            setSelectedTingkat(opt.value);
+                            const classesInT = kelas.filter(k => k.tingkat === opt.value);
+                            if (classesInT.length > 0) {
+                              setSelectedKelas(classesInT[0].id);
+                            }
+                          }}
+                        >
+                          {opt.label}
+                        </button>
+                      ))}
+                    </div>
                   </div>
 
-                  {/* Autocomplete Search input */}
+                  {selectedTingkat !== null && (
+                    <div className="switcher-group sub-classes">
+                      <div className="switcher-label-wrapper">
+                        <span className="switcher-title">Rincian Kelas:</span>
+                      </div>
+                      <div className="switcher-pills">
+                        {filteredKelas.map(k => (
+                          <button
+                            key={k.id}
+                            type="button"
+                            className={`switcher-pill-btn sub-class ${selectedKelas === k.id ? 'active' : ''}`}
+                            onClick={() => setSelectedKelas(k.id)}
+                          >
+                            {k.nama}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* Autocomplete Search input */}
+                <div className="inner-filter-bar" style={{ justifyContent: 'flex-end', paddingTop: 0, paddingBottom: 0 }}>
                   <div className="student-search-box" ref={searchContainerRef}>
                     <div style={{ position: 'relative' }}>
                       <input 
@@ -1210,21 +1244,6 @@ export const LaporanUjianKhusus = () => {
                       </div>
                     )}
                   </div>
-
-                </div>
-
-                {/* Class selector row */}
-                <div className="class-selection-row">
-                  {filteredKelas.map(k => (
-                    <button
-                      key={k.id}
-                      type="button"
-                      className={`class-pill-btn ${selectedKelas === k.id ? 'active' : ''}`}
-                      onClick={() => setSelectedKelas(k.id)}
-                    >
-                      {k.nama}
-                    </button>
-                  ))}
                 </div>
 
                 {/* HTML Table Detail View */}
