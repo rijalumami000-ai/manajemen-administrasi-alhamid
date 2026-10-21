@@ -53,7 +53,28 @@ export const nilaiService = {
   },
 
   saveNilaiBulk: async (data) => {
-    return apiPost('/nilai/santri/bulk', data);
+    let payload = data;
+    if (data && Array.isArray(data.data)) {
+      payload = {
+        ...data,
+        data: data.data.map(item => {
+          let n = item.nilai_angka;
+          if (n === '' || n === undefined || n === null) {
+            n = null;
+          } else {
+            const num = Number(n);
+            n = isNaN(num) ? null : num;
+          }
+          return {
+            ...item,
+            nilai_angka: n,
+            capaian: item.capaian || null,
+            predikat: item.predikat || null
+          };
+        })
+      };
+    }
+    return apiPost('/nilai/santri/bulk', payload);
   },
 
   fetchRekapNilai: async (filters) => {

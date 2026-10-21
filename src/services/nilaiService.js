@@ -444,10 +444,17 @@ class NilaiService {
 
       // Insert nilai baru
       for (const item of dataList) {
+        let nilaiAngka = item.nilai_angka;
+        if (nilaiAngka === '' || nilaiAngka === undefined || nilaiAngka === null) {
+          nilaiAngka = null;
+        } else {
+          nilaiAngka = Number(nilaiAngka);
+          if (isNaN(nilaiAngka)) nilaiAngka = null;
+        }
         await client.query(
           `INSERT INTO nilai_santri (santri_id, mata_pelajaran_id, tahun_ajaran_id, kategori_evaluasi_id, nilai_angka, predikat, capaian)
            VALUES ($1, $2, $3, $4, $5, $6, $7)`,
-          [item.santri_id, mapelId, tahunAjaranId, katIdValue, item.nilai_angka, item.predikat, item.capaian]
+          [item.santri_id, mapelId, tahunAjaranId, katIdValue, nilaiAngka, item.predikat || null, item.capaian || null]
         );
       }
 

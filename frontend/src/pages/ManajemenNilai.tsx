@@ -399,15 +399,19 @@ export function ManajemenNilai({ mode = 'input' }: ManajemenNilaiProps) {
     clearTimeout(autoSaveTimeout.current);
     autoSaveTimeout.current = setTimeout(async () => {
       try {
+        const cleanVal = (updatedSantri.nilai_angka === '' || updatedSantri.nilai_angka === null || updatedSantri.nilai_angka === undefined)
+          ? null
+          : Number(updatedSantri.nilai_angka);
+
         await nilaiService.saveNilaiBulk({
           tahun_ajaran_id: tahunAjaran.id,
           mata_pelajaran_id: selectedMapel,
           kategori_evaluasi_id: selectedKategori,
           data: [{
             santri_id: updatedSantri.santri_id,
-            nilai_angka: updatedSantri.nilai_angka,
-            capaian: updatedSantri.capaian,
-            predikat: updatedSantri.predikat
+            nilai_angka: (cleanVal !== null && !isNaN(cleanVal)) ? cleanVal : null,
+            capaian: updatedSantri.capaian || null,
+            predikat: updatedSantri.predikat || null
           }]
         });
         setAutoSaveStatus('saved');
@@ -426,11 +430,23 @@ export function ManajemenNilai({ mode = 'input' }: ManajemenNilaiProps) {
     }
     try {
       setSaveLoading(true);
+      const cleanData = santriList.map(s => {
+        const cleanVal = (s.nilai_angka === '' || s.nilai_angka === null || s.nilai_angka === undefined)
+          ? null
+          : Number(s.nilai_angka);
+        return {
+          santri_id: s.santri_id,
+          nilai_angka: (cleanVal !== null && !isNaN(cleanVal)) ? cleanVal : null,
+          capaian: s.capaian || null,
+          predikat: s.predikat || null
+        };
+      });
+
       await nilaiService.saveNilaiBulk({
         tahun_ajaran_id: tahunAjaran.id,
         mata_pelajaran_id: selectedMapel,
         kategori_evaluasi_id: selectedKategori,
-        data: santriList
+        data: cleanData
       });
       toast.success('Semua nilai santri berhasil disimpan!');
       setAutoSaveStatus('saved');
