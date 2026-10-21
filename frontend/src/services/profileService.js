@@ -14,5 +14,12 @@ export const profileService = {
   // Change password
   async changePassword(data) {
     return apiPost('/profile/change-password', data);
+  },
+
+  // Upload avatar photo
+  async uploadAvatar(file) {
+    const formData = new FormData();
+    formData.append('foto', file);
+    return apiPost('/my-mustahiq/profile/photo', formData);
   }
 };

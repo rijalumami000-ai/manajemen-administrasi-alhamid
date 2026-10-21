@@ -371,7 +371,10 @@ Fase 4: Verifikasi Build & HMR      <───  Fase 3: Refactor ke .tsx & Styli
 | **Kepesantrenan** | Pelanggaran & Prestasi (`/pelanggaran-prestasi`) | ✅ Selesai (TSX) | Option A Liquid Glass, Tabs Pelanggaran & Prestasi, 4 KPI Dock Cards, CustomSelect Filter, VisionOS Delete Modal |
 | **Kepesantrenan** | PDF Materi Sidang (`/materi-sidang`) | ✅ Selesai (TSX) | Option A Liquid Glass, 4 Kategori Tabs (Madin, PMQ, Pondok, Haflah), 4 KPI Stat Orbs, Glass Document Cards, File Upload Drag & Drop, VisionOS Delete Modal |
 | **Master** | Data Alumni (`/alumni`) | ⏳ Antrean | Database Lulusan, Tracer Study |
-| **Master** | Manajemen Users (`/users`) | ⏳ Antrean | Akun Pengguna, Role & Hak Akses |
+| **Sistem** | Manajemen Users (`/users`) | ✅ Selesai (TSX) | Option A Liquid Glass, 4 KPI Stat Cards, CustomSelect Filter, VisionOS Table & Destructive Modal |
+| **Sistem** | Setelan Alhamid One (`/mymustahiq-settings`) | ✅ Selesai (TSX) | Option A Liquid Glass, 4 Segmented Tabs, 4 KPI Stat Cards, Push Notification, VisionOS Delete Dialog |
+| **Sistem** | Pusat Bantuan & Info App (`/informasi-aplikasi`) | ✅ Selesai (TSX) | Option A Liquid Glass, 3 Main Tabs, 4 KPI Stat Cards, Content Cards Grid, VisionOS Delete Dialog |
+| **Sistem** | Profil Pengguna & Setting (`/profile`) | ✅ Selesai (TSX) | Option A Liquid Glass, 3D Avatar Lens Orb, Inset Account Details, Sistem Settings Panel, Edit & Password Modals |
 
 ---
 
