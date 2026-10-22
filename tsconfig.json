@@ -14,9 +14,9 @@
   },
   "include": [
     "src/**/*",
-    "server.js",
-    "db.ts",
-    "db.js"
+    "server.ts",
+    "migrate-all.ts",
+    "db.ts"
   ],
   "exclude": [
     "node_modules",

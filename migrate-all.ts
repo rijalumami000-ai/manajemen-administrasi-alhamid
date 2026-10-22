@@ -1,0 +1,90 @@
+/**
+ * ============================================================
+ *  MASTER MIGRATION RUNNER — jalankan sekali di VPS sebelum
+ *  menyalakan production server untuk pertama kali.
+ *
+ *  Perintah:
+ *    node migrate-all.js
+ *
+ *  Aman dijalankan berulang (idempotent — semua pakai IF NOT EXISTS).
+ * ============================================================
+ */
+
+import dotenv from 'dotenv';
+dotenv.config();
+
+interface MigrationItem {
+  name: string;
+  fn: {
+    up: () => Promise<void>;
+    down?: () => Promise<void>;
+  };
+}
+
+const migrations: MigrationItem[] = [
+  { name: 'add_face_recognition_tables',         fn: require('./migrations/add_face_recognition_tables') },
+  { name: 'add_biometric_fields_to_santri',      fn: require('./migrations/add_biometric_fields_to_santri') },
+  { name: 'add_semester_status_to_santri',       fn: require('./migrations/add_semester_status_to_santri') },
+  { name: 'add_tahun_ajaran_semester_to_absensi',fn: require('./migrations/add_tahun_ajaran_semester_to_absensi') },
+  { name: 'add_tingkat_to_kelas',                fn: require('./migrations/add_tingkat_to_kelas') },
+  { name: 'add_type_and_year_to_alumni',         fn: require('./migrations/add_type_and_year_to_alumni') },
+  { name: 'add_buku_induk_kartu_ujian',          fn: require('./migrations/add_buku_induk_kartu_ujian') },
+  { name: 'alter_nilai_angka_type',              fn: require('./migrations/alter_nilai_angka_type') },
+  { name: 'add_struktur_dan_jadwal_pelajaran',   fn: require('./migrations/add_struktur_dan_jadwal_pelajaran') },
+  { name: 'add_mymustahiq_credentials_to_guru',  fn: require('./migrations/add_mymustahiq_credentials_to_guru') },
+  { name: 'add_notifications_tables',            fn: require('./migrations/add_notifications_tables') },
+  { name: 'add_chat_messages_table',             fn: require('./migrations/add_chat_messages_table') },
+  { name: 'add_absensi_bulanan_table',           fn: require('./migrations/add_absensi_bulanan_table') },
+  { name: 'add_buku_induk_santri_fields',         fn: require('./migrations/add_buku_induk_santri_fields') },
+];
+
+async function runAll(): Promise<void> {
+  console.log('╔══════════════════════════════════════════╗');
+  console.log('║       MASTER MIGRATION RUNNER            ║');
+  console.log('╚══════════════════════════════════════════╝\n');
+
+  let passed = 0;
+  let failed = 0;
+  const errors: { name: string; error: string }[] = [];
+
+  for (const migration of migrations) {
+    console.log(`\n▶  Running: ${migration.name}`);
+    console.log('   ' + '─'.repeat(50));
+    try {
+      await migration.fn.up();
+      console.log(`   ✅  ${migration.name} — DONE`);
+      passed++;
+    } catch (err: any) {
+      console.error(`   ❌  ${migration.name} — FAILED`);
+      console.error(`   Error: ${err.message}`);
+      errors.push({ name: migration.name, error: err.message });
+      failed++;
+    }
+  }
+
+  console.log('\n╔══════════════════════════════════════════╗');
+  console.log('║             MIGRATION SUMMARY            ║');
+  console.log('╚══════════════════════════════════════════╝');
+  console.log(`  ✅ Passed : ${passed}`);
+  console.log(`  ❌ Failed : ${failed}`);
+
+  if (errors.length > 0) {
+    console.log('\n⚠️  Failed migrations:');
+    errors.forEach(e => {
+      console.log(`  - ${e.name}: ${e.error}`);
+    });
+    console.log('\nPeriksa error di atas sebelum menjalankan production server.');
+    process.exit(1);
+  } else {
+    console.log('\n🎉  Semua migration berhasil! Server siap dijalankan.\n');
+    process.exit(0);
+  }
+}
+
+runAll().catch(err => {
+  console.error('Fatal error:', err);
+  process.exit(1);
+});
+
+export { runAll };
+module.exports = { runAll };
