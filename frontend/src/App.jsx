@@ -25,6 +25,7 @@ const InformasiUjian = lazy(() => import('./pages/InformasiUjian').then(m => ({ 
 
 const RaporPrint = lazy(() => import('./pages/RaporPrint').then(m => ({ default: m.RaporPrint })));
 const LaporanUjianKhusus = lazy(() => import('./pages/LaporanUjianKhusus').then(m => ({ default: m.LaporanUjianKhusus })));
+const RekapMuhafadzohMini = lazy(() => import('./pages/RekapMuhafadzohMini').then(m => ({ default: m.RekapMuhafadzohMini })));
 const BukuInduk = lazy(() => import('./pages/BukuInduk').then(m => ({ default: m.BukuInduk })));
 const KartuUjianSemester = lazy(() => import('./pages/KartuUjianSemester').then(m => ({ default: m.KartuUjianSemester })));
 const VerificationPage = lazy(() => import('./pages/VerificationPage').then(m => ({ default: m.VerificationPage })));
@@ -108,6 +109,7 @@ function App() {
                   <Route path="informasi-ujian" element={<InformasiUjian />} />
                   <Route path="monitoring-setoran" element={<MonitoringSetoranHafalan />} />
                   <Route path="nilai-rekap" element={<ManajemenNilai mode="rekap" key="rekap" />} />
+                  <Route path="rekap-muhafadzoh-mini" element={<RekapMuhafadzohMini />} />
                   <Route path="laporan-ujian-khusus" element={<LaporanUjianKhusus />} />
                   <Route path="welcome" element={<Welcome />} />
                   <Route path="buku-induk" element={<BukuInduk />} />

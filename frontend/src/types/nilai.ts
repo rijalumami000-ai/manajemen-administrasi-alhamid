@@ -1,4 +1,4 @@
-export type InputSectionType = 'muhafadzoh' | 'qiroah' | 'taftisy' | 'ujian_tulis';
+export type InputSectionType = 'muhafadzoh_mini' | 'muhafadzoh' | 'qiroah' | 'taftisy' | 'ujian_tulis';
 
 export interface KelasItem {
   id: number;

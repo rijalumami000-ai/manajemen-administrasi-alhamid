@@ -70,6 +70,7 @@ const MobileMenu = ({ open, onClose, onLogout }) => {
         { key: '/kartu-ujian-semester', icon: <IdCard size={18} />, label: 'Kartu Ujian Tulis' },
         { key: '/lembar-ujian', icon: <FileText size={18} />, label: 'Lembar Ujian' },
         { key: '/scan-nilai', icon: <Scan size={18} />, label: 'Scan Nilai' },
+        { key: '/rekap-muhafadzoh-mini', icon: <Award size={18} />, label: 'Rekap Muhafadzoh Mini' },
         { key: '/laporan-ujian-khusus', icon: <FileText size={18} />, label: 'Laporan Ujian Khusus' },
         { key: '/nilai-rekap', icon: <FileSpreadsheet size={18} />, label: 'Rekap & Rapor' },
         { key: '/alumni', icon: <GraduationCap size={18} />, label: 'Alumni' },

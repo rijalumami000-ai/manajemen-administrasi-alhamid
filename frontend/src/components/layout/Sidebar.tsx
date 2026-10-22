@@ -250,6 +250,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ collapsed, onCollapse }) => {
         { key: '/kartu-ujian-semester', icon: 'IdCard', label: 'Kartu Ujian Tulis', disabled: isStaff() },
         { key: '/lembar-ujian', icon: 'FileText', label: 'Lembar Ujian', disabled: isStaff() },
         { key: '/scan-nilai', icon: 'Scan', label: 'Scan Nilai', disabled: isStaff() },
+        { key: '/rekap-muhafadzoh-mini', icon: 'Award', label: 'Rekap Muhafadzoh Mini', disabled: isStaff() },
         { key: '/laporan-ujian-khusus', icon: 'FileText', label: 'Laporan Ujian Khusus', disabled: isStaff() },
         { key: '/nilai-rekap', icon: 'FileSpreadsheet', label: 'Rekap & Rapor', disabled: isStaff() },
         { key: '/alumni', icon: 'GraduationCap', label: 'Alumni', disabled: isStaff() },

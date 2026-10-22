@@ -319,16 +319,12 @@ export const LaporanUjianKhusus = () => {
         Mutawassith: data.filter(r => r.predikat === "Mutawassith").length,
         Jayyid: data.filter(r => r.predikat === "Jayyid").length,
         Mumtaz: data.filter(r => r.predikat === "Mumtaz").length,
-        Lulus: data.filter(r => ["Mutawassith", "Jayyid", "Mumtaz"].includes(r.predikat || '')).length,
-        Tidak: data.filter(r => r.predikat === "Rodi'").length,
         Ghoib: data.filter(r => r.nilai_angka === null && !r.capaian).length,
       };
     } else if (activeTab === 'taftisyul_kutub') {
       counts = {
         Tam: data.filter(r => r.predikat === "Tam" || r.capaian === "Tam").length,
         Naqish: data.filter(r => r.predikat === "Naqish" || r.capaian === "Naqish").length,
-        Lulus: data.filter(r => r.predikat === "Tam" || r.capaian === "Tam").length,
-        Tidak: data.filter(r => r.predikat === "Naqish" || r.capaian === "Naqish").length,
         Ghoib: data.filter(r => r.nilai_angka === null && !r.capaian).length,
       };
     } else {
@@ -436,40 +432,34 @@ export const LaporanUjianKhusus = () => {
     let body: any[] = [];
 
     if (activeTab === 'muhafadzoh') {
-      headers = [['NO', 'NAMA SANTRI', 'NILAI', 'PREDIKAT', 'STATUS', 'CATATAN']];
+      headers = [['NO', 'NAMA SANTRI', 'NILAI', 'PREDIKAT']];
       body = classData.map((r, i) => [
         i + 1,
         r.nama,
-        r.nilai_angka !== null ? r.nilai_angka : '-',
-        r.predikat || '-',
-        r.status_kelulusan || '-',
-        r.catatan || '-'
+        (r.nilai_angka !== null && r.nilai_angka !== undefined && r.nilai_angka !== '') ? r.nilai_angka : (r.capaian || '-'),
+        r.predikat || '-'
       ]);
     } else if (activeTab === 'taftisyul_kutub') {
-      headers = [['NO', 'NAMA SANTRI', 'CAPAIAN', 'STATUS', 'CATATAN']];
+      headers = [['NO', 'NAMA SANTRI', 'CAPAIAN']];
       body = classData.map((r, i) => [
         i + 1,
         r.nama,
-        r.capaian || r.predikat || '-',
-        r.status_kelulusan || '-',
-        r.catatan || '-'
+        r.capaian || r.predikat || '-'
       ]);
     } else if (activeTab === 'qiroatul_kitab') {
-      headers = [['NO', 'NAMA SANTRI', 'NILAI', 'NILAI HURUF', 'CATATAN']];
+      headers = [['NO', 'NAMA SANTRI', 'NILAI']];
       body = classData.map((r, i) => [
         i + 1,
         r.nama,
-        r.nilai_angka !== null ? r.nilai_angka : '-',
-        r.nilai_huruf || '-',
-        r.catatan || '-'
+        (r.nilai_angka !== null && r.nilai_angka !== undefined && r.nilai_angka !== '') ? r.nilai_angka : (r.capaian || '-')
       ]);
     } else if (activeTab === 'ringkasan') {
       headers = [['NO', 'NAMA SANTRI', 'MUHAFADZOH', 'QIROATUL KITAB', 'TAFTISYUL KUTUB']];
       body = classData.map((r, i) => [
         i + 1,
         r.nama,
-        r.akbar ? `${r.akbar.predikat || '-'} (${r.akbar.status_kelulusan || '-'})` : '-',
-        r.qiroah ? (r.qiroah.nilai_angka !== null ? r.qiroah.nilai_angka : '-') : '-',
+        r.akbar ? (r.akbar.predikat || r.akbar.capaian || '-') : '-',
+        r.qiroah ? ((r.qiroah.nilai_angka !== null && r.qiroah.nilai_angka !== undefined && r.qiroah.nilai_angka !== '') ? r.qiroah.nilai_angka : (r.qiroah.capaian || '-')) : '-',
         r.taftisy ? (r.taftisy.capaian || r.taftisy.predikat || '-') : '-'
       ]);
     }
@@ -526,20 +516,31 @@ export const LaporanUjianKhusus = () => {
         No: i + 1,
         Nama: r.nama,
         NIS: r.nis || '',
-        'Muhafadzoh Predikat': r.akbar?.predikat || '-',
-        'Muhafadzoh Status': r.akbar?.status_kelulusan || '-',
-        'Qiroatul Kitab Nilai': r.qiroah?.nilai_angka !== null ? r.qiroah?.nilai_angka : '-',
-        'Taftisyul Kutub': r.taftisy?.capaian || r.taftisy?.predikat || '-'
+        'Muhafadzoh': r.akbar ? (r.akbar.predikat || r.akbar.capaian || '-') : '-',
+        'Qiroatul Kitab': r.qiroah ? ((r.qiroah.nilai_angka !== null && r.qiroah.nilai_angka !== undefined && r.qiroah.nilai_angka !== '') ? r.qiroah.nilai_angka : (r.qiroah.capaian || '-')) : '-',
+        'Taftisyul Kutub': r.taftisy ? (r.taftisy.capaian || r.taftisy.predikat || '-') : '-'
       }));
-    } else {
+    } else if (activeTab === 'muhafadzoh') {
       exportData = data.map((r, i) => ({
         No: i + 1,
         Nama: r.nama,
         NIS: r.nis || '',
-        Nilai: r.nilai_angka !== null ? r.nilai_angka : '-',
-        Predikat: r.predikat || r.capaian || '-',
-        Status: r.status_kelulusan || '-',
-        Catatan: r.catatan || '-'
+        Nilai: (r.nilai_angka !== null && r.nilai_angka !== undefined && r.nilai_angka !== '') ? r.nilai_angka : (r.capaian || '-'),
+        Predikat: r.predikat || '-'
+      }));
+    } else if (activeTab === 'taftisyul_kutub') {
+      exportData = data.map((r, i) => ({
+        No: i + 1,
+        Nama: r.nama,
+        NIS: r.nis || '',
+        Capaian: r.capaian || r.predikat || '-'
+      }));
+    } else if (activeTab === 'qiroatul_kitab') {
+      exportData = data.map((r, i) => ({
+        No: i + 1,
+        Nama: r.nama,
+        NIS: r.nis || '',
+        Nilai: (r.nilai_angka !== null && r.nilai_angka !== undefined && r.nilai_angka !== '') ? r.nilai_angka : (r.capaian || '-')
       }));
     }
 
@@ -827,10 +828,8 @@ export const LaporanUjianKhusus = () => {
                         <tr>
                           <th style={{ width: '50px', textAlign: 'center' }}>No</th>
                           <th>Nama Santri</th>
-                          <th style={{ width: '90px', textAlign: 'center' }}>Nilai</th>
-                          <th style={{ width: '130px', textAlign: 'center' }}>Predikat</th>
-                          <th style={{ width: '110px', textAlign: 'center' }}>Status</th>
-                          <th>Catatan</th>
+                          <th style={{ width: '130px', textAlign: 'center' }}>Nilai</th>
+                          <th style={{ width: '150px', textAlign: 'center' }}>Predikat</th>
                         </tr>
                       )}
 
@@ -838,9 +837,7 @@ export const LaporanUjianKhusus = () => {
                         <tr>
                           <th style={{ width: '50px', textAlign: 'center' }}>No</th>
                           <th>Nama Santri</th>
-                          <th style={{ width: '130px', textAlign: 'center' }}>Capaian</th>
-                          <th style={{ width: '110px', textAlign: 'center' }}>Status</th>
-                          <th>Catatan</th>
+                          <th style={{ width: '180px', textAlign: 'center' }}>Capaian</th>
                         </tr>
                       )}
 
@@ -848,9 +845,7 @@ export const LaporanUjianKhusus = () => {
                         <tr>
                           <th style={{ width: '50px', textAlign: 'center' }}>No</th>
                           <th>Nama Santri</th>
-                          <th style={{ width: '90px', textAlign: 'center' }}>Nilai</th>
-                          <th style={{ width: '120px', textAlign: 'center' }}>Nilai Huruf</th>
-                          <th>Catatan</th>
+                          <th style={{ width: '140px', textAlign: 'center' }}>Nilai</th>
                         </tr>
                       )}
 
@@ -872,24 +867,16 @@ export const LaporanUjianKhusus = () => {
                             <tr key={row.santri_id || idx}>
                               <td className="center-text">{idx + 1}</td>
                               <td className="student-name-cell">{row.nama}</td>
-                              <td className="center-text" style={{ fontWeight: 'bold' }}>{formatNilai(row.nilai_angka)}</td>
+                              <td className="center-text" style={{ fontWeight: 'bold' }}>
+                                {row.nilai_angka !== null && row.nilai_angka !== undefined && row.nilai_angka !== ''
+                                  ? formatNilai(row.nilai_angka)
+                                  : (row.capaian || '-')}
+                              </td>
                               <td className="center-text">
                                 <span className={`predikat-badge ${getPredClass(row.predikat)}`}>
                                   {row.predikat || '-'}
                                 </span>
                               </td>
-                              <td className="center-text">
-                                {row.status_kelulusan === 'Lulus' ? (
-                                  <span style={{ color: '#10b981', fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
-                                    <CheckCircle size={14} /> Lulus
-                                  </span>
-                                ) : row.status_kelulusan ? (
-                                  <span style={{ color: '#ef4444', fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
-                                    <XCircle size={14} /> Tidak Lulus
-                                  </span>
-                                ) : '-'}
-                              </td>
-                              <td>{row.catatan || '-'}</td>
                             </tr>
                           );
                         }
@@ -904,18 +891,6 @@ export const LaporanUjianKhusus = () => {
                                   {row.capaian || row.predikat || '-'}
                                 </span>
                               </td>
-                              <td className="center-text">
-                                {row.status_kelulusan === 'Lulus' ? (
-                                  <span style={{ color: '#10b981', fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
-                                    <CheckCircle size={14} /> Lulus
-                                  </span>
-                                ) : row.status_kelulusan ? (
-                                  <span style={{ color: '#ef4444', fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
-                                    <XCircle size={14} /> Tidak Lulus
-                                  </span>
-                                ) : '-'}
-                              </td>
-                              <td>{row.catatan || '-'}</td>
                             </tr>
                           );
                         }
@@ -925,9 +900,11 @@ export const LaporanUjianKhusus = () => {
                             <tr key={row.santri_id || idx}>
                               <td className="center-text">{idx + 1}</td>
                               <td className="student-name-cell">{row.nama}</td>
-                              <td className="center-text" style={{ fontWeight: 'bold' }}>{formatNilai(row.nilai_angka)}</td>
-                              <td className="center-text" style={{ fontWeight: 'bold' }}>{row.nilai_huruf || '-'}</td>
-                              <td>{row.catatan || '-'}</td>
+                              <td className="center-text" style={{ fontWeight: 'bold' }}>
+                                {row.nilai_angka !== null && row.nilai_angka !== undefined && row.nilai_angka !== ''
+                                  ? formatNilai(row.nilai_angka)
+                                  : (row.capaian || '-')}
+                              </td>
                             </tr>
                           );
                         }
@@ -940,12 +917,16 @@ export const LaporanUjianKhusus = () => {
                             <td className="center-text">
                               {row.akbar ? (
                                 <span className={`predikat-badge ${getPredClass(row.akbar.predikat)}`}>
-                                  {row.akbar.predikat || '-'} ({row.akbar.status_kelulusan || '-'})
+                                  {row.akbar.predikat || row.akbar.capaian || '-'}
                                 </span>
                               ) : '-'}
                             </td>
                             <td className="center-text" style={{ fontWeight: 'bold' }}>
-                              {row.qiroah ? (row.qiroah.nilai_angka !== null ? row.qiroah.nilai_angka : '-') : '-'}
+                              {row.qiroah ? (
+                                (row.qiroah.nilai_angka !== null && row.qiroah.nilai_angka !== undefined && row.qiroah.nilai_angka !== '')
+                                  ? row.qiroah.nilai_angka
+                                  : (row.qiroah.capaian || '-')
+                              ) : '-'}
                             </td>
                             <td className="center-text">
                               {row.taftisy ? (
@@ -960,7 +941,7 @@ export const LaporanUjianKhusus = () => {
 
                       {data.length === 0 && (
                         <tr>
-                          <td colSpan={6} style={{ textAlign: 'center', padding: '24px', color: '#64748b' }}>
+                          <td colSpan={5} style={{ textAlign: 'center', padding: '24px', color: '#64748b' }}>
                             Belum ada data nilai untuk kelas terpilih.
                           </td>
                         </tr>
@@ -999,8 +980,6 @@ export const LaporanUjianKhusus = () => {
                         <th style={{ width: '110px', textAlign: 'center' }}>Mutawassith</th>
                         <th style={{ width: '90px', textAlign: 'center' }}>Jayyid</th>
                         <th style={{ width: '90px', textAlign: 'center' }}>Mumtaz</th>
-                        <th style={{ width: '90px', textAlign: 'center' }}>Lulus</th>
-                        <th style={{ width: '90px', textAlign: 'center' }}>Tidak</th>
                         <th style={{ width: '90px', textAlign: 'center' }}>Ghoib</th>
                       </tr>
                     )}
@@ -1012,8 +991,6 @@ export const LaporanUjianKhusus = () => {
                         <th style={{ width: '100px', textAlign: 'center' }}>Siswa</th>
                         <th style={{ width: '100px', textAlign: 'center' }}>Naqish</th>
                         <th style={{ width: '100px', textAlign: 'center' }}>Tam</th>
-                        <th style={{ width: '100px', textAlign: 'center' }}>Lulus</th>
-                        <th style={{ width: '100px', textAlign: 'center' }}>Tidak</th>
                         <th style={{ width: '100px', textAlign: 'center' }}>Ghoib</th>
                       </tr>
                     )}
@@ -1051,8 +1028,6 @@ export const LaporanUjianKhusus = () => {
                             <td className="center-text">{getPercentSpan(row.mutawassith || 0)}</td>
                             <td className="center-text">{getPercentSpan(row.jayyid || 0)}</td>
                             <td className="center-text">{getPercentSpan(row.mumtaz || 0)}</td>
-                            <td className="center-text">{getPercentSpan(row.lulus || 0)}</td>
-                            <td className="center-text">{getPercentSpan(row.tidak || 0)}</td>
                             <td className="center-text">{getPercentSpan(row.ghoib || 0)}</td>
                           </tr>
                         );
@@ -1066,8 +1041,6 @@ export const LaporanUjianKhusus = () => {
                             <td className="center-text" style={{ fontWeight: 'bold' }}>{row.jumlah_siswa}</td>
                             <td className="center-text">{getPercentSpan(row.naqish || 0)}</td>
                             <td className="center-text">{getPercentSpan(row.tam || 0)}</td>
-                            <td className="center-text">{getPercentSpan(row.lulus || 0)}</td>
-                            <td className="center-text">{getPercentSpan(row.tidak || 0)}</td>
                             <td className="center-text">{getPercentSpan(row.ghoib || 0)}</td>
                           </tr>
                         );

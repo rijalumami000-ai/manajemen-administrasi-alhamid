@@ -24,7 +24,9 @@ import {
   School, 
   Sparkles,
   ArrowLeft,
-  ArrowRight
+  ArrowRight,
+  Search,
+  RotateCcw
 } from 'lucide-react';
 import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
@@ -67,11 +69,12 @@ export function ManajemenNilai({ mode = 'input' }: ManajemenNilaiProps) {
 
   // ── Main Tabs & Sub-Section States ─────────────────────────
   const [activeTab, setActiveTab] = useState<string>(
-    mode === 'rekap' ? 'rekap' : mode === 'input-ujian' ? 'ujian_tulis' : 'muhafadzoh'
+    mode === 'rekap' ? 'rekap' : mode === 'input-ujian' ? 'ujian_tulis' : 'muhafadzoh_mini'
   );
   const [inputSection, setInputSection] = useState<InputSectionType>(
-    mode === 'input-ujian' ? 'ujian_tulis' : 'muhafadzoh'
+    mode === 'input-ujian' ? 'ujian_tulis' : 'muhafadzoh_mini'
   );
+  const [miniSubTab, setMiniSubTab] = useState<number>(1);
 
   // ── Filter & Class Selection States ────────────────────────
   const [selectedTingkat, setSelectedTingkat] = useState<number | null>(null);
@@ -99,6 +102,7 @@ export function ManajemenNilai({ mode = 'input' }: ManajemenNilaiProps) {
   const [isManualRankModalOpen, setIsManualRankModalOpen] = useState<boolean>(false);
   const [manualRankData, setManualRankData] = useState<ManualRankItem[]>([]);
   const [manualRankSaveLoading, setManualRankSaveLoading] = useState<boolean>(false);
+  const [rankSearchQuery, setRankSearchQuery] = useState<string>('');
 
   // Synchronized horizontal scroll refs
   const rekapTopScrollRef = useRef<HTMLDivElement | null>(null);
@@ -217,15 +221,23 @@ export function ManajemenNilai({ mode = 'input' }: ManajemenNilaiProps) {
     return regulars;
   }, [mataPelajaran, mapelTingkat, selectedTingkat]);
 
-  // Synchronize selectedMapel when inputSection or selectedTingkat changes
+  // Synchronize selectedMapel when inputSection, miniSubTab, or selectedTingkat changes
   useEffect(() => {
     if (!mataPelajaran.length) return;
 
-    if (inputSection === 'muhafadzoh') {
+    if (inputSection === 'muhafadzoh_mini') {
+      const targetName = `muhafadzoh mini ${miniSubTab}`;
+      const target = mataPelajaran.find(m => 
+        m.nama?.toLowerCase() === targetName
+      ) || mataPelajaran.find(m => 
+        m.jenis?.toLowerCase() === 'muhafadzoh' && m.nama?.toLowerCase().includes(`mini ${miniSubTab}`)
+      );
+      if (target) setSelectedMapel(target.id);
+    } else if (inputSection === 'muhafadzoh') {
       const target = mataPelajaran.find(m => 
         m.jenis?.toLowerCase() === 'muhafadzoh' && m.nama?.toLowerCase().includes('akbar')
-      ) || mataPelajaran.find(m => m.jenis?.toLowerCase() === 'muhafadzoh')
-        || mataPelajaran.find(m => m.nama?.toLowerCase().includes('muhafadzoh'));
+      ) || mataPelajaran.find(m => m.jenis?.toLowerCase() === 'muhafadzoh' && !m.nama?.toLowerCase().includes('mini'))
+        || mataPelajaran.find(m => m.nama?.toLowerCase().includes('muhafadzoh akbar'));
       if (target) setSelectedMapel(target.id);
     } else if (inputSection === 'qiroah') {
       const target = mataPelajaran.find(m => m.jenis?.toLowerCase() === 'qiroah') ||
@@ -245,7 +257,7 @@ export function ManajemenNilai({ mode = 'input' }: ManajemenNilaiProps) {
         }
       }
     }
-  }, [inputSection, mataPelajaran, regularMapelOptions, selectedTingkat]);
+  }, [inputSection, miniSubTab, mataPelajaran, regularMapelOptions, selectedTingkat]);
 
   // ── 4. EFFECTIVE KRITERIA TYPE CALCULATION ──────────────────
   const effectiveKriteriaType = useMemo(() => {
@@ -624,12 +636,30 @@ export function ManajemenNilai({ mode = 'input' }: ManajemenNilaiProps) {
     }
   };
 
-  // Manual Rank Modal Handlers
+  // Manual Rank Adjustment Memos & Handlers
+  const duplicateRanks = useMemo(() => {
+    const counts: Record<string, number> = {};
+    manualRankData.forEach(d => {
+      const val = String(d.peringkat_manual ?? '').trim();
+      if (val) counts[val] = (counts[val] || 0) + 1;
+    });
+    return Object.keys(counts).filter(k => counts[k] > 1);
+  }, [manualRankData]);
+
+  const filteredRankData = useMemo(() => {
+    if (!rankSearchQuery.trim()) return manualRankData;
+    const q = rankSearchQuery.toLowerCase();
+    return manualRankData.filter(d => 
+      d.nama?.toLowerCase().includes(q) || (d.nis && String(d.nis).toLowerCase().includes(q))
+    );
+  }, [manualRankData, rankSearchQuery]);
+
   const handleOpenManualRankModal = () => {
     if (!rekapData || rekapData.length === 0) {
       toast.warning('Pilih kelas terlebih dahulu atau data rekap masih kosong.');
       return;
     }
+    setRankSearchQuery('');
     setManualRankData(rekapData.map((r, idx) => ({
       santri_id: r.santri_id,
       nama: r.nama,
@@ -841,6 +871,17 @@ export function ManajemenNilai({ mode = 'input' }: ManajemenNilaiProps) {
           {/* Ujian & Penilaian Spesifik */}
           <button
             type="button"
+            className={`tactile-tab-pill ${activeTab === 'muhafadzoh_mini' ? 'active' : ''}`}
+            onClick={() => {
+              setActiveTab('muhafadzoh_mini');
+              setInputSection('muhafadzoh_mini');
+            }}
+          >
+            <Award size={15} />
+            <span>Muhafadzoh Mini</span>
+          </button>
+          <button
+            type="button"
             className={`tactile-tab-pill ${activeTab === 'muhafadzoh' ? 'active' : ''}`}
             onClick={() => {
               setActiveTab('muhafadzoh');
@@ -945,13 +986,33 @@ export function ManajemenNilai({ mode = 'input' }: ManajemenNilaiProps) {
         </nav>
       )}
 
-      {/* ── 3. TAB CONTENT: INPUT PENILAIAN (MUHAFADZOH, QIROAH, TAFTISY, UJIAN TULIS) ── */}
-      {['muhafadzoh', 'qiroah', 'taftisy', 'ujian_tulis'].includes(activeTab) && (
+      {/* ── 3. TAB CONTENT: INPUT PENILAIAN (MUHAFADZOH MINI, MUHAFADZOH AKBAR, QIROAH, TAFTISY, UJIAN TULIS) ── */}
+      {['muhafadzoh_mini', 'muhafadzoh', 'qiroah', 'taftisy', 'ujian_tulis'].includes(activeTab) && (
         <div className="input-sections-container">
           <div className="liquid-glass-table-card">
             
             {/* Quick Class Selection Bar (Tingkatan & Rincian Kelas) */}
             {renderClassSwitcherBar()}
+
+            {/* Sub-Pills for Muhafadzoh Mini (Mini 1, Mini 2, Mini 3, Mini 4) */}
+            {activeTab === 'muhafadzoh_mini' && (
+              <div className="regular-mapel-pills-bar mini-subtabs-bar">
+                <span className="mapel-pill-label">
+                  <Sparkles size={13} style={{ color: '#0284c7' }} />
+                  <span>Pilih Evaluasi Mini:</span>
+                </span>
+                {[1, 2, 3, 4].map(num => (
+                  <button
+                    key={num}
+                    type="button"
+                    className={`mapel-sub-pill ${miniSubTab === num ? 'active' : ''}`}
+                    onClick={() => setMiniSubTab(num)}
+                  >
+                    Muhafadzoh Mini {num}
+                  </button>
+                ))}
+              </div>
+            )}
 
             {/* Sub-Pills for regular exam subjects when in 'ujian_tulis' tab */}
             {activeTab === 'ujian_tulis' && regularMapelOptions.length > 0 && (
@@ -1024,7 +1085,7 @@ export function ManajemenNilai({ mode = 'input' }: ManajemenNilaiProps) {
                       {santriList.map((record, index) => {
                         const isTaftisy = inputSection === 'taftisy';
                         const isQiroat = inputSection === 'qiroah';
-                        const isMuhafadzoh = inputSection === 'muhafadzoh';
+                        const isMuhafadzoh = inputSection === 'muhafadzoh' || inputSection === 'muhafadzoh_mini';
 
                         let inputElement: React.ReactNode = null;
 
@@ -1569,54 +1630,162 @@ export function ManajemenNilai({ mode = 'input' }: ManajemenNilaiProps) {
         isOpen={isManualRankModalOpen}
         onClose={() => setIsManualRankModalOpen(false)}
         title="Sesuaikan Urutan Peringkat Rapor"
+        subtitle={`Kelas: ${activeClassObj?.nama || '-'} • Penyesuaian urutan peringkat cetak rapor`}
+        width={780}
       >
-        <div style={{ padding: '4px 0' }}>
+        <div className="rank-adjust-modal-container">
           <SmartAlert
-            message="Penyesuaian urutan peringkat manual di sini tidak mengubah Total Nilai maupun Rata-rata asli yang diolah sistem. Peringkat ini akan ditampilkan pada lembar rapor cetak santri."
-            type="warning"
+            message="Penyesuaian urutan peringkat manual di sini hanya menentukan urutan ranking yang dicetak pada lembar Rapor Santri, tanpa mengubah nilai asli dan rata-rata hasil olahan sistem."
+            type="info"
           />
 
-          <div className="rank-adjust-list" style={{ marginTop: '16px' }}>
-            {manualRankData.map((row, idx) => (
-              <div key={row.santri_id} className="rank-adjust-row">
-                <div className="student-info">
-                  <span className="name">{row.nama}</span>
-                  <span className="desc">Total: {row.total_nilai} | Sistem: #{row.peringkat_sistem}</span>
-                </div>
-                <div className="input-wrapper">
-                  <span>Peringkat:</span>
-                  <input
-                    type="number"
-                    className="rank-input"
-                    min={1}
-                    value={row.peringkat_manual}
-                    onChange={(e) => {
-                      const updated = [...manualRankData];
-                      updated[idx].peringkat_manual = e.target.value;
-                      setManualRankData(updated);
-                    }}
-                    placeholder={`#${row.peringkat_sistem}`}
-                  />
-                </div>
-              </div>
-            ))}
-          </div>
+          {duplicateRanks.length > 0 && (
+            <div className="rank-conflict-alert">
+              <span className="alert-icon">⚠️</span>
+              <span>Perhatian: Terdapat peringkat kembar (#{duplicateRanks.join(', #')}). Pastikan setiap santri memiliki peringkat yang unik sebelum mencetak rapor.</span>
+            </div>
+          )}
 
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '20px', flexWrap: 'wrap', gap: '10px' }}>
+          <div className="rank-adjust-toolbar">
+            <div className="rank-search-box">
+              <Search size={14} />
+              <input
+                type="text"
+                placeholder="Cari santri berdasarkan nama atau NIS..."
+                value={rankSearchQuery}
+                onChange={e => setRankSearchQuery(e.target.value)}
+              />
+              {rankSearchQuery && (
+                <button type="button" className="clear-search-btn" onClick={() => setRankSearchQuery('')}>×</button>
+              )}
+            </div>
+
             <button
               type="button"
-              className="action-pill-btn"
+              className="action-pill-btn reset-rank-btn"
               onClick={() => {
                 setManualRankData(prev => prev.map((item, idx) => ({
                   ...item,
-                  peringkat_manual: idx + 1
+                  peringkat_manual: item.peringkat_sistem || (idx + 1)
                 })));
                 toast.info('Peringkat dikembalikan ke urutan sistem.');
               }}
+              title="Urutkan kembali sesuai peringkat otomatis sistem"
             >
-              Reset ke Sistem
+              <RotateCcw size={13} />
+              <span>Reset ke Sistem</span>
             </button>
-            <div style={{ display: 'flex', gap: '10px' }}>
+          </div>
+
+          <div className="rank-table-wrap">
+            <table className="rank-adjust-table">
+              <thead>
+                <tr>
+                  <th style={{ width: '70px', textAlign: 'center' }}>Posisi</th>
+                  <th>Identitas Santri</th>
+                  <th style={{ width: '140px', textAlign: 'center' }}>Total & Rata-rata</th>
+                  <th style={{ width: '90px', textAlign: 'center' }}>Sistem</th>
+                  <th style={{ width: '170px', textAlign: 'center' }}>Peringkat Rapor</th>
+                </tr>
+              </thead>
+              <tbody>
+                {filteredRankData.map((row) => {
+                  const actualIdx = manualRankData.findIndex(d => d.santri_id === row.santri_id);
+                  const rankNum = Number(row.peringkat_manual);
+                  const isTop3 = rankNum >= 1 && rankNum <= 3;
+                  const isDuplicate = duplicateRanks.includes(String(row.peringkat_manual ?? '').trim());
+
+                  return (
+                    <tr key={row.santri_id} className={`rank-row ${isDuplicate ? 'has-conflict' : ''}`}>
+                      <td style={{ textAlign: 'center' }}>
+                        <span className={`rank-podium-badge ${rankNum === 1 ? 'rank-gold' : rankNum === 2 ? 'rank-silver' : rankNum === 3 ? 'rank-bronze' : 'rank-standard'}`}>
+                          #{row.peringkat_manual || '-'}
+                        </span>
+                      </td>
+                      <td>
+                        <div className="rank-person-cell">
+                          <div className={`rank-lens-orb ${isTop3 ? 'orb-top' : ''}`}>
+                            {row.nama ? row.nama.charAt(0).toUpperCase() : 'S'}
+                          </div>
+                          <div className="rank-person-meta">
+                            <span className="rank-person-name">{row.nama}</span>
+                            <span className="rank-person-nis">NIS: {row.nis || '-'}</span>
+                          </div>
+                        </div>
+                      </td>
+                      <td style={{ textAlign: 'center' }}>
+                        <div className="score-stack">
+                          <span className="score-total">Total: <strong>{row.total_nilai}</strong></span>
+                          <span className="score-avg">Rata: {row.rata_rata}</span>
+                        </div>
+                      </td>
+                      <td style={{ textAlign: 'center' }}>
+                        <span className="system-rank-tag">#{row.peringkat_sistem}</span>
+                      </td>
+                      <td>
+                        <div className="rank-input-stepper">
+                          <button
+                            type="button"
+                            className="stepper-btn dec-btn"
+                            disabled={Number(row.peringkat_manual) <= 1}
+                            onClick={() => {
+                              if (actualIdx < 0) return;
+                              const updated = [...manualRankData];
+                              const currentVal = Number(updated[actualIdx].peringkat_manual) || 1;
+                              updated[actualIdx].peringkat_manual = Math.max(1, currentVal - 1);
+                              setManualRankData(updated);
+                            }}
+                          >
+                            -
+                          </button>
+                          <input
+                            type="number"
+                            className={`rank-input ${isDuplicate ? 'input-conflict' : ''}`}
+                            min={1}
+                            value={row.peringkat_manual}
+                            onChange={(e) => {
+                              if (actualIdx < 0) return;
+                              const updated = [...manualRankData];
+                              updated[actualIdx].peringkat_manual = e.target.value;
+                              setManualRankData(updated);
+                            }}
+                            placeholder={`#${row.peringkat_sistem}`}
+                          />
+                          <button
+                            type="button"
+                            className="stepper-btn inc-btn"
+                            onClick={() => {
+                              if (actualIdx < 0) return;
+                              const updated = [...manualRankData];
+                              const currentVal = Number(updated[actualIdx].peringkat_manual) || 0;
+                              updated[actualIdx].peringkat_manual = currentVal + 1;
+                              setManualRankData(updated);
+                            }}
+                          >
+                            +
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
+
+                {filteredRankData.length === 0 && (
+                  <tr>
+                    <td colSpan={5} style={{ textAlign: 'center', padding: '28px', color: '#64748b' }}>
+                      Tidak ditemukan santri dengan pencarian "{rankSearchQuery}".
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+
+          <div className="rank-modal-footer">
+            <span className="footer-summary-text">
+              Menampilkan {filteredRankData.length} dari {manualRankData.length} santri
+            </span>
+            <div className="footer-actions">
               <button
                 type="button"
                 className="action-pill-btn"
@@ -1630,7 +1799,8 @@ export function ManajemenNilai({ mode = 'input' }: ManajemenNilaiProps) {
                 onClick={handleManualRankSave}
                 disabled={manualRankSaveLoading}
               >
-                {manualRankSaveLoading ? <span className="loading-spinner"></span> : <span>Simpan Peringkat</span>}
+                {manualRankSaveLoading ? <span className="loading-spinner"></span> : <Save size={13} />}
+                <span>Simpan Peringkat</span>
               </button>
             </div>
           </div>
