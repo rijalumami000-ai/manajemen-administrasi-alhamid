@@ -51,6 +51,11 @@
       @media (max-width: 540px) {
         grid-template-columns: 1fr;
       }
+
+      .ui-floating-input,
+      .ui-custom-select {
+        margin-bottom: 0;
+      }
     }
 
     .form-grid-3 {
@@ -61,12 +66,22 @@
       @media (max-width: 540px) {
         grid-template-columns: 1fr;
       }
+
+      .ui-floating-input,
+      .ui-custom-select {
+        margin-bottom: 0;
+      }
     }
 
     .form-full-stack {
       display: flex;
       flex-direction: column;
       gap: 12px;
+
+      .ui-floating-input,
+      .ui-custom-select {
+        margin-bottom: 0;
+      }
     }
   }
 }

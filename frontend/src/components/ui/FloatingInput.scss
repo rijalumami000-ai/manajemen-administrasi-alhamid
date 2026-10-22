@@ -71,12 +71,36 @@
     color: #0f172a;
     outline: none;
 
+    // Resting placeholder hidden so it NEVER collides with resting label
+    &::placeholder {
+      color: transparent !important;
+      opacity: 0 !important;
+      transition: opacity 0.18s cubic-bezier(0.16, 1, 0.3, 1), color 0.18s ease;
+    }
+
+    &:focus::placeholder {
+      color: #94a3b8 !important;
+      opacity: 1 !important;
+    }
+
     [data-theme="dark"] & {
       color: #f1f5f9;
+
+      &:focus::placeholder {
+        color: #64748b !important;
+        opacity: 1 !important;
+      }
     }
 
     &[type="date"] {
       color: transparent;
+
+      &::-webkit-datetime-edit {
+        color: transparent;
+      }
+      &::-webkit-calendar-picker-indicator {
+        opacity: 0.4;
+      }
     }
 
     &:disabled {
@@ -91,12 +115,18 @@
     top: 50%;
     transform: translateY(-50%);
     font-size: 13.5px;
+    line-height: 1;
     color: #94a3b8;
     pointer-events: none;
     transition: all 0.18s cubic-bezier(0.16, 1, 0.3, 1);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: calc(100% - 24px);
 
     .required-asterisk {
       color: #ef4444;
+      margin-left: 2px;
     }
 
     [data-theme="dark"] & {
@@ -107,20 +137,36 @@
     }
   }
 
-  // Floating label position: Has value or active (Clean Neutral Slate)
+  // Floating label position: Has value, active, or focused
   &.active,
-  &.has-value {
+  &.has-value,
+  &.is-focused,
+  &:focus-within {
     .ui-floating-input__label {
-      top: 9px;
+      top: 6px;
+      transform: none; // Crucial: clear translateY(-50%) so it doesn't clip
       font-size: 11px;
+      line-height: 1.2;
       font-weight: 600;
       color: #64748b;
     }
 
     .ui-floating-input__field[type="date"] {
       color: #0f172a;
+
+      &::-webkit-datetime-edit {
+        color: inherit;
+      }
+      &::-webkit-calendar-picker-indicator {
+        opacity: 0.7;
+      }
+
       [data-theme="dark"] & {
         color: #f1f5f9;
+        &::-webkit-calendar-picker-indicator {
+          filter: invert(1);
+          opacity: 0.8;
+        }
       }
     }
 
@@ -132,7 +178,8 @@
   }
 
   // Focused state (Apple System Blue Focus Aura)
-  &.is-focused {
+  &.is-focused,
+  &:focus-within {
     .ui-floating-input__wrapper {
       background: rgba(255, 255, 255, 0.94);
       border-color: #3b82f6;
@@ -150,6 +197,11 @@
       color: #2563eb;
     }
 
+    .ui-floating-input__field::placeholder {
+      color: #94a3b8 !important;
+      opacity: 1 !important;
+    }
+
     [data-theme="dark"] & {
       .ui-floating-input__wrapper {
         background: rgba(30, 41, 59, 0.85);
@@ -160,6 +212,10 @@
       .ui-floating-input__label {
         color: #60a5fa;
       }
+      .ui-floating-input__field::placeholder {
+        color: #64748b !important;
+        opacity: 1 !important;
+      }
     }
   }
 
@@ -169,11 +225,16 @@
     }
     .ui-floating-input__label {
       left: 38px;
+      max-width: calc(100% - 50px);
     }
     &.active,
-    &.has-value {
+    &.has-value,
+    &.is-focused,
+    &:focus-within {
       .ui-floating-input__label {
         left: 38px;
+        top: 6px;
+        transform: none;
       }
     }
   }
@@ -186,7 +247,8 @@
     .ui-floating-input__label {
       color: #ef4444;
     }
-    &.is-focused .ui-floating-input__wrapper {
+    &.is-focused .ui-floating-input__wrapper,
+    &:focus-within .ui-floating-input__wrapper {
       box-shadow: 0 0 0 3.5px rgba(239, 68, 68, 0.18);
     }
 
@@ -198,7 +260,8 @@
       .ui-floating-input__label {
         color: #f87171;
       }
-      &.is-focused .ui-floating-input__wrapper {
+      &.is-focused .ui-floating-input__wrapper,
+      &:focus-within .ui-floating-input__wrapper {
         box-shadow: 0 0 0 3.5px rgba(248, 113, 113, 0.25);
       }
     }

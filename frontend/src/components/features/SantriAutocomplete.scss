@@ -1,0 +1,179 @@
+.ui-santri-autocomplete {
+  position: relative;
+  width: 100%;
+
+  &__trigger {
+    position: relative;
+    display: flex;
+    align-items: center;
+    background: rgba(255, 255, 255, 0.65);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border: 1px solid rgba(203, 213, 225, 0.75);
+    border-top: 1px solid rgba(255, 255, 255, 0.95);
+    border-radius: 12px;
+    box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.85), 0 1px 3px rgba(15, 23, 42, 0.02);
+    transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+    min-height: 48px;
+
+    &:hover {
+      background: rgba(255, 255, 255, 0.85);
+      border-color: rgba(148, 163, 184, 0.85);
+      box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.95), 0 2px 5px rgba(15, 23, 42, 0.04);
+    }
+
+    &.is-focused {
+      background: rgba(255, 255, 255, 0.95);
+      border-color: #3b82f6;
+      box-shadow: 
+        0 0 0 3.5px rgba(59, 130, 246, 0.16),
+        0 2px 8px rgba(59, 130, 246, 0.08),
+        inset 0 1px 1px rgba(255, 255, 255, 0.95);
+    }
+
+    &.has-error {
+      border-color: #ef4444;
+      background: rgba(254, 242, 242, 0.7);
+    }
+
+    [data-theme="dark"] & {
+      background: rgba(30, 41, 59, 0.55);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-top: 1px solid rgba(255, 255, 255, 0.18);
+      box-shadow: inset 0 1px 1px rgba(0, 0, 0, 0.2);
+
+      &:hover {
+        background: rgba(30, 41, 59, 0.75);
+        border-color: rgba(255, 255, 255, 0.2);
+      }
+
+      &.is-focused {
+        background: rgba(30, 41, 59, 0.9);
+        border-color: #3b82f6;
+        box-shadow: 0 0 0 3.5px rgba(59, 130, 246, 0.25);
+      }
+
+      &.has-error {
+        border-color: #f87171;
+        background: rgba(239, 68, 68, 0.15);
+      }
+    }
+  }
+
+  &__icon {
+    position: absolute;
+    left: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: #94a3b8;
+    pointer-events: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: color 0.18s ease;
+
+    .is-focused & {
+      color: #2563eb;
+    }
+
+    [data-theme="dark"] & {
+      color: #64748b;
+      .is-focused & {
+        color: #60a5fa;
+      }
+    }
+  }
+
+  &__input {
+    width: 100%;
+    padding: 12px 14px 12px 38px;
+    border: none;
+    background: transparent;
+    font-size: 13.5px;
+    font-weight: 500;
+    color: #0f172a;
+    outline: none;
+
+    &::placeholder {
+      color: #94a3b8;
+      opacity: 1;
+    }
+
+    [data-theme="dark"] & {
+      color: #f1f5f9;
+      &::placeholder {
+        color: #64748b;
+      }
+    }
+  }
+
+  &__dropdown {
+    position: absolute;
+    top: calc(100% + 6px);
+    left: 0;
+    right: 0;
+    background: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid rgba(203, 213, 225, 0.85);
+    border-top: 1.5px solid rgba(255, 255, 255, 0.98);
+    border-radius: 14px;
+    box-shadow: 0 12px 32px rgba(15, 23, 42, 0.12), 0 2px 8px rgba(15, 23, 42, 0.04);
+    max-height: 240px;
+    overflow-y: auto;
+    z-index: 1000;
+    padding: 6px;
+
+    [data-theme="dark"] & {
+      background: rgba(30, 41, 59, 0.95);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      border-top: 1.5px solid rgba(255, 255, 255, 0.22);
+      box-shadow: 0 16px 36px rgba(0, 0, 0, 0.4);
+    }
+  }
+
+  &__item {
+    padding: 9px 12px;
+    font-size: 13px;
+    cursor: pointer;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    color: #1e293b;
+    transition: all 0.15s ease;
+
+    &:hover {
+      background: rgba(241, 245, 249, 0.85);
+      color: #0f172a;
+    }
+
+    .item-nis {
+      font-weight: 700;
+      color: #2563eb;
+    }
+
+    [data-theme="dark"] & {
+      color: #cbd5e1;
+      &:hover {
+        background: rgba(255, 255, 255, 0.08);
+        color: #ffffff;
+      }
+      .item-nis {
+        color: #60a5fa;
+      }
+    }
+  }
+
+  &__error {
+    font-size: 11.5px;
+    color: #ef4444;
+    margin-top: 4px;
+    padding-left: 4px;
+    font-weight: 600;
+
+    [data-theme="dark"] & {
+      color: #f87171;
+    }
+  }
+}

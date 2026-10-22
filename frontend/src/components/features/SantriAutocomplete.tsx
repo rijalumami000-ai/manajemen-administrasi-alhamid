@@ -1,18 +1,30 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { User, Search } from 'lucide-react';
 import { pelanggaranService } from '../../services/pelanggaranService';
+import './SantriAutocomplete.scss';
 
 export interface SantriAutocompleteProps {
   value?: string | number;
   onChange: (value: string | number) => void;
   error?: string;
   santriList?: any[];
+  placeholder?: string;
+  disabled?: boolean;
 }
 
-export function SantriAutocomplete({ value, onChange, error, santriList: externalSantriList }: SantriAutocompleteProps) {
+export function SantriAutocomplete({ 
+  value, 
+  onChange, 
+  error, 
+  santriList: externalSantriList,
+  placeholder = 'Ketik nama atau NIS santri...',
+  disabled = false
+}: SantriAutocompleteProps) {
   const [searchTerm, setSearchTerm] = useState<string>('');
   const [santriList, setSantriList] = useState<any[]>([]);
   const [isOpen, setIsOpen] = useState<boolean>(false);
+  const [isFocused, setIsFocused] = useState<boolean>(false);
+  const containerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (externalSantriList) {
@@ -32,6 +44,17 @@ export function SantriAutocomplete({ value, onChange, error, santriList: externa
       setSearchTerm('');
     }
   }, [value, santriList]);
+
+  // Click outside to close dropdown
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
+        setIsOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
   const loadSantriList = async (): Promise<void> => {
     try {
@@ -62,70 +85,48 @@ export function SantriAutocomplete({ value, onChange, error, santriList: externa
   };
 
   return (
-    <div style={{ position: 'relative', width: '100%' }}>
-      <div style={{ position: 'relative' }}>
+    <div className="ui-santri-autocomplete" ref={containerRef}>
+      <div className={`ui-santri-autocomplete__trigger ${isFocused ? 'is-focused' : ''} ${error ? 'has-error' : ''}`}>
+        <div className="ui-santri-autocomplete__icon">
+          <Search size={16} />
+        </div>
         <input
           type="text"
+          className="ui-santri-autocomplete__input"
           value={searchTerm}
           onChange={(e) => {
             setSearchTerm(e.target.value);
             setIsOpen(true);
             if (!e.target.value) onChange('');
           }}
-          onFocus={() => setIsOpen(true)}
-          placeholder="Cari berdasarkan NIS atau nama santri..."
-          style={{
-            width: '100%',
-            padding: '10px 12px 10px 36px',
-            borderRadius: '8px',
-            border: error ? '1px solid #ef4444' : '1px solid var(--lt-border-light, #cbd5e1)',
-            background: 'var(--lt-bg-surface, #ffffff)',
-            fontSize: '13px',
-            color: 'var(--lt-text-primary, #0f172a)'
+          onFocus={() => {
+            setIsOpen(true);
+            setIsFocused(true);
           }}
+          onBlur={() => setIsFocused(false)}
+          placeholder={placeholder}
+          disabled={disabled}
         />
-        <Search size={16} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: '#94a3b8' }} />
       </div>
 
       {isOpen && filteredSantri.length > 0 && (
-        <div style={{
-          position: 'absolute',
-          top: '100%',
-          left: 0,
-          right: 0,
-          marginTop: '4px',
-          background: '#fff',
-          border: '1px solid #e2e8f0',
-          borderRadius: '8px',
-          boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)',
-          maxHeight: '220px',
-          overflowY: 'auto',
-          zIndex: 100
-        }}>
+        <div className="ui-santri-autocomplete__dropdown">
           {filteredSantri.map((santri) => (
             <div
               key={santri.id}
+              className="ui-santri-autocomplete__item"
               onClick={() => handleSelect(santri)}
-              style={{
-                padding: '8px 12px',
-                fontSize: '13px',
-                cursor: 'pointer',
-                borderBottom: '1px solid #f1f5f9',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '8px'
-              }}
-              onMouseEnter={(e) => (e.currentTarget.style.background = '#f8fafc')}
-              onMouseLeave={(e) => (e.currentTarget.style.background = '#fff')}
             >
-              <User size={14} style={{ color: '#2196f3' }} />
-              <strong>{santri.nis}</strong> - {santri.nama}
+              <User size={14} style={{ color: '#3b82f6', flexShrink: 0 }} />
+              <span>
+                <strong className="item-nis">{santri.nis}</strong> - {santri.nama}
+              </span>
             </div>
           ))}
         </div>
       )}
 
-      {error && <span style={{ fontSize: '11px', color: '#ef4444', marginTop: '4px', display: 'block' }}>{error}</span>}
+      {error && <div className="ui-santri-autocomplete__error">{error}</div>}
     </div>
   );
 }

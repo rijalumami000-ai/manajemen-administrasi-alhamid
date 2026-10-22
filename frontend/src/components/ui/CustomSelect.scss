@@ -152,12 +152,15 @@
     }
   }
 
-  // Floating Label: Has value or active (Clean Neutral Slate)
+  // Floating Label: Has value, active, or dropdown open
   &.active,
-  &.has-value {
+  &.has-value,
+  &.is-open {
     .ui-custom-select__label {
-      top: 9px;
+      top: 6px;
+      transform: none;
       font-size: 11px;
+      line-height: 1.2;
       font-weight: 600;
       color: #64748b;
     }
@@ -178,6 +181,15 @@
 
   // Active Interaction: Dropdown Open (Apple System Blue Focus Aura)
   &.is-open {
+    .ui-custom-select__label {
+      color: #2563eb;
+    }
+
+    [data-theme="dark"] & {
+      .ui-custom-select__label {
+        color: #60a5fa;
+      }
+    }
     .ui-custom-select__wrapper {
       background: rgba(255, 255, 255, 0.94);
       border-color: #3b82f6;

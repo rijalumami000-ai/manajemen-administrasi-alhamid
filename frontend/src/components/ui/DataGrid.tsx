@@ -56,7 +56,9 @@ export function DataGrid<T extends Record<string, any> = Record<string, any>>({
               >
                 {columns.map((col, colIndex) => (
                   <td key={`${row[rowKey] || rowIndex}-${col.key || colIndex}`} style={{ textAlign: col.align || 'left' }}>
-                    {col.render && col.dataIndex ? col.render(row[col.dataIndex], row) : (col.dataIndex ? row[col.dataIndex] : null)}
+                    {col.render 
+                      ? col.render(col.dataIndex ? row[col.dataIndex] : undefined, row, rowIndex) 
+                      : (col.dataIndex ? row[col.dataIndex] : null)}
                   </td>
                 ))}
               </tr>
