@@ -1552,37 +1552,18 @@ export function ManajemenNilai({ mode = 'input' }: ManajemenNilaiProps) {
         </div>
       )}
 
-      {/* ── 7. POPUP MODAL PEMILIHAN KELAS (4-COLUMNS GRID) ──────────── */}
+      {/* ── 7. POPUP MODAL PEMILIHAN KELAS (LANGSUNG SEMUA KELAS MINIMALIS) ──────────── */}
       <CustomModal
         isOpen={isClassModalOpen}
         onClose={() => setIsClassModalOpen(false)}
         title="Pilih Kelas Diniyah"
+        subtitle="Pilih kelas untuk langsung membuka lembar penilaian santri"
+        width={720}
       >
         <div className="class-grid-modal-body">
-          {/* Tingkat Filter Chips */}
-          <div className="tingkat-filter-pills">
-            <button
-              type="button"
-              className={`tingkat-chip ${modalTingkatFilter === 'all' ? 'active' : ''}`}
-              onClick={() => setModalTingkatFilter('all')}
-            >
-              Semua Tingkatan
-            </button>
-            {levels.map(t => (
-              <button
-                key={t}
-                type="button"
-                className={`tingkat-chip ${modalTingkatFilter === t ? 'active' : ''}`}
-                onClick={() => setModalTingkatFilter(t)}
-              >
-                {getTingkatLabel(t)}
-              </button>
-            ))}
-          </div>
-
-          {/* 4 Columns Mini Class Cards Grid */}
+          {/* Langsung Tampilkan Semua Kelas Diniyah — Minimalis Cards */}
           <div className="mini-classes-grid">
-            {filteredModalClasses.map(c => {
+            {kelas.map(c => {
               const isSelected = selectedKelasDetail === c.id;
               return (
                 <div
@@ -1600,15 +1581,17 @@ export function ManajemenNilai({ mode = 'input' }: ManajemenNilaiProps) {
                       {getTingkatLabel(c.tingkat)}
                     </span>
                     {isSelected && (
-                      <Check size={16} className="check-indicator" />
+                      <Check size={14} className="check-indicator" />
                     )}
                   </div>
                   <h4 className="class-card-name">{c.nama}</h4>
                   <div className="class-card-footer">
-                    <span>{c.mustahiq_nama ? `Ust. ${c.mustahiq_nama}` : 'Madrasah Diniyah'}</span>
+                    <span title={c.mustahiq_nama ? `Ust. ${c.mustahiq_nama}` : 'Madrasah Diniyah'}>
+                      {c.mustahiq_nama ? `Ust. ${c.mustahiq_nama.split(' ')[0]}` : 'Diniyah'}
+                    </span>
                     {c.jumlah_santri !== undefined && (
                       <span className="santri-pill">
-                        {c.jumlah_santri} Santri
+                        {c.jumlah_santri}
                       </span>
                     )}
                   </div>
@@ -1616,9 +1599,9 @@ export function ManajemenNilai({ mode = 'input' }: ManajemenNilaiProps) {
               );
             })}
 
-            {filteredModalClasses.length === 0 && (
-              <div style={{ gridColumn: 'span 4', textAlign: 'center', padding: '30px', color: '#64748b' }}>
-                Tidak ada kelas pada tingkatan yang dipilih.
+            {kelas.length === 0 && (
+              <div style={{ gridColumn: '1 / -1', textAlign: 'center', padding: '30px', color: '#64748b' }}>
+                Tidak ada data kelas diniyah yang terdaftar.
               </div>
             )}
           </div>

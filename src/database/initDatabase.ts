@@ -137,6 +137,11 @@ export async function initDatabase(): Promise<void> {
         ALTER TABLE chat_messages ADD COLUMN tingkat_group INTEGER DEFAULT NULL;
       END IF;
 
+      -- Tambah mata pelajaran konsep Muhafadzoh jika belum ada
+      INSERT INTO mata_pelajaran (nama, jenis)
+      SELECT 'Muhafadzoh', 'Muhafadzoh'
+      WHERE NOT EXISTS (SELECT 1 FROM mata_pelajaran WHERE LOWER(nama) = 'muhafadzoh');
+
       -- Buat tabel saran_aplikasi jika belum ada
       CREATE TABLE IF NOT EXISTS saran_aplikasi (
         id SERIAL PRIMARY KEY,

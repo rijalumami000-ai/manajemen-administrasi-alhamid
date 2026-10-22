@@ -103,13 +103,13 @@ export function SantriTable({
         <table className="custom-santri-table">
           <thead>
             <tr>
-              <th style={{ width: '85px', textAlign: 'center' }} className={isSemesterUnlocked ? 'th-unlocked' : 'th-locked'}>
-                <span className="th-sem-title">Sem. 1 (Ganjil)</span>
-                {!isSemesterUnlocked && <span className="th-lock-icon" title="Terkunci"><Lock size={11} /></span>}
+              <th style={{ width: '58px', textAlign: 'center', padding: '10px 4px' }} className={isSemesterUnlocked ? 'th-unlocked' : 'th-locked'} title="Semester Ganjil">
+                <span className="th-sem-title">Ganjil</span>
+                {!isSemesterUnlocked && <span className="th-lock-icon" title="Terkunci"><Lock size={10} /></span>}
               </th>
-              <th style={{ width: '85px', textAlign: 'center' }} className={isSemesterUnlocked ? 'th-unlocked' : 'th-locked'}>
-                <span className="th-sem-title">Sem. 2 (Genap)</span>
-                {!isSemesterUnlocked && <span className="th-lock-icon" title="Terkunci"><Lock size={11} /></span>}
+              <th style={{ width: '58px', textAlign: 'center', padding: '10px 4px' }} className={isSemesterUnlocked ? 'th-unlocked' : 'th-locked'} title="Semester Genap">
+                <span className="th-sem-title">Genap</span>
+                {!isSemesterUnlocked && <span className="th-lock-icon" title="Terkunci"><Lock size={10} /></span>}
               </th>
               <th style={{ width: '110px' }}>NIS</th>
               <th>Nama Santri</th>
@@ -132,7 +132,7 @@ export function SantriTable({
 
               return (
                 <tr key={record.id}>
-                  <td style={{ textAlign: 'center' }} className={`semester-checkbox-cell ${isSemesterUnlocked ? 'unlocked' : 'locked'}`}>
+                  <td style={{ textAlign: 'center', padding: '8px 2px', width: '58px' }} className={`semester-checkbox-cell ${isSemesterUnlocked ? 'unlocked' : 'locked'}`}>
                     <input
                       type="checkbox"
                       checked={!!record.aktif_ganjil}
@@ -142,7 +142,7 @@ export function SantriTable({
                       title={!isSemesterUnlocked ? 'Terkunci. Klik "Buka Kunci Edit" di atas untuk mengubah' : 'Ubah status Semester Ganjil'}
                     />
                   </td>
-                  <td style={{ textAlign: 'center' }} className={`semester-checkbox-cell ${isSemesterUnlocked ? 'unlocked' : 'locked'}`}>
+                  <td style={{ textAlign: 'center', padding: '8px 2px', width: '58px' }} className={`semester-checkbox-cell ${isSemesterUnlocked ? 'unlocked' : 'locked'}`}>
                     <input
                       type="checkbox"
                       checked={!!record.aktif_genap}

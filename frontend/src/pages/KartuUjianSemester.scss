@@ -295,6 +295,19 @@
       }
     }
 
+    &.purple-pill {
+      background: linear-gradient(180deg, #8b5cf6 0%, #7c3aed 100%);
+      color: #ffffff;
+      border: 1px solid rgba(255, 255, 255, 0.35);
+      border-top: 1.5px solid rgba(255, 255, 255, 0.70);
+      box-shadow: 0 4px 14px rgba(124, 58, 237, 0.35);
+
+      &:not(:disabled):hover {
+        background: linear-gradient(180deg, #7c3aed 0%, #6d28d9 100%);
+        box-shadow: 0 6px 18px rgba(124, 58, 237, 0.45);
+      }
+    }
+
     &.icon-only-pill {
       width: 38px;
       padding: 0;
@@ -555,70 +568,86 @@
 
 // =============================================================================
 // CSS CETAK RESMI (F4 FOLIO — 6 KARTU PER HALAMAN)
-// JANGAN DIUBAH AGAR OUTPUT PRINT TETAP SESUAI STANDAR RESMI PESANTREN
 // =============================================================================
+@page {
+  size: 215mm 330mm;
+  margin: 10mm;
+}
+
 @media screen {
+  .kartu-print-container,
   .kartu-grid-wrapper {
-    display: none;
+    display: none !important;
   }
 }
 
 @media print {
-  @page {
-    size: 215mm 330mm;
-    margin: 10mm 10mm 10mm 10mm;
-  }
-
-  html, body {
-    margin: 0 !important;
-    padding: 0 !important;
-    background: white !important;
-    font-family: 'Times New Roman', serif !important;
-  }
-
-  .app-sidebar,
-  .app-header,
-  .bottom-nav,
-  .mobile-menu-drawer,
-  .no-print {
-    display: none !important;
-  }
-
-  .app-layout,
-  .app-main,
-  .app-content,
-  .content-wrapper,
-  .kartu-ujian-page {
-    display: block !important;
-    background: white !important;
-    padding: 0 !important;
-    margin: 0 !important;
+  html, body, #root, .app-layout, .app-main, .app-content, .content-wrapper, .kartu-ujian-page {
+    overflow: visible !important;
+    height: auto !important;
+    min-height: auto !important;
+    max-height: none !important;
     width: 100% !important;
     max-width: 100% !important;
-    border-radius: 0 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    background: #ffffff !important;
     border: none !important;
     box-shadow: none !important;
-    overflow: visible !important;
-    min-height: auto !important;
+    font-family: 'Times New Roman', serif !important;
 
     &::before, &::after {
       display: none !important;
     }
   }
 
-  .kartu-grid-wrapper {
+  .app-sidebar,
+  .app-header,
+  .bottom-nav,
+  .mobile-menu-drawer,
+  .no-print,
+  .tactile-page-header,
+  .segmented-tabs-dock {
+    display: none !important;
+  }
+
+  .kartu-print-container {
     display: block !important;
     background: white !important;
     padding: 0 !important;
+    margin: 0 !important;
+    width: 100% !important;
+  }
+
+  .kartu-sheet-page {
+    display: block !important;
+    width: 195mm !important;
+    height: 310mm !important;
+    box-sizing: border-box !important;
+    margin: 0 auto !important;
+    page-break-after: always !important;
+    break-after: page !important;
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
+
+    &:last-child {
+      page-break-after: auto !important;
+      break-after: auto !important;
+    }
   }
 
   .kartu-grid {
     display: grid !important;
     grid-template-columns: 95mm 95mm !important;
-    grid-auto-rows: 95mm !important;
-    gap: 7mm !important;
+    grid-template-rows: 95mm 95mm 95mm !important;
+    column-gap: 5mm !important;
+    row-gap: 6mm !important;
     justify-content: center !important;
-    margin: 0 !important;
+    align-content: start !important;
+    width: 195mm !important;
+    height: 297mm !important;
+    box-sizing: border-box !important;
+    margin: 0 auto !important;
   }
 
   .kartu-ujian {
@@ -628,7 +657,7 @@
     box-sizing: border-box !important;
     break-inside: avoid !important;
     page-break-inside: avoid !important;
-    border: 0.7pt solid #333 !important;
+    border: 0.8pt solid #333 !important;
     padding: 2.5mm !important;
     display: flex !important;
     flex-direction: column !important;
@@ -637,6 +666,8 @@
     font-size: 8.5pt !important;
     background: white !important;
     box-shadow: none !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
 
     .kartu-header {
       display: flex !important;

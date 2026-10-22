@@ -5,13 +5,14 @@ function registerPesertaUjianRoutes(app) {
   // === GET: Data peserta ujian (dengan filter tahun ajaran + semester + kelas) ===
   app.get('/api/peserta-ujian', async (req, res) => {
     try {
-      const { tahun_ajaran_id, semester, kelas_diniyah_id } = req.query;
+      const { tahun_ajaran_id, semester } = req.query;
+      const kelas_diniyah_id = req.query.kelas_diniyah_id || req.query.kelas_id;
       if (!tahun_ajaran_id || !semester) {
         return res.status(400).json({ error: 'tahun_ajaran_id dan semester wajib diisi.' });
       }
 
       let where = `pu.tahun_ajaran_id = $1 AND pu.semester = $2`;
-      let params = [tahun_ajaran_id, semester];
+      let params: any[] = [tahun_ajaran_id, semester];
 
       if (kelas_diniyah_id) {
         params.push(kelas_diniyah_id);

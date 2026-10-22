@@ -72,8 +72,7 @@ export function GuruTable({
         <table className="custom-data-table">
           <thead>
             <tr>
-              <th style={{ width: '130px' }}>NIP</th>
-              <th style={{ width: '230px' }}>Nama Guru</th>
+              <th style={{ width: '250px' }}>Nama Guru</th>
               <th style={{ width: '160px' }}>Mata Pelajaran</th>
               <th style={{ width: '150px' }}>Jabatan</th>
               <th style={{ width: '130px' }}>No. HP</th>
@@ -89,9 +88,6 @@ export function GuruTable({
                 const avatarStyle = getAvatarStyle(record.nama || '');
                 return (
                   <tr key={record.id}>
-                    <td>
-                      <span className="guru-nip-text">{record.nip || '-'}</span>
-                    </td>
                     <td>
                       <div className="guru-profile-cell">
                         {record.foto_url ? (
@@ -178,7 +174,7 @@ export function GuruTable({
               })
             ) : (
               <tr>
-                <td colSpan={8} style={{ padding: '40px 0' }}>
+                <td colSpan={7} style={{ padding: '40px 0' }}>
                   <EmptyState description="Tidak ada data guru yang sesuai" />
                 </td>
               </tr>

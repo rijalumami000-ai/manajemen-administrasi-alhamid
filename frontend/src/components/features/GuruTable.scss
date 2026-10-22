@@ -265,7 +265,7 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 16px 20px;
+    padding: 14px 20px;
     border-top: 1px solid rgba(203, 213, 225, 0.5);
     background: rgba(255, 255, 255, 0.45);
     backdrop-filter: blur(16px);
@@ -279,6 +279,69 @@
 
       b {
         color: #0f172a;
+      }
+    }
+
+    .pagination-bar {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      margin: 0;
+
+      .pagination-btn {
+        min-width: 34px;
+        height: 34px;
+        padding: 0 10px;
+        border-radius: 9px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        background: rgba(255, 255, 255, 0.8);
+        border: 1px solid rgba(203, 213, 225, 0.7);
+        border-top: 1px solid rgba(255, 255, 255, 0.95);
+        color: #334155;
+        font-size: 12.5px;
+        font-weight: 600;
+        cursor: pointer;
+        box-shadow: 0 1px 3px rgba(15, 23, 42, 0.04);
+        transition: all 0.18s cubic-bezier(0.16, 1, 0.3, 1);
+
+        &:hover:not(:disabled) {
+          background: #ffffff;
+          border-color: #0052ff;
+          color: #0052ff;
+          transform: translateY(-1px);
+          box-shadow: 0 4px 10px rgba(0, 82, 255, 0.12);
+        }
+
+        &:active:not(:disabled) {
+          transform: translateY(0.5px);
+        }
+
+        &.active {
+          background: linear-gradient(135deg, #0052ff 0%, #2563eb 100%);
+          border-color: #2563eb;
+          border-top: 1px solid rgba(255, 255, 255, 0.4);
+          color: #ffffff;
+          box-shadow: 0 2px 8px rgba(0, 82, 255, 0.35);
+          font-weight: 700;
+        }
+
+        &:disabled {
+          opacity: 0.45;
+          cursor: not-allowed;
+          background: rgba(241, 245, 249, 0.6);
+          border-color: rgba(226, 232, 240, 0.7);
+          color: #94a3b8;
+          box-shadow: none;
+        }
+      }
+
+      .pagination-ellipsis {
+        padding: 0 4px;
+        color: #94a3b8;
+        font-weight: 600;
+        font-size: 13px;
       }
     }
   }

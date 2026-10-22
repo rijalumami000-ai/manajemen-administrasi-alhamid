@@ -81,19 +81,23 @@ export function PengaturanJadwal() {
       }) : [];
       setKelas(diniyahKelas);
       setMataPelajaran(Array.isArray(mapelData) ? mapelData : []);
-      setKategori(Array.isArray(katData) ? katData : []);
+      const validKatData = Array.isArray(katData) ? katData.filter((k: any) => 
+        k.jenis === 'Semester' || 
+        (!k.nama?.toLowerCase().includes('harian') && !k.nama?.toLowerCase().includes('tugas'))
+      ) : [];
+      setKategori(validKatData);
       setTahunAjaranList(Array.isArray(taData) ? taData : []);
 
       const activeTA = Array.isArray(taData) ? taData.find((ta: any) => ta.is_active) : null;
       setTahunAjaran(activeTA || null);
       
-      if (Array.isArray(katData)) {
+      if (validKatData.length > 0) {
         const activeSemester = (systemSettings as any)?.active_semester || 'Ganjil';
-        const defaultKat = katData.find((k: any) => k.nama?.toLowerCase().includes(activeSemester.toLowerCase()));
+        const defaultKat = validKatData.find((k: any) => k.nama?.toLowerCase().includes(activeSemester.toLowerCase()));
         if (defaultKat) {
           setSelectedKategori(defaultKat.id);
-        } else if (katData.length > 0) {
-          setSelectedKategori(katData[0].id);
+        } else {
+          setSelectedKategori(validKatData[0].id);
         }
       }
     } catch (err) {
@@ -210,18 +214,18 @@ export function PengaturanJadwal() {
 
     try {
       setSaveLoading(true);
-      const mapel = mataPelajaran.find(m => m.id === selectedMapel);
+      const mapel = mataPelajaran.find(m => m.id === selectedMapel) || { id: selectedMapel, nama: 'Muhafadzoh', jenis: 'Muhafadzoh' };
       const payload = {
         tingkat: selectedTingkat,
         mata_pelajaran_id: selectedMapel,
-        jenis_mapel: mapel?.jenis || 'Muhafadzoh',
+        jenis_mapel: 'Muhafadzoh',
         tipe_input: kriteriaType,
         konfigurasi: kriteriaType === 'Angka' ? configAngka : configTeks,
         tahun_ajaran_id: tahunAjaran?.id,
         kategori_evaluasi_id: selectedKategori
       };
       await nilaiService.saveKriteria(payload);
-      toast.success(`Pengaturan kriteria ${mapel?.nama || ''} berhasil disimpan!`);
+      toast.success(`Pengaturan kriteria ${mapel.nama} berhasil disimpan!`);
       loadKriteria();
     } catch (err: any) {
       console.error(err);
@@ -286,11 +290,29 @@ export function PengaturanJadwal() {
     label: k.nama
   }));
 
-  const filteredMapels = mataPelajaran.filter(m => ['Muhafadzoh', 'Qiroah', 'Taftisy'].includes(m.jenis));
-  const mapelOptions = filteredMapels.map(m => ({
-    value: String(m.id),
-    label: `${m.nama} (${m.jenis})`
-  }));
+  // Khusus kriteria: hanya konsep Muhafadzoh saja
+  const muhafadzohMapel = useMemo(() => {
+    return mataPelajaran.find(m => m.nama?.toLowerCase() === 'muhafadzoh') ||
+      mataPelajaran.find(m => m.jenis === 'Muhafadzoh') ||
+      null;
+  }, [mataPelajaran]);
+
+  const kriteriaMapelOptions = useMemo(() => {
+    if (muhafadzohMapel) {
+      return [{ value: String(muhafadzohMapel.id), label: 'Muhafadzoh' }];
+    }
+    return [{ value: '44', label: 'Muhafadzoh' }];
+  }, [muhafadzohMapel]);
+
+  // Auto-select Muhafadzoh saat di tab setting kriteria
+  useEffect(() => {
+    if (activeSubTab === 'setting') {
+      const targetId = muhafadzohMapel?.id || 44;
+      if (selectedMapel !== targetId) {
+        setSelectedMapel(targetId);
+      }
+    }
+  }, [activeSubTab, muhafadzohMapel, selectedMapel]);
 
   // Criteria configuration checks
   const showAngka = selectedTingkat !== 2 && selectedTingkat !== 99;
@@ -404,7 +426,7 @@ export function PengaturanJadwal() {
                     <CustomSelect
                       value={selectedMapel ? String(selectedMapel) : ''}
                       onChange={(val) => setSelectedMapel(val ? Number(val) : null)}
-                      options={mapelOptions}
+                      options={kriteriaMapelOptions}
                       placeholder="Pilih Mata Pelajaran"
                     />
                   </div>
@@ -434,7 +456,7 @@ export function PengaturanJadwal() {
                 </button>
               </div>
               <div className="card-body">
-                {selectedMapel && mataPelajaran.find(m => m.id === selectedMapel)?.jenis === 'Muhafadzoh' ? (
+                {selectedMapel ? (
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
                     {/* Input Format Radio buttons */}
                     <div className="custom-segmented-control" style={{ maxWidth: '350px' }}>
