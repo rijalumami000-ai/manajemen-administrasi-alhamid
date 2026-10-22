@@ -1,13 +1,13 @@
-const express = require('express');
-const path = require('path');
-const fs = require('fs');
-const multer = require('multer');
-const db = require('../../db');
-const { getActiveTahunAjaran } = require('../services/tahunAjaranService');
-const { authenticateToken } = require('../middleware/authMiddleware');
-const { asyncHandler } = require('../utils/errorHandler');
-const NilaiService = require('../services/nilaiService');
-const { normalizeGender } = require('../utils/normalizers');
+import express from 'express';
+import path from 'path';
+import fs from 'fs';
+import multer from 'multer';
+import db from '../../db';
+import { getActiveTahunAjaran } from '../services/tahunAjaranService';
+import { authenticateToken } from '../middleware/authMiddleware';
+import { asyncHandler } from '../utils/errorHandler';
+import NilaiService from '../services/nilaiService';
+import { normalizeGender } from '../utils/normalizers';
 
 const profilePhotoStorage = multer.diskStorage({
   destination: (req, file, cb) => {
@@ -259,7 +259,7 @@ function registerMyMustahiqRoutes(app) {
    * If kelas_id is not provided, defaults to the teacher's mustahiq class, or returns all active classes list.
    */
   router.get('/santri', asyncHandler(async (req, res) => {
-    const { kelas_id, tahun_ajaran_id, semester, force_classes } = req.query;
+    const { kelas_id, tahun_ajaran_id, semester, force_classes } = req.query as any;
 
     const parsedTahunAjaranId = tahun_ajaran_id && tahun_ajaran_id !== 'null' && tahun_ajaran_id !== 'undefined' ? parseInt(tahun_ajaran_id, 10) : null;
     const activeYear = parsedTahunAjaranId
@@ -373,8 +373,8 @@ function registerMyMustahiqRoutes(app) {
    * Returns a detailed profile of a student including grades (Muhafadzoh, Qiroatul Kitab, etc.), achievements, and violations.
    */
   router.get('/santri/:id/detail', asyncHandler(async (req, res) => {
-    const santriId = parseInt(req.params.id, 10);
-    const { tahun_ajaran_id, semester } = req.query;
+    const santriId = parseInt(req.params.id as string, 10);
+    const { tahun_ajaran_id, semester } = req.query as any;
 
     const parsedTahunAjaranId = tahun_ajaran_id && tahun_ajaran_id !== 'null' && tahun_ajaran_id !== 'undefined' ? parseInt(tahun_ajaran_id, 10) : null;
     const activeYear = parsedTahunAjaranId
@@ -673,7 +673,7 @@ function registerMyMustahiqRoutes(app) {
             }
           }
 
-          const cRekapArr = Object.values(cRekapMap);
+          const cRekapArr: any[] = Object.values(cRekapMap);
           cRekapArr.sort((a, b) => b.total - a.total);
           cRekapArr.forEach((item, idx) => {
             item.peringkat = item.peringkat_manual || (idx + 1);
@@ -759,7 +759,7 @@ function registerMyMustahiqRoutes(app) {
    * Returns daily schedule for a class or teacher
    */
   router.get('/jadwal', asyncHandler(async (req, res) => {
-    const { kelas_id, tahun_ajaran_id, semester } = req.query;
+    const { kelas_id, tahun_ajaran_id, semester } = req.query as any;
     
     const parsedTahunAjaranId = tahun_ajaran_id && tahun_ajaran_id !== 'null' && tahun_ajaran_id !== 'undefined' ? parseInt(tahun_ajaran_id, 10) : null;
     const activeTahunAjaran = parsedTahunAjaranId
@@ -1059,7 +1059,7 @@ function registerMyMustahiqRoutes(app) {
    * Returns classes + mata pelajaran per tingkat for tim soal form
    */
   router.get('/tim-soal/data', asyncHandler(async (req, res) => {
-    const tahunAjaranId = req.query.tahun_ajaran_id;
+    const tahunAjaranId = req.query.tahun_ajaran_id as any;
     const parsedTahunAjaranId = tahunAjaranId && tahunAjaranId !== 'null' && tahunAjaranId !== 'undefined' ? parseInt(tahunAjaranId, 10) : null;
     const activeYear = parsedTahunAjaranId
       ? (await db.query('SELECT id, kode FROM tahun_ajaran WHERE id = $1', [parsedTahunAjaranId])).rows[0]
@@ -1153,7 +1153,7 @@ function registerMyMustahiqRoutes(app) {
    * Returns list of soal created for a class/semester
    */
   router.get('/tim-soal/list', asyncHandler(async (req, res) => {
-    const { kelas_id, semester, tahun_ajaran_id } = req.query;
+    const { kelas_id, semester, tahun_ajaran_id } = req.query as any;
     const parsedTahunAjaranId = tahun_ajaran_id && tahun_ajaran_id !== 'null' && tahun_ajaran_id !== 'undefined' ? parseInt(tahun_ajaran_id, 10) : null;
     const activeYear = parsedTahunAjaranId
       ? (await db.query('SELECT id, kode FROM tahun_ajaran WHERE id = $1', [parsedTahunAjaranId])).rows[0]
@@ -1339,7 +1339,7 @@ function registerMyMustahiqRoutes(app) {
    * Delete a soal
    */
   router.delete('/tim-soal/:id', asyncHandler(async (req, res) => {
-    const soalId = parseInt(req.params.id, 10);
+    const soalId = parseInt(req.params.id as string, 10);
     await db.query('DELETE FROM lembar_ujian WHERE id = $1', [soalId]);
     res.json({ success: true, message: 'Lembar ujian berhasil dihapus.' });
   }));
@@ -1349,7 +1349,7 @@ function registerMyMustahiqRoutes(app) {
    * Returns santri list for a class and academic year (for grade entry)
    */
   router.get('/input-nilai/santri', asyncHandler(async (req, res) => {
-    const { kelas_id, tahun_ajaran_id, semester } = req.query;
+    const { kelas_id, tahun_ajaran_id, semester } = req.query as any;
 
     const kelasId = kelas_id && kelas_id !== 'null' && kelas_id !== 'undefined' ? parseInt(kelas_id, 10) : null;
     if (!kelasId) return res.status(400).json({ error: 'kelas_id wajib disertakan.' });
@@ -1572,7 +1572,7 @@ function registerMyMustahiqRoutes(app) {
 
   // === BUKU INDUK: GET DATA ===
   router.get('/buku-induk', asyncHandler(async (req, res) => {
-    const { jenis_kelamin, search, tahun_masuk } = req.query;
+    const { jenis_kelamin, search, tahun_masuk } = req.query as any;
     let whereClause = [];
     let params = [];
 
@@ -1654,7 +1654,7 @@ function registerMyMustahiqRoutes(app) {
   // === NOTIFICATIONS: MARK SINGLE AS READ ===
   router.post('/notifications/read/:id', asyncHandler(async (req, res) => {
     const guruId = req.user.guru_id;
-    const notifId = parseInt(req.params.id, 10);
+    const notifId = parseInt(req.params.id as string, 10);
     if (isNaN(notifId)) return res.status(400).json({ error: 'ID notifikasi tidak valid.' });
 
     await db.query(`
@@ -1678,7 +1678,7 @@ function registerMyMustahiqRoutes(app) {
   // === NOTIFICATIONS: DELETE SINGLE ===
   router.delete('/notifications/:id', asyncHandler(async (req, res) => {
     const guruId = req.user.guru_id;
-    const notifId = parseInt(req.params.id, 10);
+    const notifId = parseInt(req.params.id as string, 10);
     if (isNaN(notifId)) return res.status(400).json({ error: 'ID notifikasi tidak valid.' });
 
     await db.query(`
@@ -1764,7 +1764,7 @@ function registerMyMustahiqRoutes(app) {
       return res.status(403).json({ error: 'Akses ditolak. Hanya admin yang diperbolehkan.' });
     }
 
-    const id = parseInt(req.params.id, 10);
+    const id = parseInt(req.params.id as string, 10);
     if (isNaN(id)) {
       return res.status(400).json({ error: 'ID saran tidak valid.' });
     }
@@ -1958,7 +1958,7 @@ function registerMyMustahiqRoutes(app) {
   // === CHAT GROUPS: GET MESSAGES IN ROOM ===
   router.get('/chats/rooms/:kelas_id/messages', asyncHandler(async (req, res) => {
     const guruId = req.user.guru_id;
-    const kelasId = parseInt(req.params.kelas_id, 10);
+    const kelasId = parseInt(req.params.kelas_id as string, 10);
     const activeYear = await getActiveTahunAjaran();
 
     if (isNaN(kelasId)) {
@@ -2047,7 +2047,7 @@ function registerMyMustahiqRoutes(app) {
   // === CHAT GROUPS: POST MESSAGE ===
   router.post('/chats/rooms/:kelas_id/messages', asyncHandler(async (req, res) => {
     const guruId = req.user.guru_id;
-    const kelasId = parseInt(req.params.kelas_id, 10);
+    const kelasId = parseInt(req.params.kelas_id as string, 10);
     const { message } = req.body;
     const activeYear = await getActiveTahunAjaran();
 
@@ -2199,7 +2199,7 @@ function registerMyMustahiqRoutes(app) {
   // === CHAT GROUPS: DELETE MESSAGE FOR SELF ===
   router.delete('/chats/messages/:message_id/delete-self', asyncHandler(async (req, res) => {
     const guruId = req.user.guru_id;
-    const messageId = parseInt(req.params.message_id, 10);
+    const messageId = parseInt(req.params.message_id as string, 10);
 
     if (isNaN(messageId)) {
       return res.status(400).json({ error: 'ID pesan tidak valid.' });
@@ -2222,7 +2222,7 @@ function registerMyMustahiqRoutes(app) {
   // === CHAT GROUPS: DELETE MESSAGE FOR EVERYONE ===
   router.delete('/chats/messages/:message_id/delete-everyone', asyncHandler(async (req, res) => {
     const guruId = req.user.guru_id;
-    const messageId = parseInt(req.params.message_id, 10);
+    const messageId = parseInt(req.params.message_id as string, 10);
 
     if (isNaN(messageId)) {
       return res.status(400).json({ error: 'ID pesan tidak valid.' });
@@ -2265,7 +2265,7 @@ function registerMyMustahiqRoutes(app) {
 
   // === MUHAFADZOH SCORE RULES / GUIDELINES ===
   router.get('/muhafadzoh-info', asyncHandler(async (req, res) => {
-    let { tahun_ajaran_id, semester } = req.query;
+    let { tahun_ajaran_id, semester } = req.query as any;
 
     const parsedTahunAjaranId = tahun_ajaran_id && tahun_ajaran_id !== 'null' && tahun_ajaran_id !== 'undefined' ? parseInt(tahun_ajaran_id, 10) : null;
     const activeYear = parsedTahunAjaranId
@@ -2381,7 +2381,7 @@ function registerMyMustahiqRoutes(app) {
 
   // === QIROATUL KITAB MAQRO INFO ===
   router.get('/qiroah-maqro', asyncHandler(async (req, res) => {
-    let { tahun_ajaran_id, semester } = req.query;
+    let { tahun_ajaran_id, semester } = req.query as any;
 
     const parsedTahunAjaranId = tahun_ajaran_id && tahun_ajaran_id !== 'null' && tahun_ajaran_id !== 'undefined' ? parseInt(tahun_ajaran_id, 10) : null;
     const activeYear = parsedTahunAjaranId
@@ -2493,7 +2493,7 @@ function registerMyMustahiqRoutes(app) {
 
   // === TAFTISYUL KUTUB MATERI INFO ===
   router.get('/taftisy-materi', asyncHandler(async (req, res) => {
-    let { tahun_ajaran_id, semester, kelas_id } = req.query;
+    let { tahun_ajaran_id, semester, kelas_id } = req.query as any;
 
     if (!kelas_id) {
       return res.status(400).json({ error: 'kelas_id wajib disertakan.' });
@@ -2590,7 +2590,7 @@ function registerMyMustahiqRoutes(app) {
   }));
 
   router.get('/materi-ujian-tulis', asyncHandler(async (req, res) => {
-    const { kelas_id, tingkat: reqTingkat, semester, tahun_ajaran_id } = req.query;
+    const { kelas_id, tingkat: reqTingkat, semester, tahun_ajaran_id } = req.query as any;
     const parsedTahunAjaranId = tahun_ajaran_id && tahun_ajaran_id !== 'null' && tahun_ajaran_id !== 'undefined' ? parseInt(tahun_ajaran_id, 10) : null;
     const activeYear = parsedTahunAjaranId
       ? (await db.query('SELECT id, kode FROM tahun_ajaran WHERE id = $1', [parsedTahunAjaranId])).rows[0]
@@ -2693,7 +2693,7 @@ function registerMyMustahiqRoutes(app) {
    * Query params: kelas_id (wajib), tahun_ajaran_id, semester
    */
   router.get('/laporan-akademik', asyncHandler(async (req, res) => {
-    const { kelas_id, tahun_ajaran_id, semester } = req.query;
+    const { kelas_id, tahun_ajaran_id, semester } = req.query as any;
 
     if (!kelas_id || kelas_id === 'null' || kelas_id === 'undefined') {
       return res.status(400).json({ error: 'Parameter kelas_id wajib disertakan.' });
@@ -2841,7 +2841,7 @@ function registerMyMustahiqRoutes(app) {
       };
     }
 
-    const rekapClassArr = Object.values(rekapClassMap);
+    const rekapClassArr: any[] = Object.values(rekapClassMap);
     rekapClassArr.sort((a, b) => b.total_nilai - a.total_nilai);
     rekapClassArr.forEach((item, idx) => {
       item.peringkat_sistem = idx + 1;
@@ -2943,7 +2943,7 @@ function registerMyMustahiqRoutes(app) {
    * Verifikasi & ambil data kartu ujian santri via QR / NIS / Nomor Peserta
    */
   router.get('/scan-kartu-ujian', asyncHandler(async (req, res) => {
-    const { code } = req.query;
+    const { code } = req.query as any;
     if (!code || !code.trim()) {
       return res.status(400).json({ error: 'Kode QR / NIS / Nomor Peserta wajib diisi.' });
     }
@@ -2993,7 +2993,7 @@ function registerMyMustahiqRoutes(app) {
    * Rekap absensi santri per kelas, bulan, semester, dan tahun ajaran
    */
   router.get('/absensi/report', asyncHandler(async (req, res) => {
-    const { kelas_id, tahun_ajaran_id, semester } = req.query;
+    const { kelas_id, tahun_ajaran_id, semester } = req.query as any;
     if (!kelas_id) {
       return res.status(400).json({ error: 'kelas_id wajib diisi.' });
     }
@@ -3238,7 +3238,7 @@ function registerMyMustahiqRoutes(app) {
   // PELANGGARAN & PRESTASI (read-only for app, data from web)
   // ═══════════════════════════════════════════════════════════════
   router.get('/pelanggaran', asyncHandler(async (req, res) => {
-    const { tahun_ajaran_id } = req.query;
+    const { tahun_ajaran_id } = req.query as any;
     const targetTaId = tahun_ajaran_id ? parseInt(tahun_ajaran_id, 10) : null;
     let query = `
       SELECT p.*, s.nis, s.nama AS nama_santri, s.foto_url,
@@ -3259,7 +3259,7 @@ function registerMyMustahiqRoutes(app) {
   }));
 
   router.get('/prestasi', asyncHandler(async (req, res) => {
-    const { tahun_ajaran_id } = req.query;
+    const { tahun_ajaran_id } = req.query as any;
     const targetTaId = tahun_ajaran_id ? parseInt(tahun_ajaran_id, 10) : null;
     let query = `
       SELECT p.*, s.nis, s.nama AS nama_santri, s.foto_url,
@@ -3284,7 +3284,7 @@ function registerMyMustahiqRoutes(app) {
   // ═══════════════════════════════════════════════════════════════
   router.get('/kajian-balagh', asyncHandler(async (req, res) => {
     const activeYear = await getActiveTahunAjaran();
-    const tahunAjaranId = req.query.tahun_ajaran_id || (activeYear ? activeYear.id : null);
+    const tahunAjaranId = (req.query.tahun_ajaran_id as any) || (activeYear ? activeYear.id : null);
     
     if (!tahunAjaranId) {
       return res.json([]);
@@ -3302,7 +3302,7 @@ function registerMyMustahiqRoutes(app) {
   // ═══════════════════════════════════════════════════════════════
   router.get('/imam-tarawih', asyncHandler(async (req, res) => {
     const activeYear = await getActiveTahunAjaran();
-    const tahunAjaranId = req.query.tahun_ajaran_id || (activeYear ? activeYear.id : null);
+    const tahunAjaranId = (req.query.tahun_ajaran_id as any) || (activeYear ? activeYear.id : null);
     
     if (!tahunAjaranId) {
       return res.json([]);
@@ -3319,7 +3319,7 @@ function registerMyMustahiqRoutes(app) {
   // STRUKTUR ORGANISASI (all types for app)
   // ═══════════════════════════════════════════════════════════════
   router.get('/struktur', asyncHandler(async (req, res) => {
-    let { tipe, tahun_ajaran_id, kategori, semester } = req.query;
+    let { tipe, tahun_ajaran_id, kategori, semester } = req.query as any;
     tipe = tipe || 'madrasah_diniyah';
 
     // Map common aliases from app tabs
@@ -3378,7 +3378,7 @@ function registerMyMustahiqRoutes(app) {
   // MATERI SIDANG (read-only for app)
   // ═══════════════════════════════════════════════════════════════
   router.get('/materi-sidang', asyncHandler(async (req, res) => {
-    const { tahun_ajaran_id, tahun_masehi, kategori } = req.query;
+    const { tahun_ajaran_id, tahun_masehi, kategori } = req.query as any;
     let query = 'SELECT * FROM materi_sidang WHERE 1=1';
     const params = [];
     let idx = 1;
@@ -3416,3 +3416,4 @@ function registerMyMustahiqRoutes(app) {
 }
 
 module.exports = registerMyMustahiqRoutes;
+export default registerMyMustahiqRoutes;

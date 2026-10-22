@@ -1,18 +1,17 @@
-// authRoutes.js - Authentication API routes
+import { Request, Response } from 'express';
+import authService from '../services/authService';
+import { asyncHandler } from '../utils/errorHandler';
+import { authenticateToken } from '../middleware/authMiddleware';
 
-const authService = require('../services/authService');
-const { asyncHandler } = require('../utils/errorHandler');
-const { authenticateToken } = require('../middleware/authMiddleware');
-
-function registerAuthRoutes(app) {
+export function registerAuthRoutes(app: any): void {
   /**
    * POST /api/auth/login - Login with username and password
    * Body: { username, password }
    * Returns: { user, accessToken, refreshToken }
    */
-  app.post('/api/auth/login', asyncHandler(async (req, res) => {
+  app.post('/api/auth/login', asyncHandler(async (req: Request, res: Response) => {
     const { username, password, role } = req.body;
-    const ipAddress = req.ip || req.connection.remoteAddress;
+    const ipAddress = req.ip || req.socket.remoteAddress;
     const userAgent = req.headers['user-agent'];
 
     const result = await authService.login(username, password, role, ipAddress, userAgent);
@@ -25,9 +24,9 @@ function registerAuthRoutes(app) {
    * Body: { key }
    * Returns: { user, accessToken, refreshToken }
    */
-  app.post('/api/auth/magic-login', asyncHandler(async (req, res) => {
+  app.post('/api/auth/magic-login', asyncHandler(async (req: Request, res: Response) => {
     const { key } = req.body;
-    const ipAddress = req.ip || req.connection.remoteAddress;
+    const ipAddress = req.ip || req.socket.remoteAddress;
     const userAgent = req.headers['user-agent'];
 
     const result = await authService.magicLogin(key, ipAddress, userAgent);
@@ -40,10 +39,10 @@ function registerAuthRoutes(app) {
    * Requires: Authorization header with Bearer token
    * Returns: { message }
    */
-  app.post('/api/auth/logout', authenticateToken, asyncHandler(async (req, res) => {
-    const token = req.token;
-    const userId = req.user.id;
-    const ipAddress = req.ip || req.connection.remoteAddress;
+  app.post('/api/auth/logout', authenticateToken, asyncHandler(async (req: Request, res: Response) => {
+    const token = req.token!;
+    const userId = req.user!.id;
+    const ipAddress = req.ip || req.socket.remoteAddress;
 
     const result = await authService.logout(token, userId, ipAddress);
 
@@ -55,8 +54,8 @@ function registerAuthRoutes(app) {
    * Requires: Authorization header with Bearer token
    * Returns: { user }
    */
-  app.get('/api/auth/me', authenticateToken, asyncHandler(async (req, res) => {
-    const token = req.token;
+  app.get('/api/auth/me', authenticateToken, asyncHandler(async (req: Request, res: Response) => {
+    const token = req.token!;
     const user = await authService.verifyUserToken(token);
 
     res.json({ user });
@@ -67,7 +66,7 @@ function registerAuthRoutes(app) {
    * Body: { refreshToken }
    * Returns: { accessToken, refreshToken }
    */
-  app.post('/api/auth/refresh', asyncHandler(async (req, res) => {
+  app.post('/api/auth/refresh', asyncHandler(async (req: Request, res: Response) => {
     const { refreshToken } = req.body;
 
     if (!refreshToken) {
@@ -84,9 +83,9 @@ function registerAuthRoutes(app) {
    * Requires: Authorization header with Bearer token + Admin role
    * Returns: { deletedCount }
    */
-  app.post('/api/auth/cleanup-sessions', authenticateToken, asyncHandler(async (req, res) => {
+  app.post('/api/auth/cleanup-sessions', authenticateToken, asyncHandler(async (req: Request, res: Response) => {
     // Check if user is admin
-    if (req.user.role !== 'admin') {
+    if (req.user?.role !== 'admin') {
       return res.status(403).json({ error: 'Akses ditolak. Hanya admin yang dapat melakukan cleanup.' });
     }
 
@@ -94,15 +93,16 @@ function registerAuthRoutes(app) {
 
     res.json(result);
   }));
+
   /**
    * POST /api/auth/verify-password - Verify password for sensitive actions
    * Requires: Authorization header with Bearer token
    * Body: { password }
    * Returns: { success: true }
    */
-  app.post('/api/auth/verify-password', authenticateToken, asyncHandler(async (req, res) => {
+  app.post('/api/auth/verify-password', authenticateToken, asyncHandler(async (req: Request, res: Response) => {
     const { password } = req.body;
-    const userId = req.user.id;
+    const userId = req.user!.id;
     
     if (!password) {
       return res.status(400).json({ error: 'Password harus diisi' });
@@ -115,3 +115,4 @@ function registerAuthRoutes(app) {
 }
 
 module.exports = registerAuthRoutes;
+export default registerAuthRoutes;

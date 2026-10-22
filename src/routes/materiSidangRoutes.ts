@@ -1,8 +1,8 @@
-const db = require('../../db');
-const { normalizeText } = require('../utils/normalizers');
-const multer = require('multer');
-const path = require('path');
-const fs = require('fs');
+import db from '../../db';
+import { normalizeText } from '../utils/normalizers';
+import multer from 'multer';
+import path from 'path';
+import fs from 'fs';
 
 // Configure multer for PDF uploads
 const uploadDir = path.join(__dirname, '..', '..', 'public', 'uploads', 'sidang');
@@ -24,7 +24,7 @@ const upload = multer({
     if (file.mimetype === 'application/pdf' || file.originalname.toLowerCase().endsWith('.pdf')) {
       cb(null, true);
     } else {
-      cb(new Error('Hanya file PDF yang diizinkan.'), false);
+      cb(new Error('Hanya file PDF yang diizinkan.') as any, false);
     }
   },
   limits: { fileSize: 30 * 1024 * 1024 } // 30MB max
@@ -243,3 +243,4 @@ function registerMateriSidangRoutes(app) {
 }
 
 module.exports = registerMateriSidangRoutes;
+export default registerMateriSidangRoutes;

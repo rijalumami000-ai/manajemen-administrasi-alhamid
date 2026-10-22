@@ -28,7 +28,7 @@ const registerInventarisRoutes = require('./inventarisRoutes');
 const registerSetoranHafalanRoutes = require('./setoranHafalanRoutes');
 const registerAppContentRoutes = require('./appContentRoutes');
 
-function registerApiRoutes(app) {
+export function registerApiRoutes(app: any): void {
   // Authentication routes (public)
   registerAuthRoutes(app);
 
@@ -68,3 +68,4 @@ function registerApiRoutes(app) {
 }
 
 module.exports = registerApiRoutes;
+export default registerApiRoutes;

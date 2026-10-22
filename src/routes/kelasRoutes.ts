@@ -1,7 +1,7 @@
-const db = require('../../db');
-const { getActiveTahunAjaran, syncSantriToActiveTahunAjaran } = require('../services/tahunAjaranService');
-const { isUniqueViolation } = require('../utils/databaseErrors');
-const { normalizeKelasJenis, normalizeText, normalizeYearCode, nullableInt } = require('../utils/normalizers');
+import db from '../../db';
+import { getActiveTahunAjaran, syncSantriToActiveTahunAjaran } from '../services/tahunAjaranService';
+import { isUniqueViolation } from '../utils/databaseErrors';
+import { normalizeKelasJenis, normalizeText, normalizeYearCode, nullableInt } from '../utils/normalizers';
 
 function registerKelasRoutes(app) {
   // ===== KELAS API =====
@@ -327,3 +327,4 @@ function registerKelasRoutes(app) {
 }
 
 module.exports = registerKelasRoutes;
+export default registerKelasRoutes;

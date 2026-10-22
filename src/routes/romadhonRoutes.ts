@@ -1,5 +1,5 @@
-const db = require('../../db');
-const { normalizeText } = require('../utils/normalizers');
+import db from '../../db';
+import { normalizeText } from '../utils/normalizers';
 
 function registerRomadhonRoutes(app) {
 
@@ -159,3 +159,4 @@ function registerRomadhonRoutes(app) {
 }
 
 module.exports = registerRomadhonRoutes;
+export default registerRomadhonRoutes;

@@ -1,4 +1,4 @@
-const db = require('../../db');
+import db from '../../db';
 
 function registerPesertaUjianRoutes(app) {
 
@@ -218,3 +218,4 @@ function registerPesertaUjianRoutes(app) {
 }
 
 module.exports = registerPesertaUjianRoutes;
+export default registerPesertaUjianRoutes;

@@ -1,6 +1,6 @@
-const db = require('../../db');
-const { getActiveTahunAjaran } = require('../services/tahunAjaranService');
-const { nullableInt } = require('../utils/normalizers');
+import db from '../../db';
+import { getActiveTahunAjaran } from '../services/tahunAjaranService';
+import { nullableInt } from '../utils/normalizers';
 
 function registerJadwalPelajaranRoutes(app) {
   // GET /api/jadwal-pelajaran
@@ -146,3 +146,4 @@ function registerJadwalPelajaranRoutes(app) {
 }
 
 module.exports = registerJadwalPelajaranRoutes;
+export default registerJadwalPelajaranRoutes;

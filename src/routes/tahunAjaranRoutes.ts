@@ -1,10 +1,10 @@
-const db = require('../../db');
-const { getActiveTahunAjaran, syncSantriToActiveTahunAjaran } = require('../services/tahunAjaranService');
-const { isUniqueViolation } = require('../utils/databaseErrors');
-const { normalizeKelasJenis, normalizeText, normalizeYearCode, nullableInt } = require('../utils/normalizers');
-const AutoAdvanceEngine = require('../services/autoAdvanceEngine');
-const AlumniManager = require('../services/alumniManager');
-const MigrationValidator = require('../services/migrationValidator');
+import db from '../../db';
+import { getActiveTahunAjaran, syncSantriToActiveTahunAjaran } from '../services/tahunAjaranService';
+import { isUniqueViolation } from '../utils/databaseErrors';
+import { normalizeKelasJenis, normalizeText, normalizeYearCode, nullableInt } from '../utils/normalizers';
+import AutoAdvanceEngine from '../services/autoAdvanceEngine';
+import AlumniManager from '../services/alumniManager';
+import MigrationValidator from '../services/migrationValidator';
 
 function registerTahunAjaranRoutes(app) {
   // ===== TAHUN AJARAN API =====
@@ -702,3 +702,4 @@ function registerTahunAjaranRoutes(app) {
 }
 
 module.exports = registerTahunAjaranRoutes;
+export default registerTahunAjaranRoutes;

@@ -1,11 +1,11 @@
-const db = require('../../db');
-const { getActiveTahunAjaran, syncSantriToActiveTahunAjaran } = require('../services/tahunAjaranService');
-const { isUniqueViolation } = require('../utils/databaseErrors');
-const { normalizeKelasJenis, normalizeText, normalizeYearCode, nullableInt } = require('../utils/normalizers');
+import { Request, Response } from 'express';
+import db from '../../db';
+import { isUniqueViolation } from '../utils/databaseErrors';
+import { normalizeText } from '../utils/normalizers';
 
-function registerKamarRoutes(app) {
+export function registerKamarRoutes(app: any): void {
   // ===== KAMAR API =====
-  app.get('/api/kamar', async (req, res) => {
+  app.get('/api/kamar', async (req: Request, res: Response) => {
     try {
       const result = await db.query(`
         SELECT 
@@ -19,7 +19,7 @@ function registerKamarRoutes(app) {
         FROM kamar k 
         ORDER BY k.nama
       `);
-      const rows = result.rows.map(r => ({
+      const rows = result.rows.map((r: any) => ({
         ...r,
         terisi: r.terisi_real !== undefined ? r.terisi_real : r.terisi
       }));
@@ -30,7 +30,7 @@ function registerKamarRoutes(app) {
     }
   });
 
-  app.get('/api/kamar/:id/anggota', async (req, res) => {
+  app.get('/api/kamar/:id/anggota', async (req: Request, res: Response) => {
     try {
       const { id } = req.params;
       const kamarRes = await db.query('SELECT * FROM kamar WHERE id = $1', [id]);
@@ -70,7 +70,7 @@ function registerKamarRoutes(app) {
     }
   });
   
-  app.post('/api/kamar', async (req, res) => {
+  app.post('/api/kamar', async (req: Request, res: Response) => {
     const nama = normalizeText(req.body.nama);
     const gedung = normalizeText(req.body.gedung);
     const lantai = req.body.lantai ? parseInt(req.body.lantai, 10) : null;
@@ -93,7 +93,7 @@ function registerKamarRoutes(app) {
         [nama, gedung, lantai, kapasitas, terisi, jenis, status, fasilitas, keterangan]
       );
       res.status(201).json(result.rows[0]);
-    } catch (error) {
+    } catch (error: any) {
       console.error(error);
       if (isUniqueViolation(error)) {
         return res.status(400).json({ error: 'Nama kamar sudah terdaftar.' });
@@ -102,7 +102,7 @@ function registerKamarRoutes(app) {
     }
   });
   
-  app.put('/api/kamar/:id', async (req, res) => {
+  app.put('/api/kamar/:id', async (req: Request, res: Response) => {
     const { id } = req.params;
     const nama = normalizeText(req.body.nama);
     const gedung = normalizeText(req.body.gedung);
@@ -133,7 +133,7 @@ function registerKamarRoutes(app) {
       }
   
       res.json(result.rows[0]);
-    } catch (error) {
+    } catch (error: any) {
       console.error(error);
       if (isUniqueViolation(error)) {
         return res.status(400).json({ error: 'Nama kamar sudah terdaftar.' });
@@ -142,7 +142,7 @@ function registerKamarRoutes(app) {
     }
   });
   
-  app.delete('/api/kamar/:id', async (req, res) => {
+  app.delete('/api/kamar/:id', async (req: Request, res: Response) => {
     const { id } = req.params;
     try {
       const result = await db.query('DELETE FROM kamar WHERE id = $1 RETURNING id', [id]);
@@ -150,7 +150,7 @@ function registerKamarRoutes(app) {
         return res.status(404).json({ error: 'Data kamar tidak ditemukan.' });
       }
       res.json({ message: 'Data kamar berhasil dihapus.' });
-    } catch (error) {
+    } catch (error: any) {
       console.error(error);
       if (error.code === '23503') {
         return res.status(400).json({ error: 'Kamar tidak dapat dihapus karena sedang digunakan oleh santri.' });
@@ -161,3 +161,4 @@ function registerKamarRoutes(app) {
 }
 
 module.exports = registerKamarRoutes;
+export default registerKamarRoutes;

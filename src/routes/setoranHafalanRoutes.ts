@@ -1,8 +1,8 @@
-const express = require('express');
-const db = require('../../db');
-const { getActiveTahunAjaran } = require('../services/tahunAjaranService');
-const { authenticateToken } = require('../middleware/authMiddleware');
-const { asyncHandler } = require('../utils/errorHandler');
+import express from 'express';
+import db from '../../db';
+import { getActiveTahunAjaran } from '../services/tahunAjaranService';
+import { authenticateToken } from '../middleware/authMiddleware';
+import { asyncHandler } from '../utils/errorHandler';
 
 function registerSetoranHafalanRoutes(app) {
   const router = express.Router();
@@ -292,7 +292,7 @@ function registerSetoranHafalanRoutes(app) {
    */
   router.get('/setoran/overview', asyncHandler(async (req, res) => {
     const guruId = req.user.guru_id;
-    const { kelas_id, tahun_ajaran_id, semester } = req.query;
+    const { kelas_id, tahun_ajaran_id, semester } = req.query as any;
 
     const activeYear = tahun_ajaran_id
       ? (await db.query('SELECT id, kode FROM tahun_ajaran WHERE id = $1', [parseInt(tahun_ajaran_id, 10)])).rows[0]
@@ -630,8 +630,8 @@ function registerSetoranHafalanRoutes(app) {
    * Mengembalikan seluruh riwayat timeline setoran seorang santri
    */
   router.get('/setoran/santri/:santriId', asyncHandler(async (req, res) => {
-    const santriId = parseInt(req.params.santriId, 10);
-    const { tahun_ajaran_id, kelas_id } = req.query;
+    const santriId = parseInt(req.params.santriId as string, 10);
+    const { tahun_ajaran_id, kelas_id } = req.query as any;
 
     const santriRes = await db.query(
       `SELECT id, nis, nama, foto_url FROM santri WHERE id = $1`,
@@ -862,7 +862,7 @@ function registerSetoranHafalanRoutes(app) {
    * Edit catatan setoran hafalan
    */
   router.put('/setoran/:id', asyncHandler(async (req, res) => {
-    const id = parseInt(req.params.id, 10);
+    const id = parseInt(req.params.id as string, 10);
     let { bait_awal, bait_akhir, jumlah_bait, nama_bab, status_kelancaran, catatan, tanggal_setor } = req.body;
 
     const existingRes = await db.query('SELECT * FROM riwayat_setoran_nadzom WHERE id = $1', [id]);
@@ -931,7 +931,7 @@ function registerSetoranHafalanRoutes(app) {
    * Hapus riwayat setoran yang salah input
    */
   router.delete('/setoran/:id', asyncHandler(async (req, res) => {
-    const id = parseInt(req.params.id, 10);
+    const id = parseInt(req.params.id as string, 10);
     const result = await db.query('DELETE FROM riwayat_setoran_nadzom WHERE id = $1 RETURNING id', [id]);
     if (result.rows.length === 0) return res.status(404).json({ error: 'Data setoran tidak ditemukan.' });
     res.json({ message: 'Riwayat setoran berhasil dihapus.', id });
@@ -941,3 +941,4 @@ function registerSetoranHafalanRoutes(app) {
 }
 
 module.exports = registerSetoranHafalanRoutes;
+export default registerSetoranHafalanRoutes;

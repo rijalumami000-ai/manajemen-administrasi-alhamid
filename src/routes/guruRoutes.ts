@@ -1,10 +1,10 @@
-const db = require('../../db');
-const { getActiveTahunAjaran, syncSantriToActiveTahunAjaran } = require('../services/tahunAjaranService');
-const { isUniqueViolation } = require('../utils/databaseErrors');
-const { normalizeKelasJenis, normalizeText, normalizeYearCode, nullableInt } = require('../utils/normalizers');
-const multer = require('multer');
-const path = require('path');
-const fs = require('fs');
+import db from '../../db';
+import { getActiveTahunAjaran, syncSantriToActiveTahunAjaran } from '../services/tahunAjaranService';
+import { isUniqueViolation } from '../utils/databaseErrors';
+import { normalizeKelasJenis, normalizeText, normalizeYearCode, nullableInt } from '../utils/normalizers';
+import multer from 'multer';
+import path from 'path';
+import fs from 'fs';
 
 const ttdStorage = multer.diskStorage({
   destination: (req, file, cb) => {
@@ -285,3 +285,4 @@ function registerGuruRoutes(app) {
 }
 
 module.exports = registerGuruRoutes;
+export default registerGuruRoutes;

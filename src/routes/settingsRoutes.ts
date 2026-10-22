@@ -1,10 +1,11 @@
-const express = require('express');
+import express, { Request, Response, NextFunction } from 'express';
+import SettingsService from '../services/settingsService';
+import { authenticateToken } from '../middleware/authMiddleware';
+
 const router = express.Router();
-const SettingsService = require('../services/settingsService');
-const { authenticateToken } = require('../middleware/authMiddleware');
 
 // GET /api/settings (Public)
-router.get('/', async (req, res, next) => {
+router.get('/', async (req: Request, res: Response, next: NextFunction) => {
   try {
     const data = await SettingsService.getSettings();
     res.json(data);
@@ -14,14 +15,14 @@ router.get('/', async (req, res, next) => {
 });
 
 // POST /api/settings (Protected - Admin only)
-router.post('/', authenticateToken, async (req, res, next) => {
+router.post('/', authenticateToken, async (req: Request, res: Response, next: NextFunction) => {
   try {
     // Check role
-    if (req.user.role !== 'admin') {
+    if (req.user?.role !== 'admin') {
       return res.status(403).json({ error: 'Hanya admin yang dapat mengubah pengaturan' });
     }
 
-    const { key, value, ...rest } = req.body;
+    const { key, value } = req.body;
     
     // Single key update: { key, value }
     if (key !== undefined && typeof key === 'string') {
@@ -41,6 +42,9 @@ router.post('/', authenticateToken, async (req, res, next) => {
   }
 });
 
-module.exports = function(app) {
+export function registerSettingsRoutes(app: any): void {
   app.use('/api/settings', router);
-};
+}
+
+module.exports = registerSettingsRoutes;
+export default registerSettingsRoutes;

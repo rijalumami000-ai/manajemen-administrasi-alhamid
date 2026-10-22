@@ -1,10 +1,11 @@
-const db = require('../../db');
-const { isUniqueViolation } = require('../utils/databaseErrors');
-const { normalizeText } = require('../utils/normalizers');
+import { Request, Response } from 'express';
+import db from '../../db';
+import { isUniqueViolation } from '../utils/databaseErrors';
+import { normalizeText } from '../utils/normalizers';
 
-function registerMataPelajaranRoutes(app) {
+export function registerMataPelajaranRoutes(app: any): void {
   // ===== MATA PELAJARAN API =====
-  app.get(['/api/mata-pelajaran', '/api/mapel'], async (req, res) => {
+  app.get(['/api/mata-pelajaran', '/api/mapel'], async (req: Request, res: Response) => {
     try {
       const result = await db.query('SELECT * FROM mata_pelajaran ORDER BY nama');
       res.json(result.rows);
@@ -14,7 +15,7 @@ function registerMataPelajaranRoutes(app) {
     }
   });
   
-  app.post('/api/mata-pelajaran', async (req, res) => {
+  app.post('/api/mata-pelajaran', async (req: Request, res: Response) => {
     const nama = normalizeText(req.body.nama);
     const jenis = req.body.jenis || 'Reguler';
   
@@ -30,7 +31,7 @@ function registerMataPelajaranRoutes(app) {
         [nama, jenis, nama_arab]
       );
       res.status(201).json(result.rows[0]);
-    } catch (error) {
+    } catch (error: any) {
       console.error(error);
       if (isUniqueViolation(error)) {
         return res.status(400).json({ error: 'Mata pelajaran sudah terdaftar.' });
@@ -39,7 +40,7 @@ function registerMataPelajaranRoutes(app) {
     }
   });
   
-  app.put('/api/mata-pelajaran/:id', async (req, res) => {
+  app.put('/api/mata-pelajaran/:id', async (req: Request, res: Response) => {
     const { id } = req.params;
     const nama = normalizeText(req.body.nama);
     const jenis = req.body.jenis || 'Reguler';
@@ -61,7 +62,7 @@ function registerMataPelajaranRoutes(app) {
       }
   
       res.json(result.rows[0]);
-    } catch (error) {
+    } catch (error: any) {
       console.error(error);
       if (isUniqueViolation(error)) {
         return res.status(400).json({ error: 'Mata pelajaran sudah terdaftar.' });
@@ -70,7 +71,7 @@ function registerMataPelajaranRoutes(app) {
     }
   });
   
-  app.delete('/api/mata-pelajaran/:id', async (req, res) => {
+  app.delete('/api/mata-pelajaran/:id', async (req: Request, res: Response) => {
     const { id } = req.params;
     try {
       const result = await db.query('DELETE FROM mata_pelajaran WHERE id = $1 RETURNING id', [id]);
@@ -78,7 +79,7 @@ function registerMataPelajaranRoutes(app) {
         return res.status(404).json({ error: 'Data mata pelajaran tidak ditemukan.' });
       }
       res.json({ message: 'Data mata pelajaran berhasil dihapus.' });
-    } catch (error) {
+    } catch (error: any) {
       console.error(error);
       if (error.code === '23503') {
         return res.status(400).json({ error: 'Mata pelajaran tidak dapat dihapus karena sedang digunakan oleh data guru.' });
@@ -89,3 +90,4 @@ function registerMataPelajaranRoutes(app) {
 }
 
 module.exports = registerMataPelajaranRoutes;
+export default registerMataPelajaranRoutes;

@@ -1,4 +1,4 @@
-const db = require('../../db');
+import db from '../../db';
 
 function registerLembarUjianRoutes(app) {
   // ===== LEMBAR UJIAN API =====
@@ -156,3 +156,4 @@ function registerLembarUjianRoutes(app) {
 }
 
 module.exports = registerLembarUjianRoutes;
+export default registerLembarUjianRoutes;

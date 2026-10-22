@@ -1,14 +1,12 @@
-const db = require('../../db');
-const { getActiveTahunAjaran, syncSantriToActiveTahunAjaran } = require('../services/tahunAjaranService');
-const { isUniqueViolation } = require('../utils/databaseErrors');
-const { normalizeKelasJenis, normalizeText, normalizeYearCode, nullableInt } = require('../utils/normalizers');
-const { cacheMiddleware, cacheKeyGenerators } = require('../middleware/cacheMiddleware');
+import { Request, Response } from 'express';
+import db from '../../db';
+import { cacheMiddleware, cacheKeyGenerators } from '../middleware/cacheMiddleware';
 
-function registerSummaryRoutes(app) {
+export function registerSummaryRoutes(app: any): void {
   // Cache summary for 5 minutes
   app.get('/api/summary',
     cacheMiddleware(300, cacheKeyGenerators.summary),
-    async (req, res) => {
+    async (req: Request, res: Response) => {
       try {
         const santriCount = await db.query(`
           SELECT COUNT(*)
@@ -39,3 +37,4 @@ function registerSummaryRoutes(app) {
 }
 
 module.exports = registerSummaryRoutes;
+export default registerSummaryRoutes;

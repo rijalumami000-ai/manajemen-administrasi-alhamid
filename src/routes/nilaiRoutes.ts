@@ -1,5 +1,5 @@
-const express = require('express');
-const NilaiService = require('../services/nilaiService');
+import express from 'express';
+import NilaiService from '../services/nilaiService';
 
 function registerNilaiRoutes(app) {
   const router = express.Router();
@@ -27,7 +27,7 @@ function registerNilaiRoutes(app) {
   router.get('/kriteria/:tingkat/:mapelId', async (req, res, next) => {
     try {
       const { tingkat, mapelId } = req.params;
-      const { tahun_ajaran_id, kategori_evaluasi_id } = req.query;
+      const { tahun_ajaran_id, kategori_evaluasi_id } = req.query as any;
       const data = await NilaiService.getKriteriaNilai(tingkat, mapelId, tahun_ajaran_id, kategori_evaluasi_id);
       res.json(data);
     } catch (error) {
@@ -47,7 +47,7 @@ function registerNilaiRoutes(app) {
   // Rekap Nilai
   router.get('/rekap', async (req, res, next) => {
     try {
-      const { tahun_ajaran_id, kelas_id, kategori_evaluasi_id } = req.query;
+      const { tahun_ajaran_id, kelas_id, kategori_evaluasi_id } = req.query as any;
       if (!tahun_ajaran_id || !kelas_id) {
         return res.status(400).json({ error: 'tahun_ajaran_id dan kelas_id dibutuhkan' });
       }
@@ -65,7 +65,7 @@ function registerNilaiRoutes(app) {
   router.get('/santri', async (req, res, next) => {
     try {
       // expected query: tahun_ajaran_id, kelas_id, mapel_id, kategori_id (optional for khusus)
-      const { tahun_ajaran_id, kelas_id, mapel_id, kategori_id } = req.query;
+      const { tahun_ajaran_id, kelas_id, mapel_id, kategori_id } = req.query as any;
       const data = await NilaiService.getNilaiSantri(tahun_ajaran_id, kelas_id, mapel_id, kategori_id);
       res.json(data);
     } catch (error) {
@@ -76,7 +76,7 @@ function registerNilaiRoutes(app) {
   // Get all santri with class for search
   router.get('/santri-report', async (req, res, next) => {
     try {
-      const { tahun_ajaran_id, kategori_id } = req.query;
+      const { tahun_ajaran_id, kategori_id } = req.query as any;
       const data = await NilaiService.getSantriForReport(tahun_ajaran_id, kategori_id);
       res.json(data);
     } catch (error) {
@@ -87,7 +87,7 @@ function registerNilaiRoutes(app) {
   // Get accumulation for all classes
   router.get('/akumulasi-kelas', async (req, res, next) => {
     try {
-      const { tahun_ajaran_id, mapel_id, kategori_id } = req.query;
+      const { tahun_ajaran_id, mapel_id, kategori_id } = req.query as any;
       const data = await NilaiService.getAkumulasiSemuaKelas(tahun_ajaran_id, mapel_id, kategori_id);
       res.json(data);
     } catch (error) {
@@ -116,7 +116,7 @@ function registerNilaiRoutes(app) {
   // Mapel Tingkat (Jadwal Pelajaran)
   router.get('/mapel-tingkat', async (req, res, next) => {
     try {
-      const { tahun_ajaran_id, kategori_evaluasi_id } = req.query;
+      const { tahun_ajaran_id, kategori_evaluasi_id } = req.query as any;
       const data = await NilaiService.getMapelTingkat(tahun_ajaran_id, kategori_evaluasi_id);
       res.json(data);
     } catch (error) {
@@ -137,7 +137,7 @@ function registerNilaiRoutes(app) {
   // Rapor Data (Kepribadian, Absensi, Catatan)
   router.get('/rapor', async (req, res, next) => {
     try {
-      const { tahun_ajaran_id, kelas_id, kategori_evaluasi_id } = req.query;
+      const { tahun_ajaran_id, kelas_id, kategori_evaluasi_id } = req.query as any;
       if (!tahun_ajaran_id || !kelas_id || !kategori_evaluasi_id) {
         return res.status(400).json({ error: 'tahun_ajaran_id, kelas_id, dan kategori_evaluasi_id dibutuhkan' });
       }
@@ -151,7 +151,7 @@ function registerNilaiRoutes(app) {
   // Rekap Absensi Bulanan (Semua Kelas & Santri Terjaring)
   router.get('/rekap-absensi-bulanan', async (req, res, next) => {
     try {
-      const { tahun_ajaran_id, kategori_evaluasi_id, bulan } = req.query;
+      const { tahun_ajaran_id, kategori_evaluasi_id, bulan } = req.query as any;
       if (!tahun_ajaran_id || !kategori_evaluasi_id || !bulan) {
         return res.status(400).json({ error: 'tahun_ajaran_id, kategori_evaluasi_id, dan bulan dibutuhkan' });
       }
@@ -330,7 +330,7 @@ Write-Host "SCAN_SUCCESS"
 
   router.get('/muhafadzoh-info', async (req, res, next) => {
     const db = require('../../db');
-    const { tahun_ajaran_id, kategori_evaluasi_id } = req.query;
+    const { tahun_ajaran_id, kategori_evaluasi_id } = req.query as any;
 
     if (!tahun_ajaran_id || !kategori_evaluasi_id) {
       return res.status(400).json({ error: 'tahun_ajaran_id dan kategori_evaluasi_id wajib disertakan.' });
@@ -455,7 +455,7 @@ Write-Host "SCAN_SUCCESS"
 
   router.get('/qiroah-maqro', async (req, res, next) => {
     const db = require('../../db');
-    const { tahun_ajaran_id, kategori_evaluasi_id } = req.query;
+    const { tahun_ajaran_id, kategori_evaluasi_id } = req.query as any;
 
     if (!tahun_ajaran_id || !kategori_evaluasi_id) {
       return res.status(400).json({ error: 'tahun_ajaran_id dan kategori_evaluasi_id wajib disertakan.' });
@@ -576,7 +576,7 @@ Write-Host "SCAN_SUCCESS"
 
   router.get('/taftisy-materi', async (req, res, next) => {
     const db = require('../../db');
-    const { tahun_ajaran_id, kategori_evaluasi_id, kelas_id } = req.query;
+    const { tahun_ajaran_id, kategori_evaluasi_id, kelas_id } = req.query as any;
 
     if (!tahun_ajaran_id || !kategori_evaluasi_id || !kelas_id) {
       return res.status(400).json({ error: 'tahun_ajaran_id, kategori_evaluasi_id, dan kelas_id wajib disertakan.' });
@@ -676,7 +676,7 @@ Write-Host "SCAN_SUCCESS"
 
   router.get('/materi-ujian-tulis', async (req, res, next) => {
     const db = require('../../db');
-    const { tahun_ajaran_id, kategori_evaluasi_id, tingkat } = req.query;
+    const { tahun_ajaran_id, kategori_evaluasi_id, tingkat } = req.query as any;
 
     if (!tahun_ajaran_id || !kategori_evaluasi_id || tingkat === undefined) {
       return res.status(400).json({ error: 'tahun_ajaran_id, kategori_evaluasi_id, dan tingkat wajib disertakan.' });
@@ -771,7 +771,7 @@ Write-Host "SCAN_SUCCESS"
   // ── Kalender Akademik ─────────────────────────────────────────────────────
   router.get('/kalender-akademik', async (req, res, next) => {
     const db = require('../../db');
-    const { tahun_ajaran_id, semester } = req.query;
+    const { tahun_ajaran_id, semester } = req.query as any;
     if (!tahun_ajaran_id || !semester) {
       return res.status(400).json({ error: 'tahun_ajaran_id dan semester wajib diisi.' });
     }
@@ -811,7 +811,7 @@ Write-Host "SCAN_SUCCESS"
   // ── Silabus Pembelajaran ──────────────────────────────────────────────────
   router.get('/silabus', async (req, res, next) => {
     const db = require('../../db');
-    let { tahun_ajaran_id, semester, tingkat, kelas_id } = req.query;
+    let { tahun_ajaran_id, semester, tingkat, kelas_id } = req.query as any;
     if (!tahun_ajaran_id || !semester || (tingkat === undefined && !kelas_id)) {
       return res.status(400).json({ error: 'tahun_ajaran_id, semester, dan tingkat (atau kelas_id) wajib diisi.' });
     }
@@ -889,3 +889,4 @@ Write-Host "SCAN_SUCCESS"
 }
 
 module.exports = registerNilaiRoutes;
+export default registerNilaiRoutes;

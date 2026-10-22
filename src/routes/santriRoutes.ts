@@ -1,9 +1,9 @@
-const db = require('../../db');
-const { getActiveTahunAjaran, syncSantriToActiveTahunAjaran, syncSantriToSpecificTahunAjaran } = require('../services/tahunAjaranService');
-const { isUniqueViolation } = require('../utils/databaseErrors');
-const { normalizeKelasJenis, normalizeText, normalizeYearCode, nullableInt, normalizeGender } = require('../utils/normalizers');
-const multer = require('multer');
-const santriExcelService = require('../services/santriExcelService');
+import db from '../../db';
+import { getActiveTahunAjaran, syncSantriToActiveTahunAjaran, syncSantriToSpecificTahunAjaran } from '../services/tahunAjaranService';
+import { isUniqueViolation } from '../utils/databaseErrors';
+import { normalizeKelasJenis, normalizeText, normalizeYearCode, nullableInt, normalizeGender } from '../utils/normalizers';
+import multer from 'multer';
+import santriExcelService from '../services/santriExcelService';
 
 const upload = multer({ storage: multer.memoryStorage() });
 
@@ -566,3 +566,4 @@ function registerSantriRoutes(app) {
 }
 
 module.exports = registerSantriRoutes;
+export default registerSantriRoutes;

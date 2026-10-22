@@ -1,11 +1,11 @@
-const db = require('../../db');
-const { getActiveTahunAjaran, syncSantriToActiveTahunAjaran } = require('../services/tahunAjaranService');
-const { isUniqueViolation } = require('../utils/databaseErrors');
-const { normalizeKelasJenis, normalizeText, normalizeYearCode, nullableInt } = require('../utils/normalizers');
+import { Request, Response } from 'express';
+import db from '../../db';
+import { isUniqueViolation } from '../utils/databaseErrors';
+import { normalizeText } from '../utils/normalizers';
 
-function registerJabatanRoutes(app) {
+export function registerJabatanRoutes(app: any): void {
   // ===== JABATAN API =====
-  app.get('/api/jabatan', async (req, res) => {
+  app.get('/api/jabatan', async (req: Request, res: Response) => {
     try {
       const result = await db.query('SELECT * FROM jabatan ORDER BY nama');
       res.json(result.rows);
@@ -15,7 +15,7 @@ function registerJabatanRoutes(app) {
     }
   });
   
-  app.post('/api/jabatan', async (req, res) => {
+  app.post('/api/jabatan', async (req: Request, res: Response) => {
     const nama = normalizeText(req.body.nama);
   
     if (!nama) {
@@ -28,7 +28,7 @@ function registerJabatanRoutes(app) {
         [nama]
       );
       res.status(201).json(result.rows[0]);
-    } catch (error) {
+    } catch (error: any) {
       console.error(error);
       if (isUniqueViolation(error)) {
         return res.status(400).json({ error: 'Jabatan sudah terdaftar.' });
@@ -37,7 +37,7 @@ function registerJabatanRoutes(app) {
     }
   });
   
-  app.put('/api/jabatan/:id', async (req, res) => {
+  app.put('/api/jabatan/:id', async (req: Request, res: Response) => {
     const { id } = req.params;
     const nama = normalizeText(req.body.nama);
   
@@ -56,7 +56,7 @@ function registerJabatanRoutes(app) {
       }
   
       res.json(result.rows[0]);
-    } catch (error) {
+    } catch (error: any) {
       console.error(error);
       if (isUniqueViolation(error)) {
         return res.status(400).json({ error: 'Jabatan sudah terdaftar.' });
@@ -65,7 +65,7 @@ function registerJabatanRoutes(app) {
     }
   });
   
-  app.delete('/api/jabatan/:id', async (req, res) => {
+  app.delete('/api/jabatan/:id', async (req: Request, res: Response) => {
     const { id } = req.params;
     try {
       const result = await db.query('DELETE FROM jabatan WHERE id = $1 RETURNING id', [id]);
@@ -73,7 +73,7 @@ function registerJabatanRoutes(app) {
         return res.status(404).json({ error: 'Data jabatan tidak ditemukan.' });
       }
       res.json({ message: 'Data jabatan berhasil dihapus.' });
-    } catch (error) {
+    } catch (error: any) {
       console.error(error);
       if (error.code === '23503') {
         return res.status(400).json({ error: 'Jabatan tidak dapat dihapus karena sedang digunakan oleh data guru.' });
@@ -84,3 +84,4 @@ function registerJabatanRoutes(app) {
 }
 
 module.exports = registerJabatanRoutes;
+export default registerJabatanRoutes;

@@ -1,9 +1,10 @@
-const db = require('../../db');
-const { normalizeText } = require('../utils/normalizers');
+import { Request, Response } from 'express';
+import db from '../../db';
+import { normalizeText } from '../utils/normalizers';
 
-function registerInventarisRoutes(app) {
+export function registerInventarisRoutes(app: any): void {
   // GET /api/inventaris/rekap - Rekapitulasi inventaris
-  app.get('/api/inventaris/rekap', async (req, res) => {
+  app.get('/api/inventaris/rekap', async (req: Request, res: Response) => {
     try {
       const summaryResult = await db.query(`
         SELECT
@@ -44,14 +45,14 @@ function registerInventarisRoutes(app) {
   });
 
   // GET /api/inventaris - List inventaris dengan filter
-  app.get('/api/inventaris', async (req, res) => {
+  app.get('/api/inventaris', async (req: Request, res: Response) => {
     try {
       const { kategori, kondisi, search } = req.query;
-      const conditions = [];
-      const params = [];
+      const conditions: string[] = [];
+      const params: any[] = [];
 
       if (kategori) {
-        params.push(kategori.toLowerCase());
+        params.push((kategori as string).toLowerCase());
         conditions.push(`LOWER(kategori) = $${params.length}`);
       }
 
@@ -61,7 +62,7 @@ function registerInventarisRoutes(app) {
       }
 
       if (search) {
-        params.push(`%${search.toLowerCase()}%`);
+        params.push(`%${(search as string).toLowerCase()}%`);
         conditions.push(`(
           LOWER(nama_barang) LIKE $${params.length} OR
           LOWER(COALESCE(kode_barang, '')) LIKE $${params.length} OR
@@ -87,7 +88,7 @@ function registerInventarisRoutes(app) {
   });
 
   // POST /api/inventaris - Tambah data inventaris
-  app.post('/api/inventaris', async (req, res) => {
+  app.post('/api/inventaris', async (req: Request, res: Response) => {
     try {
       const kategori = normalizeText(req.body.kategori)?.toLowerCase();
       const nama_barang = normalizeText(req.body.nama_barang);
@@ -123,7 +124,7 @@ function registerInventarisRoutes(app) {
   });
 
   // PUT /api/inventaris/:id - Update data inventaris
-  app.put('/api/inventaris/:id', async (req, res) => {
+  app.put('/api/inventaris/:id', async (req: Request, res: Response) => {
     try {
       const { id } = req.params;
       const kategori = normalizeText(req.body.kategori)?.toLowerCase();
@@ -169,7 +170,7 @@ function registerInventarisRoutes(app) {
   });
 
   // DELETE /api/inventaris/:id - Hapus data inventaris
-  app.delete('/api/inventaris/:id', async (req, res) => {
+  app.delete('/api/inventaris/:id', async (req: Request, res: Response) => {
     try {
       const { id } = req.params;
       const result = await db.query('DELETE FROM inventaris WHERE id = $1 RETURNING id', [id]);
@@ -185,3 +186,4 @@ function registerInventarisRoutes(app) {
 }
 
 module.exports = registerInventarisRoutes;
+export default registerInventarisRoutes;

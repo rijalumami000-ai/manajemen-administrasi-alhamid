@@ -1,7 +1,7 @@
-const db = require('../../db');
-const { getActiveTahunAjaran, syncSantriToActiveTahunAjaran } = require('../services/tahunAjaranService');
-const { isUniqueViolation } = require('../utils/databaseErrors');
-const { normalizeKelasJenis, normalizeText, normalizeYearCode, nullableInt } = require('../utils/normalizers');
+import db from '../../db';
+import { getActiveTahunAjaran, syncSantriToActiveTahunAjaran } from '../services/tahunAjaranService';
+import { isUniqueViolation } from '../utils/databaseErrors';
+import { normalizeKelasJenis, normalizeText, normalizeYearCode, nullableInt } from '../utils/normalizers';
 
 function registerPrestasiRoutes(app) {
   // ===== PRESTASI API =====
@@ -116,3 +116,4 @@ function registerPrestasiRoutes(app) {
 }
 
 module.exports = registerPrestasiRoutes;
+export default registerPrestasiRoutes;

@@ -1,10 +1,10 @@
-const absensiSholatService = require('../services/absensiSholatService');
-const faceRecognitionService = require('../services/faceRecognitionService');
-const { asyncHandler } = require('../utils/errorHandler');
-const { authenticateToken } = require('../middleware/authMiddleware');
-const { normalizeGender } = require('../utils/normalizers');
-const https = require('https');
-const multer = require('multer');
+import absensiSholatService from '../services/absensiSholatService';
+import faceRecognitionService from '../services/faceRecognitionService';
+import { asyncHandler } from '../utils/errorHandler';
+import { authenticateToken } from '../middleware/authMiddleware';
+import { normalizeGender } from '../utils/normalizers';
+import https from 'https';
+import multer from 'multer';
 const upload = multer({ 
   storage: multer.memoryStorage(),
   limits: { fileSize: 5 * 1024 * 1024 }
@@ -49,7 +49,7 @@ function registerAbsensiSholatRoutes(app) {
       return res.status(400).send('Text harus diisi');
     }
 
-    const url = `https://translate.google.com/translate_tts?ie=UTF-8&q=${encodeURIComponent(text)}&tl=id&client=tw-ob`;
+    const url = `https://translate.google.com/translate_tts?ie=UTF-8&q=${encodeURIComponent(text as string)}&tl=id&client=tw-ob`;
     
     const options = {
       headers: {
@@ -225,7 +225,7 @@ function registerAbsensiSholatRoutes(app) {
       return res.status(400).json({ error: 'Sholat dan date harus diisi' });
     }
 
-    const result = await absensiSholatService.getUnattendedSantri(sholat, date);
+    const result = await absensiSholatService.getUnattendedSantri(sholat as string, date as string);
     res.json(result);
   }));
 
@@ -236,10 +236,21 @@ function registerAbsensiSholatRoutes(app) {
    */
   app.get('/api/absensi-sholat/rekap', authenticateToken, asyncHandler(async (req, res) => {
     const { startDate, endDate, kelasId, sholat, jenisKelamin, kamarId, status, tahunAjaranId, semester } = req.query;
-    const normalizedJk = normalizeGender(jenisKelamin);
-    const result = await absensiSholatService.getAttendanceRecap(startDate, endDate, kelasId, sholat, normalizedJk, kamarId, status, tahunAjaranId, semester);
+    const normalizedJk = normalizeGender(jenisKelamin as any);
+    const result = await absensiSholatService.getAttendanceRecap(
+      startDate as any,
+      endDate as any,
+      kelasId as any,
+      sholat as any,
+      normalizedJk,
+      kamarId as any,
+      status as any,
+      tahunAjaranId as any,
+      semester as any
+    );
     res.json(result);
   }));
 }
 
 module.exports = registerAbsensiSholatRoutes;
+export default registerAbsensiSholatRoutes;

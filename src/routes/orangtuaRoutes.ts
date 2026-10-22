@@ -1,11 +1,9 @@
-const db = require('../../db');
-const { getActiveTahunAjaran, syncSantriToActiveTahunAjaran } = require('../services/tahunAjaranService');
-const { isUniqueViolation } = require('../utils/databaseErrors');
-const { normalizeKelasJenis, normalizeText, normalizeYearCode, nullableInt } = require('../utils/normalizers');
+import { Request, Response } from 'express';
+import db from '../../db';
 
-function registerOrangtuaRoutes(app) {
+export function registerOrangtuaRoutes(app: any): void {
   // ===== ORANGTUA API =====
-  app.post('/api/orangtua', async (req, res) => {
+  app.post('/api/orangtua', async (req: Request, res: Response) => {
     const {
       nama_ayah,
       nama_ibu,
@@ -31,3 +29,4 @@ function registerOrangtuaRoutes(app) {
 }
 
 module.exports = registerOrangtuaRoutes;
+export default registerOrangtuaRoutes;

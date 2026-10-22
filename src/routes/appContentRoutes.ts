@@ -1,19 +1,19 @@
-const express = require('express');
-const db = require('../../db');
-const { asyncHandler } = require('../utils/errorHandler');
-const { authenticateToken } = require('../middleware/authMiddleware');
+import express, { Request, Response } from 'express';
+import db from '../../db';
+import { asyncHandler } from '../utils/errorHandler';
+import { authenticateToken } from '../middleware/authMiddleware';
 
-function registerAppContentRoutes(app) {
+export function registerAppContentRoutes(app: any): void {
   const router = express.Router();
 
   /**
    * GET /api/app-info
    * Public / Authenticated: Fetch contents for Pusat Bantuan, Tentang, or Pengembang
    */
-  router.get('/', asyncHandler(async (req, res) => {
+  router.get('/', asyncHandler(async (req: Request, res: Response) => {
     const { section, category, search } = req.query;
     let query = 'SELECT * FROM app_contents WHERE 1=1';
-    const params = [];
+    const params: any[] = [];
 
     if (section) {
       params.push(section);
@@ -26,7 +26,7 @@ function registerAppContentRoutes(app) {
     }
 
     if (search) {
-      params.push(`%${search.trim()}%`);
+      params.push(`%${(search as string).trim()}%`);
       query += ` AND (title ILIKE $${params.length} OR content ILIKE $${params.length} OR category ILIKE $${params.length})`;
     }
 
@@ -42,7 +42,7 @@ function registerAppContentRoutes(app) {
   /**
    * GET /api/app-info/:id
    */
-  router.get('/:id', asyncHandler(async (req, res) => {
+  router.get('/:id', asyncHandler(async (req: Request, res: Response) => {
     const { id } = req.params;
     const result = await db.query('SELECT * FROM app_contents WHERE id = $1', [id]);
     if (result.rows.length === 0) {
@@ -55,7 +55,7 @@ function registerAppContentRoutes(app) {
    * POST /api/app-info
    * Admin: Add new content item
    */
-  router.post('/', authenticateToken, asyncHandler(async (req, res) => {
+  router.post('/', authenticateToken, asyncHandler(async (req: Request, res: Response) => {
     const { section, category, title, content, icon, order_index, is_active } = req.body;
 
     if (!section || !title || !content) {
@@ -85,7 +85,7 @@ function registerAppContentRoutes(app) {
    * PUT /api/app-info/:id
    * Admin: Update content item
    */
-  router.put('/:id', authenticateToken, asyncHandler(async (req, res) => {
+  router.put('/:id', authenticateToken, asyncHandler(async (req: Request, res: Response) => {
     const { id } = req.params;
     const { section, category, title, content, icon, order_index, is_active } = req.body;
 
@@ -120,7 +120,7 @@ function registerAppContentRoutes(app) {
    * DELETE /api/app-info/:id
    * Admin: Delete content item
    */
-  router.delete('/:id', authenticateToken, asyncHandler(async (req, res) => {
+  router.delete('/:id', authenticateToken, asyncHandler(async (req: Request, res: Response) => {
     const { id } = req.params;
     const result = await db.query('DELETE FROM app_contents WHERE id = $1 RETURNING id', [id]);
     if (result.rows.length === 0) {
@@ -133,3 +133,4 @@ function registerAppContentRoutes(app) {
 }
 
 module.exports = registerAppContentRoutes;
+export default registerAppContentRoutes;

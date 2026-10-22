@@ -1,4 +1,4 @@
-const db = require('../../db');
+import db from '../../db';
 
 const VALID_TYPES = [
   'madrasah_diniyah', 'panitia_ujian',
@@ -547,3 +547,4 @@ function registerStrukturRoutes(app) {
 }
 
 module.exports = registerStrukturRoutes;
+export default registerStrukturRoutes;

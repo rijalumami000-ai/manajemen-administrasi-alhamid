@@ -1,11 +1,11 @@
-const db = require('../../db');
-const { getActiveTahunAjaran, syncSantriToActiveTahunAjaran } = require('../services/tahunAjaranService');
-const { isUniqueViolation } = require('../utils/databaseErrors');
-const { normalizeKelasJenis, normalizeText, normalizeYearCode, nullableInt } = require('../utils/normalizers');
+import { Request, Response } from 'express';
+import db from '../../db';
+import { getActiveTahunAjaran } from '../services/tahunAjaranService';
+import { normalizeText } from '../utils/normalizers';
 
-function registerPelanggaranRoutes(app) {
+export function registerPelanggaranRoutes(app: any): void {
   // ===== PELANGGARAN API =====
-  app.get('/api/pelanggaran', async (req, res) => {
+  app.get('/api/pelanggaran', async (req: Request, res: Response) => {
     try {
       const { tahun_ajaran_id } = req.query;
       let query = `
@@ -14,10 +14,10 @@ function registerPelanggaranRoutes(app) {
         LEFT JOIN santri s ON p.santri_id = s.id
         LEFT JOIN tahun_ajaran ta ON p.tahun_ajaran_id = ta.id
       `;
-      const params = [];
+      const params: any[] = [];
       if (tahun_ajaran_id) {
         query += ` WHERE p.tahun_ajaran_id = $1`;
-        params.push(parseInt(tahun_ajaran_id, 10));
+        params.push(parseInt(tahun_ajaran_id as string, 10));
       }
       query += ` ORDER BY p.tanggal DESC, p.id DESC`;
 
@@ -29,7 +29,7 @@ function registerPelanggaranRoutes(app) {
     }
   });
   
-  app.post('/api/pelanggaran', async (req, res) => {
+  app.post('/api/pelanggaran', async (req: Request, res: Response) => {
     const santri_id = req.body.santri_id ? parseInt(req.body.santri_id, 10) : null;
     let tahun_ajaran_id = req.body.tahun_ajaran_id ? parseInt(req.body.tahun_ajaran_id, 10) : null;
     const jenis = normalizeText(req.body.jenis);
@@ -54,7 +54,7 @@ function registerPelanggaranRoutes(app) {
         [santri_id, jenis, tanggal, deskripsi, sanksi, tahun_ajaran_id]
       );
       res.status(201).json(result.rows[0]);
-    } catch (error) {
+    } catch (error: any) {
       console.error(error);
       if (error.code === '23503') {
         return res.status(400).json({ error: 'Santri yang dipilih tidak valid.' });
@@ -63,7 +63,7 @@ function registerPelanggaranRoutes(app) {
     }
   });
   
-  app.put('/api/pelanggaran/:id', async (req, res) => {
+  app.put('/api/pelanggaran/:id', async (req: Request, res: Response) => {
     const { id } = req.params;
     const santri_id = req.body.santri_id ? parseInt(req.body.santri_id, 10) : null;
     const tahun_ajaran_id = req.body.tahun_ajaran_id ? parseInt(req.body.tahun_ajaran_id, 10) : null;
@@ -91,7 +91,7 @@ function registerPelanggaranRoutes(app) {
       }
   
       res.json(result.rows[0]);
-    } catch (error) {
+    } catch (error: any) {
       console.error(error);
       if (error.code === '23503') {
         return res.status(400).json({ error: 'Santri yang dipilih tidak valid.' });
@@ -100,7 +100,7 @@ function registerPelanggaranRoutes(app) {
     }
   });
   
-  app.delete('/api/pelanggaran/:id', async (req, res) => {
+  app.delete('/api/pelanggaran/:id', async (req: Request, res: Response) => {
     const { id } = req.params;
     try {
       const result = await db.query('DELETE FROM pelanggaran WHERE id = $1 RETURNING id', [id]);
@@ -116,3 +116,4 @@ function registerPelanggaranRoutes(app) {
 }
 
 module.exports = registerPelanggaranRoutes;
+export default registerPelanggaranRoutes;

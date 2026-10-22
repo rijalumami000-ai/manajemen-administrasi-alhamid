@@ -1,10 +1,10 @@
-const db = require('../../db');
-const multer = require('multer');
-const path = require('path');
-const fs = require('fs');
-const { syncSantriToActiveTahunAjaran, syncSantriToSpecificTahunAjaran } = require('../services/tahunAjaranService');
-const { nullableInt, nullableDate, normalizeGender } = require('../utils/normalizers');
-const santriExcelService = require('../services/santriExcelService');
+import db from '../../db';
+import multer from 'multer';
+import path from 'path';
+import fs from 'fs';
+import { syncSantriToActiveTahunAjaran, syncSantriToSpecificTahunAjaran } from '../services/tahunAjaranService';
+import { nullableInt, nullableDate, normalizeGender } from '../utils/normalizers';
+import santriExcelService from '../services/santriExcelService';
 
 // Konfigurasi storage multer untuk foto santri
 const fotoStorage = multer.diskStorage({
@@ -574,3 +574,4 @@ function registerBukuIndukRoutes(app) {
 }
 
 module.exports = registerBukuIndukRoutes;
+export default registerBukuIndukRoutes;
