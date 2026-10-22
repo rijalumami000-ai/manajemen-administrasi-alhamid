@@ -9,11 +9,11 @@ Repositori ini memuat sistem informasi akademik, keuangan, dan kesiswaan pesantr
 ## ⚠️ 1. ATURAN EMAS (THE GOLDEN RULES)
 
 1. **JANGAN MERUSAK SISTEM PRODUKSI & MOBILE APP**:
-   - Backend API (`server.js`, `src/routes/apiRoutes.js`), skema database (`sql/`, `src/database/`), dan struktur response JSON adalah **CONTRACT PUBLIK**.
-   - Dilarang mengubah nama route, method HTTP, query param, payload body, atau field JSON yang dikembalikan oleh backend.
-   - Jangan menyentuh atau meminta akses ke live server / live VPS production. Seluruh kode backend dan skema database sudah ada di workspace lokal ini untuk dianalisis secara aman.
-2. **LINGKUP TUGAS UI/UX ADALAH PURE FRONTEND**:
-   - Seluruh perubahan desain, styling, dan migrasi TypeScript HANYA dilakukan di dalam folder `frontend/`.
+   - Backend API (`server.js`, `src/routes/apiRoutes.js`), skema database (`sql/`, `src/database/`), dan struktur response JSON adalah **CONTRACT PUBLIK**. Pastikan perubahan backend tetap mempertahankan kompatibilitas dengan aplikasi mobile Flutter (`mobile_absensi/`) dan desktop scanner.
+   - Dilarang memutus atau mengubah format field response JSON yang aktif dikonsumsi oleh mobile app.
+   - **Akses & Sinkronisasi VPS Diperbolehkan**: Agent kini diizinkan untuk mengakses, mengeksekusi, dan menyinkronkan server VPS production (seperti `git pull`, build frontend, restart service PM2, migrasi DB, atau deployment) sesuai instruksi pengguna dengan tetap mengutamakan kehati-hatian dan kestabilan sistem.
+2. **LINGKUP PENGEMBANGAN SISTEM**:
+   - Pengembangan UI/UX difokuskan di dalam folder `frontend/` dengan konsep Option A.
    - Logika bisnis, validasi form, hak akses (RBAC), kalkulasi nilai, dan flow data harus dipertahankan 100%.
 3. **KONSEP DESAIN: OPTION A (APPLE LIQUID GLASS / macOS SEQUOIA & VisionOS)**:
    - Desain wajib menggunakan konsep **Option A**: Translucent Liquid Glass, Specular Edge Highlights (`border-top: 1.5px solid rgba(255,255,255,0.95)`), Inset Shadows, 3D Spherical Lens Orbs, Soft Elevation, dan Aurora Mesh Background.

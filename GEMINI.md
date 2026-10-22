@@ -8,7 +8,7 @@ Lihat panduan lengkap pada:
 - **Rules Agent**: [.agents/rules/ui-ux-design-system.md](file:///d:/source/sekolah-info/.agents/rules/ui-ux-design-system.md)
 
 ### Ringkasan Prinsip:
-1. **Frontend-Only Scope**: Jangan pernah mengubah API backend (`server.js`, `src/routes/`), skema DB (`sql/`), atau kontrak response JSON karena aplikasi mobile production (`mobile_absensi/`) aktif menggunakannya.
+1. **Sistem Produksi & VPS**: Jaga kontrak publik API backend (`server.js`, `src/routes/`), skema DB (`sql/`), dan response JSON agar aplikasi mobile (`mobile_absensi/`) selalu kompatibel. Akses dan sinkronisasi server VPS production diperbolehkan sesuai instruksi pengguna.
 2. **Desain Option A**: Apple macOS Sequoia & VisionOS Liquid Glass (translucency, specular highlights, depth, aurora mesh, 3D lens orbs).
 3. **No AI Slop**: Jangan menambahkan elemen fiktif/metrik palsu; pertahankan 100% logika dan fitur bisnis asli.
 4. **Incremental TypeScript**: Buat interface di `frontend/src/types/`, migrasi per halaman, dan verifikasi selalu dengan `npm run build`.
