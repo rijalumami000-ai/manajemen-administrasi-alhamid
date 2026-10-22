@@ -1,24 +1,25 @@
-const db = require('../../db');
-const { handleDatabaseError, ValidationError } = require('../utils/errorHandler');
+import db from '../../db';
+import { handleDatabaseError, ValidationError } from '../utils/errorHandler';
 
-class NilaiService {
+export class NilaiService {
   // Kategori Evaluasi
-  async getKategoriEvaluasi() {
+  async getKategoriEvaluasi(): Promise<any[]> {
     try {
       const result = await db.query('SELECT * FROM kategori_evaluasi ORDER BY id ASC');
       return result.rows;
     } catch (error) {
       handleDatabaseError(error);
+      return [];
     }
   }
 
   // Mapel Tingkat (Jadwal Pelajaran)
-  async getMapelTingkat(tahun_ajaran_id = null, kategori_evaluasi_id = null) {
+  async getMapelTingkat(tahun_ajaran_id: number | string | null = null, kategori_evaluasi_id: number | string | null = null): Promise<any[]> {
     try {
       if (tahun_ajaran_id && kategori_evaluasi_id) {
         // 1. Ambil daftar tingkat yang sudah pernah dikonfigurasi/disimpan secara eksplisit
         const key = `mapel_tingkat_configured_${tahun_ajaran_id}_${kategori_evaluasi_id}`;
-        let configuredTingkats = new Set();
+        let configuredTingkats = new Set<number>();
         try {
           const configRes = await db.query('SELECT value FROM system_settings WHERE key = $1 LIMIT 1', [key]);
           if (configRes.rows.length > 0 && configRes.rows[0].value) {
@@ -27,7 +28,7 @@ class NilaiService {
               configuredTingkats = new Set(list.map(Number));
             }
           }
-        } catch (e) {
+        } catch (e: any) {
           console.warn('Warning getting configured tingkats setting:', e.message);
         }
 
@@ -39,7 +40,7 @@ class NilaiService {
         );
 
         // Setiap tingkat yang memiliki data spesifik otomatis dianggap sudah terkonfigurasi
-        specificResult.rows.forEach(r => configuredTingkats.add(Number(r.tingkat)));
+        specificResult.rows.forEach((r: { tingkat: any }) => configuredTingkats.add(Number(r.tingkat)));
 
         // 3. Query jadwal default (NULL, NULL) sebagai fallback HANYA untuk tingkat yang BELUM dikonfigurasi
         const defaultResult = await db.query(
@@ -47,7 +48,7 @@ class NilaiService {
            WHERE tahun_ajaran_id IS NULL AND kategori_evaluasi_id IS NULL`
         );
 
-        const fallbackRows = defaultResult.rows.filter(r => !configuredTingkats.has(Number(r.tingkat)));
+        const fallbackRows = defaultResult.rows.filter((r: { tingkat: any }) => !configuredTingkats.has(Number(r.tingkat)));
 
         return [...specificResult.rows, ...fallbackRows];
       }
@@ -61,10 +62,16 @@ class NilaiService {
       return result.rows;
     } catch (error) {
       handleDatabaseError(error);
+      return [];
     }
   }
 
-  async saveMapelTingkat(tingkat, mapelIds, tahun_ajaran_id = null, kategori_evaluasi_id = null) {
+  async saveMapelTingkat(
+    tingkat: number | string,
+    mapelIds: (number | string)[],
+    tahun_ajaran_id: number | string | null = null,
+    kategori_evaluasi_id: number | string | null = null
+  ): Promise<{ success: boolean }> {
     const client = await db.pool.connect();
     try {
       await client.query('BEGIN');
@@ -89,7 +96,7 @@ class NilaiService {
         const key = `mapel_tingkat_configured_${tahun_ajaran_id}_${kategori_evaluasi_id}`;
         try {
           const existingRes = await client.query('SELECT value FROM system_settings WHERE key = $1 LIMIT 1', [key]);
-          let configuredList = [];
+          let configuredList: number[] = [];
           if (existingRes.rows.length > 0 && existingRes.rows[0].value) {
             try {
               configuredList = JSON.parse(existingRes.rows[0].value);
@@ -106,7 +113,7 @@ class NilaiService {
              ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value`,
             [key, JSON.stringify(configuredList)]
           );
-        } catch (setErr) {
+        } catch (setErr: any) {
           console.warn('Warning updating system_settings for mapel_tingkat_configured:', setErr.message);
         }
       }
@@ -117,13 +124,19 @@ class NilaiService {
       await client.query('ROLLBACK');
       console.error('Error in saveMapelTingkat:', error);
       handleDatabaseError(error);
+      return { success: false };
     } finally {
       client.release();
     }
   }
 
   // Setting Kriteria
-  async getKriteriaNilai(tingkat, mapelId, tahun_ajaran_id = null, kategori_evaluasi_id = null) {
+  async getKriteriaNilai(
+    tingkat: number | string,
+    mapelId: number | string,
+    tahun_ajaran_id: number | string | null = null,
+    kategori_evaluasi_id: number | string | null = null
+  ): Promise<any | null> {
     try {
       // 1. Dapatkan info jenis mapel
       const mapelResult = await db.query('SELECT jenis FROM mata_pelajaran WHERE id = $1', [mapelId]);
@@ -145,17 +158,18 @@ class NilaiService {
       return result.rows[0] || null;
     } catch (error) {
       handleDatabaseError(error);
+      return null;
     }
   }
 
-  async saveKriteriaNilai(data) {
+  async saveKriteriaNilai(data: any): Promise<any> {
     const { kelas_id, mata_pelajaran_id, tingkat, jenis_mapel, tipe_input, konfigurasi, tahun_ajaran_id, kategori_evaluasi_id } = data;
     
     try {
       console.log('Saving kriteria with payload:', { tingkat, mata_pelajaran_id, jenis_mapel, tipe_input, tahun_ajaran_id, kategori_evaluasi_id });
 
       let deleteQuery = '';
-      let deleteParams = [];
+      let deleteParams: any[] = [];
 
       if (kelas_id && mata_pelajaran_id) {
         deleteQuery = `DELETE FROM setting_kriteria_nilai 
@@ -181,7 +195,7 @@ class NilaiService {
 
       // Check if configuration is empty
       const isEmpty = (tipe_input === 'Teks' && (!konfigurasi || konfigurasi.length === 0)) ||
-                      (tipe_input === 'Angka' && Object.values(konfigurasi).every(v => v.min === null && v.max === null));
+                      (tipe_input === 'Angka' && konfigurasi && Object.values(konfigurasi).every((v: any) => v.min === null && v.max === null));
 
       if (isEmpty) {
         return { success: true, message: 'Kriteria dihapus karena kosong.' };
@@ -210,7 +224,7 @@ class NilaiService {
   }
 
   // Nilai Santri
-  async getNilaiSantri(tahunAjaranId, kelasId, mapelId, kategoriId = null) {
+  async getNilaiSantri(tahunAjaranId: number | string, kelasId: number | string, mapelId: number | string, kategoriId: number | string | null = null): Promise<any[]> {
     try {
       let query = `
         SELECT s.id as santri_id, s.nama, s.nis, k.nama as nama_kelas,
@@ -223,7 +237,7 @@ class NilaiService {
              AND n.tahun_ajaran_id = $1
       `;
       
-      const params = [tahunAjaranId, kelasId, mapelId];
+      const params: any[] = [tahunAjaranId, kelasId, mapelId];
       
       if (kategoriId && kategoriId !== 'null' && kategoriId !== '') {
          query += ` AND n.kategori_evaluasi_id = $4`;
@@ -253,7 +267,7 @@ class NilaiService {
       query += ` ORDER BY s.nama ASC`;
       
       const result = await db.query(query, params);
-      return result.rows.map(row => {
+      return result.rows.map((row: any) => {
         let n = row.nilai_angka;
         if (n !== null && n !== undefined) {
           const num = Number(n);
@@ -268,11 +282,12 @@ class NilaiService {
       });
     } catch (error) {
       handleDatabaseError(error);
+      return [];
     }
   }
 
   // Get all santri with their class for report search
-  async getSantriForReport(tahunAjaranId, kategoriId = null) {
+  async getSantriForReport(tahunAjaranId: number | string, kategoriId: number | string | null = null): Promise<any[]> {
     try {
       let query = `
         SELECT s.id as santri_id, s.nama, k.id as kelas_id, k.nama as nama_kelas, k.tingkat
@@ -282,7 +297,7 @@ class NilaiService {
         WHERE sta.tahun_ajaran_id = $1 AND COALESCE(sta.status, 'aktif') IN ('aktif', 'draft', 'tidak_naik', 'lulus', 'alumni')
       `;
       
-      const params = [tahunAjaranId];
+      const params: any[] = [tahunAjaranId];
       
       let isGanjil = false;
       let isGenap = false;
@@ -305,11 +320,12 @@ class NilaiService {
       return result.rows;
     } catch (error) {
       handleDatabaseError(error);
+      return [];
     }
   }
 
   // Get accumulation for all classes
-  async getAkumulasiSemuaKelas(tahunAjaranId, mapelId, kategoriId) {
+  async getAkumulasiSemuaKelas(tahunAjaranId: number | string, mapelId: number | string, kategoriId: number | string): Promise<any[]> {
     try {
       // Fetch category name to check if it's Ganjil or Genap
       let isGanjil = false;
@@ -360,11 +376,12 @@ class NilaiService {
       return result.rows;
     } catch (error) {
       handleDatabaseError(error);
+      return [];
     }
   }
 
   // Rekap Nilai
-  async getRekapNilai(tahunAjaranId, kelasId, kategoriId) {
+  async getRekapNilai(tahunAjaranId: number | string, kelasId: number | string, kategoriId: number | string): Promise<any[]> {
     try {
       // Fetch category name to check if it's Ganjil or Genap
       const katResult = await db.query('SELECT nama FROM kategori_evaluasi WHERE id = $1', [kategoriId]);
@@ -402,7 +419,7 @@ class NilaiService {
       const result = await db.query(query, params);
       
       // Return cleaned rows without .00 trailing decimals
-      return result.rows.map(row => {
+      return result.rows.map((row: any) => {
         let n = row.nilai_angka;
         if (n !== null && n !== undefined) {
           const num = Number(n);
@@ -417,10 +434,16 @@ class NilaiService {
       });
     } catch (error) {
       handleDatabaseError(error);
+      return [];
     }
   }
 
-  async saveNilaiBulk(tahunAjaranId, mapelId, katId, dataList) {
+  async saveNilaiBulk(
+    tahunAjaranId: number | string,
+    mapelId: number | string,
+    katId: number | string | null,
+    dataList: any[]
+  ): Promise<{ success: boolean; count?: number }> {
     const client = await db.pool.connect();
     try {
       await client.query('BEGIN');
@@ -463,12 +486,13 @@ class NilaiService {
     } catch (error) {
       await client.query('ROLLBACK');
       handleDatabaseError(error);
+      return { success: false };
     } finally {
       client.release();
     }
   }
 
-  async getRaporData(tahunAjaranId, kelasId, kategoriId) {
+  async getRaporData(tahunAjaranId: number | string, kelasId: number | string, kategoriId: number | string): Promise<any[]> {
     try {
       // Fetch category name to check if it's Ganjil or Genap
       let isGanjil = false;
@@ -507,7 +531,7 @@ class NilaiService {
       const rows = result.rows;
 
       if (rows.length > 0) {
-        const santriIds = rows.map(r => r.santri_id);
+        const santriIds = rows.map((r: any) => r.santri_id);
         const detailRes = await db.query(
           `SELECT santri_id, bulan, sakit, izin, alpa 
            FROM absensi_bulanan_santri 
@@ -516,8 +540,8 @@ class NilaiService {
         );
 
         // Buat map santri_id -> detail_absensi { [bulan]: { sakit, izin, alpa } }
-        const detailMap = {};
-        detailRes.rows.forEach(d => {
+        const detailMap: Record<number, any> = {};
+        detailRes.rows.forEach((d: any) => {
           if (!detailMap[d.santri_id]) {
             detailMap[d.santri_id] = {};
           }
@@ -529,7 +553,7 @@ class NilaiService {
         });
 
         // Masukkan detail ke rows
-        rows.forEach(row => {
+        rows.forEach((row: any) => {
           row.detail_absensi = detailMap[row.santri_id] || {};
         });
       }
@@ -537,10 +561,11 @@ class NilaiService {
       return rows;
     } catch (error) {
       handleDatabaseError(error);
+      return [];
     }
   }
 
-  async saveRaporBulk(tahunAjaranId, kategoriId, dataList) {
+  async saveRaporBulk(tahunAjaranId: number | string, kategoriId: number | string, dataList: any[]): Promise<{ success: boolean; count?: number }> {
     const client = await db.pool.connect();
     try {
       await client.query('BEGIN');
@@ -621,12 +646,13 @@ class NilaiService {
     } catch (error) {
       await client.query('ROLLBACK');
       handleDatabaseError(error);
+      return { success: false };
     } finally {
       client.release();
     }
   }
 
-  async getRekapAbsensiBulanan(tahunAjaranId, kategoriId, bulan) {
+  async getRekapAbsensiBulanan(tahunAjaranId: number | string, kategoriId: number | string, bulan: string): Promise<any> {
     try {
       if (!tahunAjaranId || !kategoriId || !bulan) {
         throw new ValidationError('tahun_ajaran_id, kategori_evaluasi_id, dan bulan dibutuhkan');
@@ -649,7 +675,7 @@ class NilaiService {
       let kelasList = kelasRes.rows;
 
       // Fungsi pembobot urutan kelas: Sifir -> 1A..1E -> SP -> 2A..2E -> 3A..3D -> 4A..4B -> 5A..5B -> 6
-      const getKelasSortWeight = (nama, tingkat) => {
+      const getKelasSortWeight = (nama: string, tingkat: any) => {
         const clean = (nama || '').trim().toUpperCase();
         if (clean.includes('SIFIR')) return 0;
         if (clean === 'SP') return 1.99;
@@ -662,7 +688,7 @@ class NilaiService {
         return (Number(tingkat) || 0) + 0.5;
       };
 
-      kelasList.sort((a, b) => {
+      kelasList.sort((a: any, b: any) => {
         const wA = getKelasSortWeight(a.nama, a.tingkat);
         const wB = getKelasSortWeight(b.nama, b.tingkat);
         if (wA !== wB) return wA - wB;
@@ -706,15 +732,15 @@ class NilaiService {
       const allSantri = santriRes.rows;
 
       // 4. Kelompokkan santri per kelas
-      const santriByKelas = {};
-      allSantri.forEach(s => {
+      const santriByKelas: Record<number, any[]> = {};
+      allSantri.forEach((s: any) => {
         if (!santriByKelas[s.kelas_id]) {
           santriByKelas[s.kelas_id] = [];
         }
         santriByKelas[s.kelas_id].push(s);
       });
 
-      const rekapKelas = kelasList.map(kls => {
+      const rekapKelas = kelasList.map((kls: any) => {
         const santriList = santriByKelas[kls.id] || [];
         return {
           kelas_id: kls.id,
@@ -724,14 +750,13 @@ class NilaiService {
           total_santri: santriList.length,
           santri: santriList
         };
-      }).filter(kls => kls.santri.length > 0);
+      }).filter((kls: any) => kls.santri.length > 0);
 
       // 5. Filter Santri Terjaring Batasan Absen:
       // Alfa minimal 1 (>= 1)
       // Izin minimal 4 (>= 4)
       // Sakit minimal 6 (>= 6)
-      // Diurutkan dari kelas terendah ke tertinggi (Sifir, 1, SP, 2, 3, 4, 5, 6), lalu nama santri
-      const sortTerjaring = (list) => {
+      const sortTerjaring = (list: any[]) => {
         return list.slice().sort((a, b) => {
           const wA = getKelasSortWeight(a.nama_kelas, a.kelas_tingkat);
           const wB = getKelasSortWeight(b.nama_kelas, b.kelas_tingkat);
@@ -740,9 +765,9 @@ class NilaiService {
         });
       };
 
-      const terjaringAlfa = sortTerjaring(allSantri.filter(s => s.alpa >= 1));
-      const terjaringIzin = sortTerjaring(allSantri.filter(s => s.izin >= 4));
-      const terjaringSakit = sortTerjaring(allSantri.filter(s => s.sakit >= 6));
+      const terjaringAlfa = sortTerjaring(allSantri.filter((s: any) => s.alpa >= 1));
+      const terjaringIzin = sortTerjaring(allSantri.filter((s: any) => s.izin >= 4));
+      const terjaringSakit = sortTerjaring(allSantri.filter((s: any) => s.sakit >= 6));
 
       return {
         tahun_ajaran: tahunAjaran,
@@ -760,7 +785,7 @@ class NilaiService {
     }
   }
 
-  async savePeringkatManual(tahunAjaranId, kategoriId, dataList) {
+  async savePeringkatManual(tahunAjaranId: number | string, kategoriId: number | string, dataList: any[]): Promise<{ success: boolean }> {
     const client = await db.pool.connect();
     try {
       await client.query('BEGIN');
@@ -780,12 +805,13 @@ class NilaiService {
     } catch (error) {
       await client.query('ROLLBACK');
       handleDatabaseError(error);
+      return { success: false };
     } finally {
       client.release();
     }
   }
 
-  async getCetakRapor(tahunAjaranId, kelasId, kategoriId, santriId) {
+  async getCetakRapor(tahunAjaranId: number | string, kelasId: number | string, kategoriId: number | string, santriId: number | string): Promise<any> {
     try {
       const kelasRes = await db.query(`
         SELECT k.id, k.jenis, k.nama, k.tingkat, k.created_at,
@@ -827,8 +853,8 @@ class NilaiService {
       const tingkatParam = (kelasData.nama === 'SP' && kelasData.tingkat === 1) ? 99 : kelasData.tingkat;
       const allMt = await this.getMapelTingkat(tahunAjaranId, kategoriId);
       let allowedMtIds = (allMt || [])
-        .filter(mt => Number(mt.tingkat) === Number(tingkatParam))
-        .map(mt => Number(mt.mata_pelajaran_id));
+        .filter((mt: any) => Number(mt.tingkat) === Number(tingkatParam))
+        .map((mt: any) => Number(mt.mata_pelajaran_id));
 
       if (tingkatParam === 99 && allowedMtIds.length === 0) {
         const key = `mapel_tingkat_configured_${tahunAjaranId}_${kategoriId}`;
@@ -842,8 +868,8 @@ class NilaiService {
         } catch (e) {}
         if (!isConfigured99) {
           allowedMtIds = (allMt || [])
-            .filter(mt => Number(mt.tingkat) === 2)
-            .map(mt => Number(mt.mata_pelajaran_id));
+            .filter((mt: any) => Number(mt.tingkat) === 2)
+            .map((mt: any) => Number(mt.mata_pelajaran_id));
         }
       }
 
@@ -861,24 +887,10 @@ class NilaiService {
 
       // 7. Get Rekap Data to find Peringkat and Total (Call existing method)
       const rekapData = await this.getRekapNilai(tahunAjaranId, kelasId, kategoriId);
-      
-      // Helper: convert predikat muhafadzoh to numeric score
-      const muhafadzohScore = (predikat) => {
-        if (predikat === 'Mumtaz') return 100;
-        if (predikat === 'Jayyid') return 80;
-        if (predikat === 'Mutawassith') return 60;
-        if (predikat === "Rodi'") return 40;
-        return 0;
-      };
-      // Helper: convert taftisy capaian to numeric score
-      const taftisyScore = (capaian) => {
-        if (capaian === 'Tam') return 100;
-        return 0; // Naqish or empty
-      };
 
       // Compute Peringkat logic 
-      const pivoted = {};
-      rekapData.forEach(row => {
+      const pivoted: Record<number, any> = {};
+      rekapData.forEach((row: any) => {
         if (!pivoted[row.santri_id]) {
           pivoted[row.santri_id] = {
             santri_id: row.santri_id,
@@ -911,8 +923,8 @@ class NilaiService {
 
       // 8. Get Settings
       const settingsRes = await db.query("SELECT key, value FROM system_settings WHERE key LIKE 'rapor_%'");
-      const settings = {};
-      settingsRes.rows.forEach(r => settings[r.key] = r.value);
+      const settings: Record<string, any> = {};
+      settingsRes.rows.forEach((r: { key: string; value: any }) => settings[r.key] = r.value);
 
       return {
         santri: santriData,
@@ -936,4 +948,6 @@ class NilaiService {
   }
 }
 
-module.exports = new NilaiService();
+const nilaiService = new NilaiService();
+module.exports = nilaiService;
+export default nilaiService;

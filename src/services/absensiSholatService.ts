@@ -1,22 +1,22 @@
-const db = require('../../db');
-const { ValidationError, AppError, NotFoundError } = require('../utils/errorHandler');
+import db from '../../db';
+import { ValidationError, AppError, NotFoundError } from '../utils/errorHandler';
 
 /**
  * Calculate Euclidean distance between two vectors
- * @param {Array<number>} v1 
- * @param {Array<number>} v2 
- * @returns {number}
+ * @param v1 
+ * @param v2 
+ * @returns Euclidean distance
  */
-function euclideanDistance(v1, v2) {
+export function euclideanDistance(v1: number[], v2: number[]): number {
   return Math.sqrt(v1.reduce((sum, val, i) => sum + Math.pow(val - v2[i], 2), 0));
 }
 
 /**
  * Register or update face descriptor for a santri
- * @param {number} santriId 
- * @param {Array<number>} faceDescriptor - Array of 128 floats
+ * @param santriId 
+ * @param faceDescriptors - Array of 128 floats (or array of arrays)
  */
-async function registerFace(santriId, faceDescriptors) {
+export async function registerFace(santriId: number, faceDescriptors: any): Promise<{ success: boolean; id: number }> {
   if (!santriId || !faceDescriptors || !Array.isArray(faceDescriptors)) {
     throw new ValidationError('Santri ID dan face descriptors (array) harus diisi');
   }
@@ -72,10 +72,10 @@ async function registerFace(santriId, faceDescriptors) {
 
 /**
  * Register palm descriptor for a santri
- * @param {number} santriId 
- * @param {Array<number>} palmDescriptor - Array of landmarks
+ * @param santriId 
+ * @param palmDescriptor - Array of landmarks
  */
-async function registerPalm(santriId, palmDescriptor) {
+export async function registerPalm(santriId: number, palmDescriptor: any): Promise<{ success: boolean; id: number }> {
   if (!santriId || !palmDescriptor) {
     throw new ValidationError('Santri ID dan data telapak tangan harus diisi');
   }
@@ -122,10 +122,10 @@ async function registerPalm(santriId, palmDescriptor) {
 
 /**
  * Identify santri by face descriptor
- * @param {Array<number>} faceDescriptor - Array of 128 floats
- * @returns {Promise<Object|null>} - Santri data if found
+ * @param faceDescriptor - Array of 128 floats
+ * @returns Santri data if found
  */
-async function identifySantri(faceDescriptor) {
+export async function identifySantri(faceDescriptor: number[]): Promise<any | null> {
   try {
     // Ambil descriptor beserta nama santri untuk logging detail jarak Euclidean
     const result = await db.query(`
@@ -134,12 +134,12 @@ async function identifySantri(faceDescriptor) {
       JOIN santri s ON fd.santri_id = s.id
     `);
     
-    let bestMatch = null;
+    let bestMatch: number | null = null;
     let minDistance = 0.63; // Threshold disesuaikan ke 0.63 untuk toleransi cahaya & sudut kamera depan HP yang ideal
-    let closestName = "Tidak ada";
+    let closestName = 'Tidak ada';
     let closestDistance = 999.0;
 
-    console.log("=== MEMULAI PENCOCOKAN WAJAH ===");
+    console.log('=== MEMULAI PENCOCOKAN WAJAH ===');
     for (const row of result.rows) {
       const storedData = JSON.parse(row.face_descriptor);
       const storedDescriptors = Array.isArray(storedData[0]) ? storedData : [storedData];
@@ -183,14 +183,14 @@ async function identifySantri(faceDescriptor) {
 
 /**
  * Identify santri by palm descriptor
- * @param {Array<number>} palmDescriptor 
- * @returns {Promise<Object|null>}
+ * @param palmDescriptor 
+ * @returns Santri data if found
  */
-async function identifySantriByPalm(palmDescriptor) {
+export async function identifySantriByPalm(palmDescriptor: number[]): Promise<any | null> {
   try {
     const result = await db.query('SELECT santri_id, palm_descriptors FROM santri_face_data WHERE palm_descriptors IS NOT NULL');
     
-    let bestMatch = null;
+    let bestMatch: number | null = null;
     let minDistance = 0.15; // Threshold ketat untuk tangan (landmarks normalized)
 
     for (const row of result.rows) {
@@ -222,10 +222,10 @@ async function identifySantriByPalm(palmDescriptor) {
 
 /**
  * Identify santri by QR Code
- * @param {string} qrCode 
- * @returns {Promise<Object|null>}
+ * @param qrCode 
+ * @returns Santri data if found
  */
-async function identifySantriByQR(qrCode) {
+export async function identifySantriByQR(qrCode: string): Promise<any | null> {
   try {
     const santriResult = await db.query(
       `SELECT s.id, s.nama, s.nis, s.foto_url, k.nama as kelas 
@@ -243,10 +243,10 @@ async function identifySantriByQR(qrCode) {
 
 /**
  * Identify santri by NFC UID
- * @param {string} nfcUid 
- * @returns {Promise<Object|null>}
+ * @param nfcUid 
+ * @returns Santri data if found
  */
-async function identifySantriByNFC(nfcUid) {
+export async function identifySantriByNFC(nfcUid: string): Promise<any | null> {
   try {
     const santriResult = await db.query(
       `SELECT s.id, s.nama, s.nis, s.foto_url, k.nama as kelas 
@@ -264,10 +264,10 @@ async function identifySantriByNFC(nfcUid) {
 
 /**
  * Identify santri by Fingerprint ID
- * @param {string} fingerprintId 
- * @returns {Promise<Object|null>}
+ * @param fingerprintId 
+ * @returns Santri data if found
  */
-async function identifySantriByFingerprint(fingerprintId) {
+export async function identifySantriByFingerprint(fingerprintId: string): Promise<any | null> {
   try {
     const santriResult = await db.query(
       `SELECT s.id, s.nama, s.nis, s.foto_url, k.nama as kelas 
@@ -285,12 +285,19 @@ async function identifySantriByFingerprint(fingerprintId) {
 
 /**
  * Record attendance for a prayer
- * @param {number} santriId 
- * @param {string} sholat - Subuh, Dzuhur, Ashar, Maghrib, Isya
- * @param {string} status - Hadir, Sakit, Izin, Alpha
- * @param {string} keterangan 
+ * @param santriId 
+ * @param sholat - Subuh, Dzuhur, Ashar, Maghrib, Isya
+ * @param status - Hadir, Sakit, Izin, Alpha
+ * @param keterangan 
  */
-async function recordAttendance(santriId, sholat, status = 'Hadir', keterangan = null, tahunAjaranId = null, semester = null) {
+export async function recordAttendance(
+  santriId: number,
+  sholat: string,
+  status = 'Hadir',
+  keterangan: string | null = null,
+  tahunAjaranId: number | null = null,
+  semester: string | null = null
+): Promise<{ success: boolean; id: number }> {
   const validSholat = ['Subuh', 'Dzuhur', 'Ashar', 'Maghrib', 'Isya'];
   if (!validSholat.includes(sholat)) {
     throw new ValidationError('Jenis sholat tidak valid');
@@ -330,9 +337,9 @@ async function recordAttendance(santriId, sholat, status = 'Hadir', keterangan =
 
 /**
  * Get today's attendance summary
- * @returns {Promise<Array>}
+ * @returns Array of today's attendance
  */
-async function getTodayAttendance() {
+export async function getTodayAttendance(): Promise<any[]> {
   try {
     const result = await db.query(
       `SELECT a.id, a.santri_id, a.tanggal, a.sholat, a.status, a.waktu_scan,
@@ -354,15 +361,18 @@ async function getTodayAttendance() {
 
 /**
  * Get attendance recap with filters
- * @param {string} startDate - YYYY-MM-DD
- * @param {string} endDate - YYYY-MM-DD
- * @param {number} kelasId 
- * @param {string} sholat 
- * @param {string} jenisKelamin 
- * @param {number} kamarId 
- * @returns {Promise<Array>}
  */
-async function getAttendanceRecap(startDate = null, endDate = null, kelasId = null, sholat = null, jenisKelamin = null, kamarId = null, status = null, tahunAjaranId = null, semester = null) {
+export async function getAttendanceRecap(
+  startDate: string | null = null,
+  endDate: string | null = null,
+  kelasId: number | null = null,
+  sholat: string | null = null,
+  jenisKelamin: string | null = null,
+  kamarId: number | null = null,
+  status: string | null = null,
+  tahunAjaranId: number | null = null,
+  semester: string | null = null
+): Promise<any[]> {
   try {
     const query = `
       SELECT a.id, a.tanggal, a.sholat, a.status, a.waktu_scan,
@@ -394,11 +404,11 @@ async function getAttendanceRecap(startDate = null, endDate = null, kelasId = nu
 
 /**
  * Get santri who have not attended for a specific prayer and date
- * @param {string} sholat 
- * @param {string} date - YYYY-MM-DD
- * @returns {Promise<Array>}
+ * @param sholat 
+ * @param date - YYYY-MM-DD
+ * @returns Array of unattended santri
  */
-async function getUnattendedSantri(sholat, date) {
+export async function getUnattendedSantri(sholat: string, date: string): Promise<any[]> {
   try {
     const query = `
       SELECT s.id, s.nama, s.nis, k.nama as kelas_nama, s.kelas_diniyah_id, s.kamar_id
@@ -418,7 +428,8 @@ async function getUnattendedSantri(sholat, date) {
   }
 }
 
-module.exports = {
+const absensiSholatService = {
+  euclideanDistance,
   registerFace,
   registerPalm,
   identifySantri,
@@ -431,3 +442,6 @@ module.exports = {
   identifySantriByNFC,
   identifySantriByFingerprint
 };
+
+module.exports = absensiSholatService;
+export default absensiSholatService;

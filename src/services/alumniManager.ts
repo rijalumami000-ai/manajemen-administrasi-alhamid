@@ -11,10 +11,29 @@
  * 4. Dual-track graduation: Diniyah 6 + MA 12 = "Lulus Diniyah & MA"
  */
 
-const db = require('../../db');
-const { isGraduationPoint, isMtsGraduation } = require('../utils/classProgressionMap');
+import db from '../../db';
 
-class AlumniManager {
+export interface GraduationStatus {
+  shouldBecomeAlumni: boolean;
+  graduationNotes: string[];
+  status: string | null;
+  statusDescription: string | null;
+  isDiniyahComplete: boolean;
+  isMtsComplete: boolean;
+  isMaComplete: boolean;
+}
+
+export interface ProcessGraduationResult {
+  becameAlumni: boolean;
+  graduationNotes: string[];
+  shouldMigrate: boolean;
+  status: string | null;
+  isDiniyahComplete?: boolean;
+  isMtsComplete?: boolean;
+  isMaComplete?: boolean;
+}
+
+export class AlumniManager {
   /**
    * Main method to check if santri should become alumni and create record if needed
    *
@@ -22,12 +41,12 @@ class AlumniManager {
    * - Alumni ONLY if: Diniyah 6 AND Sekolah 12
    * - Otherwise: Mark as "Lulus" in catatan, continue to next year
    *
-   * @param {Object} santri - Santri record with class assignments
-   * @param {Object} sourceYear - Source tahun ajaran
-   * @param {Object} client - Database client for transaction support
-   * @returns {Object} { becameAlumni, graduationNotes, shouldMigrate }
+   * @param santri - Santri record with class assignments
+   * @param sourceYear - Source tahun ajaran
+   * @param client - Database client for transaction support
+   * @returns { becameAlumni, graduationNotes, shouldMigrate }
    */
-  async processGraduation(santri, sourceYear, client) {
+  async processGraduation(santri: any, sourceYear: any, client: any): Promise<ProcessGraduationResult> {
     console.log(`🎓 Processing graduation for santri ${santri.santri_id} (${santri.nama})`);
 
     const graduationStatus = this.detectGraduationPoint(santri);
@@ -93,18 +112,18 @@ class AlumniManager {
    * - Alumni ONLY if: Diniyah 6 OR MA 12
    * - Otherwise: Mark as "Lulus" but NOT alumni
    *
-   * @param {Object} santri - Santri with kelas info (includes tingkat from JOIN)
-   * @returns {Object} { shouldBecomeAlumni, graduationNotes, status }
+   * @param santri - Santri with kelas info (includes tingkat from JOIN)
+   * @returns { shouldBecomeAlumni, graduationNotes, status }
    */
-  detectGraduationPoint(santri) {
+  detectGraduationPoint(santri: any): GraduationStatus {
     const diniyahTingkat = santri.kelas_diniyah_tingkat;
     const sekolahTingkat = santri.kelas_sekolah_tingkat;
 
     console.log(`   📊 Tingkat: Diniyah=${diniyahTingkat}, Sekolah=${sekolahTingkat}`);
 
-    const graduationNotes = [];
+    const graduationNotes: string[] = [];
     let shouldBecomeAlumni = false;
-    let alumniStatus = null;
+    let alumniStatus: string | null = null;
 
     // Check Diniyah graduation (tingkat 6)
     const isDiniyahComplete = diniyahTingkat === 6;
@@ -136,7 +155,7 @@ class AlumniManager {
     }
 
     // Determine status for logging
-    let statusDescription = null;
+    let statusDescription: string | null = null;
     if (shouldBecomeAlumni) {
       statusDescription = alumniStatus;
     } else if (graduationNotes.length > 0) {
@@ -157,16 +176,16 @@ class AlumniManager {
   /**
    * Create alumni records with complete educational history
    *
-   * @param {Object} santri - Santri data
-   * @param {Object} sourceYear - Source tahun ajaran
-   * @param {Object} graduationStatus - Graduation details
-   * @param {Object} client - Database client for transaction
+   * @param santri - Santri data
+   * @param sourceYear - Source tahun ajaran
+   * @param graduationStatus - Graduation details
+   * @param client - Database client for transaction
    */
-  async createAlumniRecord(santri, sourceYear, graduationStatus, client) {
+  async createAlumniRecord(santri: any, sourceYear: any, graduationStatus: GraduationStatus, client: any): Promise<void> {
     console.log(`   📝 Creating alumni record for santri ${santri.santri_id}`);
 
     try {
-      const kelasArray = [];
+      const kelasArray: string[] = [];
       if (santri.kelas_diniyah_nama) kelasArray.push(santri.kelas_diniyah_nama);
       if (santri.kelas_sekolah_nama) kelasArray.push(santri.kelas_sekolah_nama);
       const kelasTerakhir = kelasArray.join(' / ') || null;
@@ -202,7 +221,7 @@ class AlumniManager {
       if (result.rows.length > 0) {
         console.log(`   ✅ Alumni record created/updated with ID: ${result.rows[0].id}`);
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error(`   ❌ Error creating alumni record:`, error.message);
       throw error;
     }
@@ -211,12 +230,12 @@ class AlumniManager {
   /**
    * Update santri status appropriately
    *
-   * @param {number} santriTahunAjaranId - santri_tahun_ajaran.id
-   * @param {number} tahunAjaranId - tahun_ajaran.id
-   * @param {string} status - New status ('alumni', 'lulus', etc.)
-   * @param {Object} client - Database client for transaction
+   * @param santriTahunAjaranId - santri_tahun_ajaran.id
+   * @param tahunAjaranId - tahun_ajaran.id
+   * @param status - New status ('alumni', 'lulus', etc.)
+   * @param client - Database client for transaction
    */
-  async updateSantriStatus(santriTahunAjaranId, tahunAjaranId, status, client) {
+  async updateSantriStatus(santriTahunAjaranId: number, tahunAjaranId: number, status: string, client: any): Promise<void> {
     console.log(`   📝 Updating santri status to: ${status}`);
 
     try {
@@ -228,7 +247,7 @@ class AlumniManager {
       );
 
       console.log(`   ✅ Status updated successfully`);
-    } catch (error) {
+    } catch (error: any) {
       console.error(`   ❌ Error updating santri status:`, error.message);
       throw error;
     }
@@ -237,11 +256,11 @@ class AlumniManager {
   /**
    * Mark MTs graduates (mark as "lulus" but not alumni)
    *
-   * @param {number} santriTahunAjaranId - santri_tahun_ajaran.id
-   * @param {number} tahunAjaranId - tahun_ajaran.id
-   * @param {Object} client - Database client for transaction
+   * @param santriTahunAjaranId - santri_tahun_ajaran.id
+   * @param tahunAjaranId - tahun_ajaran.id
+   * @param client - Database client for transaction
    */
-  async markMtsGraduate(santriTahunAjaranId, tahunAjaranId, client) {
+  async markMtsGraduate(santriTahunAjaranId: number, tahunAjaranId: number, client: any): Promise<void> {
     console.log(`   📝 Marking as MTs graduate (lulus status)`);
 
     try {
@@ -257,7 +276,7 @@ class AlumniManager {
       );
 
       console.log(`   ✅ MTs graduate status updated`);
-    } catch (error) {
+    } catch (error: any) {
       console.error(`   ❌ Error marking MTs graduate:`, error.message);
       throw error;
     }
@@ -266,12 +285,12 @@ class AlumniManager {
   /**
    * Add note to santri catatan field (for dual-track Diniyah completion)
    *
-   * @param {number} santriTahunAjaranId - santri_tahun_ajaran.id
-   * @param {number} tahunAjaranId - tahun_ajaran.id
-   * @param {string} note - Note to add
-   * @param {Object} client - Database client for transaction
+   * @param santriTahunAjaranId - santri_tahun_ajaran.id
+   * @param tahunAjaranId - tahun_ajaran.id
+   * @param note - Note to add
+   * @param client - Database client for transaction
    */
-  async addCatatanNote(santriTahunAjaranId, tahunAjaranId, note, client) {
+  async addCatatanNote(santriTahunAjaranId: number, tahunAjaranId: number, note: string, client: any): Promise<void> {
     console.log(`   📝 Adding note to catatan: ${note}`);
 
     try {
@@ -286,7 +305,7 @@ class AlumniManager {
       );
 
       console.log(`   ✅ Note added to catatan`);
-    } catch (error) {
+    } catch (error: any) {
       console.error(`   ❌ Error adding catatan note:`, error.message);
       throw error;
     }
@@ -295,10 +314,10 @@ class AlumniManager {
   /**
    * Get existing alumni IDs to exclude from migration
    *
-   * @param {Object} client - Database client (optional, uses pool if not provided)
-   * @returns {Array<number>} Array of santri IDs that are already alumni
+   * @param client - Database client (optional, uses pool if not provided)
+   * @returns Array of santri IDs that are already alumni
    */
-  async getExistingAlumniIds(client = null) {
+  async getExistingAlumniIds(client: any = null): Promise<number[]> {
     const dbClient = client || db;
 
     try {
@@ -306,11 +325,11 @@ class AlumniManager {
         `SELECT santri_id FROM alumni`
       );
 
-      const alumniIds = result.rows.map(row => row.santri_id);
+      const alumniIds = result.rows.map((row: { santri_id: number }) => row.santri_id);
       console.log(`📋 Found ${alumniIds.length} existing alumni to exclude from migration`);
 
       return alumniIds;
-    } catch (error) {
+    } catch (error: any) {
       console.error(`❌ Error fetching existing alumni:`, error.message);
       throw error;
     }
@@ -319,11 +338,11 @@ class AlumniManager {
   /**
    * Check if a santri is already an alumni
    *
-   * @param {number} santriId - Santri ID
-   * @param {Object} client - Database client (optional)
-   * @returns {boolean} True if santri is already alumni
+   * @param santriId - Santri ID
+   * @param client - Database client (optional)
+   * @returns True if santri is already alumni
    */
-  async isAlumni(santriId, client = null) {
+  async isAlumni(santriId: number, client: any = null): Promise<boolean> {
     const dbClient = client || db;
 
     try {
@@ -333,7 +352,7 @@ class AlumniManager {
       );
 
       return result.rows.length > 0;
-    } catch (error) {
+    } catch (error: any) {
       console.error(`❌ Error checking alumni status:`, error.message);
       throw error;
     }
@@ -341,3 +360,4 @@ class AlumniManager {
 }
 
 module.exports = AlumniManager;
+export default AlumniManager;

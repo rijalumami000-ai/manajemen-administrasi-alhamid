@@ -1,20 +1,18 @@
-// alumniService.js - Business logic for alumni management
-
-const db = require('../../db');
-const { normalizeText } = require('../utils/normalizers');
-const {
+import db from '../../db';
+import { normalizeText } from '../utils/normalizers';
+import {
   ValidationError,
   NotFoundError,
   validateRequiredFields,
   validateField,
   validators,
   handleDatabaseError
-} = require('../utils/errorHandler');
+} from '../utils/errorHandler';
 
 /**
  * Get all alumni
  */
-async function getAllAlumni(tipe = null, tahunAjaranId = null) {
+export async function getAllAlumni(tipe: string | null = null, tahunAjaranId: number | string | null = null): Promise<any[]> {
   try {
     let query = `
       SELECT a.*, 
@@ -24,7 +22,7 @@ async function getAllAlumni(tipe = null, tahunAjaranId = null) {
       LEFT JOIN santri s ON a.santri_id = s.id OR (a.santri_id IS NULL AND a.nis = s.nis)
       WHERE 1=1
     `;
-    const params = [];
+    const params: any[] = [];
 
     if (tipe) {
       if (tipe === 'lulus') {
@@ -38,7 +36,7 @@ async function getAllAlumni(tipe = null, tahunAjaranId = null) {
     }
 
     if (tahunAjaranId) {
-      params.push(parseInt(tahunAjaranId, 10));
+      params.push(parseInt(String(tahunAjaranId), 10));
       query += ` AND a.tahun_ajaran_id = $${params.length}`;
     }
 
@@ -48,13 +46,19 @@ async function getAllAlumni(tipe = null, tahunAjaranId = null) {
     return result.rows;
   } catch (error) {
     handleDatabaseError(error);
+    return [];
   }
 }
 
 /**
  * Search alumni by query and year
  */
-async function searchAlumni(searchQuery, tahunLulus, tipe = null, tahunAjaranId = null) {
+export async function searchAlumni(
+  searchQuery?: string,
+  tahunLulus?: number | string,
+  tipe: string | null = null,
+  tahunAjaranId: number | string | null = null
+): Promise<any[]> {
   try {
     let query = `
       SELECT a.*, 
@@ -64,7 +68,7 @@ async function searchAlumni(searchQuery, tahunLulus, tipe = null, tahunAjaranId 
       LEFT JOIN santri s ON a.santri_id = s.id OR (a.santri_id IS NULL AND a.nis = s.nis)
       WHERE 1=1
     `;
-    const params = [];
+    const params: any[] = [];
 
     if (searchQuery) {
       params.push(`%${searchQuery}%`);
@@ -72,7 +76,7 @@ async function searchAlumni(searchQuery, tahunLulus, tipe = null, tahunAjaranId 
     }
 
     if (tahunLulus) {
-      params.push(parseInt(tahunLulus, 10));
+      params.push(parseInt(String(tahunLulus), 10));
       query += ` AND a.tahun_lulus = $${params.length}`;
     }
 
@@ -88,7 +92,7 @@ async function searchAlumni(searchQuery, tahunLulus, tipe = null, tahunAjaranId 
     }
 
     if (tahunAjaranId) {
-      params.push(parseInt(tahunAjaranId, 10));
+      params.push(parseInt(String(tahunAjaranId), 10));
       query += ` AND a.tahun_ajaran_id = $${params.length}`;
     }
 
@@ -98,13 +102,14 @@ async function searchAlumni(searchQuery, tahunLulus, tipe = null, tahunAjaranId 
     return result.rows;
   } catch (error) {
     handleDatabaseError(error);
+    return [];
   }
 }
 
 /**
  * Create new alumni manually
  */
-async function createAlumni(data) {
+export async function createAlumni(data: any): Promise<any> {
   // Validate required fields
   validateRequiredFields(data, ['nis', 'nama', 'tahun_lulus']);
 
@@ -156,7 +161,7 @@ async function createAlumni(data) {
 /**
  * Update alumni by ID
  */
-async function updateAlumni(id, data) {
+export async function updateAlumni(id: number, data: any): Promise<any> {
   // Validate required fields
   validateRequiredFields(data, ['nis', 'nama', 'tahun_lulus']);
 
@@ -217,7 +222,7 @@ async function updateAlumni(id, data) {
 /**
  * Delete alumni by ID
  */
-async function deleteAlumni(id) {
+export async function deleteAlumni(id: number): Promise<any> {
   try {
     const result = await db.query('DELETE FROM alumni WHERE id = $1 RETURNING id, santri_id', [id]);
 
@@ -240,7 +245,7 @@ async function deleteAlumni(id) {
 /**
  * Get active santri for migration dropdown
  */
-async function getActiveSantri() {
+export async function getActiveSantri(): Promise<any[]> {
   try {
     const result = await db.query(`
       SELECT s.id, sta.nis, sta.nik, sta.nama, sta.tempat_lahir, sta.tanggal_lahir, sta.alamat,
@@ -261,13 +266,19 @@ async function getActiveSantri() {
     return result.rows;
   } catch (error) {
     handleDatabaseError(error);
+    return [];
   }
 }
 
 /**
  * Migrate santri to alumni
  */
-async function migrateSantriToAlumni(santriId, tahunLulus, keterangan, customTipe) {
+export async function migrateSantriToAlumni(
+  santriId: number,
+  tahunLulus: number,
+  keterangan?: string,
+  customTipe?: string
+): Promise<any> {
   // Validate required fields
   validateRequiredFields({ santri_id: santriId, tahun_lulus: tahunLulus }, ['santri_id', 'tahun_lulus']);
   validateField('Tahun Lulus', tahunLulus, validators.year);
@@ -302,7 +313,6 @@ async function migrateSantriToAlumni(santriId, tahunLulus, keterangan, customTip
     let effectiveTipe = customTipe;
     if (!effectiveTipe) {
       const ks = (santri.kelas_sekolah || '').toLowerCase();
-      const kd = (santri.kelas_diniyah || '').toLowerCase();
       if (ks.includes('aliyah') || ks.includes('ma ') || ks.includes('12')) {
         effectiveTipe = 'lulus_aliyah';
       } else if (ks.includes('mts') || ks.includes('smp') || ks.includes('9')) {
@@ -330,7 +340,7 @@ async function migrateSantriToAlumni(santriId, tahunLulus, keterangan, customTip
     const tahunMasuk = tahunLulus - 6;
 
     // Build kelas terakhir
-    const kelasArray = [];
+    const kelasArray: string[] = [];
     if (santri.kelas_diniyah) kelasArray.push(santri.kelas_diniyah);
     if (santri.kelas_sekolah) kelasArray.push(santri.kelas_sekolah);
     const kelasTerakir = kelasArray.join(' / ') || null;
@@ -392,7 +402,7 @@ async function migrateSantriToAlumni(santriId, tahunLulus, keterangan, customTip
 /**
  * Get alumni detail with history
  */
-async function getAlumniDetail(id) {
+export async function getAlumniDetail(id: number): Promise<any> {
   try {
     const alumni = await db.query('SELECT * FROM alumni WHERE id = $1', [id]);
 
@@ -402,7 +412,7 @@ async function getAlumniDetail(id) {
 
     const alumniData = alumni.rows[0];
     const santriId = alumniData.santri_id;
-    let identitasSantri = null;
+    let identitasSantri: any = null;
 
     if (santriId || alumniData.nis) {
       const santriParams = santriId ? [santriId] : [alumniData.nis];
@@ -432,10 +442,10 @@ async function getAlumniDetail(id) {
 
     const effectiveSantriId = alumniData.santri_id || (identitasSantri ? identitasSantri.id : null);
 
-    let historyList = [];
-    let kamarHistoryList = [];
-    let prestasiList = [];
-    let pelanggaranList = [];
+    let historyList: any[] = [];
+    let kamarHistoryList: any[] = [];
+    let prestasiList: any[] = [];
+    let pelanggaranList: any[] = [];
 
     if (effectiveSantriId) {
       // 1. Riwayat Akademik riil dari Buku Induk (santri_tahun_ajaran)
@@ -536,7 +546,7 @@ async function getAlumniDetail(id) {
 /**
  * Reactivate a student who is in the alumni/pindah list back to active status
  */
-async function reactivateAlumni(id) {
+export async function reactivateAlumni(id: number): Promise<{ message: string }> {
   const client = await db.pool.connect();
   try {
     await client.query('BEGIN');
@@ -580,7 +590,7 @@ async function reactivateAlumni(id) {
   }
 }
 
-module.exports = {
+const alumniService = {
   getAllAlumni,
   searchAlumni,
   createAlumni,
@@ -591,3 +601,6 @@ module.exports = {
   getAlumniDetail,
   reactivateAlumni
 };
+
+module.exports = alumniService;
+export default alumniService;

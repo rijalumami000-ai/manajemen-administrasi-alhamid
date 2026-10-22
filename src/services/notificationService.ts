@@ -1,9 +1,9 @@
-const db = require('../../db');
-const path = require('path');
-const fs = require('fs');
+import path from 'path';
+import fs from 'fs';
+import db from '../../db';
 
-let admin;
-let getMessaging;
+let admin: any;
+let getMessaging: any;
 try {
   admin = require('firebase-admin');
   try {
@@ -18,7 +18,7 @@ try {
 let fcmInitialized = false;
 
 // Initialize Firebase Admin SDK
-function initFCM() {
+export function initFCM(): boolean {
   if (fcmInitialized) return true;
   if (!admin) {
     try {
@@ -49,23 +49,31 @@ function initFCM() {
   }
 }
 
-async function sendNotification({ title, body, category, target, data }) {
+export interface SendNotificationParams {
+  title: string;
+  body: string;
+  category?: string;
+  target: string | number;
+  data?: Record<string, any>;
+}
+
+export async function sendNotification({ title, body, category, target, data }: SendNotificationParams): Promise<any> {
   // 1. Identify target guru IDs
-  let guruIds = [];
+  let guruIds: number[] = [];
   if (target === 'all') {
     const result = await db.query("SELECT id FROM guru WHERE LOWER(status) = 'aktif' AND mymustahiq_username IS NOT NULL");
-    guruIds = result.rows.map(r => r.id);
+    guruIds = result.rows.map((r: { id: number }) => r.id);
   } else if (target === 'mustahiq') {
     const result = await db.query("SELECT id FROM guru WHERE LOWER(status) = 'aktif' AND jabatan_id = 1 AND mymustahiq_username IS NOT NULL");
-    guruIds = result.rows.map(r => r.id);
+    guruIds = result.rows.map((r: { id: number }) => r.id);
   } else if (target === 'munawib') {
     const result = await db.query("SELECT id FROM guru WHERE LOWER(status) = 'aktif' AND jabatan_id = 2 AND mymustahiq_username IS NOT NULL");
-    guruIds = result.rows.map(r => r.id);
+    guruIds = result.rows.map((r: { id: number }) => r.id);
   } else if (Number.isInteger(target)) {
-    guruIds = [target];
+    guruIds = [target as number];
   } else {
     // If it's a string representing ID
-    const parsedId = parseInt(target, 10);
+    const parsedId = parseInt(target as string, 10);
     if (!isNaN(parsedId)) {
       guruIds = [parsedId];
     }
@@ -91,7 +99,7 @@ async function sendNotification({ title, body, category, target, data }) {
   }
 
   // Get Messaging Instance dynamically to support v14+ and older versions
-  let messagingInstance;
+  let messagingInstance: any;
   if (getMessaging) {
     try {
       messagingInstance = getMessaging();
@@ -116,12 +124,12 @@ async function sendNotification({ title, body, category, target, data }) {
     return { success: true, sentCount: 0, message: 'No registered FCM tokens found.' };
   }
 
-  const tokens = tokenResult.rows.map(r => r.token);
+  const tokens = tokenResult.rows.map((r: { token: string }) => r.token);
   
   // Send multicast message
   try {
-    const fcmData = Object.keys(data || {}).reduce((acc, key) => {
-      acc[key] = String(data[key]);
+    const fcmData = Object.keys(data || {}).reduce((acc: Record<string, string>, key: string) => {
+      acc[key] = String(data![key]);
       return acc;
     }, {
       category: category || 'Pengumuman',
@@ -162,8 +170,8 @@ async function sendNotification({ title, body, category, target, data }) {
     
     // Clean up expired/invalid tokens
     if (response.failureCount > 0) {
-      const tokensToDelete = [];
-      response.responses.forEach((resp, idx) => {
+      const tokensToDelete: string[] = [];
+      response.responses.forEach((resp: any, idx: number) => {
         if (!resp.success) {
           const errorCode = resp.error?.code;
           if (errorCode === 'messaging/invalid-registration-token' || errorCode === 'messaging/registration-token-not-registered') {
@@ -178,10 +186,16 @@ async function sendNotification({ title, body, category, target, data }) {
     }
 
     return { success: true, sentCount: response.successCount };
-  } catch (err) {
+  } catch (err: any) {
     console.error('[FCM] Error sending multicast notification:', err);
     return { success: false, error: err.message };
   }
 }
 
-module.exports = { sendNotification };
+const notificationService = {
+  initFCM,
+  sendNotification
+};
+
+module.exports = notificationService;
+export default notificationService;

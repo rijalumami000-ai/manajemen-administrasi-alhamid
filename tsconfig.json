@@ -15,6 +15,7 @@
   "include": [
     "src/**/*",
     "server.js",
+    "db.ts",
     "db.js"
   ],
   "exclude": [

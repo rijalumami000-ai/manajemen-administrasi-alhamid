@@ -1,9 +1,7 @@
-// userService.js - User management business logic
-
-const db = require('../../db');
-const { hashPassword } = require('../utils/authUtils');
-const { normalizeText } = require('../utils/normalizers');
-const {
+import db from '../../db';
+import { hashPassword } from '../utils/authUtils';
+import { normalizeText } from '../utils/normalizers';
+import {
   ValidationError,
   NotFoundError,
   ConflictError,
@@ -11,17 +9,44 @@ const {
   validateField,
   validators,
   handleDatabaseError
-} = require('../utils/errorHandler');
+} from '../utils/errorHandler';
+
+export interface UserFilters {
+  role?: string;
+  is_active?: boolean | number;
+}
+
+export interface UserCreateData {
+  username?: string;
+  password?: string;
+  full_name?: string;
+  role?: string;
+  email?: string;
+  phone?: string;
+  photo_url?: string;
+  is_active?: boolean | number;
+}
+
+export interface UserUpdateData {
+  username?: string;
+  password?: string;
+  full_name?: string;
+  role?: string;
+  email?: string;
+  phone?: string;
+  photo_url?: string;
+  is_active?: boolean | number;
+}
 
 /**
  * Get all users
- * @param {Object} filters - Optional filters (role, is_active)
- * @returns {Promise<Array>} - Array of users (without passwords)
+ * @param filters - Optional filters (role, is_active)
+ * @returns Array of users (without passwords)
  */
-async function getAllUsers(filters = {}) {
+export async function getAllUsers(filters: UserFilters = {}): Promise<any[]> {
   try {
     let query = 'SELECT id, username, email, full_name, role, phone, photo_url, is_active, last_login, created_at, updated_at FROM users WHERE 1=1';
-    const params = [];
+    const params: any[] = [];
 
     // Filter by role
     if (filters.role) {
@@ -41,15 +66,16 @@ async function getAllUsers(filters = {}) {
     return result.rows;
   } catch (error) {
     handleDatabaseError(error);
+    return [];
   }
 }
 
 /**
  * Get user by ID
- * @param {number} id - User ID
- * @returns {Promise<Object>} - User object (without password)
+ * @param id - User ID
+ * @returns User object (without password)
  */
-async function getUserById(id) {
+export async function getUserById(id: number): Promise<any> {
   try {
     const result = await db.query(
       'SELECT id, username, email, full_name, role, phone, photo_url, is_active, last_login, created_at, updated_at FROM users WHERE id = $1',
@@ -69,10 +95,10 @@ async function getUserById(id) {
 
 /**
  * Create new user
- * @param {Object} data - User data
- * @returns {Promise<Object>} - Created user (without password)
+ * @param data - User data
+ * @returns Created user (without password)
  */
-async function createUser(data) {
+export async function createUser(data: UserCreateData): Promise<any> {
   // Validate required fields
   validateRequiredFields(data, ['username', 'password', 'full_name', 'role']);
 
@@ -87,7 +113,7 @@ async function createUser(data) {
   }
 
   // Validate password strength
-  if (data.password.length < 8) {
+  if (!data.password || data.password.length < 8) {
     throw new ValidationError('Password minimal 8 karakter');
   }
 
@@ -112,7 +138,7 @@ async function createUser(data) {
     );
 
     return result.rows[0];
-  } catch (error) {
+  } catch (error: any) {
     // Check for duplicate username or email
     if (error.code === '23505') {
       if (error.constraint === 'users_username_key') {
@@ -128,11 +154,11 @@ async function createUser(data) {
 
 /**
  * Update user by ID
- * @param {number} id - User ID
- * @param {Object} data - User data to update
- * @returns {Promise<Object>} - Updated user (without password)
+ * @param id - User ID
+ * @param data - User data to update
+ * @returns Updated user (without password)
  */
-async function updateUser(id, data) {
+export async function updateUser(id: number, data: UserUpdateData): Promise<any> {
   // Validate field formats if provided
   if (data.email) validateField('Email', data.email, validators.email);
   if (data.phone) validateField('Phone', data.phone, validators.phone);
@@ -146,8 +172,8 @@ async function updateUser(id, data) {
   }
 
   // Build update query dynamically
-  const updates = [];
-  const params = [];
+  const updates: string[] = [];
+  const params: any[] = [];
   let paramCount = 1;
 
   if (data.username !== undefined) {
@@ -209,7 +235,7 @@ async function updateUser(id, data) {
     }
 
     return result.rows[0];
-  } catch (error) {
+  } catch (error: any) {
     if (error instanceof NotFoundError || error instanceof ValidationError) throw error;
     // Check for duplicate username or email
     if (error.code === '23505') {
@@ -226,10 +252,10 @@ async function updateUser(id, data) {
 
 /**
  * Delete user by ID (soft delete - set is_active to false)
- * @param {number} id - User ID
- * @returns {Promise<Object>} - Deleted user info
+ * @param id - User ID
+ * @returns Deleted user info
  */
-async function deleteUser(id) {
+export async function deleteUser(id: number): Promise<any> {
   try {
     // Soft delete - set is_active to false
     const result = await db.query(
@@ -254,10 +280,10 @@ async function deleteUser(id) {
 
 /**
  * Hard delete user by ID (permanent delete)
- * @param {number} id - User ID
- * @returns {Promise<Object>} - Deleted user info
+ * @param id - User ID
+ * @returns Deleted user info
  */
-async function hardDeleteUser(id) {
+export async function hardDeleteUser(id: number): Promise<any> {
   try {
     const result = await db.query(
       'DELETE FROM users WHERE id = $1 RETURNING id, username, full_name',
@@ -280,10 +306,10 @@ async function hardDeleteUser(id) {
 
 /**
  * Activate user by ID
- * @param {number} id - User ID
- * @returns {Promise<Object>} - Activated user
+ * @param id - User ID
+ * @returns Activated user
  */
-async function activateUser(id) {
+export async function activateUser(id: number): Promise<any> {
   try {
     const result = await db.query(
       `UPDATE users SET is_active = TRUE WHERE id = $1
@@ -302,7 +328,7 @@ async function activateUser(id) {
   }
 }
 
-module.exports = {
+const userService = {
   getAllUsers,
   getUserById,
   createUser,
@@ -311,3 +337,6 @@ module.exports = {
   hardDeleteUser,
   activateUser
 };
+
+module.exports = userService;
+export default userService;

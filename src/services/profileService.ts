@@ -1,9 +1,7 @@
-// profileService.js - Profile management business logic
-
-const db = require('../../db');
-const { hashPassword, comparePassword } = require('../utils/authUtils');
-const { normalizeText } = require('../utils/normalizers');
-const {
+import db from '../../db';
+import { hashPassword, comparePassword } from '../utils/authUtils';
+import { normalizeText } from '../utils/normalizers';
+import {
   ValidationError,
   NotFoundError,
   ConflictError,
@@ -11,14 +9,14 @@ const {
   validateField,
   validators,
   handleDatabaseError
-} = require('../utils/errorHandler');
+} from '../utils/errorHandler';
 
 /**
  * Get user profile by user ID
- * @param {number} userId - User ID
- * @returns {Promise<Object>} - User profile (without password)
+ * @param userId - User ID
+ * @returns User profile (without password)
  */
-async function getProfile(userId) {
+export async function getProfile(userId: number): Promise<any> {
   try {
     const result = await db.query(
       'SELECT id, username, email, full_name, role, phone, photo_url, is_active, last_login, created_at, updated_at FROM users WHERE id = $1',
@@ -38,18 +36,21 @@ async function getProfile(userId) {
 
 /**
  * Update user profile
- * @param {number} userId - User ID
- * @param {Object} data - Profile data to update (email, full_name, phone, photo_url)
- * @returns {Promise<Object>} - Updated profile
+ * @param userId - User ID
+ * @param data - Profile data to update (email, full_name, phone, photo_url)
+ * @returns Updated profile
  */
-async function updateProfile(userId, data) {
+export async function updateProfile(
+  userId: number,
+  data: { email?: string; full_name?: string; phone?: string; photo_url?: string }
+): Promise<any> {
   // Validate field formats if provided
   if (data.email) validateField('Email', data.email, validators.email);
   if (data.phone) validateField('Phone', data.phone, validators.phone);
 
   // Build update query dynamically
-  const updates = [];
-  const params = [];
+  const updates: string[] = [];
+  const params: any[] = [];
   let paramCount = 1;
 
   if (data.email !== undefined) {
@@ -89,7 +90,7 @@ async function updateProfile(userId, data) {
     }
 
     return result.rows[0];
-  } catch (error) {
+  } catch (error: any) {
     if (error instanceof NotFoundError || error instanceof ValidationError) throw error;
     // Check for duplicate email
     if (error.code === '23505' && error.constraint === 'users_email_key') {
@@ -101,12 +102,16 @@ async function updateProfile(userId, data) {
 
 /**
  * Change user password
- * @param {number} userId - User ID
- * @param {string} currentPassword - Current password
- * @param {string} newPassword - New password
- * @returns {Promise<Object>} - Success message
+ * @param userId - User ID
+ * @param currentPassword - Current password
+ * @param newPassword - New password
+ * @returns Success message
  */
-async function changePassword(userId, currentPassword, newPassword) {
+export async function changePassword(
+  userId: number,
+  currentPassword?: string,
+  newPassword?: string
+): Promise<{ message: string }> {
   // Validate required fields
   validateRequiredFields(
     { currentPassword, newPassword },
@@ -114,7 +119,7 @@ async function changePassword(userId, currentPassword, newPassword) {
   );
 
   // Validate new password strength
-  if (newPassword.length < 8) {
+  if (!newPassword || newPassword.length < 8) {
     throw new ValidationError('Password baru minimal 8 karakter');
   }
 
@@ -137,7 +142,7 @@ async function changePassword(userId, currentPassword, newPassword) {
     const user = userResult.rows[0];
 
     // Verify current password
-    const isPasswordValid = await comparePassword(currentPassword, user.password);
+    const isPasswordValid = await comparePassword(currentPassword!, user.password);
     if (!isPasswordValid) {
       throw new ValidationError('Password lama tidak sesuai');
     }
@@ -167,16 +172,17 @@ async function changePassword(userId, currentPassword, newPassword) {
   } catch (error) {
     if (error instanceof NotFoundError || error instanceof ValidationError) throw error;
     handleDatabaseError(error);
+    throw error;
   }
 }
 
 /**
  * Get user activity logs
- * @param {number} userId - User ID
- * @param {number} limit - Number of logs to return (default: 50)
- * @returns {Promise<Array>} - Array of activity logs
+ * @param userId - User ID
+ * @param limit - Number of logs to return (default: 50)
+ * @returns Array of activity logs
  */
-async function getActivityLogs(userId, limit = 50) {
+export async function getActivityLogs(userId: number, limit = 50): Promise<any[]> {
   try {
     const result = await db.query(
       `SELECT id, action, entity_type, entity_id, description, ip_address, created_at
@@ -190,12 +196,16 @@ async function getActivityLogs(userId, limit = 50) {
     return result.rows;
   } catch (error) {
     handleDatabaseError(error);
+    return [];
   }
 }
 
-module.exports = {
+const profileService = {
   getProfile,
   updateProfile,
   changePassword,
   getActivityLogs
 };
+
+module.exports = profileService;
+export default profileService;

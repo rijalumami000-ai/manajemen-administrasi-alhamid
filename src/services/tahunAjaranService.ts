@@ -1,12 +1,22 @@
-const db = require('../../db');
-const { normalizeSantriStatus, normalizeText } = require('../utils/normalizers');
+import db from '../../db';
+import { normalizeSantriStatus, normalizeText } from '../utils/normalizers';
 
-async function getActiveTahunAjaran(client = db) {
+export interface SyncSantriOptions {
+  status_tahun_ajaran?: string | null;
+  catatan_tahun_ajaran?: string | null;
+  [key: string]: any;
+}
+
+export async function getActiveTahunAjaran(client: any = db): Promise<any> {
   const result = await client.query('SELECT * FROM tahun_ajaran WHERE is_active = TRUE LIMIT 1');
   return result.rows[0] || null;
 }
 
-async function syncSantriToActiveTahunAjaran(santriId, options = {}, client = db) {
+export async function syncSantriToActiveTahunAjaran(
+  santriId: number,
+  options: SyncSantriOptions = {},
+  client: any = db
+): Promise<any> {
   const activeYear = await getActiveTahunAjaran(client);
   if (!activeYear) {
     return null;
@@ -15,7 +25,12 @@ async function syncSantriToActiveTahunAjaran(santriId, options = {}, client = db
   return await syncSantriToSpecificTahunAjaran(santriId, activeYear.id, options, client);
 }
 
-async function syncSantriToSpecificTahunAjaran(santriId, tahunAjaranId, options = {}, client = db) {
+export async function syncSantriToSpecificTahunAjaran(
+  santriId: number,
+  tahunAjaranId: number,
+  options: SyncSantriOptions = {},
+  client: any = db
+): Promise<any> {
   const status = normalizeSantriStatus(options.status_tahun_ajaran);
   const catatan = normalizeText(options.catatan_tahun_ajaran);
 
@@ -97,7 +112,7 @@ async function syncSantriToSpecificTahunAjaran(santriId, tahunAjaranId, options 
       const tahunLulus = yearInfo ? yearInfo.tahun_selesai : new Date().getFullYear();
       const yearKode = yearInfo ? yearInfo.kode : '';
 
-      const kelasArray = [];
+      const kelasArray: string[] = [];
       if (santri.kelas_diniyah) kelasArray.push(santri.kelas_diniyah);
       if (santri.kelas_sekolah) kelasArray.push(santri.kelas_sekolah);
       const kelasTerakhir = kelasArray.join(' / ') || null;
@@ -138,8 +153,11 @@ async function syncSantriToSpecificTahunAjaran(santriId, tahunAjaranId, options 
   return result.rows[0] || null;
 }
 
-module.exports = {
+const tahunAjaranService = {
   getActiveTahunAjaran,
   syncSantriToActiveTahunAjaran,
   syncSantriToSpecificTahunAjaran,
 };
+
+module.exports = tahunAjaranService;
+export default tahunAjaranService;

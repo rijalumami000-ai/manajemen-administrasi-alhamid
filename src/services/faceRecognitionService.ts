@@ -1,31 +1,33 @@
+import path from 'path';
+
+// Use dynamic / cjs requires for native & wasm modules
 const tf = require('@tensorflow/tfjs');
-const wasm = require('@tensorflow/tfjs-backend-wasm');
+require('@tensorflow/tfjs-backend-wasm');
 const faceapi = require('@vladmandic/face-api/dist/face-api.node-wasm.js');
 const { Canvas, Image } = require('canvas');
-const path = require('path');
 
 // Monkey patch faceapi to use canvas in Node
 faceapi.env.monkeyPatch({ Canvas, Image });
 
 let isInitialized = false;
-let initPromise = null;
+let initPromise: Promise<void> | null = null;
 
-async function initialize() {
+export async function initialize(): Promise<void> {
   if (isInitialized) return;
   if (initPromise) return initPromise;
 
   initPromise = (async () => {
-    console.log("[FaceAPI] Initializing WASM backend...");
+    console.log('[FaceAPI] Initializing WASM backend...');
     await tf.setBackend('wasm');
     await tf.ready();
-    console.log("[FaceAPI] Backend ready: " + tf.getBackend());
-    
-    console.log("[FaceAPI] Loading models...");
+    console.log('[FaceAPI] Backend ready: ' + tf.getBackend());
+
+    console.log('[FaceAPI] Loading models...');
     const modelPath = path.resolve(__dirname, '../../frontend/public/models');
     await faceapi.nets.ssdMobilenetv1.loadFromDisk(modelPath);
     await faceapi.nets.faceLandmark68Net.loadFromDisk(modelPath);
     await faceapi.nets.faceRecognitionNet.loadFromDisk(modelPath);
-    console.log("[FaceAPI] Models loaded successfully!");
+    console.log('[FaceAPI] Models loaded successfully!');
     isInitialized = true;
   })();
 
@@ -34,10 +36,10 @@ async function initialize() {
 
 /**
  * Extract face descriptor from an image buffer
- * @param {Buffer} imageBuffer 
- * @returns {Promise<Array<number>|null>} - Array of 128 floats or null if no face found
+ * @param imageBuffer 
+ * @returns Array of 128 floats or null if no face found
  */
-async function extractDescriptor(imageBuffer) {
+export async function extractDescriptor(imageBuffer: Buffer): Promise<number[] | null> {
   await initialize();
 
   try {
@@ -62,12 +64,15 @@ async function extractDescriptor(imageBuffer) {
     // Convert Float32Array to standard JS Array
     return Array.from(detection.descriptor);
   } catch (error) {
-    console.error("[FaceAPI] Error in extractDescriptor:", error);
+    console.error('[FaceAPI] Error in extractDescriptor:', error);
     throw error;
   }
 }
 
-module.exports = {
+const faceRecognitionService = {
   initialize,
   extractDescriptor
 };
+
+module.exports = faceRecognitionService;
+export default faceRecognitionService;

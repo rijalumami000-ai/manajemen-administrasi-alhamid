@@ -11,22 +11,32 @@
  * - Graduation points (tingkat 6 for Diniyah, tingkat 12 for Sekolah)
  */
 
-const db = require('../../db');
-const {
+import db from '../../db';
+import {
   getNextDiniyahTingkat,
-  getNextSekolahTingkat,
-  isGraduationPoint
-} = require('../utils/classProgressionMap');
+  getNextSekolahTingkat
+} from '../utils/classProgressionMap';
 
-class AutoAdvanceEngine {
+export interface AdvanceResult {
+  kelas_diniyah_id: number | null;
+  kelas_sekolah_id: number | null;
+}
+
+export interface MissingClassInfo {
+  jenis: string;
+  tingkat: number;
+  required_for: number;
+}
+
+export class AutoAdvanceEngine {
   /**
    * Determine next class for a santri based on current enrollment
    *
-   * @param {Object} santri - Current santri record with class assignments
-   * @param {Array} availableClasses - All classes in target year
-   * @returns {Object} { kelas_diniyah_id, kelas_sekolah_id }
+   * @param santri - Current santri record with class assignments
+   * @param availableClasses - All classes in target year
+   * @returns { kelas_diniyah_id, kelas_sekolah_id }
    */
-  async advanceSantri(santri, availableClasses) {
+  async advanceSantri(santri: any, availableClasses: any[]): Promise<AdvanceResult> {
     const diniyahNext = santri.kelas_diniyah_id
       ? await this.advanceDiniyah(santri.kelas_diniyah_id, availableClasses)
       : null;
@@ -44,11 +54,11 @@ class AutoAdvanceEngine {
   /**
    * Advance Diniyah class level
    *
-   * @param {number} currentKelasId - Current kelas ID
-   * @param {Array} availableClasses - Available classes in target year
-   * @returns {number|null} Next kelas ID or null if graduated
+   * @param currentKelasId - Current kelas ID
+   * @param availableClasses - Available classes in target year
+   * @returns Next kelas ID or null if graduated
    */
-  async advanceDiniyah(currentKelasId, availableClasses) {
+  async advanceDiniyah(currentKelasId: number, availableClasses: any[]): Promise<number | null> {
     const currentKelas = await this.getKelasById(currentKelasId);
 
     if (!currentKelas) {
@@ -67,8 +77,6 @@ class AutoAdvanceEngine {
       return null;
     }
 
-    // Special case no longer needed, progresses directly to tingkat 2
-
     // Find matching class in target year
     const nextKelas = this.findMatchingKelas(availableClasses, 'Diniyah', nextTingkat);
 
@@ -84,11 +92,11 @@ class AutoAdvanceEngine {
   /**
    * Advance Sekolah class level
    *
-   * @param {number} currentKelasId - Current kelas ID
-   * @param {Array} availableClasses - Available classes in target year
-   * @returns {number|null} Next kelas ID or null if graduated
+   * @param currentKelasId - Current kelas ID
+   * @param availableClasses - Available classes in target year
+   * @returns Next kelas ID or null if graduated
    */
-  async advanceSekolah(currentKelasId, availableClasses) {
+  async advanceSekolah(currentKelasId: number, availableClasses: any[]): Promise<number | null> {
     const currentKelas = await this.getKelasById(currentKelasId);
 
     if (!currentKelas) {
@@ -122,13 +130,13 @@ class AutoAdvanceEngine {
   /**
    * Find matching kelas in available classes
    *
-   * @param {Array} availableClasses - Available classes
-   * @param {string} jenis - Class type ('Diniyah' or 'Sekolah')
-   * @param {number} tingkat - Target tingkat level
-   * @param {boolean} requireSP - If true, only match classes with 'SP' in name
-   * @returns {Object|null} Matching kelas or null if not found
+   * @param availableClasses - Available classes
+   * @param jenis - Class type ('Diniyah' or 'Sekolah')
+   * @param tingkat - Target tingkat level
+   * @param requireSP - If true, only match classes with 'SP' in name
+   * @returns Matching kelas or null if not found
    */
-  findMatchingKelas(availableClasses, jenis, tingkat, requireSP = false) {
+  findMatchingKelas(availableClasses: any[], jenis: string, tingkat: number, requireSP = false): any | null {
     const matches = availableClasses.filter(kelas =>
       kelas.jenis === jenis && kelas.tingkat === tingkat
     );
@@ -149,17 +157,16 @@ class AutoAdvanceEngine {
     }
 
     // Return first matching class
-    // TODO: In future, implement section assignment logic (preserve section if possible)
     return matches[0];
   }
 
   /**
    * Get kelas by ID with tingkat information
    *
-   * @param {number} kelasId - Kelas ID
-   * @returns {Object|null} Kelas object with id, jenis, nama, tingkat
+   * @param kelasId - Kelas ID
+   * @returns Kelas object with id, jenis, nama, tingkat
    */
-  async getKelasById(kelasId) {
+  async getKelasById(kelasId: number): Promise<any | null> {
     const result = await db.query(
       'SELECT id, jenis, nama, tingkat FROM kelas WHERE id = $1',
       [kelasId]
@@ -171,13 +178,13 @@ class AutoAdvanceEngine {
   /**
    * Validate that all required target classes exist
    *
-   * @param {Array} sourceSantri - Santri in source year
-   * @param {Array} availableClasses - Classes in target year
-   * @returns {Array} Array of missing class definitions { jenis, tingkat, required_for }
+   * @param sourceSantri - Santri in source year
+   * @param availableClasses - Classes in target year
+   * @returns Array of missing class definitions { jenis, tingkat, required_for }
    */
-  async validateTargetClasses(sourceSantri, availableClasses) {
-    const missingClasses = [];
-    const requiredTingkats = new Map(); // Map of "jenis:tingkat" -> count
+  async validateTargetClasses(sourceSantri: any[], availableClasses: any[]): Promise<MissingClassInfo[]> {
+    const missingClasses: MissingClassInfo[] = [];
+    const requiredTingkats = new Map<string, number>(); // Map of "jenis:tingkat" -> count
 
     for (const santri of sourceSantri) {
       try {
@@ -238,7 +245,7 @@ class AutoAdvanceEngine {
             }
           }
         }
-      } catch (error) {
+      } catch (error: any) {
         // Skip santri with errors (will be handled during actual migration)
         console.warn(`Validation warning for santri ${santri.santri_id}:`, error.message);
       }
@@ -249,3 +256,4 @@ class AutoAdvanceEngine {
 }
 
 module.exports = AutoAdvanceEngine;
+export default AutoAdvanceEngine;

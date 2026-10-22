@@ -1,15 +1,15 @@
-const db = require('../../db');
-const { getActiveTahunAjaran } = require('./tahunAjaranService');
-const { sendNotification } = require('./notificationService');
+import db from '../../db';
+import { getActiveTahunAjaran } from './tahunAjaranService';
+import { sendNotification } from './notificationService';
 
-let cron;
+let cron: any;
 try {
   cron = require('node-cron');
 } catch (e) {
   // Safe load if package is not yet fully installed synchronously
 }
 
-function startScheduler() {
+export function startScheduler(): void {
   if (!cron) {
     try {
       cron = require('node-cron');
@@ -29,12 +29,12 @@ function startScheduler() {
     }
   }, {
     scheduled: true,
-    timezone: "Asia/Jakarta"
+    timezone: 'Asia/Jakarta'
   });
   console.log('[Scheduler] Daily notification task scheduled at 16:00 WIB');
 }
 
-async function sendDailySchedules() {
+export async function sendDailySchedules(): Promise<void> {
   // 1. Clean up old class schedule notifications (older than 7 days)
   try {
     const cleanupResult = await db.query(`
@@ -83,7 +83,7 @@ async function sendDailySchedules() {
   `, [activeYear.id, upcomingMalam]);
 
   // Group schedules by teacher
-  const teacherSchedules = {};
+  const teacherSchedules: Record<number, any[]> = {};
   for (const row of scheduleRes.rows) {
     if (!teacherSchedules[row.guru_id]) {
       teacherSchedules[row.guru_id] = [];
@@ -99,7 +99,7 @@ async function sendDailySchedules() {
     WHERE kta.tahun_ajaran_id = $1 AND kta.mustahiq_id IS NOT NULL
   `, [activeYear.id]);
 
-  const mustahiqMap = {};
+  const mustahiqMap: Record<number, any> = {};
   for (const row of mustahiqRes.rows) {
     mustahiqMap[row.mustahiq_id] = row;
   }
@@ -162,4 +162,10 @@ async function sendDailySchedules() {
   }
 }
 
-module.exports = { startScheduler, sendDailySchedules };
+const scheduler = {
+  startScheduler,
+  sendDailySchedules
+};
+
+module.exports = scheduler;
+export default scheduler;

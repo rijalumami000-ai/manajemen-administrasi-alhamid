@@ -1,29 +1,46 @@
-// authService.js - Authentication business logic
-
-const db = require('../../db');
-const {
+import db from '../../db';
+import {
   comparePassword,
   generateAccessToken,
   generateRefreshToken,
   verifyToken,
   createUserPayload
-} = require('../utils/authUtils');
-const {
+} from '../utils/authUtils';
+import {
   ValidationError,
   NotFoundError,
   AppError,
   validateRequiredFields
-} = require('../utils/errorHandler');
+} from '../utils/errorHandler';
+import { UserPayload } from '../types';
+
+export interface LoginResult {
+  user: UserPayload;
+  accessToken: string;
+  refreshToken: string;
+}
+
+export interface RefreshResult {
+  accessToken: string;
+  refreshToken: string;
+}
 
 /**
  * Login user with username and password
- * @param {string} username
- * @param {string} password
- * @param {string} ipAddress - Client IP address
- * @param {string} userAgent - Client user agent
- * @returns {Promise<Object>} - { user, accessToken, refreshToken }
+ * @param username
+ * @param password
+ * @param role - Optional role verification
+ * @param ipAddress - Client IP address
+ * @param userAgent - Client user agent
+ * @returns { user, accessToken, refreshToken }
  */
-async function login(username, password, role = null, ipAddress = null, userAgent = null) {
+export async function login(
+  username?: string,
+  password?: string,
+  role: string | null = null,
+  ipAddress: string | null = null,
+  userAgent: string | null = null
+): Promise<LoginResult> {
   // Validate required fields
   validateRequiredFields({ username, password }, ['username', 'password']);
 
@@ -51,7 +68,7 @@ async function login(username, password, role = null, ipAddress = null, userAgen
     }
 
     // Verify password
-    const isPasswordValid = await comparePassword(password, user.password);
+    const isPasswordValid = await comparePassword(password!, user.password);
     if (!isPasswordValid) {
       throw new ValidationError('Username atau password salah');
     }
@@ -98,11 +115,15 @@ async function login(username, password, role = null, ipAddress = null, userAgen
 
 /**
  * Logout user (invalidate token)
- * @param {string} token - Access token
- * @param {number} userId - User ID
- * @param {string} ipAddress - Client IP address
+ * @param token - Access token
+ * @param userId - User ID
+ * @param ipAddress - Client IP address
  */
-async function logout(token, userId, ipAddress = null) {
+export async function logout(
+  token: string,
+  userId: number,
+  ipAddress: string | null = null
+): Promise<{ message: string }> {
   try {
     // Delete session
     await db.query('DELETE FROM sessions WHERE token = $1', [token]);
@@ -123,10 +144,10 @@ async function logout(token, userId, ipAddress = null) {
 
 /**
  * Verify token and get user
- * @param {string} token - Access token
- * @returns {Promise<Object>} - User data
+ * @param token - Access token
+ * @returns User data
  */
-async function verifyUserToken(token) {
+export async function verifyUserToken(token: string): Promise<UserPayload> {
   // Verify JWT
   const decoded = verifyToken(token);
   if (!decoded) {
@@ -171,10 +192,10 @@ async function verifyUserToken(token) {
 
 /**
  * Refresh access token
- * @param {string} refreshToken - Refresh token
- * @returns {Promise<Object>} - { accessToken, refreshToken }
+ * @param refreshToken - Refresh token
+ * @returns { accessToken, refreshToken }
  */
-async function refreshAccessToken(refreshToken) {
+export async function refreshAccessToken(refreshToken: string): Promise<RefreshResult> {
   // Verify refresh token
   const decoded = verifyToken(refreshToken);
   if (!decoded) {
@@ -228,10 +249,10 @@ async function refreshAccessToken(refreshToken) {
 /**
  * Cleanup expired sessions (run periodically)
  */
-async function cleanupExpiredSessions() {
+export async function cleanupExpiredSessions(): Promise<{ deletedCount: number }> {
   try {
     const result = await db.query('DELETE FROM sessions WHERE expires_at < NOW()');
-    return { deletedCount: result.rowCount };
+    return { deletedCount: result.rowCount || 0 };
   } catch (error) {
     console.error('Cleanup sessions error:', error);
     throw new AppError('Terjadi kesalahan saat cleanup sessions', 500);
@@ -240,11 +261,11 @@ async function cleanupExpiredSessions() {
 
 /**
  * Verify user password for sensitive actions
- * @param {number} userId - User ID
- * @param {string} password - Password to verify
- * @returns {Promise<boolean>} - True if valid
+ * @param userId - User ID
+ * @param password - Password to verify
+ * @returns True if valid
  */
-async function verifyPasswordForAction(userId, password) {
+export async function verifyPasswordForAction(userId: number, password?: string): Promise<boolean> {
   validateRequiredFields({ password }, ['password']);
 
   try {
@@ -263,7 +284,7 @@ async function verifyPasswordForAction(userId, password) {
       throw new ValidationError('Akun tidak aktif');
     }
 
-    const isPasswordValid = await comparePassword(password, user.password);
+    const isPasswordValid = await comparePassword(password!, user.password);
     if (!isPasswordValid) {
       throw new ValidationError('Password salah');
     }
@@ -285,12 +306,16 @@ async function verifyPasswordForAction(userId, password) {
 
 /**
  * Magic login without password using secret key
- * @param {string} key - Secret key
- * @param {string} ipAddress - Client IP address
- * @param {string} userAgent - Client user agent
- * @returns {Promise<Object>} - { user, accessToken, refreshToken }
+ * @param key - Secret key
+ * @param ipAddress - Client IP address
+ * @param userAgent - Client user agent
+ * @returns { user, accessToken, refreshToken }
  */
-async function magicLogin(key, ipAddress = null, userAgent = null) {
+export async function magicLogin(
+  key: string,
+  ipAddress: string | null = null,
+  userAgent: string | null = null
+): Promise<LoginResult> {
   if (key !== 'guru-alhamid') {
     throw new ValidationError('Kunci akses tidak valid');
   }
@@ -353,7 +378,7 @@ async function magicLogin(key, ipAddress = null, userAgent = null) {
   }
 }
 
-module.exports = {
+const authService = {
   login,
   logout,
   verifyUserToken,
@@ -362,3 +387,6 @@ module.exports = {
   verifyPasswordForAction,
   magicLogin
 };
+
+module.exports = authService;
+export default authService;

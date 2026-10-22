@@ -1,10 +1,17 @@
-const xlsx = require('xlsx');
-const db = require('../../db');
-const { syncSantriToSpecificTahunAjaran } = require('./tahunAjaranService');
-const { nullableInt, normalizeGender } = require('../utils/normalizers');
+import xlsx from 'xlsx';
+import db from '../../db';
+import { syncSantriToSpecificTahunAjaran } from './tahunAjaranService';
+import { normalizeGender } from '../utils/normalizers';
 
-class SantriExcelService {
-  excelDateToJSDate(serial) {
+export interface ImportStats {
+  total: number;
+  imported: number;
+  updated: number;
+  errors: string[];
+}
+
+export class SantriExcelService {
+  excelDateToJSDate(serial: any): string | null {
     if (!serial) return null;
     if (serial instanceof Date) {
       if (isNaN(serial.getTime())) return null;
@@ -40,13 +47,13 @@ class SantriExcelService {
     return null;
   }
 
-  async importFromExcel(buffer, tahunAjaranId) {
+  async importFromExcel(buffer: Buffer, tahunAjaranId: number): Promise<ImportStats> {
     const workbook = xlsx.read(buffer, { type: 'buffer' });
     const sheetName = workbook.SheetNames[0];
     const worksheet = workbook.Sheets[sheetName];
-    const data = xlsx.utils.sheet_to_json(worksheet);
+    const data: any[] = xlsx.utils.sheet_to_json(worksheet);
 
-    const stats = {
+    const stats: ImportStats = {
       total: data.length,
       imported: 0,
       updated: 0,
@@ -59,14 +66,14 @@ class SantriExcelService {
       db.query('SELECT id, nama FROM kamar')
     ]);
 
-    const kelasMap = {};
-    kelasRes.rows.forEach(k => {
+    const kelasMap: Record<string, number> = {};
+    kelasRes.rows.forEach((k: { id: number; nama: string; jenis: string }) => {
       const key = `${k.nama.toLowerCase().trim()}_${k.jenis.toLowerCase().trim()}`;
       kelasMap[key] = k.id;
     });
 
-    const kamarMap = {};
-    kamarRes.rows.forEach(k => {
+    const kamarMap: Record<string, number> = {};
+    kamarRes.rows.forEach((k: { id: number; nama: string }) => {
       kamarMap[k.nama.toLowerCase().trim()] = k.id;
     });
 
@@ -130,8 +137,8 @@ class SantriExcelService {
 
           const existingSantri = await client.query('SELECT id, orangtua_id FROM santri WHERE nis = $1', [NIS]);
           
-          let santriId;
-          let orangtuaId;
+          let santriId: number;
+          let orangtuaId: number | null = null;
 
           if (existingSantri.rows.length > 0) {
             santriId = existingSantri.rows[0].id;
@@ -247,13 +254,13 @@ class SantriExcelService {
           }, client);
 
           await client.query('COMMIT');
-        } catch (err) {
+        } catch (err: any) {
           await client.query('ROLLBACK');
           throw err;
         } finally {
           client.release();
         }
-      } catch (err) {
+      } catch (err: any) {
         console.error(`Error importing row ${rowNum}:`, err);
         stats.errors.push(`Baris ${rowNum}: ${err.message}`);
       }
@@ -263,4 +270,6 @@ class SantriExcelService {
   }
 }
 
-module.exports = new SantriExcelService();
+const santriExcelService = new SantriExcelService();
+module.exports = santriExcelService;
+export default santriExcelService;

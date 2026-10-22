@@ -11,25 +11,55 @@
  * 3. Existing alumni must be excluded from migration
  * 4. Source year must be active (is_active = TRUE)
  * 5. Return validation errors with missing class details
- *
- * Validates: Requirements 10.1, 10.2, 10.3, 10.4, 10.5, 10.6, 11.1, 11.2
  */
 
-const db = require('../../db');
-const {
+import {
   getNextDiniyahTingkat,
   getNextSekolahTingkat
-} = require('../utils/classProgressionMap');
+} from '../utils/classProgressionMap';
 
-class MigrationValidator {
+export interface TargetYearValidation {
+  valid: boolean;
+  year: any | null;
+  error: string | null;
+}
+
+export interface ClassAvailabilityValidation {
+  valid: boolean;
+  missingClasses: any[];
+  error: string | null;
+}
+
+export interface ExistingAlumniValidation {
+  valid: boolean;
+  alumniIds: number[];
+  error: string | null;
+}
+
+export interface SourceYearValidation {
+  valid: boolean;
+  sourceYear: any | null;
+  error: string | null;
+}
+
+export interface MigrationValidationResult {
+  valid: boolean;
+  errors: string[];
+  sourceYear: any | null;
+  targetYear: any | null;
+  alumniIds: number[];
+  missingClasses: any[];
+}
+
+export class MigrationValidator {
   /**
    * Validate target year exists or can be created
    *
-   * @param {string} targetKode - Target year code (e.g., "2026-2027")
-   * @param {Object} client - Database client for transaction support
-   * @returns {Object} { valid: boolean, year: Object|null, error: string|null }
+   * @param targetKode - Target year code (e.g., "2026-2027")
+   * @param client - Database client for transaction support
+   * @returns { valid, year, error }
    */
-  async validateTargetYear(targetKode, client) {
+  async validateTargetYear(targetKode: string, client: any): Promise<TargetYearValidation> {
     console.log(`🔍 Validating target year: ${targetKode}`);
 
     try {
@@ -67,7 +97,7 @@ class MigrationValidator {
         year: null,
         error: null
       };
-    } catch (error) {
+    } catch (error: any) {
       console.error(`❌ Error validating target year:`, error.message);
       return {
         valid: false,
@@ -80,14 +110,11 @@ class MigrationValidator {
   /**
    * Validate all required target classes exist
    *
-   * Checks that for every santri in the source year, the target class
-   * they need to advance to exists in the kelas table.
-   *
-   * @param {Array} sourceSantri - Santri in source year with class info
-   * @param {Object} client - Database client for transaction support
-   * @returns {Object} { valid: boolean, missingClasses: Array, error: string|null }
+   * @param sourceSantri - Santri in source year with class info
+   * @param client - Database client for transaction support
+   * @returns { valid, missingClasses, error }
    */
-  async validateClassAvailability(sourceSantri, client) {
+  async validateClassAvailability(sourceSantri: any[], client: any): Promise<ClassAvailabilityValidation> {
     console.log(`🔍 Validating class availability for ${sourceSantri.length} santri`);
 
     try {
@@ -100,8 +127,8 @@ class MigrationValidator {
       console.log(`   Found ${availableClasses.length} available classes`);
 
       // Track required classes and missing classes
-      const requiredClasses = new Map(); // Map of "jenis:tingkat" -> count
-      const missingClasses = [];
+      const requiredClasses = new Map<string, number>(); // Map of "jenis:tingkat" -> count
+      const missingClasses: any[] = [];
 
       // Analyze each santri to determine required target classes
       for (const santri of sourceSantri) {
@@ -120,7 +147,7 @@ class MigrationValidator {
 
               // Check if class exists
               const exists = availableClasses.some(
-                kelas => kelas.jenis === 'Diniyah' && kelas.tingkat === nextTingkat
+                (kelas: any) => kelas.jenis === 'Diniyah' && kelas.tingkat === nextTingkat
               );
 
               if (!exists) {
@@ -154,7 +181,7 @@ class MigrationValidator {
 
               // Check if class exists
               const exists = availableClasses.some(
-                kelas => kelas.jenis === 'Sekolah' && kelas.tingkat === nextTingkat
+                (kelas: any) => kelas.jenis === 'Sekolah' && kelas.tingkat === nextTingkat
               );
 
               if (!exists) {
@@ -174,7 +201,7 @@ class MigrationValidator {
               }
             }
           }
-        } catch (error) {
+        } catch (error: any) {
           // Skip santri with errors (will be handled during actual migration)
           console.warn(`⚠️  Validation warning for santri ${santri.santri_id}:`, error.message);
         }
@@ -200,7 +227,7 @@ class MigrationValidator {
         missingClasses: [],
         error: null
       };
-    } catch (error) {
+    } catch (error: any) {
       console.error(`❌ Error validating class availability:`, error.message);
       return {
         valid: false,
@@ -213,13 +240,10 @@ class MigrationValidator {
   /**
    * Get existing alumni IDs to exclude from migration
    *
-   * Queries the alumni table to get all santri who are already alumni.
-   * These santri should be excluded from migration processing.
-   *
-   * @param {Object} client - Database client for transaction support
-   * @returns {Object} { valid: boolean, alumniIds: Array<number>, error: string|null }
+   * @param client - Database client for transaction support
+   * @returns { valid, alumniIds, error }
    */
-  async getExistingAlumni(client) {
+  async getExistingAlumni(client: any): Promise<ExistingAlumniValidation> {
     console.log(`🔍 Fetching existing alumni to exclude from migration`);
 
     try {
@@ -227,7 +251,7 @@ class MigrationValidator {
         'SELECT santri_id FROM alumni'
       );
 
-      const alumniIds = result.rows.map(row => row.santri_id);
+      const alumniIds = result.rows.map((row: { santri_id: number }) => row.santri_id);
 
       console.log(`✅ Found ${alumniIds.length} existing alumni to exclude`);
 
@@ -236,7 +260,7 @@ class MigrationValidator {
         alumniIds: alumniIds,
         error: null
       };
-    } catch (error) {
+    } catch (error: any) {
       console.error(`❌ Error fetching existing alumni:`, error.message);
       return {
         valid: false,
@@ -249,13 +273,10 @@ class MigrationValidator {
   /**
    * Validate source year is active
    *
-   * Checks that the source year has is_active = TRUE, which is required
-   * for migration to proceed.
-   *
-   * @param {Object} client - Database client for transaction support
-   * @returns {Object} { valid: boolean, sourceYear: Object|null, error: string|null }
+   * @param client - Database client for transaction support
+   * @returns { valid, sourceYear, error }
    */
-  async validateSourceYear(client) {
+  async validateSourceYear(client: any): Promise<SourceYearValidation> {
     console.log(`🔍 Validating source year is active`);
 
     try {
@@ -275,7 +296,6 @@ class MigrationValidator {
 
       if (result.rows.length > 1) {
         console.log(`⚠️  Multiple active years found (${result.rows.length})`);
-        // Use the first one but log a warning
         console.warn(`   Warning: Multiple active years detected. Using: ${result.rows[0].kode}`);
       }
 
@@ -288,7 +308,7 @@ class MigrationValidator {
         sourceYear: sourceYear,
         error: null
       };
-    } catch (error) {
+    } catch (error: any) {
       console.error(`❌ Error validating source year:`, error.message);
       return {
         valid: false,
@@ -301,27 +321,24 @@ class MigrationValidator {
   /**
    * Run all validation checks before migration
    *
-   * Performs comprehensive validation of all migration preconditions.
-   * Collects all validation errors before returning (doesn't fail on first error).
-   *
-   * @param {string} targetKode - Target year code
-   * @param {Object} client - Database client for transaction support
-   * @returns {Object} { valid: boolean, errors: Array, sourceYear: Object|null, targetYear: Object|null, alumniIds: Array, missingClasses: Array }
+   * @param targetKode - Target year code
+   * @param client - Database client for transaction support
+   * @returns { valid, errors, sourceYear, targetYear, alumniIds, missingClasses }
    */
-  async validateMigration(targetKode, client) {
+  async validateMigration(targetKode: string, client: any): Promise<MigrationValidationResult> {
     console.log(`🔍 Starting comprehensive migration validation`);
     console.log(`   Target year: ${targetKode}`);
 
-    const errors = [];
-    let sourceYear = null;
-    let targetYear = null;
-    let alumniIds = [];
-    let missingClasses = [];
+    const errors: string[] = [];
+    let sourceYear: any | null = null;
+    let targetYear: any | null = null;
+    let alumniIds: number[] = [];
+    let missingClasses: any[] = [];
 
     // Validation 1: Source year is active
     const sourceValidation = await this.validateSourceYear(client);
     if (!sourceValidation.valid) {
-      errors.push(sourceValidation.error);
+      if (sourceValidation.error) errors.push(sourceValidation.error);
     } else {
       sourceYear = sourceValidation.sourceYear;
     }
@@ -329,7 +346,7 @@ class MigrationValidator {
     // Validation 2: Target year exists or can be created
     const targetValidation = await this.validateTargetYear(targetKode, client);
     if (!targetValidation.valid) {
-      errors.push(targetValidation.error);
+      if (targetValidation.error) errors.push(targetValidation.error);
     } else {
       targetYear = targetValidation.year;
     }
@@ -337,7 +354,7 @@ class MigrationValidator {
     // Validation 3: Get existing alumni to exclude
     const alumniValidation = await this.getExistingAlumni(client);
     if (!alumniValidation.valid) {
-      errors.push(alumniValidation.error);
+      if (alumniValidation.error) errors.push(alumniValidation.error);
     } else {
       alumniIds = alumniValidation.alumniIds;
     }
@@ -366,14 +383,14 @@ class MigrationValidator {
 
       // Exclude existing alumni from validation
       const santriToValidate = sourceSantri.filter(
-        s => !alumniIds.includes(s.santri_id)
+        (s: any) => !alumniIds.includes(s.santri_id)
       );
 
       console.log(`   Validating class availability for ${santriToValidate.length} santri (${sourceSantri.length - santriToValidate.length} alumni excluded)`);
 
       const classValidation = await this.validateClassAvailability(santriToValidate, client);
       if (!classValidation.valid) {
-        errors.push(classValidation.error);
+        if (classValidation.error) errors.push(classValidation.error);
         missingClasses = classValidation.missingClasses;
       }
     }
@@ -402,3 +419,4 @@ class MigrationValidator {
 }
 
 module.exports = MigrationValidator;
+export default MigrationValidator;
