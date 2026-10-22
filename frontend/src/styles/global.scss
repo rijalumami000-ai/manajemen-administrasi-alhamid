@@ -396,23 +396,6 @@ pre {
       &::placeholder { color: #94a3b8 !important; }
     }
   }
-
-  .sidebar {
-    background: #ffffff !important;
-    border-right: 1px solid #e2e8f0 !important;
-    .brand-title { color: #0f172a !important; }
-    .nav-item {
-      color: #475569 !important;
-      &:hover {
-        background: #f1f5f9 !important;
-        color: #0f172a !important;
-      }
-      &.active {
-        background: #e0f2fe !important;
-        color: #0284c7 !important;
-      }
-    }
-  }
 }
 
 // Global button custom & Option A action pill

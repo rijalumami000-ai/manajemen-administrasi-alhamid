@@ -4,8 +4,31 @@
 .app-layout {
   display: flex;
   min-height: 100vh;
-  background: $bg-main;
   overflow: hidden;
+  position: relative;
+
+  // ---------------------------------------------------------------------------
+  // 1. LIGHT MODE (DEFAULT - Apple macOS Sequoia Multi-Point Aurora Mesh)
+  // ---------------------------------------------------------------------------
+  background: 
+    radial-gradient(circle at 10% 12%, rgba(56, 189, 248, 0.22) 0%, transparent 45%),
+    radial-gradient(circle at 90% 15%, rgba(129, 140, 248, 0.20) 0%, transparent 42%),
+    radial-gradient(circle at 45% 45%, rgba(244, 114, 182, 0.12) 0%, transparent 40%),
+    radial-gradient(circle at 85% 80%, rgba(168, 85, 247, 0.18) 0%, transparent 48%),
+    radial-gradient(circle at 15% 85%, rgba(45, 212, 191, 0.15) 0%, transparent 42%),
+    linear-gradient(180deg, #f8fafc 0%, #f1f5f9 55%, #edf2f7 100%);
+  background-attachment: fixed;
+
+  // ---------------------------------------------------------------------------
+  // 2. DARK MODE OVERRIDES (VisionOS Deep Obsidian Acrylic Space)
+  // ---------------------------------------------------------------------------
+  html[data-theme="dark"] & {
+    background: 
+      radial-gradient(circle at 15% 15%, rgba(30, 58, 138, 0.25) 0%, transparent 45%),
+      radial-gradient(circle at 85% 20%, rgba(88, 28, 135, 0.22) 0%, transparent 45%),
+      linear-gradient(135deg, #090d16 0%, #0d121f 50%, #080c14 100%);
+    background-attachment: fixed;
+  }
 }
 
 .app-main {
@@ -13,13 +36,14 @@
   display: flex;
   flex-direction: column;
   min-width: 0; // Fixes flexbox overflow issues
+  background: transparent;
 }
 
 .app-content {
   flex: 1;
   margin: 0;
   padding: 0;
-  background: $bg-main;
+  background: transparent;
   overflow: auto;
   @include custom-scrollbar;
 }
@@ -38,17 +62,5 @@
   @include respond-to(sm) {
     padding: $spacing-sm;
     padding-bottom: 80px;
-  }
-}
-
-// ============================================
-// LIGHT MODE OVERRIDES
-// ============================================
-[data-theme="light"] {
-  .app-layout {
-    background: #f0f2f5 !important;
-  }
-  .app-content {
-    background: #f0f2f5 !important;
   }
 }

@@ -3,13 +3,13 @@ import React, { createContext, useContext, useState, useEffect } from 'react';
 const ThemeContext = createContext();
 
 export function ThemeProvider({ children }) {
-  // Default to dark mode since it's the premium default
+  // Default to light mode (mode biasa)
   const [isDarkMode, setIsDarkMode] = useState(() => {
     const saved = localStorage.getItem('theme');
     if (saved !== null) {
       return saved === 'dark';
     }
-    return true; // Default theme
+    return false; // Default theme is light mode
   });
 
   useEffect(() => {

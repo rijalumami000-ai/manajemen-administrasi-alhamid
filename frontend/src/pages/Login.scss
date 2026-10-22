@@ -1,406 +1,747 @@
 @import '../styles/variables.scss';
 @import '../styles/mixins.scss';
 
-.login-container {
+// Pulsating keyframes for health status indicator
+@keyframes pulse-emerald {
+  0% {
+    transform: scale(0.95);
+    box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7);
+  }
+  70% {
+    transform: scale(1);
+    box-shadow: 0 0 0 6px rgba(16, 185, 129, 0);
+  }
+  100% {
+    transform: scale(0.95);
+    box-shadow: 0 0 0 0 rgba(16, 185, 129, 0);
+  }
+}
+
+// Gentle floating animation for ambient orbs
+@keyframes floatOrb {
+  0% {
+    transform: translate(0, 0) scale(1);
+  }
+  50% {
+    transform: translate(35px, 25px) scale(1.06);
+  }
+  100% {
+    transform: translate(-25px, 15px) scale(0.96);
+  }
+}
+
+// =============================================================================
+// MAIN LOGIN PAGE ROOT & CANVAS
+// =============================================================================
+.login-page-root {
   position: relative;
   min-height: 100vh;
   width: 100vw;
   overflow: hidden;
-  background-color: #0b0d19; // Deep dark blue background
   display: flex;
   align-items: center;
   justify-content: center;
+  padding: 24px;
+  box-sizing: border-box;
+  user-select: none;
 }
 
-// Background Animated Mesh
-.gradient-bg {
+// -----------------------------------------------------------------------------
+// DYNAMIC MULTI-POINT AURORA MESH BACKGROUND (OPTION A STANDARD)
+// -----------------------------------------------------------------------------
+.aurora-mesh-canvas {
   position: absolute;
   top: 0;
   left: 0;
   width: 100%;
   height: 100%;
   z-index: 1;
+  pointer-events: none;
   overflow: hidden;
 
-  .glow-1, .glow-2, .glow-3 {
+  // Light Mode Wallpaper
+  background: 
+    radial-gradient(circle at 12% 12%, rgba(56, 189, 248, 0.28) 0%, transparent 45%),
+    radial-gradient(circle at 88% 18%, rgba(139, 92, 246, 0.24) 0%, transparent 42%),
+    radial-gradient(circle at 45% 50%, rgba(244, 114, 182, 0.15) 0%, transparent 40%),
+    radial-gradient(circle at 82% 82%, rgba(168, 85, 247, 0.20) 0%, transparent 48%),
+    radial-gradient(circle at 18% 85%, rgba(45, 212, 191, 0.18) 0%, transparent 42%),
+    linear-gradient(180deg, #f8fafc 0%, #f1f5f9 55%, #edf2f7 100%);
+  background-attachment: fixed;
+
+  // Ambient Refractive Light Emitters
+  .ambient-orb {
     position: absolute;
-    border-radius: 50%;
-    filter: blur(80px);
-    opacity: 0.5;
-    mix-blend-mode: screen;
+    border-radius: 9999px;
+    filter: blur(100px);
+    pointer-events: none;
   }
 
-  .glow-1 {
+  .orb-1 {
     width: 600px;
     height: 600px;
-    background: radial-gradient(circle, #3b82f6 0%, rgba(59, 130, 246, 0) 70%);
-    top: -200px;
+    background: radial-gradient(circle, rgba(56, 189, 248, 0.25) 0%, rgba(99, 102, 241, 0.12) 50%, transparent 75%);
+    top: -160px;
     left: -100px;
-    animation: floating 20s infinite alternate ease-in-out;
+    animation: floatOrb 20s infinite alternate ease-in-out;
   }
 
-  .glow-2 {
-    width: 500px;
-    height: 500px;
-    background: radial-gradient(circle, #8b5cf6 0%, rgba(139, 92, 246, 0) 70%);
-    bottom: -100px;
+  .orb-2 {
+    width: 520px;
+    height: 520px;
+    background: radial-gradient(circle, rgba(168, 85, 247, 0.22) 0%, rgba(236, 72, 153, 0.09) 50%, transparent 80%);
+    bottom: -140px;
     right: -100px;
-    animation: floating 15s infinite alternate-reverse ease-in-out;
+    animation: floatOrb 16s infinite alternate-reverse ease-in-out;
     animation-delay: -5s;
   }
 
-  .glow-3 {
-    width: 400px;
-    height: 400px;
-    background: radial-gradient(circle, #06b6d4 0%, rgba(6, 182, 212, 0) 70%);
+  .orb-3 {
+    width: 420px;
+    height: 420px;
+    background: radial-gradient(circle, rgba(45, 212, 191, 0.2) 0%, rgba(56, 189, 248, 0.08) 50%, transparent 80%);
     top: 50%;
-    left: 50%;
+    left: 45%;
     transform: translate(-50%, -50%);
-    animation: floating 25s infinite alternate ease-in-out;
+    animation: floatOrb 24s infinite alternate ease-in-out;
     animation-delay: -10s;
+  }
+
+  // Dark Mode Wallpaper
+  html[data-theme="dark"] & {
+    background: 
+      radial-gradient(circle at 15% 15%, rgba(30, 58, 138, 0.25) 0%, transparent 45%),
+      radial-gradient(circle at 85% 20%, rgba(88, 28, 135, 0.22) 0%, transparent 45%),
+      linear-gradient(135deg, #090d16 0%, #0d121f 50%, #080c14 100%);
+
+    .orb-1 {
+      opacity: 0.35;
+      background: radial-gradient(circle, rgba(59, 130, 246, 0.3) 0%, transparent 70%);
+      mix-blend-mode: screen;
+    }
+    .orb-2 {
+      opacity: 0.3;
+      background: radial-gradient(circle, rgba(139, 92, 246, 0.3) 0%, transparent 70%);
+      mix-blend-mode: screen;
+    }
+    .orb-3 {
+      opacity: 0.25;
+      background: radial-gradient(circle, rgba(6, 182, 212, 0.25) 0%, transparent 70%);
+      mix-blend-mode: screen;
+    }
   }
 }
 
-.login-split-wrapper {
+// -----------------------------------------------------------------------------
+// FLOATING TACTILE THEME BAR
+// -----------------------------------------------------------------------------
+.login-theme-bar {
+  position: absolute;
+  top: 24px;
+  right: 28px;
+  z-index: 20;
+
+  @include respond-to(md) {
+    top: 16px;
+    right: 16px;
+  }
+
+  .theme-pill-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    height: 38px;
+    padding: 0 16px;
+    border-radius: 9999px;
+    font-size: 13px;
+    font-weight: 700;
+    cursor: pointer;
+    border: 1px solid rgba(255, 255, 255, 0.85);
+    border-top: 1.5px solid rgba(255, 255, 255, 1);
+    background: rgba(255, 255, 255, 0.78);
+    color: #475569;
+    backdrop-filter: blur(24px) saturate(180%);
+    -webkit-backdrop-filter: blur(24px) saturate(180%);
+    box-shadow: 0 4px 14px rgba(15, 23, 42, 0.05), inset 0 1px 0 rgba(255, 255, 255, 0.9);
+    transition: all 0.2s cubic-bezier(0.2, 0.8, 0.2, 1);
+
+    &:hover {
+      background: #ffffff;
+      color: #2563eb;
+      border-color: #2563eb;
+      transform: translateY(-1.5px);
+      box-shadow: 0 6px 18px rgba(37, 99, 235, 0.15);
+    }
+
+    &:active {
+      transform: scale(0.98);
+    }
+
+    html[data-theme="dark"] & {
+      background: rgba(22, 27, 34, 0.75);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-top: 1.5px solid rgba(255, 255, 255, 0.18);
+      color: #f1f5f9;
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
+
+      &:hover {
+        background: #1f2937;
+        color: #60a5fa;
+        border-color: #3b82f6;
+      }
+    }
+  }
+}
+
+// -----------------------------------------------------------------------------
+// VISIONOS LIQUID GLASS CARD CONTAINER (OPTION A SHEET)
+// -----------------------------------------------------------------------------
+.login-glass-card {
   position: relative;
   z-index: 2;
   width: 100%;
-  max-width: 1200px;
-  height: 700px;
+  max-width: 1040px;
+  min-height: 590px;
   display: flex;
-  background: rgba(15, 23, 42, 0.6);
-  backdrop-filter: blur(20px);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 24px;
+  border-radius: 26px;
   overflow: hidden;
-  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+  transition: all 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
+
+  // Liquid Glass Material (Light Mode)
+  background: rgba(255, 255, 255, 0.72);
+  backdrop-filter: blur(36px) saturate(200%);
+  -webkit-backdrop-filter: blur(36px) saturate(200%);
+  border: 1px solid rgba(255, 255, 255, 0.82);
+  border-top: 2px solid rgba(255, 255, 255, 1);
+  box-shadow: 
+    0 30px 60px -15px rgba(15, 23, 42, 0.12),
+    0 8px 24px -4px rgba(15, 23, 42, 0.05),
+    inset 0 1px 1px rgba(255, 255, 255, 0.95);
+
+  // Specular top edge glint
+  &::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 30px;
+    right: 30px;
+    height: 1px;
+    background: linear-gradient(90deg, transparent 0%, rgba(255, 255, 255, 0.95) 30%, rgba(255, 255, 255, 0.2) 80%, transparent 100%);
+    pointer-events: none;
+    z-index: 10;
+  }
+
+  // Dark Mode Material Overrides
+  html[data-theme="dark"] & {
+    background: rgba(15, 23, 42, 0.72);
+    backdrop-filter: blur(36px) saturate(180%);
+    -webkit-backdrop-filter: blur(36px) saturate(180%);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-top: 2px solid rgba(255, 255, 255, 0.18);
+    box-shadow: 
+      0 35px 70px -18px rgba(0, 0, 0, 0.75),
+      inset 0 1px 1px rgba(255, 255, 255, 0.06);
+
+    &::before {
+      background: linear-gradient(90deg, transparent 0%, rgba(255, 255, 255, 0.2) 30%, rgba(255, 255, 255, 0.05) 80%, transparent 100%);
+    }
+  }
 
   @include respond-to(md) {
     flex-direction: column;
-    height: auto;
-    max-width: 500px;
-    margin: $spacing-md;
+    min-height: auto;
+    max-width: 480px;
   }
 }
 
-// Left Side
-.login-left {
-  flex: 1.2;
-  background: linear-gradient(135deg, rgba(30, 41, 59, 0.5) 0%, rgba(15, 23, 42, 0.8) 100%);
-  padding: 60px;
+// -----------------------------------------------------------------------------
+// HERO LEFT PANE
+// -----------------------------------------------------------------------------
+.login-hero-pane {
+  flex: 1.15;
+  padding: 48px;
   display: flex;
   flex-direction: column;
   justify-content: space-between;
-  border-right: 1px solid rgba(255, 255, 255, 0.05);
+  position: relative;
+  background: linear-gradient(135deg, rgba(241, 245, 249, 0.7) 0%, rgba(226, 232, 240, 0.35) 100%);
+  border-right: 1px solid rgba(226, 232, 240, 0.8);
 
-  @include respond-to(md) {
-    padding: 40px;
-    border-right: none;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  html[data-theme="dark"] & {
+    background: linear-gradient(135deg, rgba(22, 27, 34, 0.6) 0%, rgba(13, 17, 23, 0.8) 100%);
+    border-right: 1px solid rgba(255, 255, 255, 0.06);
   }
 
-  .brand-logo-large {
-    width: 70px;
-    height: 70px;
-    background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%);
-    color: white;
-    font-size: 32px;
-    font-weight: 800;
+  @include respond-to(md) {
+    padding: 32px 28px;
+    border-right: none;
+    border-bottom: 1px solid rgba(226, 232, 240, 0.8);
+    html[data-theme="dark"] & {
+      border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+    }
+  }
+
+  // 3D Spherical Lens Orb Logo
+  .brand-lens-orb {
+    width: 64px;
+    height: 64px;
+    background: linear-gradient(135deg, #2563eb 0%, #6366f1 100%);
+    border-radius: 18px;
     display: flex;
     align-items: center;
     justify-content: center;
-    border-radius: 18px;
-    box-shadow: 0 0 20px rgba(59, 130, 246, 0.5);
-  }
+    border-top: 2px solid rgba(255, 255, 255, 0.75);
+    box-shadow: 0 8px 24px rgba(37, 99, 235, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.4);
+    flex-shrink: 0;
 
-  .hero-text {
-    margin-top: auto;
-    margin-bottom: auto;
-
-    .hero-title {
-      font-size: 24px;
-      color: rgba(255, 255, 255, 0.9) !important;
-      font-weight: 500;
-      margin-bottom: 8px;
+    .brand-logo-img {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+      border-radius: 18px;
+      padding: 6px;
+      background: #ffffff;
+      box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.1);
     }
 
-    .hero-subtitle {
-      font-size: 42px;
-      color: white;
+    .brand-initials {
+      font-size: 26px;
       font-weight: 800;
-      margin-bottom: 16px;
-      background: linear-gradient(to right, #fff, #94a3b8);
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
+      color: #ffffff;
+      letter-spacing: -0.5px;
     }
 
-    .hero-description {
-      font-size: 16px;
-      color: rgba(255, 255, 255, 0.7) !important;
-      line-height: 1.6;
-      max-width: 400px;
+    html[data-theme="dark"] & {
+      background: linear-gradient(135deg, #3b82f6 0%, #7c3aed 100%);
+      box-shadow: 0 8px 25px rgba(37, 99, 235, 0.4);
+      .brand-logo-img {
+        background: #161b22;
+      }
     }
   }
 
-  .live-status {
-    display: flex;
-    align-items: center;
-    gap: 10px;
+  // Hero Copywriting & Hierarchy
+  .hero-content {
+    margin: 32px 0;
 
-    .pulse-dot {
+    @include respond-to(md) {
+      margin: 20px 0;
+    }
+
+    .hero-badge {
+      display: inline-block;
+      font-size: 11px;
+      font-weight: 700;
+      color: #2563eb;
+      background: rgba(37, 99, 235, 0.08);
+      border: 1px solid rgba(37, 99, 235, 0.2);
+      border-radius: 9999px;
+      padding: 3px 10px;
+      margin-bottom: 10px;
+      letter-spacing: 0.05em;
+
+      html[data-theme="dark"] & {
+        color: #60a5fa;
+        background: rgba(59, 130, 246, 0.15);
+        border-color: rgba(59, 130, 246, 0.3);
+      }
+    }
+
+    .hero-app-title {
+      font-size: 30px;
+      line-height: 1.2;
+      font-weight: 800;
+      color: #0f172a;
+      margin: 0 0 10px 0;
+      letter-spacing: -0.5px;
+
+      html[data-theme="dark"] & {
+        background: linear-gradient(to right, #ffffff 40%, #94a3b8 100%);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+      }
+    }
+
+    .hero-app-desc {
+      font-size: 13.5px;
+      color: #64748b;
+      line-height: 1.6;
+      max-width: 420px;
+      margin: 0 0 24px 0;
+
+      html[data-theme="dark"] & {
+        color: rgba(255, 255, 255, 0.7);
+      }
+    }
+
+    // System Modules Chips Dock
+    .hero-pills-dock {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+
+      .feature-dock-item {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        font-size: 12px;
+        font-weight: 600;
+        padding: 5px 12px;
+        border-radius: 9999px;
+        background: rgba(255, 255, 255, 0.8);
+        border: 1px solid rgba(203, 213, 225, 0.8);
+        border-top: 1px solid rgba(255, 255, 255, 0.95);
+        color: #334155;
+        box-shadow: 0 1px 3px rgba(15, 23, 42, 0.03);
+
+        .feature-icon {
+          color: #2563eb;
+        }
+
+        html[data-theme="dark"] & {
+          background: rgba(255, 255, 255, 0.05);
+          border: 1px solid rgba(255, 255, 255, 0.08);
+          color: #e2e8f0;
+
+          .feature-icon {
+            color: #60a5fa;
+          }
+        }
+      }
+    }
+  }
+
+  // System Health Indicator Inset Pill
+  .system-health-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 14px;
+    border-radius: 9999px;
+    background: rgba(255, 255, 255, 0.85);
+    border: 1px solid rgba(203, 213, 225, 0.8);
+    align-self: flex-start;
+    box-shadow: 0 1px 3px rgba(15, 23, 42, 0.03);
+
+    .health-dot {
       width: 8px;
       height: 8px;
       background-color: #10b981;
-      border-radius: 50%;
-      position: relative;
-
-      &::after {
-        content: '';
-        position: absolute;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
-        border-radius: 50%;
-        background-color: #10b981;
-        animation: pulse 2s infinite;
-      }
+      border-radius: 9999px;
+      animation: pulse-emerald 2.2s infinite;
     }
 
-    .live-text {
-      color: rgba(255, 255, 255, 0.6);
-      font-size: 14px;
-      font-weight: 500;
+    .health-text {
+      color: #475569;
+      font-size: 12px;
+      font-weight: 600;
+    }
+
+    html[data-theme="dark"] & {
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+
+      .health-text {
+        color: rgba(255, 255, 255, 0.7);
+      }
     }
   }
 }
 
-// Right Side
-.login-right {
+// -----------------------------------------------------------------------------
+// FORM RIGHT PANE
+// -----------------------------------------------------------------------------
+.login-form-pane {
   flex: 1;
-  padding: 60px;
+  padding: 48px;
   display: flex;
   align-items: center;
   justify-content: center;
-  background: rgba(15, 23, 42, 0.4);
+  background: transparent;
 
   @include respond-to(md) {
-    padding: 40px;
+    padding: 32px 24px;
   }
 
-  .form-container {
+  .form-inner-wrapper {
     width: 100%;
-    max-width: 400px;
+    max-width: 380px;
   }
 
-  .login-header-right {
-    margin-bottom: 40px;
+  .form-header-area {
+    margin-bottom: 24px;
 
-    h2 {
-      font-size: 32px;
+    .form-heading {
+      font-size: 25px;
+      font-weight: 800;
+      color: #0f172a;
+      margin: 0 0 6px 0;
+      letter-spacing: -0.4px;
+      line-height: 1.2;
+
+      html[data-theme="dark"] & {
+        color: #f8fafc;
+      }
+    }
+
+    .form-subheading {
+      color: #64748b;
+      margin: 0;
+      font-size: 13.5px;
+      line-height: 1.45;
+
+      html[data-theme="dark"] & {
+        color: #94a3b8;
+      }
+    }
+  }
+
+  .error-alert-wrap {
+    margin-bottom: 18px;
+  }
+
+  .auth-form-body {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  // Input Field Group & Labels
+  .input-group-item {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+
+    .input-field-label {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      font-size: 12.5px;
       font-weight: 700;
-      color: #ffffff !important;
-    }
+      color: #475569;
 
-    .ant-typography, span {
-      color: rgba(255, 255, 255, 0.7) !important;
-    }
-  }
-}
-
-// Custom Select & Floating Input Dark Theme Overrides for Login
-.login-right {
-  .ui-custom-select {
-    margin-bottom: 0;
-
-    &__wrapper {
-      background: rgba(255, 255, 255, 0.04);
-      border: 1px solid rgba(255, 255, 255, 0.12);
-      border-radius: 12px;
-      min-height: 52px;
-      transition: all 0.25s ease;
-
-      &:hover {
-        border-color: rgba(59, 130, 246, 0.5);
-        background: rgba(255, 255, 255, 0.07);
-      }
-    }
-
-    &__icon {
-      color: rgba(255, 255, 255, 0.5);
-    }
-
-    &__value {
-      color: #ffffff;
-      font-size: 15px;
-    }
-
-    &__label {
-      color: rgba(255, 255, 255, 0.45);
-      font-size: 14px;
-    }
-
-    &__arrow {
-      color: rgba(255, 255, 255, 0.5);
-    }
-
-    &.active {
-      .ui-custom-select__wrapper {
-        border-color: #3b82f6;
-        box-shadow: 0 0 16px rgba(59, 130, 246, 0.35);
-        background: rgba(255, 255, 255, 0.08);
+      svg {
+        color: #2563eb;
       }
 
-      .ui-custom-select__label {
-        color: #60a5fa;
-      }
-
-      .ui-custom-select__icon {
-        color: #60a5fa;
-      }
-    }
-
-    &__dropdown {
-      background: #0f172a;
-      backdrop-filter: blur(16px);
-      -webkit-backdrop-filter: blur(16px);
-      border: 1px solid rgba(255, 255, 255, 0.12);
-      box-shadow: 0 12px 36px rgba(0, 0, 0, 0.6);
-      border-radius: 12px;
-      z-index: 100;
-    }
-
-    &__option {
-      color: #e2e8f0;
-      font-size: 14px;
-      padding: 10px 14px;
-      border-radius: 8px;
-
-      &:hover {
-        background: rgba(255, 255, 255, 0.08);
-        color: #60a5fa;
-      }
-
-      &.selected {
-        background: rgba(59, 130, 246, 0.2);
-        color: #60a5fa;
-        font-weight: 600;
+      html[data-theme="dark"] & {
+        color: #cbd5e1;
+        svg {
+          color: #60a5fa;
+        }
       }
     }
   }
 
-  .ui-floating-input {
-    margin-bottom: 0;
+  // Apple Segmented Control for Roles
+  .role-segmented-control {
+    display: flex;
+    align-items: center;
+    background: rgba(0, 0, 0, 0.05);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    padding: 3.5px;
+    border-radius: 9999px;
+    border: 1px solid rgba(203, 213, 225, 0.7);
+    border-top: 1px solid rgba(255, 255, 255, 0.95);
+    box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.04);
+    gap: 2px;
 
-    &__wrapper {
-      background: rgba(255, 255, 255, 0.04);
-      border: 1px solid rgba(255, 255, 255, 0.12);
-      border-radius: 12px;
-      min-height: 52px;
-      transition: all 0.25s ease;
-
-      &:hover {
-        border-color: rgba(59, 130, 246, 0.5);
-        background: rgba(255, 255, 255, 0.07);
-      }
-    }
-
-    &__icon {
-      color: rgba(255, 255, 255, 0.5);
-    }
-
-    &__field {
-      color: #ffffff;
-      font-size: 15px;
+    .role-seg-btn {
+      flex: 1;
+      height: 32px;
       background: transparent;
+      border: none;
+      color: #64748b;
+      font-size: 12px;
+      font-weight: 600;
+      border-radius: 9999px;
+      cursor: pointer;
+      transition: all 0.18s cubic-bezier(0.16, 1, 0.3, 1);
+      white-space: nowrap;
+      padding: 0 8px;
 
-      &:-webkit-autofill,
-      &:-webkit-autofill:hover,
-      &:-webkit-autofill:focus {
-        -webkit-text-fill-color: #ffffff;
-        -webkit-box-shadow: 0 0 0px 1000px #0f172a inset;
-        transition: background-color 5000s ease-in-out 0s;
+      &:hover:not(.active) {
+        color: #0f172a;
+        background: rgba(255, 255, 255, 0.4);
+      }
+
+      &.active {
+        background: #ffffff;
+        color: #2563eb;
+        font-weight: 700;
+        box-shadow: 0 2px 8px rgba(15, 23, 42, 0.08);
       }
     }
 
-    &__label {
-      color: rgba(255, 255, 255, 0.45);
-      font-size: 14px;
-    }
+    html[data-theme="dark"] & {
+      background: rgba(255, 255, 255, 0.04);
+      border-color: rgba(255, 255, 255, 0.08);
 
-    &.active {
-      .ui-floating-input__wrapper {
-        border-color: #3b82f6;
-        box-shadow: 0 0 16px rgba(59, 130, 246, 0.35);
-        background: rgba(255, 255, 255, 0.08);
-      }
+      .role-seg-btn {
+        color: #94a3b8;
 
-      .ui-floating-input__label {
-        color: #60a5fa;
-      }
+        &:hover:not(.active) {
+          color: #ffffff;
+          background: rgba(255, 255, 255, 0.06);
+        }
 
-      .ui-floating-input__icon {
-        color: #60a5fa;
+        &.active {
+          background: #1f2937;
+          color: #60a5fa;
+          box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
+        }
       }
     }
   }
 
-  .glow-btn {
-    height: 52px !important;
-    background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%) !important;
-    border: none !important;
-    border-radius: 12px !important;
-    font-size: 16px !important;
-    font-weight: 600 !important;
-    letter-spacing: 0.5px;
-    color: #ffffff !important;
-    box-shadow: 0 4px 15px rgba(59, 130, 246, 0.3) !important;
-    transition: all 0.3s ease !important;
+  // Tactile Glass Input Wrapper
+  .glass-input-wrapper {
+    position: relative;
+    display: flex;
+    align-items: center;
+    background: rgba(255, 255, 255, 0.75);
+    border: 1px solid rgba(203, 213, 225, 0.8);
+    border-top: 1.5px solid rgba(255, 255, 255, 0.95);
+    border-radius: 12px;
+    height: 44px;
+    padding: 0 14px;
+    transition: all 0.2s cubic-bezier(0.2, 0.8, 0.2, 1);
+    box-shadow: inset 0 1px 2px rgba(15, 23, 42, 0.02);
+
+    &:focus-within {
+      background: #ffffff;
+      border-color: #2563eb;
+      box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15), inset 0 1px 2px rgba(0, 0, 0, 0.02);
+      .input-lead-icon {
+        color: #2563eb;
+      }
+    }
+
+    .input-lead-icon {
+      color: #94a3b8;
+      margin-right: 10px;
+      flex-shrink: 0;
+      transition: color 0.18s ease;
+    }
+
+    .glass-input-field {
+      width: 100%;
+      height: 100%;
+      background: transparent;
+      border: none;
+      color: #0f172a;
+      font-size: 13.5px;
+      font-weight: 500;
+      outline: none;
+
+      &::placeholder {
+        color: #94a3b8;
+        font-weight: 400;
+      }
+    }
+
+    .password-toggle-btn {
+      background: transparent;
+      border: none;
+      color: #94a3b8;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 4px;
+      transition: color 0.15s ease;
+
+      &:hover {
+        color: #0f172a;
+      }
+    }
+
+    html[data-theme="dark"] & {
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid rgba(255, 255, 255, 0.09);
+      border-top: 1.5px solid rgba(255, 255, 255, 0.16);
+      box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.25);
+
+      &:focus-within {
+        background: rgba(255, 255, 255, 0.08);
+        border-color: #3b82f6;
+        box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2);
+        .input-lead-icon {
+          color: #60a5fa;
+        }
+      }
+
+      .glass-input-field {
+        color: #f8fafc;
+        &::placeholder {
+          color: #64748b;
+        }
+      }
+
+      .password-toggle-btn {
+        color: #64748b;
+        &:hover {
+          color: #ffffff;
+        }
+      }
+    }
+  }
+
+  // Primary Action Pill Submit Button (Option A Standard 4.4)
+  .submit-login-btn {
+    width: 100%;
+    height: 44px;
+    margin-top: 8px;
+    border-radius: 9999px;
+    background: linear-gradient(180deg, #3b82f6 0%, #2563eb 100%);
+    color: #ffffff;
+    font-size: 13.5px;
+    font-weight: 700;
+    border: 1px solid rgba(255, 255, 255, 0.35);
+    border-top: 1.5px solid rgba(255, 255, 255, 0.75);
+    box-shadow: 0 6px 20px rgba(37, 99, 235, 0.35);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
     cursor: pointer;
+    transition: all 0.2s cubic-bezier(0.2, 0.8, 0.2, 1);
 
     &:hover:not(:disabled) {
-      transform: translateY(-2px);
-      box-shadow: 0 8px 25px rgba(59, 130, 246, 0.5) !important;
-      opacity: 0.95;
+      background: linear-gradient(180deg, #2563eb 0%, #1d4ed8 100%);
+      transform: translateY(-1.5px);
+      box-shadow: 0 8px 25px rgba(37, 99, 235, 0.45);
     }
 
     &:active:not(:disabled) {
-      transform: translateY(0);
+      transform: scale(0.98);
+      box-shadow: 0 2px 8px rgba(37, 99, 235, 0.25);
     }
 
     &:disabled {
-      opacity: 0.6;
+      opacity: 0.65;
       cursor: not-allowed;
     }
-  }
-}
 
+    html[data-theme="dark"] & {
+      box-shadow: 0 6px 22px rgba(37, 99, 235, 0.45);
+    }
+  }
 
-.login-footer-right {
-  margin-top: 40px;
-  text-align: center;
-}
+  // Footer Copyright
+  .form-footer-copyright {
+    margin-top: 24px;
+    text-align: center;
 
-// Animations
-@keyframes floating {
-  0% {
-    transform: translate(0, 0) scale(1);
-  }
-  50% {
-    transform: translate(50px, 50px) scale(1.1);
-  }
-  100% {
-    transform: translate(-20px, 30px) scale(0.9);
-  }
-}
+    span {
+      font-size: 12px;
+      font-weight: 500;
+      color: #94a3b8;
 
-@keyframes pulse {
-  0% {
-    transform: scale(1);
-    opacity: 1;
-  }
-  100% {
-    transform: scale(3);
-    opacity: 0;
+      html[data-theme="dark"] & {
+        color: rgba(255, 255, 255, 0.4);
+      }
+    }
   }
 }
