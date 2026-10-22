@@ -1,0 +1,180 @@
+import React from 'react';
+import { Phone, MapPin, Trophy, Briefcase, GraduationCap, Eye, Trash2 } from 'lucide-react';
+import { AlumniItem } from '../../types/alumni';
+import './AlumniCard.scss';
+
+export interface AlumniCardProps {
+  alumni: AlumniItem;
+  onDetail: (id: number | string) => void;
+  onDelete: (id: number | string, name: string) => void;
+}
+
+export function AlumniCard({ alumni, onDetail, onDelete }: AlumniCardProps) {
+  // Get initials for avatar
+  const getInitials = (name?: string): string => {
+    if (!name) return 'AL';
+    return name
+      .split(' ')
+      .slice(0, 2)
+      .map(n => n[0])
+      .join('')
+      .toUpperCase();
+  };
+
+  return (
+    <div className="premium-alumni-card">
+      {/* Background glow effect */}
+      <div className="card-glow-effect"></div>
+
+      {/* Header section */}
+      <div className="card-header-section">
+        <div className="alumni-avatar-circle" style={{ overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          {alumni.foto_url ? (
+            <img
+              src={alumni.foto_url}
+              alt={alumni.nama}
+              style={{ width: '100%', height: '100%', borderRadius: '50%', objectFit: 'cover' }}
+              onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }}
+            />
+          ) : (
+            <span>{getInitials(alumni.nama)}</span>
+          )}
+        </div>
+        
+        <div className="alumni-title-info">
+          <h4 className="alumni-name" title={alumni.nama}>
+            {alumni.nama}
+          </h4>
+          <span className="alumni-nis">NIS: {alumni.nis || '-'}</span>
+        </div>
+
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '4px' }}>
+          <div className="alumni-year-badge">
+            <GraduationCap size={12} />
+            <span>{alumni.tipe === 'pindah' ? `Keluar ${alumni.tahun_lulus}` : `Lulus ${alumni.tahun_lulus}`}</span>
+          </div>
+          {alumni.tipe === 'lulus_mts' && (
+            <span style={{ fontSize: '10px', fontWeight: 700, padding: '2px 8px', borderRadius: '6px', background: '#e0f2fe', color: '#0369a1', border: '1px solid #bae6fd' }}>
+              Lulus MTs
+            </span>
+          )}
+          {alumni.tipe === 'lulus_aliyah' && (
+            <span style={{ fontSize: '10px', fontWeight: 700, padding: '2px 8px', borderRadius: '6px', background: '#f3e8ff', color: '#7e22ce', border: '1px solid #e9d5ff' }}>
+              Lulus Aliyah
+            </span>
+          )}
+          {alumni.tipe === 'alumni' && (
+            <span style={{ fontSize: '10px', fontWeight: 700, padding: '2px 8px', borderRadius: '6px', background: '#dcfce7', color: '#15803d', border: '1px solid #bbf7d0' }}>
+              Alumni Diniyah
+            </span>
+          )}
+          {alumni.tipe === 'pindah' && (
+            <span style={{ fontSize: '10px', fontWeight: 700, padding: '2px 8px', borderRadius: '6px', background: '#fef3c7', color: '#b45309', border: '1px solid #fde68a' }}>
+              Pindah
+            </span>
+          )}
+        </div>
+      </div>
+
+      {/* Body Section */}
+      <div className="card-body-section">
+        {/* Kelas Terakhir */}
+        {alumni.kelas_terakhir && (
+          <div className="info-item">
+            <div className="info-icon-wrapper">
+              <GraduationCap size={14} />
+            </div>
+            <div className="info-text">
+              <span className="info-label">Kelas Terakhir</span>
+              <span className="info-value">{alumni.kelas_terakhir}</span>
+            </div>
+          </div>
+        )}
+
+        {/* Pekerjaan / Instansi */}
+        {(alumni.pekerjaan || alumni.instansi) && (
+          <div className="info-item">
+            <div className="info-icon-wrapper">
+              <Briefcase size={14} />
+            </div>
+            <div className="info-text">
+              <span className="info-label">Pekerjaan</span>
+              <span className="info-value">
+                {alumni.pekerjaan || ''}
+                {alumni.pekerjaan && alumni.instansi ? ` di ${alumni.instansi}` : (alumni.instansi || '')}
+              </span>
+            </div>
+          </div>
+        )}
+
+        {/* No HP / Kontak */}
+        {alumni.no_hp && (
+          <div className="info-item">
+            <div className="info-icon-wrapper">
+              <Phone size={14} />
+            </div>
+            <div className="info-text">
+              <span className="info-label">No. HP</span>
+              <span className="info-value">{alumni.no_hp}</span>
+            </div>
+          </div>
+        )}
+
+        {/* Alamat Sekarang */}
+        {alumni.alamat_sekarang && (
+          <div className="info-item">
+            <div className="info-icon-wrapper">
+              <MapPin size={14} />
+            </div>
+            <div className="info-text">
+              <span className="info-label">Alamat Sekarang</span>
+              <span className="info-value" title={alumni.alamat_sekarang}>
+                {alumni.alamat_sekarang}
+              </span>
+            </div>
+          </div>
+        )}
+
+        {/* Prestasi Utama */}
+        {alumni.prestasi_utama && (
+          <div className="info-item">
+            <div className="info-icon-wrapper text-gold">
+              <Trophy size={14} />
+            </div>
+            <div className="info-text">
+              <span className="info-label">Prestasi Utama</span>
+              <span className="info-value text-gold-value" title={alumni.prestasi_utama}>
+                {alumni.prestasi_utama}
+              </span>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Actions Section */}
+      <div className="card-actions-section">
+        <button
+          type="button"
+          className="action-btn detail-btn"
+          onClick={() => onDetail(alumni.id)}
+          title="Lihat detail lengkap"
+          style={{ flex: 1 }}
+        >
+          <Eye size={13} />
+          <span>Detail</span>
+        </button>
+        <button
+          type="button"
+          className="action-btn delete-btn"
+          onClick={() => onDelete(alumni.id, alumni.nama)}
+          title="Hapus data alumni"
+        >
+          <Trash2 size={13} />
+          <span>Hapus</span>
+        </button>
+      </div>
+    </div>
+  );
+}
+
+export default AlumniCard;

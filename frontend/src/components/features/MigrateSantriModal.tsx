@@ -1,0 +1,224 @@
+import React, { useState, useEffect } from 'react';
+import { Modal } from '../common/Modal';
+import { SantriAutocomplete } from './SantriAutocomplete';
+import { formatDate } from '../../utils/formatters';
+
+export interface MigrateFormData {
+  santri_id: string;
+  tahun_lulus: string;
+  tipe: string;
+  keterangan: string;
+}
+
+export interface MigrateSantriModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  onSubmit: (data: MigrateFormData) => void;
+  santriList: any[];
+  isSubmitting?: boolean;
+  error?: string | null;
+}
+
+export function MigrateSantriModal({
+  isOpen,
+  onClose,
+  onSubmit,
+  santriList,
+  isSubmitting = false,
+  error = null
+}: MigrateSantriModalProps) {
+  const [formData, setFormData] = useState<MigrateFormData>({
+    santri_id: '',
+    tahun_lulus: '',
+    tipe: 'alumni',
+    keterangan: ''
+  });
+
+  const [errors, setErrors] = useState<Record<string, string>>({});
+  const [selectedSantri, setSelectedSantri] = useState<any | null>(null);
+
+  useEffect(() => {
+    if (isOpen) {
+      setFormData({
+        santri_id: '',
+        tahun_lulus: new Date().getFullYear().toString(),
+        tipe: 'alumni',
+        keterangan: ''
+      });
+      setSelectedSantri(null);
+      setErrors({});
+    }
+  }, [isOpen]);
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({ ...prev, [name]: value }));
+    if (errors[name]) {
+      setErrors(prev => ({ ...prev, [name]: '' }));
+    }
+  };
+
+  const handleSantriChange = (santriId: string | number) => {
+    const santri = (santriList || []).find(s => Number(s.id) === Number(santriId));
+    setSelectedSantri(santri || null);
+
+    let detectedTipe = 'alumni';
+    if (santri) {
+      const ks = (santri.kelas_sekolah || '').toLowerCase();
+      const kd = (santri.kelas_diniyah || '').toLowerCase();
+      if (ks.includes('aliyah') || ks.includes('ma ') || ks.includes('12')) {
+        detectedTipe = 'lulus_aliyah';
+      } else if (ks.includes('mts') || ks.includes('smp') || ks.includes('9')) {
+        detectedTipe = 'lulus_mts';
+      } else if (kd.includes('6') || kd.includes('diniyah')) {
+        detectedTipe = 'alumni';
+      }
+    }
+
+    setFormData(prev => ({
+      ...prev,
+      santri_id: String(santriId),
+      tipe: detectedTipe
+    }));
+    if (errors.santri_id) {
+      setErrors(prev => ({ ...prev, santri_id: '' }));
+    }
+  };
+
+  const validate = (): boolean => {
+    const newErrors: Record<string, string> = {};
+
+    if (!formData.santri_id) {
+      newErrors.santri_id = 'Santri wajib dipilih';
+    }
+    if (!formData.tahun_lulus) {
+      newErrors.tahun_lulus = 'Tahun lulus wajib diisi';
+    } else {
+      const year = parseInt(formData.tahun_lulus, 10);
+      if (isNaN(year) || year < 1900 || year > 2100) {
+        newErrors.tahun_lulus = 'Tahun lulus tidak valid';
+      }
+    }
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!validate()) return;
+    onSubmit(formData);
+  };
+
+  return (
+    <Modal
+      isOpen={isOpen}
+      onClose={onClose}
+      title="Tambah Alumni dari Data Santri"
+      size="large"
+    >
+      <form onSubmit={handleSubmit}>
+        {error && (
+          <div className="message error" style={{ marginBottom: '1rem' }}>
+            {error}
+          </div>
+        )}
+
+        <SantriAutocomplete
+          value={formData.santri_id}
+          onChange={handleSantriChange}
+          error={errors.santri_id}
+          santriList={santriList}
+        />
+
+        {selectedSantri && (
+          <div className="santri-preview" style={{ marginBottom: '1rem' }}>
+            <h4>Data Santri yang Akan Dipindahkan</h4>
+            <div className="santri-preview-grid">
+              <div><strong>NIS:</strong> {selectedSantri.nis || '-'}</div>
+              <div><strong>NIK:</strong> {selectedSantri.nik || '-'}</div>
+              <div><strong>Nama:</strong> {selectedSantri.nama || '-'}</div>
+              <div><strong>Tempat Lahir:</strong> {selectedSantri.tempat_lahir || '-'}</div>
+              <div><strong>Tanggal Lahir:</strong> {selectedSantri.tanggal_lahir ? formatDate(selectedSantri.tanggal_lahir) : '-'}</div>
+              <div><strong>Kelas Diniyah:</strong> {selectedSantri.kelas_diniyah || '-'}</div>
+              <div><strong>Kelas Sekolah:</strong> {selectedSantri.kelas_sekolah || '-'}</div>
+              <div><strong>Kamar:</strong> {selectedSantri.kamar || '-'}</div>
+              <div><strong>Ayah:</strong> {selectedSantri.nama_ayah || '-'}</div>
+              <div><strong>Ibu:</strong> {selectedSantri.nama_ibu || '-'}</div>
+              <div style={{ gridColumn: '1 / -1' }}><strong>Alamat:</strong> {selectedSantri.alamat || '-'}</div>
+            </div>
+          </div>
+        )}
+
+        <div className="modal-grid">
+          <div className="form-group">
+            <label htmlFor="tipe">
+              Status Kelulusan / Migrasi <span className="required">*</span>
+            </label>
+            <select
+              id="tipe"
+              name="tipe"
+              value={formData.tipe}
+              onChange={handleChange}
+              style={{ width: '100%', padding: '8px 12px', borderRadius: '6px', border: '1px solid #cbd5e1' }}
+            >
+              <option value="alumni">Alumni Diniyah (Lulus Madrasah Diniyah)</option>
+              <option value="lulus_mts">Lulusan MTs (Lulus Kelas 3 MTs)</option>
+              <option value="lulus_aliyah">Lulusan Aliyah (Lulus Kelas 3 Aliyah)</option>
+              <option value="pindah">Siswa Pindah / Mutasi Keluar</option>
+            </select>
+          </div>
+
+          <div className="form-group">
+            <label htmlFor="tahun_lulus">
+              Tahun Kelulusan / Keluar <span className="required">*</span>
+            </label>
+            <input
+              type="number"
+              id="tahun_lulus"
+              name="tahun_lulus"
+              value={formData.tahun_lulus}
+              onChange={handleChange}
+              min="1900"
+              max="2100"
+              className={errors.tahun_lulus ? 'error' : ''}
+            />
+            {errors.tahun_lulus && <span className="error-message">{errors.tahun_lulus}</span>}
+          </div>
+
+          <div className="form-group full-width">
+            <label htmlFor="keterangan">Keterangan</label>
+            <textarea
+              id="keterangan"
+              name="keterangan"
+              value={formData.keterangan}
+              onChange={handleChange}
+              rows={3}
+              placeholder="Catatan tambahan (opsional)"
+            />
+          </div>
+        </div>
+
+        <div className="modal-actions">
+          <button
+            type="button"
+            className="button secondary"
+            onClick={onClose}
+            disabled={isSubmitting}
+          >
+            Batal
+          </button>
+          <button
+            type="submit"
+            className="button"
+            disabled={isSubmitting}
+          >
+            {isSubmitting ? 'Memproses...' : 'Pindahkan ke Alumni'}
+          </button>
+        </div>
+      </form>
+    </Modal>
+  );
+}
+
+export default MigrateSantriModal;
