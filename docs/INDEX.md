@@ -1,230 +1,67 @@
-# Index Dokumentasi - Quick Navigation
+# 🗂️ Indeks Lengkap Dokumentasi (Quick Navigation)
+### Pondok Pesantren Al-Hamid (Sekolah-Info)
 
-Indeks lengkap semua dokumentasi proyek untuk navigasi cepat.
-
-## 🚀 Quick Links
-
-| Kategori | Link | Deskripsi |
-|----------|------|-----------|
-| 📖 Overview | [README](./README.md) | Halaman utama dokumentasi |
-| 🎨 UI/UX Master | [MASTER_UI_UX_REDESIGN_GUIDELINES](./MASTER_UI_UX_REDESIGN_GUIDELINES.md) | Panduan standar desain kaca Apple (Option A), keamanan API, & migrasi TSX |
-| 📊 Status | [PROJECT_STATUS](./PROJECT_STATUS.md) | Status proyek terkini |
-| 🗺️ Roadmap | [ROADMAP](./ROADMAP.md) | Rencana pengembangan |
-| 🏗️ Structure | [PROJECT_STRUCTURE](./PROJECT_STRUCTURE.md) | Struktur kode proyek |
-| 📋 Documentation Guide | [DOCUMENTATION_STRUCTURE_GUIDE](./DOCUMENTATION_STRUCTURE_GUIDE.md) | Panduan struktur dokumentasi |
-
-## 📚 Dokumentasi Berdasarkan Kategori
-
-### 🎯 Setup & Getting Started
-- [DEVELOPMENT_GUIDE.md](./DEVELOPMENT_GUIDE.md) - Setup development environment
-- [guides/QUICK_START_GUIDE.md](./guides/QUICK_START_GUIDE.md) - Quick start untuk developer baru
-- [DEPLOYMENT_GUIDE.md](./DEPLOYMENT_GUIDE.md) - Panduan deployment
-
-### 🧪 Testing
-- [TESTING_CHECKLIST.md](./TESTING_CHECKLIST.md) - Checklist testing utama
-- [guides/MANUAL_TESTING_CHECKLIST.md](./guides/MANUAL_TESTING_CHECKLIST.md) - Checklist testing manual
-- [reports/STABILIZATION_TEST_REPORT.md](./reports/STABILIZATION_TEST_REPORT.md) - Laporan stabilization testing
-
-### 📱 Mobile & Access
-- [guides/MOBILE_ACCESS_GUIDE.md](./guides/MOBILE_ACCESS_GUIDE.md) - Panduan akses mobile
-
-### 🔧 Development Patterns
-- [guides/VALIDATION_PATTERN_GUIDE.md](./guides/VALIDATION_PATTERN_GUIDE.md) - Pattern validasi
-- [guides/MULTI_AGENT_WORKFLOW.md](./guides/MULTI_AGENT_WORKFLOW.md) - Workflow multi-agent
-- [guides/QUICK_REFERENCE_MULTI_AGENT.md](./guides/QUICK_REFERENCE_MULTI_AGENT.md) - Referensi cepat multi-agent
-
-### 🎓 Modul Alumni
-- [alumni/ALUMNI_README.md](./alumni/ALUMNI_README.md) - Overview modul alumni
-- [alumni/ALUMNI_DATABASE_DOCUMENTATION.md](./alumni/ALUMNI_DATABASE_DOCUMENTATION.md) - Dokumentasi database
-- [alumni/ALUMNI_IMPLEMENTATION_SUMMARY.md](./alumni/ALUMNI_IMPLEMENTATION_SUMMARY.md) - Ringkasan implementasi
-- [alumni/ALUMNI_TROUBLESHOOTING.md](./alumni/ALUMNI_TROUBLESHOOTING.md) - Troubleshooting
-- [alumni/ALUMNI_UPGRADE_PLAN.md](./alumni/ALUMNI_UPGRADE_PLAN.md) - Rencana upgrade
-- [alumni/ALUMNI_REFACTOR_SUMMARY.md](./alumni/ALUMNI_REFACTOR_SUMMARY.md) - Ringkasan refactor
-
-### ⚛️ React Migration
-- [reports/REACT_MIGRATION_PLAN.md](./reports/REACT_MIGRATION_PLAN.md) - Rencana migrasi
-- [reports/REACT_MIGRATION_SUMMARY.md](./reports/REACT_MIGRATION_SUMMARY.md) - Ringkasan migrasi
-- [reports/REACT_MIGRATION_CHECKLIST.md](./reports/REACT_MIGRATION_CHECKLIST.md) - Checklist migrasi
-- [reports/REACT_SETUP_COMPLETE.md](./reports/REACT_SETUP_COMPLETE.md) - Setup selesai
-
-## 📊 Dokumentasi Berdasarkan Fase
-
-### Fase Aktif
-- [FASE_8_COMPLETE.md](./FASE_8_COMPLETE.md) - Fase 8: Stabilisasi & Testing
-- [FASE_9_COMPLETE.md](./FASE_9_COMPLETE.md) - Fase 9: Optimasi
-- [FASE_10_COMPLETE.md](./FASE_10_COMPLETE.md) - Fase 10: Final Polish
-
-### Fase Archived
-- [archive/phases/FASE_2_SELESAI.md](./archive/phases/FASE_2_SELESAI.md)
-- [archive/phases/FASE_3_COMPLETE.md](./archive/phases/FASE_3_COMPLETE.md)
-- [archive/phases/FASE_4_COMPLETE.md](./archive/phases/FASE_4_COMPLETE.md)
-- [archive/phases/FASE_5_COMPLETE.md](./archive/phases/FASE_5_COMPLETE.md)
-- [archive/phases/FASE_6_COMPLETE.md](./archive/phases/FASE_6_COMPLETE.md)
-- [archive/phases/FASE_7_COMPLETE.md](./archive/phases/FASE_7_COMPLETE.md)
-
-## 📝 Laporan Implementasi
-
-### Task Reports
-- [reports/TASK_4_IMPLEMENTATION_SUMMARY.md](./reports/TASK_4_IMPLEMENTATION_SUMMARY.md)
-- [reports/TASK_10_IMPLEMENTATION_SUMMARY.md](./reports/TASK_10_IMPLEMENTATION_SUMMARY.md)
-- [reports/TASK_10_VERIFICATION.md](./reports/TASK_10_VERIFICATION.md)
-- [reports/TASK_11_IMPLEMENTATION_SUMMARY.md](./reports/TASK_11_IMPLEMENTATION_SUMMARY.md)
-- [reports/TASK_14_INTEGRATION_TEST_REPORT.md](./reports/TASK_14_INTEGRATION_TEST_REPORT.md)
-
-### Prioritas Reports
-- [reports/PRIORITAS_1_COMPLETE.md](./reports/PRIORITAS_1_COMPLETE.md)
-- [reports/PRIORITAS_1_VERIFICATION_REPORT.md](./reports/PRIORITAS_1_VERIFICATION_REPORT.md)
-- [reports/PRIORITAS_2_COMPLETE.md](./reports/PRIORITAS_2_COMPLETE.md)
-- [reports/PRIORITAS_5_COMPLETE.md](./reports/PRIORITAS_5_COMPLETE.md)
-- [reports/PRIORITAS_5_IMPLEMENTATION_PLAN.md](./reports/PRIORITAS_5_IMPLEMENTATION_PLAN.md)
-- [reports/PRIORITAS_5_PHASE_2-5_COMPLETE.md](./reports/PRIORITAS_5_PHASE_2-5_COMPLETE.md)
-
-### Fixes & Improvements
-- [reports/FIXES_SUMMARY.md](./reports/FIXES_SUMMARY.md)
-- [reports/FIXES_FINAL_SUMMARY.md](./reports/FIXES_FINAL_SUMMARY.md)
-- [reports/VALIDATION_ERROR_HANDLING_PLAN.md](./reports/VALIDATION_ERROR_HANDLING_PLAN.md)
-
-### Alumni Module Reports
-- [reports/ALUMNI_REFACTOR_PLAN.md](./reports/ALUMNI_REFACTOR_PLAN.md)
-- [reports/ALUMNI_REFACTOR_COMPLETE.md](./reports/ALUMNI_REFACTOR_COMPLETE.md)
-
-### Documentation Updates
-- [reports/DOCUMENTATION_UPDATE_SUMMARY.md](./reports/DOCUMENTATION_UPDATE_SUMMARY.md)
-
-## 🔍 Pencarian Cepat
-
-### Berdasarkan Topik
-
-#### Authentication & Authorization
-- Lihat: DEVELOPMENT_GUIDE.md, PROJECT_STRUCTURE.md
-
-#### Database
-- [alumni/ALUMNI_DATABASE_DOCUMENTATION.md](./alumni/ALUMNI_DATABASE_DOCUMENTATION.md)
-- PROJECT_STRUCTURE.md
-
-#### Validation
-- [guides/VALIDATION_PATTERN_GUIDE.md](./guides/VALIDATION_PATTERN_GUIDE.md)
-- [reports/VALIDATION_ERROR_HANDLING_PLAN.md](./reports/VALIDATION_ERROR_HANDLING_PLAN.md)
-
-#### Testing
-- [TESTING_CHECKLIST.md](./TESTING_CHECKLIST.md)
-- [guides/MANUAL_TESTING_CHECKLIST.md](./guides/MANUAL_TESTING_CHECKLIST.md)
-- [reports/STABILIZATION_TEST_REPORT.md](./reports/STABILIZATION_TEST_REPORT.md)
-
-#### Deployment
-- [DEPLOYMENT_GUIDE.md](./DEPLOYMENT_GUIDE.md)
-
-#### Troubleshooting
-- [alumni/ALUMNI_TROUBLESHOOTING.md](./alumni/ALUMNI_TROUBLESHOOTING.md)
-- [guides/PANDUAN_PERBAIKAN_LENGKAP.md](./guides/PANDUAN_PERBAIKAN_LENGKAP.md)
-
-### Berdasarkan Role
-
-#### Developer Baru
-1. [guides/QUICK_START_GUIDE.md](./guides/QUICK_START_GUIDE.md)
-2. [DEVELOPMENT_GUIDE.md](./DEVELOPMENT_GUIDE.md)
-3. [PROJECT_STRUCTURE.md](./PROJECT_STRUCTURE.md)
-4. [guides/VALIDATION_PATTERN_GUIDE.md](./guides/VALIDATION_PATTERN_GUIDE.md)
-
-#### DevOps / Deployment
-1. [DEPLOYMENT_GUIDE.md](./DEPLOYMENT_GUIDE.md)
-2. [PROJECT_STATUS.md](./PROJECT_STATUS.md)
-3. [TESTING_CHECKLIST.md](./TESTING_CHECKLIST.md)
-
-#### QA / Tester
-1. [TESTING_CHECKLIST.md](./TESTING_CHECKLIST.md)
-2. [guides/MANUAL_TESTING_CHECKLIST.md](./guides/MANUAL_TESTING_CHECKLIST.md)
-3. [reports/STABILIZATION_TEST_REPORT.md](./reports/STABILIZATION_TEST_REPORT.md)
-
-#### Project Manager
-1. [PROJECT_STATUS.md](./PROJECT_STATUS.md)
-2. [ROADMAP.md](./ROADMAP.md)
-3. [FASE_10_COMPLETE.md](./FASE_10_COMPLETE.md)
-
-#### Technical Writer
-1. [DOCUMENTATION_STRUCTURE_GUIDE.md](./DOCUMENTATION_STRUCTURE_GUIDE.md)
-2. [README.md](./README.md)
-3. [INDEX.md](./INDEX.md) (file ini)
-
-## 📁 Struktur Folder
-
-```
-docs/
-├── README.md                              # Halaman utama
-├── INDEX.md                               # File ini - navigasi cepat
-├── DOCUMENTATION_STRUCTURE_GUIDE.md       # Panduan struktur
-│
-├── [Root Files]                           # Dokumentasi tingkat proyek
-│   ├── PROJECT_STATUS.md
-│   ├── PROJECT_STRUCTURE.md
-│   ├── ROADMAP.md
-│   ├── DEPLOYMENT_GUIDE.md
-│   ├── DEVELOPMENT_GUIDE.md
-│   ├── TESTING_CHECKLIST.md
-│   ├── FASE_8_COMPLETE.md
-│   ├── FASE_9_COMPLETE.md
-│   └── FASE_10_COMPLETE.md
-│
-├── guides/                                # Panduan & tutorial
-│   ├── README.md
-│   ├── QUICK_START_GUIDE.md
-│   ├── MOBILE_ACCESS_GUIDE.md
-│   ├── VALIDATION_PATTERN_GUIDE.md
-│   ├── MULTI_AGENT_WORKFLOW.md
-│   ├── QUICK_REFERENCE_MULTI_AGENT.md
-│   ├── MANUAL_TESTING_CHECKLIST.md
-│   ├── PANDUAN_PERBAIKAN_LENGKAP.md
-│   └── JAWABAN_LENGKAP.md
-│
-├── reports/                               # Laporan implementasi
-│   ├── README.md
-│   ├── TASK_*_*.md
-│   ├── PRIORITAS_*_*.md
-│   ├── ALUMNI_*.md
-│   ├── REACT_*.md
-│   ├── FIXES_*.md
-│   └── *_VERIFICATION*.md
-│
-├── alumni/                                # Dokumentasi modul alumni
-│   ├── ALUMNI_README.md
-│   ├── ALUMNI_DATABASE_DOCUMENTATION.md
-│   ├── ALUMNI_IMPLEMENTATION_SUMMARY.md
-│   ├── ALUMNI_TROUBLESHOOTING.md
-│   ├── ALUMNI_UPGRADE_PLAN.md
-│   └── ALUMNI_REFACTOR_SUMMARY.md
-│
-└── archive/                               # Dokumentasi lama
-    ├── README.md
-    ├── phases/                            # Fase lama
-    ├── reports/                           # Laporan lama
-    └── public/                            # File HTML backup
-```
-
-## 🔗 Link Eksternal
-
-- Repository: [Link ke repository]
-- Production: [Link ke production]
-- Staging: [Link ke staging]
-- API Documentation: [Link ke API docs]
-
-## 📞 Kontak
-
-Untuk pertanyaan tentang dokumentasi:
-- Lihat [DOCUMENTATION_STRUCTURE_GUIDE.md](./DOCUMENTATION_STRUCTURE_GUIDE.md)
-- Hubungi: Development Team
+Indeks ini dirancang untuk memudahkan developer, teknisi DevOps, pimpinan pesantren, dan AI Agent menemukan dokumen yang relevan secara cepat.
 
 ---
 
-**Last Updated:** 2026-05-02
-**Total Documents:** 50+
-**Maintainer:** Development Team
+## 🚀 1. Dokumen Utama & Arsitektur
+
+| Dokumen | Tautan | Deskripsi | Target Pembaca |
+|---|---|---|---|
+| **Master Readme** | [README.md](../README.md) | Ikhtisar menyeluruh ekosistem Al-Hamid, arsitektur, quickstart, dan daftar modul. | Semua Role |
+| **Roadmap Sistem** | [ROADMAP.md](./ROADMAP.md) | Rencana strategis, riwayat fase pengembangan, fase aktif, dan milestone masa depan. | PM, Developer |
+| **Arsitektur & Topologi** | [ARCHITECTURE.md](./ARCHITECTURE.md) | Diagram topologi sistem, security model, biometrik, scanner OMR, dan aliran data. | Software Architect, DevOps |
+| **Master Kontrak REST API** | [API_DOCUMENTATION.md](./API_DOCUMENTATION.md) | Daftar lengkap endpoint, payload request, respons JSON, dan hak akses RBAC. | Backend & Mobile Dev |
+| **Panduan Pengembang** | [DEVELOPMENT_GUIDE.md](./DEVELOPMENT_GUIDE.md) | Langkah-langkah setup lokal, konvensi kode, panduan TypeScript, dan checklist pre-commit. | Developer Baru |
+| **Panduan Deployment VPS** | [DEPLOYMENT_GUIDE.md](./DEPLOYMENT_GUIDE.md) | Runbook instalasi Ubuntu 24.04, Nginx, PM2, PostgreSQL, SSL Certbot, dan backup harian. | DevOps, SysAdmin |
+| **Master UI/UX Design System** | [MASTER_UI_UX_REDESIGN_GUIDELINES.md](./MASTER_UI_UX_REDESIGN_GUIDELINES.md) | Panduan standar desain kaca Apple macOS Sequoia & VisionOS Liquid Glass (Option A). | Frontend Designer / Dev |
 
 ---
 
-## 💡 Tips Navigasi
+## 📱 2. Dokumentasi Sub-Sistem & Klien
 
-1. **Gunakan Ctrl+F** untuk mencari topik spesifik di halaman ini
-2. **Bookmark file ini** untuk akses cepat ke semua dokumentasi
-3. **Mulai dari README.md** jika baru pertama kali
-4. **Gunakan INDEX.md** (file ini) untuk navigasi cepat
-5. **Cek PROJECT_STATUS.md** untuk info terkini
+| Sub-Sistem | Lokasi Dokumen | Deskripsi |
+|---|---|---|
+| **Web Frontend (React 19 + Vite)** | [frontend/README.md](../frontend/README.md) | SPA web dengan 40+ halaman operasional, styling SCSS Liquid Glass, dan struktur komponen. |
+| **Submodul Keuangan (TS)** | [keuangan/README.md](../keuangan/README.md) | Sub-service TypeScript untuk kas pesantren, SPP, daftar ulang, tagihan, dan kwitansi berseri. |
+| **Alhamid One Mobile App** | [mymustahiq/README.md](../mymustahiq/README.md) | Aplikasi Flutter terpadu untuk dewan asatidz dan wali santri (buku induk, nilai, hafalan, chat). |
+| **Mobile Absensi Biometrik** | [mobile_absensi/README.md](../mobile_absensi/README.md) | Presensi sholat berjamaah berbasis *Face Recognition* lokal, *Liveness Detection*, dan dual camera. |
+| **Desktop OMR Scanner** | [desktop-scanner/README.md](../desktop-scanner/README.md) | Aplikasi desktop Windows WPF C# .NET untuk membaca LJK ujian madrasah secara otomatis. |
+
+---
+
+## 🤖 3. Direktif & Aturan AI Agent
+
+| Dokumen | Lokasi Dokumen | Deskripsi |
+|---|---|---|
+| **Agent Directives** | [AGENTS.md](../AGENTS.md) | Aturan sakral AI Agent: Zero-Breakage Policy, Option A Design, TypeScript bertahap, dan izin sinkronisasi VPS. |
+| **Gemini Master Rules** | [GEMINI.md](../GEMINI.md) | Ringkasan prinsip dan arahan operasional Google Gemini / Antigravity Agent. |
+
+---
+
+## 🔍 4. Panduan Pencarian Cepat Berdasarkan Kebutuhan
+
+### Ingin Memulai Pengembangan Lokal?
+1. Baca [README.md](../README.md) untuk ikhtisar ekosistem.
+2. Ikuti [DEVELOPMENT_GUIDE.md](./DEVELOPMENT_GUIDE.md) langkah demi langkah.
+3. Jalankan `npm run dev:all` untuk menyalakan backend dan frontend secara bersamaan.
+
+### Ingin Mengetahui Struktur API atau Memperbaiki Integrasi Mobile?
+1. Buka [API_DOCUMENTATION.md](./API_DOCUMENTATION.md) untuk memeriksa format endpoint dan response JSON.
+2. Pelajari [ARCHITECTURE.md](./ARCHITECTURE.md) untuk memahami aliran otentikasi dual-token JWT.
+
+### Ingin Mendesain atau Memperbarui Halaman Web?
+1. Pelajari [MASTER_UI_UX_REDESIGN_GUIDELINES.md](./MASTER_UI_UX_REDESIGN_GUIDELINES.md) untuk aturan Liquid Glass.
+2. Pastikan tidak menambahkan "AI Slop" dan patuhi larangan ikon orb pada header halaman.
+3. Selalu jalankan `npm run build` di folder `frontend/` untuk memastikan tidak ada error TypeScript.
+
+### Ingin Melakukan Deployment atau Pembaruan di VPS?
+1. Ikuti prosedur "Safe Sync" di [DEPLOYMENT_GUIDE.md](./DEPLOYMENT_GUIDE.md).
+2. Periksa skrip instalasi awal di [`setup-vps.sh`](../setup-vps.sh).
+3. Pastikan migrasi database dijalankan dengan `npm run migrate`.
+
+---
+
+**Terakhir Diperbarui:** 23 Oktober 2026  
+**Status Ekosistem:** Production Ready & Mature 🚀

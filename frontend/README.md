@@ -1,126 +1,120 @@
-# SI Internal Pesantren - React Frontend
+# 🌐 Frontend Web Application — Pondok Pesantren Al-Hamid
+### React 19, TypeScript, Vite 8 & Option A Apple Liquid Glass UI/UX
 
-Frontend React untuk Sistem Informasi Internal Pesantren.
+Aplikasi web modern berbasis Single Page Application (SPA) untuk operasional terpadu akademik, kepesantrenan, dan keuangan **Pondok Pesantren Al-Hamid Cintamulya**.
 
-## 🚀 Quick Start
+---
 
-### Development
+## 🎨 Konsep Desain: Option A (Apple Liquid Glass)
 
+Frontend mengadopsi estetika antarmuka fisik-taktil generasi baru terinspirasi oleh **Apple macOS Sequoia & VisionOS Liquid Glass**:
+- **Translucency & Frosted Glass**: Panel transparan dengan `backdrop-filter: blur(20px)` hingga `blur(32px)`.
+- **Specular Edge Highlights**: Kilau pencahayaan tepi atas kaca fisik (`border-top: 1.5px solid rgba(255, 255, 255, 0.95)`).
+- **Tactile Page Header**: Judul halaman teks murni (`h2.page-title` & `p.page-subtitle`) tanpa ikon orb/lensa samping judul.
+- **Aurora Mesh Gradient Background**: Nuansa warna latar Slate/Aurora yang nyaman di mata.
+- **Zero AI Slop**: Desain bersih, presisi, tanpa elemen fiktif atau widget artifisial.
+
+Panduan lengkap: [`docs/MASTER_UI_UX_REDESIGN_GUIDELINES.md`](file:///d:/source/sekolah-info/docs/MASTER_UI_UX_REDESIGN_GUIDELINES.md).
+
+---
+
+## 🛠️ Tech Stack & Library Utama
+
+- **Framework**: React 19 (`react`, `react-dom` ^19.2.5)
+- **Language**: TypeScript 5+
+- **Bundler & Dev Server**: Vite 8 (`vite` ^8.0.10)
+- **Routing**: React Router DOM v7 (`react-router-dom` ^7.14.2)
+- **Styling**: Sass / SCSS Modular (`sass` ^1.99.0)
+- **Icons**: Lucide React (`lucide-react` ^1.17.0)
+- **HTTP Client**: Axios (`axios` ^1.15.2)
+- **Biometrik & Kamera**: `@vladmandic/face-api`, `@mediapipe/face_mesh`, `react-webcam`
+- **PDF & Cetak**: `jspdf`, `jspdf-autotable`
+- **QR Code & OCR**: `qrcode.react`, `html5-qrcode`, `tesseract.js`
+- **Spreadsheet**: `xlsx`
+
+---
+
+## 📁 Struktur Direktori
+
+```
+frontend/
+├── src/
+│   ├── components/            # Komponen React terstruktur
+│   │   ├── common/            # Komponen taktil reusable (Button, Modal, Table, Toast, CustomSelect)
+│   │   ├── layout/            # Layout utama (Sidebar, Header, Layout container)
+│   │   └── features/          # Komponen spesifik fitur/domain
+│   ├── context/               # React Context (AuthContext)
+│   ├── hooks/                 # Custom React hooks (useFetch, useModal, usePagination)
+│   ├── pages/                 # 40+ Halaman fungsional akademik, ujian, dan keuangan
+│   │   ├── Santri.tsx         # Data master santri & riwayat kelas
+│   │   ├── Guru.tsx           # Asatidz, jabatan & mapel diampu
+│   │   ├── Alumni.tsx         # Data alumni & pelacakan profesi
+│   │   ├── Kelas.tsx          # Manajemen kelas berjenjang
+│   │   ├── Kamar.tsx          # Asrama & penempatan kamar santri
+│   │   ├── ManajemenNilai.tsx # Input nilai harian, ujian & rekap
+│   │   ├── RaporPrint.tsx     # Cetak rapor resmi standar pesantren
+│   │   ├── InformasiUjian.tsx # Kelengkapan administrasi ujian
+│   │   ├── KartuUjianSemester.tsx # Kartu ujian ber-barcode & QR
+│   │   ├── LembarUjian.tsx    # Desain LJK kompatibel OMR Scanner
+│   │   ├── ScanNilai.tsx      # Pemindaian lembar jawaban via webcam
+│   │   ├── MonitoringSetoranHafalan.tsx # Setoran Qur'an & Nadzom
+│   │   ├── RekapMuhafadzohMini.tsx # Rekap capaian muhafadzoh
+│   │   ├── BukuInduk.tsx      # Buku induk santri digital
+│   │   ├── StrukturKepesantrenan.tsx # Struktur kelembagaan
+│   │   ├── JadwalPelajaran.tsx# Roster jadwal mengajar mingguan
+│   │   ├── Romadhon.tsx       # Manajemen kegiatan Ramadhan
+│   │   ├── KeuanganDashboard.tsx # Arus kas & ringkasan tagihan
+│   │   ├── TagihanSantri.tsx  # Billing SPP & iuran santri
+│   │   ├── LaporanSPP.tsx     # Rekapitulasi pembayaran SPP
+│   │   ├── BukuKas.tsx        # Buku kas masuk & kas keluar
+│   │   ├── CetakKwitansi.tsx  # Kwitansi resmi ber-QR verification
+│   │   └── Users.tsx          # Manajemen hak akses pengguna
+│   ├── services/              # Modul klien REST API terpisah per entitas
+│   ├── styles/                # Arsitektur SCSS Option A Liquid Glass
+│   ├── types/                 # Interface TypeScript per fitur (Zero any policy)
+│   ├── utils/                 # Helper format tanggal, mata uang, validasi
+│   ├── App.tsx                # Konfigurasi router, code splitting, dan auth guards
+│   └── main.tsx               # Titik masuk utama React
+├── vite.config.ts             # Konfigurasi Vite, proxy API, dan visualizer
+└── package.json               # Dependensi proyek
+```
+
+---
+
+## ⚡ Cara Menjalankan Frontend
+
+### 1. Mode Pengembangan (Development)
 ```bash
-# Install dependencies
-npm install
+# Pastikan berada di folder frontend
+cd frontend
 
-# Start development server (port 3001)
+# Jalankan Vite dev server di port 3001
 npm run dev
 ```
+Akses antarmuka web di: [http://localhost:3001](http://localhost:3001)  
+*Vite telah dikonfigurasi untuk mem-proxy request `/api/*` secara otomatis ke backend di `http://localhost:3000`.*
 
-Frontend akan berjalan di `http://localhost:3001`
-
-### Build Production
-
+### 2. Membangun untuk Produksi (Production Build)
 ```bash
-# Build untuk production
 npm run build
-
-# Preview production build
-npm run preview
 ```
+*Build akan menghasilkan berkas statis teroptimasi di `frontend/dist/`. Selalu pastikan hasil kompilasi **0 error** sebelum melakukan commit/push.*
 
-## 📁 Struktur Folder
-
+### 3. Menganalisis Ukuran Bundle
+```bash
+npm run build:analyze
 ```
-src/
-├── components/          # Komponen React
-│   ├── common/         # Komponen reusable (Button, Modal, Table, dll)
-│   ├── layout/         # Layout components (Header, Sidebar, Layout)
-│   └── features/       # Komponen spesifik fitur
-├── pages/              # Halaman utama
-├── hooks/              # Custom React hooks
-├── services/           # API services
-├── context/            # React Context (Auth, dll)
-├── utils/              # Helper functions
-└── styles/             # CSS files
-```
+*Akan membuka visualizer visual untuk memeriksa ukuran pustaka dan modul yang ter-bundle.*
 
-## 🔧 Konfigurasi
+---
 
-### Proxy API
+## 🔒 Otentikasi & Route Guards
 
-Vite dikonfigurasi untuk proxy request `/api/*` ke backend di `http://localhost:3000`.
+Otentikasi dikelola secara reaktif via `AuthContext`. Halaman operasional dilindungi oleh komponen `<ProtectedRoute>`:
+- Jika pengguna belum login, sistem akan otomatis mengarahkan ke halaman `/login`.
+- Token otentikasi disimpan di memori dan cookie `httpOnly` dikelola backend untuk mencegah serangan XSS.
+- Halaman verifikasi publik seperti `/pub/laporan-ujian-khusus` dan `/verify/:no_peserta` dapat diakses tanpa otentikasi.
 
-Lihat `vite.config.js` untuk detail.
+---
 
-### Environment Variables
-
-Buat file `.env` jika diperlukan:
-
-```env
-VITE_API_URL=http://localhost:3000
-```
-
-## 📚 Tech Stack
-
-- **React 19** - UI Library
-- **Vite** - Build tool & dev server
-- **React Router v6** - Routing
-- **Axios** - HTTP client
-- **date-fns** - Date formatting
-
-## 🎨 Styling
-
-CSS diorganisir dalam beberapa file:
-- `base.css` - Base styles & reset
-- `layout.css` - Layout & grid
-- `components.css` - Component styles
-- `modals.css` - Modal styles
-- `features-*.css` - Feature-specific styles
-
-## 🔐 Authentication
-
-Authentication menggunakan Context API (`AuthContext`).
-
-Login state disimpan di cookie (httpOnly) yang dikelola backend.
-
-## 📝 Development Notes
-
-### Menambah Halaman Baru
-
-1. Buat file di `src/pages/NamaHalaman.jsx`
-2. Tambahkan route di `src/App.jsx`
-3. Tambahkan link di `src/components/layout/Sidebar.jsx`
-
-### Menambah Komponen Reusable
-
-1. Buat file di `src/components/common/NamaKomponen.jsx`
-2. Export komponen
-3. Import dan gunakan di halaman/komponen lain
-
-### Custom Hooks
-
-Buat custom hooks di `src/hooks/` untuk logic yang reusable:
-- `useFetch` - Fetch data dari API
-- `useModal` - Manage modal state
-- `usePagination` - Pagination logic
-
-## 🐛 Troubleshooting
-
-### Port 3001 sudah digunakan
-
-Edit `vite.config.js` dan ubah port:
-
-```javascript
-server: {
-  port: 3002, // atau port lain
-  // ...
-}
-```
-
-### CORS Error
-
-Pastikan backend sudah dikonfigurasi untuk allow origin `http://localhost:3001`.
-
-Cek `server.js` di root project.
-
-## 📞 Support
-
-Lihat dokumentasi lengkap di `docs/REACT_MIGRATION_PLAN.md`
+*Frontend Al-Hamid: Memadukan keanggunan desain modern kelas dunia dengan efisiensi tata kelola pesantren.* 🍏✨
