@@ -39,11 +39,13 @@ export interface SantriNilaiRow {
   santri_id: number;
   nama: string;
   nis?: string;
+  foto_url?: string | null;
   nilai_angka?: number | string | null;
   nilai_huruf?: string | null;
   status_kelulusan?: string | null;
   catatan?: string | null;
   predikat?: string | null;
+  capaian?: string | null;
   akbar?: SantriNilaiRow;
   qiroah?: SantriNilaiRow;
   taftisy?: SantriNilaiRow;

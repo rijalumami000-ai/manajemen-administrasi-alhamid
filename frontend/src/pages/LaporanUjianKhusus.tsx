@@ -1,8 +1,6 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { 
   BookOpen, 
-  Printer, 
-  Share2, 
   CheckCircle, 
   XCircle, 
   Search, 
@@ -35,6 +33,8 @@ import type {
   ViewMode 
 } from '../types/laporanUjianKhusus';
 import './LaporanUjianKhusus.scss';
+
+const API_BASE = import.meta.env.VITE_API_URL || '';
 
 export const LaporanUjianKhusus = () => {
   const [loading, setLoading] = useState<boolean>(false);
@@ -90,7 +90,11 @@ export const LaporanUjianKhusus = () => {
         }) : [];
         setKelas(diniyahKelas);
         
-        setKategori(Array.isArray(katData) ? katData : []);
+        // Filter out "Harian" or "Tugas" from semester categories
+        const filteredKat: KategoriItem[] = (Array.isArray(katData) ? katData : []).filter(
+          (k: any) => !k.nama?.toLowerCase().includes('harian') && !k.nama?.toLowerCase().includes('tugas')
+        );
+        setKategori(filteredKat);
 
         const akbar = Array.isArray(mapelData) ? mapelData.find((m: any) => m.nama?.includes('Muhafadzoh Akbar')) : null;
         const qiroah = Array.isArray(mapelData) ? mapelData.find((m: any) => m.nama?.includes('Qiroatul Kitab')) : null;
@@ -104,18 +108,18 @@ export const LaporanUjianKhusus = () => {
         const kategoriIdParam = params.get('kategori_id');
 
         let initialKategoriId: number | null = null;
-        if (Array.isArray(katData)) {
+        if (filteredKat.length > 0) {
           if (kategoriIdParam) {
             initialKategoriId = Number(kategoriIdParam);
             setSelectedKategori(initialKategoriId);
           } else {
             const activeSemester = systemSettings?.active_semester || 'Ganjil';
-            const defaultKat = katData.find((k: any) => k.nama?.toLowerCase().includes(activeSemester.toLowerCase()));
+            const defaultKat = filteredKat.find((k: any) => k.nama?.toLowerCase().includes(activeSemester.toLowerCase()));
             if (defaultKat) {
               initialKategoriId = defaultKat.id;
               setSelectedKategori(initialKategoriId);
-            } else if (katData.length > 0) {
-              initialKategoriId = katData[0].id;
+            } else {
+              initialKategoriId = filteredKat[0].id;
               setSelectedKategori(initialKategoriId);
             }
           }
@@ -198,7 +202,7 @@ export const LaporanUjianKhusus = () => {
             if (Array.isArray(resArray)) {
               resArray.forEach(r => {
                 if (!merged[r.santri_id]) {
-                  merged[r.santri_id] = { santri_id: r.santri_id, nama: r.nama, nis: r.nis };
+                  merged[r.santri_id] = { santri_id: r.santri_id, nama: r.nama, nis: r.nis, foto_url: r.foto_url };
                 }
                 merged[r.santri_id][mapelKey] = r;
               });
@@ -550,18 +554,112 @@ export const LaporanUjianKhusus = () => {
     XLSX.writeFile(wb, `Laporan_${activeTab}_${currentKelasObj?.nama || 'Ringkasan'}.xlsx`);
   };
 
-  const handleShare = async () => {
-    if (!navigator.share) {
-      alert('Fitur bagikan tidak didukung pada browser ini.');
-      return;
-    }
-    try {
-      await navigator.share({
-        title: getPageTitle(),
-        text: `Laporan ${getPageTitle()} Kelas ${currentKelasObj?.nama || '-'}`,
-        url: window.location.href
+  const exportAkumulasiToPDF = () => {
+    if (!akumulasiData || akumulasiData.length === 0) return;
+    const doc = new jsPDF('p', 'mm', 'a4');
+    
+    doc.setFontSize(14);
+    doc.setFont('helvetica', 'bold');
+    doc.text(`REKAPITULASI AKUMULASI ${getPageTitle()}`, 107.9, 15, { align: 'center' });
+    doc.setFontSize(10);
+    doc.setFont('helvetica', 'normal');
+    doc.text(`Tahun Ajaran: ${tahunAjaran?.kode || '-'} | Semester: ${currentKategoriObj?.nama || '-'}`, 107.9, 22, { align: 'center' });
+
+    let headers: any[] = [];
+    let body: any[] = [];
+
+    if (activeTab === 'muhafadzoh') {
+      headers = [['NO', 'KELAS', 'SISWA', 'RODI', 'MUTAWASSITH', 'JAYYID', 'MUMTAZ', 'GHOIB']];
+      body = akumulasiData.map((r, i) => {
+        const total = Number(r.jumlah_siswa || 0);
+        const formatPct = (val: number) => {
+          const pct = total > 0 ? Math.round((val / total) * 100) : 0;
+          return `${val} (${pct}%)`;
+        };
+        return [
+          i + 1,
+          r.nama_kelas,
+          r.jumlah_siswa,
+          formatPct(Number(r.rodi || 0)),
+          formatPct(Number(r.mutawassith || 0)),
+          formatPct(Number(r.jayyid || 0)),
+          formatPct(Number(r.mumtaz || 0)),
+          formatPct(Number(r.ghoib || 0))
+        ];
       });
-    } catch (err) {}
+
+      if (grandTotal.totalSiswa > 0) {
+        body.push([
+          '',
+          'TOTAL',
+          grandTotal.totalSiswa,
+          `${grandTotal.counts.rodi} (${grandTotal.percents.rodi || '0%'})`,
+          `${grandTotal.counts.mutawassith} (${grandTotal.percents.mutawassith || '0%'})`,
+          `${grandTotal.counts.jayyid} (${grandTotal.percents.jayyid || '0%'})`,
+          `${grandTotal.counts.mumtaz} (${grandTotal.percents.mumtaz || '0%'})`,
+          `${grandTotal.counts.ghoib} (${grandTotal.percents.ghoib || '0%'})`
+        ]);
+      }
+    } else if (activeTab === 'taftisyul_kutub') {
+      headers = [['NO', 'KELAS', 'SISWA', 'NAQISH', 'TAM', 'GHOIB']];
+      body = akumulasiData.map((r, i) => {
+        const total = Number(r.jumlah_siswa || 0);
+        const formatPct = (val: number) => {
+          const pct = total > 0 ? Math.round((val / total) * 100) : 0;
+          return `${val} (${pct}%)`;
+        };
+        return [
+          i + 1,
+          r.nama_kelas,
+          r.jumlah_siswa,
+          formatPct(Number(r.naqish || 0)),
+          formatPct(Number(r.tam || 0)),
+          formatPct(Number(r.ghoib || 0))
+        ];
+      });
+
+      if (grandTotal.totalSiswa > 0) {
+        body.push([
+          '',
+          'TOTAL',
+          grandTotal.totalSiswa,
+          `${grandTotal.counts.naqish} (${grandTotal.percents.naqish || '0%'})`,
+          `${grandTotal.counts.tam} (${grandTotal.percents.tam || '0%'})`,
+          `${grandTotal.counts.ghoib} (${grandTotal.percents.ghoib || '0%'})`
+        ]);
+      }
+    } else {
+      headers = [['NO', 'KELAS', 'JUMLAH SISWA', 'RERATA UJIAN', 'GHOIB']];
+      body = akumulasiData.map((r, i) => {
+        const total = Number(r.jumlah_siswa || 0);
+        const formatPct = (val: number) => {
+          const pct = total > 0 ? Math.round((val / total) * 100) : 0;
+          return `${val} (${pct}%)`;
+        };
+        return [
+          i + 1,
+          r.nama_kelas,
+          r.jumlah_siswa,
+          r.rata_rata || '0',
+          formatPct(Number(r.ghoib || 0))
+        ];
+      });
+    }
+
+    autoTable(doc, {
+      head: headers,
+      body: body,
+      startY: 28,
+      styles: { fontSize: 8.5, cellPadding: 2.5, halign: 'center' },
+      headStyles: { fillColor: [41, 128, 185], textColor: 255 },
+      columnStyles: {
+        0: { cellWidth: 12, halign: 'center' },
+        1: { cellWidth: 38, halign: 'left' }
+      },
+      theme: 'grid'
+    });
+
+    doc.save(`Akumulasi_${activeTab}_${tahunAjaran?.kode || ''}.pdf`);
   };
 
   const tingkatOptions: TingkatOption[] = [
@@ -629,37 +727,31 @@ export const LaporanUjianKhusus = () => {
 
             {!isMobile && (
               <>
-                {activeTab !== 'ringkasan' && (
-                  <button type="button" className="action-pill-btn secondary-pill" onClick={() => window.print()}>
-                    <Printer size={15} />
-                    <span>Cetak</span>
+                {viewMode === 'detail' && activeTab !== 'ringkasan' && (
+                  <button type="button" className="action-pill-btn primary-pill" onClick={exportLaporanToPDF} disabled={loading || data.length === 0}>
+                    <FileText size={15} />
+                    <span>Ekspor PDF</span>
                   </button>
                 )}
-                {viewMode === 'detail' && activeTab !== 'ringkasan' && (
+                {viewMode === 'akumulasi' && activeTab !== 'ringkasan' && (
                   <>
-                    <button type="button" className="action-pill-btn secondary-pill" onClick={handleShare}>
-                      <Share2 size={15} />
-                      <span>Bagikan</span>
-                    </button>
-                    <button type="button" className="action-pill-btn primary-pill" onClick={exportLaporanToPDF} disabled={loading}>
+                    <button type="button" className="action-pill-btn primary-pill" onClick={exportAkumulasiToPDF} disabled={loading || akumulasiData.length === 0}>
                       <FileText size={15} />
-                      <span>Ekspor PDF</span>
+                      <span>Ekspor PDF Akumulasi</span>
+                    </button>
+                    <button type="button" className="action-pill-btn secondary-pill" onClick={exportAllToPDF} disabled={loading}>
+                      <Download size={15} />
+                      <span>Ekspor Rincian Semua Kelas (PDF)</span>
                     </button>
                   </>
                 )}
-                {viewMode === 'akumulasi' && activeTab !== 'ringkasan' && (
-                  <button type="button" className="action-pill-btn primary-pill" onClick={exportAllToPDF} disabled={loading}>
-                    <Download size={15} />
-                    <span>Ekspor Semua Kelas (PDF)</span>
-                  </button>
-                )}
                 {activeTab === 'ringkasan' && (
                   <>
-                    <button type="button" className="action-pill-btn primary-pill" onClick={exportLaporanToPDF} disabled={loading}>
+                    <button type="button" className="action-pill-btn primary-pill" onClick={exportLaporanToPDF} disabled={loading || data.length === 0}>
                       <FileText size={15} />
                       <span>Ekspor PDF</span>
                     </button>
-                    <button type="button" className="action-pill-btn success-pill" onClick={exportToExcel} disabled={loading}>
+                    <button type="button" className="action-pill-btn success-pill" onClick={exportToExcel} disabled={loading || data.length === 0}>
                       <Grid size={15} />
                       <span>Ekspor Excel</span>
                     </button>
@@ -827,46 +919,76 @@ export const LaporanUjianKhusus = () => {
                       {activeTab === 'muhafadzoh' && (
                         <tr>
                           <th style={{ width: '50px', textAlign: 'center' }}>No</th>
-                          <th>Nama Santri</th>
+                          <th style={{ width: '300px', textAlign: 'left' }}>Nama Santri</th>
                           <th style={{ width: '130px', textAlign: 'center' }}>Nilai</th>
                           <th style={{ width: '150px', textAlign: 'center' }}>Predikat</th>
+                          <th></th>
                         </tr>
                       )}
 
                       {activeTab === 'taftisyul_kutub' && (
                         <tr>
                           <th style={{ width: '50px', textAlign: 'center' }}>No</th>
-                          <th>Nama Santri</th>
+                          <th style={{ width: '300px', textAlign: 'left' }}>Nama Santri</th>
                           <th style={{ width: '180px', textAlign: 'center' }}>Capaian</th>
+                          <th></th>
                         </tr>
                       )}
 
                       {activeTab === 'qiroatul_kitab' && (
                         <tr>
                           <th style={{ width: '50px', textAlign: 'center' }}>No</th>
-                          <th>Nama Santri</th>
+                          <th style={{ width: '300px', textAlign: 'left' }}>Nama Santri</th>
                           <th style={{ width: '140px', textAlign: 'center' }}>Nilai</th>
+                          <th></th>
                         </tr>
                       )}
 
                       {activeTab === 'ringkasan' && (
                         <tr>
                           <th style={{ width: '50px', textAlign: 'center' }}>No</th>
-                          <th>Nama Santri</th>
-                          <th style={{ textAlign: 'center' }}>Muhafadzoh</th>
-                          <th style={{ textAlign: 'center' }}>Qiroatul Kitab</th>
-                          <th style={{ textAlign: 'center' }}>Taftisyul Kutub</th>
+                          <th style={{ width: '300px', textAlign: 'left' }}>Nama Santri</th>
+                          <th style={{ width: '140px', textAlign: 'center' }}>Muhafadzoh</th>
+                          <th style={{ width: '140px', textAlign: 'center' }}>Qiroatul Kitab</th>
+                          <th style={{ width: '140px', textAlign: 'center' }}>Taftisyul Kutub</th>
+                          <th></th>
                         </tr>
                       )}
                     </thead>
 
                     <tbody>
                       {data.map((row, idx) => {
+                        const avatarCell = (
+                          <div className="person-lens-cell">
+                            <div className="lens-orb-avatar">
+                              {row.foto_url ? (
+                                <img
+                                  src={row.foto_url.startsWith('http') ? row.foto_url : `${API_BASE}${row.foto_url}`}
+                                  alt={row.nama}
+                                  onError={(e) => {
+                                    const target = e.currentTarget;
+                                    target.style.display = 'none';
+                                    const next = target.nextElementSibling as HTMLElement | null;
+                                    if (next) next.style.display = 'block';
+                                  }}
+                                />
+                              ) : null}
+                              <span style={{ display: row.foto_url ? 'none' : 'block' }}>
+                                {row.nama ? row.nama.charAt(0).toUpperCase() : 'S'}
+                              </span>
+                            </div>
+                            <div className="person-name-stack">
+                              <span className="person-name">{row.nama}</span>
+                              <span className="person-nis">NIS: {row.nis || '-'}</span>
+                            </div>
+                          </div>
+                        );
+
                         if (activeTab === 'muhafadzoh') {
                           return (
                             <tr key={row.santri_id || idx}>
                               <td className="center-text">{idx + 1}</td>
-                              <td className="student-name-cell">{row.nama}</td>
+                              <td className="student-name-cell">{avatarCell}</td>
                               <td className="center-text" style={{ fontWeight: 'bold' }}>
                                 {row.nilai_angka !== null && row.nilai_angka !== undefined && row.nilai_angka !== ''
                                   ? formatNilai(row.nilai_angka)
@@ -877,6 +999,7 @@ export const LaporanUjianKhusus = () => {
                                   {row.predikat || '-'}
                                 </span>
                               </td>
+                              <td></td>
                             </tr>
                           );
                         }
@@ -885,12 +1008,13 @@ export const LaporanUjianKhusus = () => {
                           return (
                             <tr key={row.santri_id || idx}>
                               <td className="center-text">{idx + 1}</td>
-                              <td className="student-name-cell">{row.nama}</td>
+                              <td className="student-name-cell">{avatarCell}</td>
                               <td className="center-text">
                                 <span className={`predikat-badge ${getPredClass(row.capaian || row.predikat)}`}>
                                   {row.capaian || row.predikat || '-'}
                                 </span>
                               </td>
+                              <td></td>
                             </tr>
                           );
                         }
@@ -899,12 +1023,13 @@ export const LaporanUjianKhusus = () => {
                           return (
                             <tr key={row.santri_id || idx}>
                               <td className="center-text">{idx + 1}</td>
-                              <td className="student-name-cell">{row.nama}</td>
+                              <td className="student-name-cell">{avatarCell}</td>
                               <td className="center-text" style={{ fontWeight: 'bold' }}>
                                 {row.nilai_angka !== null && row.nilai_angka !== undefined && row.nilai_angka !== ''
                                   ? formatNilai(row.nilai_angka)
                                   : (row.capaian || '-')}
                               </td>
+                              <td></td>
                             </tr>
                           );
                         }
@@ -913,7 +1038,7 @@ export const LaporanUjianKhusus = () => {
                         return (
                           <tr key={row.santri_id || idx}>
                             <td className="center-text">{idx + 1}</td>
-                            <td className="student-name-cell">{row.nama}</td>
+                            <td className="student-name-cell">{avatarCell}</td>
                             <td className="center-text">
                               {row.akbar ? (
                                 <span className={`predikat-badge ${getPredClass(row.akbar.predikat)}`}>
@@ -935,13 +1060,14 @@ export const LaporanUjianKhusus = () => {
                                 </span>
                               ) : '-'}
                             </td>
+                            <td></td>
                           </tr>
                         );
                       })}
 
                       {data.length === 0 && (
                         <tr>
-                          <td colSpan={5} style={{ textAlign: 'center', padding: '24px', color: '#64748b' }}>
+                          <td colSpan={6} style={{ textAlign: 'center', padding: '24px', color: '#64748b' }}>
                             Belum ada data nilai untuk kelas terpilih.
                           </td>
                         </tr>
@@ -974,34 +1100,37 @@ export const LaporanUjianKhusus = () => {
                     {activeTab === 'muhafadzoh' && (
                       <tr>
                         <th style={{ width: '50px', textAlign: 'center' }}>No</th>
-                        <th>Kelas-Kelas</th>
-                        <th style={{ width: '100px', textAlign: 'center' }}>Siswa</th>
-                        <th style={{ width: '90px', textAlign: 'center' }}>Rodi</th>
-                        <th style={{ width: '110px', textAlign: 'center' }}>Mutawassith</th>
-                        <th style={{ width: '90px', textAlign: 'center' }}>Jayyid</th>
-                        <th style={{ width: '90px', textAlign: 'center' }}>Mumtaz</th>
-                        <th style={{ width: '90px', textAlign: 'center' }}>Ghoib</th>
+                        <th style={{ width: '200px', textAlign: 'left' }}>Kelas-Kelas</th>
+                        <th style={{ width: '80px', textAlign: 'center' }}>Siswa</th>
+                        <th style={{ width: '80px', textAlign: 'center' }}>Rodi</th>
+                        <th style={{ width: '100px', textAlign: 'center' }}>Mutawassith</th>
+                        <th style={{ width: '80px', textAlign: 'center' }}>Jayyid</th>
+                        <th style={{ width: '80px', textAlign: 'center' }}>Mumtaz</th>
+                        <th style={{ width: '80px', textAlign: 'center' }}>Ghoib</th>
+                        <th></th>
                       </tr>
                     )}
 
                     {activeTab === 'taftisyul_kutub' && (
                       <tr>
                         <th style={{ width: '50px', textAlign: 'center' }}>No</th>
-                        <th>Kelas-Kelas</th>
-                        <th style={{ width: '100px', textAlign: 'center' }}>Siswa</th>
-                        <th style={{ width: '100px', textAlign: 'center' }}>Naqish</th>
-                        <th style={{ width: '100px', textAlign: 'center' }}>Tam</th>
-                        <th style={{ width: '100px', textAlign: 'center' }}>Ghoib</th>
+                        <th style={{ width: '200px', textAlign: 'left' }}>Kelas-Kelas</th>
+                        <th style={{ width: '80px', textAlign: 'center' }}>Siswa</th>
+                        <th style={{ width: '90px', textAlign: 'center' }}>Naqish</th>
+                        <th style={{ width: '90px', textAlign: 'center' }}>Tam</th>
+                        <th style={{ width: '80px', textAlign: 'center' }}>Ghoib</th>
+                        <th></th>
                       </tr>
                     )}
 
                     {activeTab !== 'muhafadzoh' && activeTab !== 'taftisyul_kutub' && (
                       <tr>
                         <th style={{ width: '50px', textAlign: 'center' }}>No</th>
-                        <th>Kelas-Kelas</th>
-                        <th style={{ width: '120px', textAlign: 'center' }}>Jumlah Siswa</th>
-                        <th style={{ width: '140px', textAlign: 'center' }}>Rerata Ujian</th>
-                        <th style={{ width: '120px', textAlign: 'center' }}>Ghoib</th>
+                        <th style={{ width: '200px', textAlign: 'left' }}>Kelas-Kelas</th>
+                        <th style={{ width: '110px', textAlign: 'center' }}>Jumlah Siswa</th>
+                        <th style={{ width: '110px', textAlign: 'center' }}>Rerata Ujian</th>
+                        <th style={{ width: '80px', textAlign: 'center' }}>Ghoib</th>
+                        <th></th>
                       </tr>
                     )}
                   </thead>
@@ -1029,6 +1158,7 @@ export const LaporanUjianKhusus = () => {
                             <td className="center-text">{getPercentSpan(row.jayyid || 0)}</td>
                             <td className="center-text">{getPercentSpan(row.mumtaz || 0)}</td>
                             <td className="center-text">{getPercentSpan(row.ghoib || 0)}</td>
+                            <td></td>
                           </tr>
                         );
                       }
@@ -1042,6 +1172,7 @@ export const LaporanUjianKhusus = () => {
                             <td className="center-text">{getPercentSpan(row.naqish || 0)}</td>
                             <td className="center-text">{getPercentSpan(row.tam || 0)}</td>
                             <td className="center-text">{getPercentSpan(row.ghoib || 0)}</td>
+                            <td></td>
                           </tr>
                         );
                       }
@@ -1053,9 +1184,83 @@ export const LaporanUjianKhusus = () => {
                           <td className="center-text" style={{ fontWeight: 'bold' }}>{row.jumlah_siswa}</td>
                           <td className="center-text" style={{ fontWeight: 'bold', color: '#0052ff' }}>{row.rata_rata || '0'}</td>
                           <td className="center-text">{getPercentSpan(row.ghoib || 0)}</td>
+                          <td></td>
                         </tr>
                       );
                     })}
+
+                    {/* Grand Total Summary Row in Akumulasi */}
+                    {akumulasiData.length > 0 && activeTab === 'muhafadzoh' && (
+                      <tr style={{ fontWeight: 800, background: 'rgba(0, 82, 255, 0.05)' }}>
+                        <td className="center-text" colSpan={2} style={{ textAlign: 'center', fontWeight: 800 }}>TOTAL</td>
+                        <td className="center-text" style={{ fontWeight: 800 }}>{grandTotal.totalSiswa}</td>
+                        <td className="center-text">
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', alignItems: 'center' }}>
+                            <span style={{ fontWeight: 800 }}>{grandTotal.counts.rodi}</span>
+                            <span style={{ fontSize: '10px', color: '#94a3b8' }}>{grandTotal.percents.rodi}</span>
+                          </div>
+                        </td>
+                        <td className="center-text">
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', alignItems: 'center' }}>
+                            <span style={{ fontWeight: 800 }}>{grandTotal.counts.mutawassith}</span>
+                            <span style={{ fontSize: '10px', color: '#94a3b8' }}>{grandTotal.percents.mutawassith}</span>
+                          </div>
+                        </td>
+                        <td className="center-text">
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', alignItems: 'center' }}>
+                            <span style={{ fontWeight: 800 }}>{grandTotal.counts.jayyid}</span>
+                            <span style={{ fontSize: '10px', color: '#94a3b8' }}>{grandTotal.percents.jayyid}</span>
+                          </div>
+                        </td>
+                        <td className="center-text">
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', alignItems: 'center' }}>
+                            <span style={{ fontWeight: 800 }}>{grandTotal.counts.mumtaz}</span>
+                            <span style={{ fontSize: '10px', color: '#94a3b8' }}>{grandTotal.percents.mumtaz}</span>
+                          </div>
+                        </td>
+                        <td className="center-text">
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', alignItems: 'center' }}>
+                            <span style={{ fontWeight: 800 }}>{grandTotal.counts.ghoib}</span>
+                            <span style={{ fontSize: '10px', color: '#94a3b8' }}>{grandTotal.percents.ghoib}</span>
+                          </div>
+                        </td>
+                        <td></td>
+                      </tr>
+                    )}
+
+                    {akumulasiData.length > 0 && activeTab === 'taftisyul_kutub' && (
+                      <tr style={{ fontWeight: 800, background: 'rgba(0, 82, 255, 0.05)' }}>
+                        <td className="center-text" colSpan={2} style={{ textAlign: 'center', fontWeight: 800 }}>TOTAL</td>
+                        <td className="center-text" style={{ fontWeight: 800 }}>{grandTotal.totalSiswa}</td>
+                        <td className="center-text">
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', alignItems: 'center' }}>
+                            <span style={{ fontWeight: 800 }}>{grandTotal.counts.naqish}</span>
+                            <span style={{ fontSize: '10px', color: '#94a3b8' }}>{grandTotal.percents.naqish}</span>
+                          </div>
+                        </td>
+                        <td className="center-text">
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', alignItems: 'center' }}>
+                            <span style={{ fontWeight: 800 }}>{grandTotal.counts.tam}</span>
+                            <span style={{ fontSize: '10px', color: '#94a3b8' }}>{grandTotal.percents.tam}</span>
+                          </div>
+                        </td>
+                        <td className="center-text">
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', alignItems: 'center' }}>
+                            <span style={{ fontWeight: 800 }}>{grandTotal.counts.ghoib}</span>
+                            <span style={{ fontSize: '10px', color: '#94a3b8' }}>{grandTotal.percents.ghoib}</span>
+                          </div>
+                        </td>
+                        <td></td>
+                      </tr>
+                    )}
+
+                    {akumulasiData.length === 0 && (
+                      <tr>
+                        <td colSpan={9} style={{ textAlign: 'center', padding: '24px', color: '#64748b' }}>
+                          Belum ada data akumulasi nilai.
+                        </td>
+                      </tr>
+                    )}
                   </tbody>
                 </table>
               </div>
@@ -1070,23 +1275,18 @@ export const LaporanUjianKhusus = () => {
         <div className="mobile-fab-column">
           {viewMode === 'detail' ? (
             <>
-              {activeTab !== 'ringkasan' && (
-                <button type="button" className="fab-btn" onClick={handleShare}>
-                  <Share2 size={18} />
-                </button>
-              )}
-              <button type="button" className="fab-btn" onClick={exportLaporanToPDF} disabled={loading}>
+              <button type="button" className="fab-btn" onClick={exportLaporanToPDF} disabled={loading || data.length === 0}>
                 <FileText size={18} />
               </button>
               {activeTab === 'ringkasan' && (
-                <button type="button" className="fab-btn excel" onClick={exportToExcel} disabled={loading}>
+                <button type="button" className="fab-btn excel" onClick={exportToExcel} disabled={loading || data.length === 0}>
                   <Grid size={18} />
                 </button>
               )}
             </>
           ) : (
-            <button type="button" className="fab-btn" onClick={exportAllToPDF} disabled={loading}>
-              <Download size={18} />
+            <button type="button" className="fab-btn" onClick={exportAkumulasiToPDF} disabled={loading || akumulasiData.length === 0}>
+              <FileText size={18} />
             </button>
           )}
         </div>
