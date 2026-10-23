@@ -269,27 +269,6 @@ export function PengaturanJadwal() {
     return uniqueTingkat;
   }, [kelas]);
 
-  if (loading) {
-    return (
-      <div className="setup-page-container">
-        <div className="loading-container">
-          <RefreshCw size={36} className="spin-anim" style={{ color: '#3b82f6' }} />
-          <p style={{ fontWeight: 600, color: '#475569' }}>Memuat modul pengaturan & jadwal...</p>
-        </div>
-      </div>
-    );
-  }
-
-  const taOptions = tahunAjaranList.map(ta => ({
-    value: String(ta.id),
-    label: `${ta.kode} ${ta.is_active ? '(Aktif)' : ''}`
-  }));
-
-  const katOptions = kategori.map(k => ({
-    value: String(k.id),
-    label: k.nama
-  }));
-
   // Khusus kriteria: hanya konsep Muhafadzoh saja
   const muhafadzohMapel = useMemo(() => {
     return mataPelajaran.find(m => m.nama?.toLowerCase() === 'muhafadzoh') ||
@@ -301,25 +280,56 @@ export function PengaturanJadwal() {
     if (muhafadzohMapel) {
       return [{ value: String(muhafadzohMapel.id), label: 'Muhafadzoh' }];
     }
-    return [{ value: '44', label: 'Muhafadzoh' }];
+    return [{ value: '47', label: 'Muhafadzoh' }];
   }, [muhafadzohMapel]);
 
   // Auto-select Muhafadzoh saat di tab setting kriteria
   useEffect(() => {
     if (activeSubTab === 'setting') {
-      const targetId = muhafadzohMapel?.id || 44;
+      const targetId = muhafadzohMapel?.id || 47;
       if (selectedMapel !== targetId) {
         setSelectedMapel(targetId);
       }
     }
   }, [activeSubTab, muhafadzohMapel, selectedMapel]);
 
+  const taOptions = useMemo(() => {
+    return tahunAjaranList.map(ta => ({
+      value: String(ta.id),
+      label: `${ta.kode} ${ta.is_active ? '(Aktif)' : ''}`
+    }));
+  }, [tahunAjaranList]);
+
+  const katOptions = useMemo(() => {
+    return kategori.map(k => ({
+      value: String(k.id),
+      label: k.nama
+    }));
+  }, [kategori]);
+
   // Criteria configuration checks
   const showAngka = selectedTingkat !== 2 && selectedTingkat !== 99;
   const showTeks = selectedTingkat === 0 || selectedTingkat === 2 || selectedTingkat === 99;
 
-  const isAngkaDisabled = kriteriaConfig && kriteriaConfig.tipe_input === 'Teks' && configTeks && configTeks.length > 0;
-  const isTeksDisabled = kriteriaConfig && kriteriaConfig.tipe_input === 'Angka' && Object.values(configAngka).some(v => typeof v.min === 'number' || typeof v.max === 'number');
+  const isAngkaDisabled = Boolean(kriteriaConfig && kriteriaConfig.tipe_input === 'Teks' && configTeks && configTeks.length > 0);
+  const isTeksDisabled = Boolean(
+    kriteriaConfig && 
+    kriteriaConfig.tipe_input === 'Angka' && 
+    configAngka && 
+    typeof configAngka === 'object' && 
+    Object.values(configAngka).some((v: any) => v && (typeof v.min === 'number' || typeof v.max === 'number'))
+  );
+
+  if (loading) {
+    return (
+      <div className="setup-page-container">
+        <div className="loading-container">
+          <RefreshCw size={36} className="spin-anim" style={{ color: '#3b82f6' }} />
+          <p style={{ fontWeight: 600, color: '#475569' }}>Memuat modul pengaturan & jadwal...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="setup-page-container">
@@ -495,7 +505,9 @@ export function PengaturanJadwal() {
                           </thead>
                           <tbody>
                             {(['Mumtaz', 'Jayyid', 'Mutawassith', 'Rodi\''] as const).map(pred => {
-                              const values = configAngka[pred] || { min: null, max: null };
+                              const values = (configAngka && typeof configAngka === 'object' && configAngka[pred]) 
+                                ? configAngka[pred] 
+                                : { min: null, max: null };
                               return (
                                 <tr key={pred}>
                                   <td style={{ fontWeight: 'bold' }}>{pred}</td>
@@ -511,8 +523,8 @@ export function PengaturanJadwal() {
                                       onChange={(e) => {
                                         const v = e.target.value === '' ? null : Number(e.target.value);
                                         setConfigAngka(prev => ({
-                                          ...prev,
-                                          [pred]: { ...prev[pred], min: v }
+                                          ...(prev || {}),
+                                          [pred]: { ...((prev && prev[pred]) ? prev[pred] : {}), min: v }
                                         }));
                                       }}
                                     />
@@ -528,8 +540,8 @@ export function PengaturanJadwal() {
                                       onChange={(e) => {
                                         const v = e.target.value === '' ? null : Number(e.target.value);
                                         setConfigAngka(prev => ({
-                                          ...prev,
-                                          [pred]: { ...prev[pred], max: v }
+                                          ...(prev || {}),
+                                          [pred]: { ...((prev && prev[pred]) ? prev[pred] : {}), max: v }
                                         }));
                                       }}
                                     />
