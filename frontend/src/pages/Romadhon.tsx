@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
   Plus,
   Trash2,
@@ -14,6 +14,8 @@ import {
 } from 'lucide-react';
 import { romadhonService } from '../services/romadhonService';
 import { nilaiService } from '../services/nilaiService';
+import { guruService } from '../services/guruService';
+import { santriService } from '../services/santriService';
 import { CustomModal } from '../components/ui/CustomModal';
 import { FloatingInput } from '../components/ui/FloatingInput';
 import { CustomSelect } from '../components/ui/CustomSelect';
@@ -34,6 +36,22 @@ export function Romadhon() {
   const [tahunAjaranList, setTahunAjaranList] = useState<TahunAjaranRomadhon[]>([]);
   const [selectedTahunAjaran, setSelectedTahunAjaran] = useState<number | null>(null);
 
+  // Guru and Santri lists
+  const [guruList, setGuruList] = useState<any[]>([]);
+  const [santriList, setSantriList] = useState<any[]>([]);
+
+  // Source selections for Tarawih
+  const [imamSource, setImamSource] = useState<'guru' | 'santri'>('guru');
+  const [bilalSource, setBilalSource] = useState<'guru' | 'santri'>('santri');
+
+  // Confirmation modal state for deletion
+  const [deleteTarget, setDeleteTarget] = useState<{
+    type: 'kajian' | 'tarawih';
+    id: number;
+    title: string;
+  } | null>(null);
+  const [isDeleting, setIsDeleting] = useState<boolean>(false);
+
   // Kajian Balagh state
   const [kajianList, setKajianList] = useState<KajianBalaghItem[]>([]);
   const [kajianModalOpen, setKajianModalOpen] = useState<boolean>(false);
@@ -50,13 +68,47 @@ export function Romadhon() {
 
   useEffect(() => {
     loadTahunAjaran();
+    loadMasterGuru();
   }, []);
 
   useEffect(() => {
     if (selectedTahunAjaran) {
       loadData();
+      loadSantriByTahun(selectedTahunAjaran);
     }
   }, [selectedTahunAjaran]);
+
+  const loadMasterGuru = async () => {
+    try {
+      const data = await guruService.fetchGuru();
+      setGuruList(Array.isArray(data) ? data : []);
+    } catch (err) {
+      console.error('Gagal memuat guru:', err);
+    }
+  };
+
+  const loadSantriByTahun = async (taId: number) => {
+    try {
+      const data = await santriService.fetchSantri(taId);
+      setSantriList(Array.isArray(data) ? data : []);
+    } catch (err) {
+      console.error('Gagal memuat santri:', err);
+    }
+  };
+
+  const guruOptions = useMemo(() => {
+    return guruList.map((g: any) => ({
+      value: g.nama,
+      label: g.nama
+    }));
+  }, [guruList]);
+
+  const santriOptions = useMemo(() => {
+    return santriList.map((s: any) => ({
+      value: s.nama,
+      label: `${s.nama}${s.nis ? ` (NIS: ${s.nis})` : ''}`
+    }));
+  }, [santriList]);
 
   const selectedYearObj = tahunAjaranList.find(t => t.id === selectedTahunAjaran);
   const selectedYearKode = selectedYearObj ? selectedYearObj.kode : '';
@@ -141,66 +193,23 @@ export function Romadhon() {
     }
   };
 
-  const deleteKajian = async (id: number) => {
-    if (!confirm('Yakin ingin menghapus jadwal ini?')) return;
+  const confirmDelete = async () => {
+    if (!deleteTarget) return;
     try {
-      await (romadhonService as any).deleteKajianBalagh(id);
-      toast.success('Data berhasil dihapus.');
-      loadData();
-    } catch (err: any) {
-      toast.error(err.message);
-    }
-  };
-
-  // ═══ IMAM TARAWIH HANDLERS ═══
-  const openAddTarawih = () => {
-    setEditingTarawih(null);
-    setTarawihForm({ malam: '', imam: '', bilal: '', tempat: '' });
-    setTarawihModalOpen(true);
-  };
-
-  const openEditTarawih = (item: ImamTarawihItem) => {
-    setEditingTarawih(item);
-    setTarawihForm({
-      malam: item.malam,
-      imam: item.imam,
-      bilal: item.bilal || '',
-      tempat: item.tempat || ''
-    });
-    setTarawihModalOpen(true);
-  };
-
-  const saveTarawih = async () => {
-    if (!tarawihForm.malam || !tarawihForm.imam) {
-      toast.error('Malam ke- dan imam wajib diisi.');
-      return;
-    }
-    setSaving(true);
-    try {
-      if (editingTarawih) {
-        await (romadhonService as any).updateImamTarawih(editingTarawih.id, tarawihForm);
-        toast.success('Data imam tarawih berhasil diperbarui.');
+      setIsDeleting(true);
+      if (deleteTarget.type === 'kajian') {
+        await (romadhonService as any).deleteKajianBalagh(deleteTarget.id);
+        toast.success('Jadwal kajian berhasil dihapus.');
       } else {
-        await (romadhonService as any).createImamTarawih({ ...tarawihForm, tahun_ajaran_id: selectedTahunAjaran });
-        toast.success('Data imam tarawih berhasil ditambahkan.');
+        await (romadhonService as any).deleteImamTarawih(deleteTarget.id);
+        toast.success('Jadwal imam tarawih berhasil dihapus.');
       }
-      setTarawihModalOpen(false);
+      setDeleteTarget(null);
       loadData();
     } catch (err: any) {
-      toast.error(err.message);
+      toast.error(err.message || 'Gagal menghapus data');
     } finally {
-      setSaving(false);
-    }
-  };
-
-  const deleteTarawih = async (id: number) => {
-    if (!confirm('Yakin ingin menghapus jadwal ini?')) return;
-    try {
-      await (romadhonService as any).deleteImamTarawih(id);
-      toast.success('Data berhasil dihapus.');
-      loadData();
-    } catch (err: any) {
-      toast.error(err.message);
+      setIsDeleting(false);
     }
   };
 
@@ -309,7 +318,11 @@ export function Romadhon() {
                         <button
                           type="button"
                           className="btn-icon btn-delete"
-                          onClick={() => deleteKajian(item.id)}
+                          onClick={() => setDeleteTarget({
+                            type: 'kajian',
+                            id: item.id,
+                            title: `Kajian Kelas ${item.kelas} (${item.kitab})`
+                          })}
                           title="Hapus Jadwal"
                         >
                           <Trash2 size={14} />
@@ -383,7 +396,11 @@ export function Romadhon() {
                       <button
                         type="button"
                         className="btn-icon btn-delete"
-                        onClick={() => deleteTarawih(item.id)}
+                        onClick={() => setDeleteTarget({
+                          type: 'tarawih',
+                          id: item.id,
+                          title: `Malam ke-${item.malam} (Imam: ${item.imam})`
+                        })}
                         title="Hapus Petugas"
                       >
                         <Trash2 size={14} />
@@ -428,12 +445,34 @@ export function Romadhon() {
         onOk={saveKajian}
         okText={saving ? 'Menyimpan...' : 'Simpan'}
         okLoading={saving}
+        width={500}
       >
-        <FloatingInput label="Kelas *" value={kajianForm.kelas} onChange={e => setKajianForm(p => ({ ...p, kelas: e.target.value }))} placeholder="Contoh: Sifir, 1 & Sp Putra, 2 Putri" />
-        <FloatingInput label="Waktu *" value={kajianForm.waktu} onChange={e => setKajianForm(p => ({ ...p, waktu: e.target.value }))} placeholder="Contoh: 14:00 – 14:45" />
-        <FloatingInput label="Qori' / Pengampu *" value={kajianForm.qori} onChange={e => setKajianForm(p => ({ ...p, qori: e.target.value }))} placeholder="Contoh: Ustz. Zayyina Bizuhrotinnima" />
-        <FloatingInput label="Kitab *" value={kajianForm.kitab} onChange={e => setKajianForm(p => ({ ...p, kitab: e.target.value }))} placeholder="Contoh: Safinatus Sholah" />
-        <FloatingInput label="Tempat" value={kajianForm.tempat} onChange={e => setKajianForm(p => ({ ...p, tempat: e.target.value }))} placeholder="Contoh: 22 KELAS 5A" />
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+          <FloatingInput label="Kelas *" value={kajianForm.kelas} onChange={e => setKajianForm(p => ({ ...p, kelas: e.target.value }))} placeholder="Contoh: Sifir, 1 & Sp Putra, 2 Putri" />
+          <FloatingInput label="Waktu *" value={kajianForm.waktu} onChange={e => setKajianForm(p => ({ ...p, waktu: e.target.value }))} placeholder="Contoh: 14:00 – 14:45" />
+
+          {/* Qori' / Pengampu: Pilih dari Guru */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+            <label style={{ fontSize: '12px', fontWeight: 600, color: '#475569' }}>
+              Qori' / Pengampu (Pilih dari Guru) *
+            </label>
+            <CustomSelect
+              options={guruOptions}
+              value={guruOptions.some(o => o.value === kajianForm.qori) ? kajianForm.qori : ''}
+              onChange={(val) => setKajianForm(p => ({ ...p, qori: val || '' }))}
+              placeholder="Pilih Guru Pengampu..."
+            />
+            <FloatingInput
+              label="Nama Qori' / Pengampu *"
+              value={kajianForm.qori}
+              onChange={e => setKajianForm(p => ({ ...p, qori: e.target.value }))}
+              placeholder="Atau sesuaikan nama pengampu..."
+            />
+          </div>
+
+          <FloatingInput label="Kitab *" value={kajianForm.kitab} onChange={e => setKajianForm(p => ({ ...p, kitab: e.target.value }))} placeholder="Contoh: Safinatus Sholah" />
+          <FloatingInput label="Tempat" value={kajianForm.tempat} onChange={e => setKajianForm(p => ({ ...p, tempat: e.target.value }))} placeholder="Contoh: 22 KELAS 5A" />
+        </div>
       </CustomModal>
 
       {/* Modal Imam Tarawih */}
@@ -444,11 +483,157 @@ export function Romadhon() {
         onOk={saveTarawih}
         okText={saving ? 'Menyimpan...' : 'Simpan'}
         okLoading={saving}
+        width={520}
       >
-        <FloatingInput label="Malam ke- *" type="number" value={String(tarawihForm.malam)} onChange={e => setTarawihForm(p => ({ ...p, malam: e.target.value }))} placeholder="1-30" />
-        <FloatingInput label="Imam *" value={tarawihForm.imam} onChange={e => setTarawihForm(p => ({ ...p, imam: e.target.value }))} placeholder="Contoh: K.H. Musthofa Bisri" />
-        <FloatingInput label="Bilal / Muroqqi" value={tarawihForm.bilal} onChange={e => setTarawihForm(p => ({ ...p, bilal: e.target.value }))} placeholder="Contoh: Ust. Rifqi Maulana" />
-        <FloatingInput label="Tempat" value={tarawihForm.tempat} onChange={e => setTarawihForm(p => ({ ...p, tempat: e.target.value }))} placeholder="Contoh: Masjid Jami' Al-Hamid" />
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+          <FloatingInput label="Malam ke- *" type="number" value={String(tarawihForm.malam)} onChange={e => setTarawihForm(p => ({ ...p, malam: e.target.value }))} placeholder="1-30" />
+
+          {/* Imam Selection: Guru vs Santri */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <label style={{ fontSize: '12px', fontWeight: 600, color: '#475569' }}>
+                Imam Sholat *
+              </label>
+              <div style={{ display: 'inline-flex', background: 'rgba(0,0,0,0.06)', borderRadius: '8px', padding: '2px' }}>
+                <button
+                  type="button"
+                  onClick={() => setImamSource('guru')}
+                  style={{
+                    border: 'none',
+                    background: imamSource === 'guru' ? '#2563eb' : 'transparent',
+                    color: imamSource === 'guru' ? '#fff' : '#64748b',
+                    borderRadius: '6px',
+                    padding: '3px 8px',
+                    fontSize: '11px',
+                    fontWeight: 600,
+                    cursor: 'pointer'
+                  }}
+                >
+                  Dari Guru
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setImamSource('santri')}
+                  style={{
+                    border: 'none',
+                    background: imamSource === 'santri' ? '#2563eb' : 'transparent',
+                    color: imamSource === 'santri' ? '#fff' : '#64748b',
+                    borderRadius: '6px',
+                    padding: '3px 8px',
+                    fontSize: '11px',
+                    fontWeight: 600,
+                    cursor: 'pointer'
+                  }}
+                >
+                  Dari Santri
+                </button>
+              </div>
+            </div>
+
+            <CustomSelect
+              options={imamSource === 'guru' ? guruOptions : santriOptions}
+              value={(imamSource === 'guru' ? guruOptions : santriOptions).some(o => o.value === tarawihForm.imam) ? tarawihForm.imam : ''}
+              onChange={(val) => setTarawihForm(p => ({ ...p, imam: val || '' }))}
+              placeholder={imamSource === 'guru' ? 'Pilih Guru sebagai Imam...' : 'Pilih Santri sebagai Imam...'}
+            />
+            <FloatingInput
+              label="Nama Imam *"
+              value={tarawihForm.imam}
+              onChange={e => setTarawihForm(p => ({ ...p, imam: e.target.value }))}
+              placeholder="Atau sesuaikan nama imam..."
+            />
+          </div>
+
+          {/* Bilal Selection: Guru vs Santri */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <label style={{ fontSize: '12px', fontWeight: 600, color: '#475569' }}>
+                Bilal / Muroqqi
+              </label>
+              <div style={{ display: 'inline-flex', background: 'rgba(0,0,0,0.06)', borderRadius: '8px', padding: '2px' }}>
+                <button
+                  type="button"
+                  onClick={() => setBilalSource('guru')}
+                  style={{
+                    border: 'none',
+                    background: bilalSource === 'guru' ? '#2563eb' : 'transparent',
+                    color: bilalSource === 'guru' ? '#fff' : '#64748b',
+                    borderRadius: '6px',
+                    padding: '3px 8px',
+                    fontSize: '11px',
+                    fontWeight: 600,
+                    cursor: 'pointer'
+                  }}
+                >
+                  Dari Guru
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setBilalSource('santri')}
+                  style={{
+                    border: 'none',
+                    background: bilalSource === 'santri' ? '#2563eb' : 'transparent',
+                    color: bilalSource === 'santri' ? '#fff' : '#64748b',
+                    borderRadius: '6px',
+                    padding: '3px 8px',
+                    fontSize: '11px',
+                    fontWeight: 600,
+                    cursor: 'pointer'
+                  }}
+                >
+                  Dari Santri
+                </button>
+              </div>
+            </div>
+
+            <CustomSelect
+              options={bilalSource === 'guru' ? guruOptions : santriOptions}
+              value={(bilalSource === 'guru' ? guruOptions : santriOptions).some(o => o.value === tarawihForm.bilal) ? tarawihForm.bilal : ''}
+              onChange={(val) => setTarawihForm(p => ({ ...p, bilal: val || '' }))}
+              placeholder={bilalSource === 'guru' ? 'Pilih Guru sebagai Bilal...' : 'Pilih Santri sebagai Bilal...'}
+            />
+            <FloatingInput
+              label="Nama Bilal / Muroqqi"
+              value={tarawihForm.bilal}
+              onChange={e => setTarawihForm(p => ({ ...p, bilal: e.target.value }))}
+              placeholder="Atau sesuaikan nama bilal..."
+            />
+          </div>
+
+          <FloatingInput label="Tempat" value={tarawihForm.tempat} onChange={e => setTarawihForm(p => ({ ...p, tempat: e.target.value }))} placeholder="Contoh: Masjid Jami' Al-Hamid" />
+        </div>
+      </CustomModal>
+
+      {/* Confirmation Modal Hapus Romadhon */}
+      <CustomModal
+        isOpen={Boolean(deleteTarget)}
+        onClose={() => setDeleteTarget(null)}
+        title={deleteTarget?.type === 'kajian' ? 'Hapus Jadwal Kajian?' : 'Hapus Petugas Tarawih?'}
+        subtitle={`Jadwal ${deleteTarget?.title || ''} akan dihapus permanen`}
+        width={440}
+      >
+        <div style={{ padding: '8px 0', fontSize: '13.5px', color: '#475569', lineHeight: 1.6 }}>
+          Apakah Anda yakin ingin menghapus jadwal <strong>{deleteTarget?.title}</strong>? Tindakan ini tidak dapat dibatalkan.
+        </div>
+        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginTop: '20px' }}>
+          <button
+            type="button"
+            className="action-pill-btn secondary-pill"
+            onClick={() => setDeleteTarget(null)}
+            disabled={isDeleting}
+          >
+            Batal
+          </button>
+          <button
+            type="button"
+            className="action-pill-btn danger-pill"
+            onClick={confirmDelete}
+            disabled={isDeleting}
+          >
+            <Trash2 size={14} />
+            <span>{isDeleting ? 'Menghapus...' : 'Ya, Hapus'}</span>
+          </button>
+        </div>
       </CustomModal>
     </div>
   );

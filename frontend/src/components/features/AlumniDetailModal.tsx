@@ -93,14 +93,10 @@ export function AlumniDetailModal({ isOpen, onClose, alumniId }: AlumniDetailMod
             </div>
 
             <div className="info-group">
-              <h5>Kelulusan & Kontak</h5>
+              <h5>Data Kelulusan</h5>
               <div className="info-item"><span>Tahun Lulus:</span> <strong><CustomTag color="blue">{santri.tahun_lulus || '-'}</CustomTag></strong></div>
               <div className="info-item"><span>Kelas Terakhir:</span> <strong>{santri.kelas_terakhir || '-'}</strong></div>
               <div className="info-item"><span>Kamar Asrama:</span> <strong>{santri.kamar || '-'}</strong></div>
-              <div className="info-item"><span>Pekerjaan:</span> <strong>{santri.pekerjaan || '-'}</strong></div>
-              <div className="info-item"><span>Instansi / Kampus:</span> <strong>{santri.instansi || '-'}</strong></div>
-              <div className="info-item"><span>No. HP Santri:</span> <strong>{santri.no_hp || '-'}</strong></div>
-              <div className="info-item"><span>Alamat Sekarang:</span> <strong>{santri.alamat_sekarang || '-'}</strong></div>
             </div>
 
             <div className="info-group" style={{ gridColumn: 'span 2' }}>

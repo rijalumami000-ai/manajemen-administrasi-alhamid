@@ -5,10 +5,11 @@ import { AlumniStats } from '../components/features/AlumniStats';
 import { AlumniCard } from '../components/features/AlumniCard';
 import { MigrateSantriModal } from '../components/features/MigrateSantriModal';
 import { AlumniDetailModal } from '../components/features/AlumniDetailModal';
-import { LoadingState, ErrorState, EmptyState } from '../components/common';
+import { LoadingState, ErrorState, EmptyState, useToast } from '../components/common';
 import { CustomTag } from '../components/ui/CustomTag';
 import { SearchInput } from '../components/common/SearchInput';
 import { CustomSelect } from '../components/ui/CustomSelect';
+import { CustomModal } from '../components/ui/CustomModal';
 import { santriService } from '../services/santriService';
 import type { AlumniItem, ActiveSantriItem, TahunAjaranItem } from '../types/alumni';
 import './Alumni.scss';
@@ -29,8 +30,12 @@ export function Alumni() {
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
   const [migrateModalError, setMigrateModalError] = useState<string>('');
 
+  const [deleteTarget, setDeleteTarget] = useState<{ id: number; nama: string } | null>(null);
+  const [isDeleting, setIsDeleting] = useState<boolean>(false);
+
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
+  const toast = useToast();
 
   useEffect(() => {
     loadInitialData();
@@ -125,13 +130,22 @@ export function Alumni() {
     }
   };
 
-  const handleDeleteClick = async (id: number, nama: string) => {
-    if (!window.confirm(`Apakah Anda yakin ingin menghapus data ${nama}?`)) return;
+  const handleDeleteClick = (id: number | string, nama: string) => {
+    setDeleteTarget({ id: Number(id), nama });
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!deleteTarget) return;
     try {
-      await alumniService.deleteAlumni(id);
+      setIsDeleting(true);
+      await alumniService.deleteAlumni(deleteTarget.id);
+      toast.success(`Data alumni ${deleteTarget.nama} berhasil dihapus.`);
+      setDeleteTarget(null);
       await loadAlumni();
     } catch (err: any) {
-      alert(err.message || 'Gagal menghapus data');
+      toast.error(err.message || 'Gagal menghapus data');
+    } finally {
+      setIsDeleting(false);
     }
   };
 
@@ -232,12 +246,6 @@ export function Alumni() {
         <div className="header-text-block">
           <h2 className="page-title">Data Alumni, Kelulusan & Mutasi</h2>
           <p className="page-subtitle">Kelola data alumni Diniyah, lulusan MTs / Aliyah, dan santri pindah/mutasi pesantren</p>
-        </div>
-        <div className="header-actions">
-          <button type="button" className="action-pill-btn primary-pill" onClick={handleMigrateClick}>
-            <Plus size={16} />
-            <span>Tambah Kelulusan / Mutasi</span>
-          </button>
         </div>
       </header>
 
@@ -412,6 +420,38 @@ export function Alumni() {
         onClose={() => setIsDetailModalOpen(false)}
         alumniId={detailAlumniId}
       />
+
+      {/* Confirmation Modal Hapus Alumni */}
+      <CustomModal
+        isOpen={Boolean(deleteTarget)}
+        onClose={() => setDeleteTarget(null)}
+        title="Hapus Data Siswa/Alumni?"
+        subtitle={`Data ${deleteTarget?.nama || ''} akan dihapus permanen`}
+        width={440}
+      >
+        <div style={{ padding: '8px 0', fontSize: '13.5px', color: '#475569', lineHeight: 1.6 }}>
+          Apakah Anda yakin ingin menghapus data <strong>{deleteTarget?.nama}</strong> dari riwayat alumni / kelulusan / mutasi? Tindakan ini tidak dapat dibatalkan.
+        </div>
+        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginTop: '20px' }}>
+          <button
+            type="button"
+            className="action-pill-btn secondary-pill"
+            onClick={() => setDeleteTarget(null)}
+            disabled={isDeleting}
+          >
+            Batal
+          </button>
+          <button
+            type="button"
+            className="action-pill-btn danger-pill"
+            onClick={handleConfirmDelete}
+            disabled={isDeleting}
+          >
+            <Trash2 size={14} />
+            <span>{isDeleting ? 'Menghapus...' : 'Ya, Hapus Data'}</span>
+          </button>
+        </div>
+      </CustomModal>
     </div>
   );
 }

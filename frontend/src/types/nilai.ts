@@ -67,6 +67,7 @@ export interface RekapRowItem {
   santri_id: number;
   nis: string;
   nama: string;
+  foto_url?: string | null;
   total_nilai: number;
   rata_rata: number | string;
   mapel_count?: number;

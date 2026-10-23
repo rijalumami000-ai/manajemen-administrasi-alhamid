@@ -464,6 +464,16 @@
             text-align: center;
           }
 
+          .one-line-arab-cell {
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            max-width: 220px;
+            display: inline-block;
+            vertical-align: middle;
+            font-weight: 700;
+          }
+
           .lulus-check {
             color: #10b981;
           }

@@ -436,19 +436,25 @@ export const LaporanUjianKhusus = () => {
     let body: any[] = [];
 
     if (activeTab === 'muhafadzoh') {
-      headers = [['NO', 'NAMA SANTRI', 'NILAI', 'PREDIKAT']];
-      body = classData.map((r, i) => [
-        i + 1,
-        r.nama,
-        (r.nilai_angka !== null && r.nilai_angka !== undefined && r.nilai_angka !== '') ? r.nilai_angka : (r.capaian || '-'),
-        r.predikat || '-'
-      ]);
+      headers = [['NO', 'NAMA SANTRI', 'NILAI / CAPAIAN', 'PREDIKAT']];
+      body = classData.map((r, i) => {
+        const val = (r.nilai_angka !== null && r.nilai_angka !== undefined && r.nilai_angka !== '') 
+          ? r.nilai_angka 
+          : (r.capaian || '-');
+        const cleanVal = String(val).replace(/\r?\n|\r/g, ' ').trim();
+        return [
+          i + 1,
+          r.nama,
+          cleanVal,
+          r.predikat || '-'
+        ];
+      });
     } else if (activeTab === 'taftisyul_kutub') {
       headers = [['NO', 'NAMA SANTRI', 'CAPAIAN']];
       body = classData.map((r, i) => [
         i + 1,
         r.nama,
-        r.capaian || r.predikat || '-'
+        String(r.capaian || r.predikat || '-').replace(/\r?\n|\r/g, ' ').trim()
       ]);
     } else if (activeTab === 'qiroatul_kitab') {
       headers = [['NO', 'NAMA SANTRI', 'NILAI']];
@@ -462,17 +468,40 @@ export const LaporanUjianKhusus = () => {
       body = classData.map((r, i) => [
         i + 1,
         r.nama,
-        r.akbar ? (r.akbar.predikat || r.akbar.capaian || '-') : '-',
+        r.akbar ? String(r.akbar.predikat || r.akbar.capaian || '-').replace(/\r?\n|\r/g, ' ').trim() : '-',
         r.qiroah ? ((r.qiroah.nilai_angka !== null && r.qiroah.nilai_angka !== undefined && r.qiroah.nilai_angka !== '') ? r.qiroah.nilai_angka : (r.qiroah.capaian || '-')) : '-',
         r.taftisy ? (r.taftisy.capaian || r.taftisy.predikat || '-') : '-'
       ]);
+    }
+
+    let columnStyles: any = {};
+    if (activeTab === 'muhafadzoh') {
+      columnStyles = {
+        0: { cellWidth: 14, halign: 'center' },
+        1: { cellWidth: 72, halign: 'left' },
+        2: { cellWidth: 70, halign: 'center', overflow: 'ellipsize' },
+        3: { cellWidth: 36, halign: 'center' }
+      };
+    } else if (activeTab === 'taftisyul_kutub') {
+      columnStyles = {
+        0: { cellWidth: 15, halign: 'center' },
+        1: { cellWidth: 105, halign: 'left' },
+        2: { cellWidth: 72, halign: 'center', overflow: 'ellipsize' }
+      };
+    } else if (activeTab === 'qiroatul_kitab') {
+      columnStyles = {
+        0: { cellWidth: 15, halign: 'center' },
+        1: { cellWidth: 110, halign: 'left' },
+        2: { cellWidth: 67, halign: 'center' }
+      };
     }
 
     autoTable(doc, {
       head: headers,
       body: body,
       startY: 34,
-      styles: { fontSize, cellPadding: 2, minCellHeight: rowHeight },
+      styles: { fontSize, cellPadding: 2, minCellHeight: rowHeight, overflow: 'ellipsize' },
+      columnStyles,
       headStyles: { fillColor: [41, 128, 185], textColor: 255 },
       theme: 'grid'
     });
@@ -920,7 +949,7 @@ export const LaporanUjianKhusus = () => {
                         <tr>
                           <th style={{ width: '50px', textAlign: 'center' }}>No</th>
                           <th style={{ width: '300px', textAlign: 'left' }}>Nama Santri</th>
-                          <th style={{ width: '130px', textAlign: 'center' }}>Nilai</th>
+                          <th style={{ width: '220px', textAlign: 'center' }}>Nilai / Bab</th>
                           <th style={{ width: '150px', textAlign: 'center' }}>Predikat</th>
                           <th></th>
                         </tr>
@@ -985,14 +1014,18 @@ export const LaporanUjianKhusus = () => {
                         );
 
                         if (activeTab === 'muhafadzoh') {
+                          const rawVal = (row.nilai_angka !== null && row.nilai_angka !== undefined && row.nilai_angka !== '')
+                            ? formatNilai(row.nilai_angka)
+                            : (row.capaian || '-');
+
                           return (
                             <tr key={row.santri_id || idx}>
                               <td className="center-text">{idx + 1}</td>
                               <td className="student-name-cell">{avatarCell}</td>
                               <td className="center-text" style={{ fontWeight: 'bold' }}>
-                                {row.nilai_angka !== null && row.nilai_angka !== undefined && row.nilai_angka !== ''
-                                  ? formatNilai(row.nilai_angka)
-                                  : (row.capaian || '-')}
+                                <div className="one-line-arab-cell" title={String(rawVal)}>
+                                  {rawVal}
+                                </div>
                               </td>
                               <td className="center-text">
                                 <span className={`predikat-badge ${getPredClass(row.predikat)}`}>

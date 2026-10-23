@@ -112,6 +112,7 @@ export function ManajemenNilai({ mode = 'input' }: ManajemenNilaiProps) {
   const rekapTableRef = useRef<HTMLTableElement | null>(null);
   const isRekapSyncingScroll = useRef<boolean>(false);
   const [rekapTableWidth, setRekapTableWidth] = useState<number>(1200);
+  const [rekapSortMode, setRekapSortMode] = useState<'normal' | 'peringkat'>('normal');
 
   // ── Kriteria States ─────────────────────────────────────────
   const [kriteriaConfig, setKriteriaConfig] = useState<KriteriaConfig | null>(null);
@@ -491,6 +492,7 @@ export function ManajemenNilai({ mode = 'input' }: ManajemenNilaiProps) {
             santri_id: row.santri_id,
             nis: row.nis || '-',
             nama: row.nama || '-',
+            foto_url: row.foto_url || null,
             total_nilai: 0,
             mapel_count: 0,
             peringkat_sistem: 0,
@@ -580,6 +582,25 @@ export function ManajemenNilai({ mode = 'input' }: ManajemenNilaiProps) {
     }
   }, [rekapData, mataPelajaran, selectedTingkat]);
 
+  const rekapMapels = useMemo(() => {
+    const allowedIds = mapelTingkat
+      .filter(mt => mt.tingkat === selectedTingkat)
+      .map(mt => mt.mata_pelajaran_id);
+    const semesterMapels = mataPelajaran.filter(m => m.jenis === 'Reguler' && allowedIds.includes(m.id));
+    const akbarMapels = mataPelajaran.filter(m => m.jenis === 'Muhafadzoh' && m.nama?.toLowerCase().includes('akbar'));
+    const qiroatulMapels = mataPelajaran.filter(m => m.jenis === 'Qiroah');
+    const taftisyulMapels = mataPelajaran.filter(m => m.jenis === 'Taftisy');
+    return [...semesterMapels, ...akbarMapels, ...qiroatulMapels, ...taftisyulMapels];
+  }, [mataPelajaran, mapelTingkat, selectedTingkat]);
+
+  const sortedRekapData = useMemo(() => {
+    const cloned = [...rekapData];
+    if (rekapSortMode === 'normal') {
+      return cloned.sort((a, b) => (a.nama || '').localeCompare(b.nama || ''));
+    }
+    return cloned.sort((a, b) => (Number(a.peringkat) || 999) - (Number(b.peringkat) || 999));
+  }, [rekapData, rekapSortMode]);
+
   // Export PDF Rekap Nilai
   const handleTaftisyPdfExport = () => {
     try {
@@ -596,20 +617,11 @@ export function ManajemenNilai({ mode = 'input' }: ManajemenNilaiProps) {
         22
       );
 
-      const allowedIds = mapelTingkat
-        .filter(mt => mt.tingkat === selectedTingkat)
-        .map(mt => mt.mata_pelajaran_id);
-      const semesterMapels = mataPelajaran.filter(m => m.jenis === 'Reguler' && allowedIds.includes(m.id));
-      const akbarMapels = mataPelajaran.filter(m => m.jenis === 'Muhafadzoh' && m.nama?.toLowerCase().includes('akbar'));
-      const qiroatulMapels = mataPelajaran.filter(m => m.jenis === 'Qiroah');
-      const taftisyulMapels = mataPelajaran.filter(m => m.jenis === 'Taftisy');
-      const allRekapMapels = [...semesterMapels, ...akbarMapels, ...qiroatulMapels, ...taftisyulMapels];
+      const headers = ['No', 'NIS', 'Nama Santri', ...rekapMapels.map(m => m.nama), 'Total', 'Rata-rata', 'Peringkat'];
 
-      const headers = ['No', 'NIS', 'Nama Santri', ...allRekapMapels.map(m => m.nama), 'Total', 'Rata-rata', 'Peringkat'];
-
-      const body = rekapData.map((row, idx) => {
+      const body = sortedRekapData.map((row, idx) => {
         const rowData = [idx + 1, row.nis || '-', row.nama || '-'];
-        allRekapMapels.forEach(m => {
+        rekapMapels.forEach(m => {
           const val = row[`mapel_${m.id}`];
           rowData.push(val || '-');
         });
@@ -1343,8 +1355,28 @@ export function ManajemenNilai({ mode = 'input' }: ManajemenNilaiProps) {
                       Rekapitulasi Nilai — {activeClassObj.nama}
                     </h3>
                     <span className="cluster-count-pill">
-                      {rekapData.length} Santri
+                      {sortedRekapData.length} Santri
                     </span>
+
+                    {/* Urutan Switch */}
+                    <div className="segmented-control" style={{ marginLeft: '12px' }}>
+                      <button
+                        type="button"
+                        className={`seg-btn ${rekapSortMode === 'normal' ? 'active' : ''}`}
+                        onClick={() => setRekapSortMode('normal')}
+                        style={{ fontSize: '12px', padding: '4px 10px' }}
+                      >
+                        Urut Nama (Normal)
+                      </button>
+                      <button
+                        type="button"
+                        className={`seg-btn ${rekapSortMode === 'peringkat' ? 'active' : ''}`}
+                        onClick={() => setRekapSortMode('peringkat')}
+                        style={{ fontSize: '12px', padding: '4px 10px' }}
+                      >
+                        Urut Peringkat
+                      </button>
+                    </div>
                   </div>
 
                   <div className="actions-cluster">
@@ -1415,20 +1447,9 @@ export function ManajemenNilai({ mode = 'input' }: ManajemenNilaiProps) {
                             <th style={{ minWidth: '220px', position: 'sticky', left: 0, zIndex: 10 }}>
                               Nama Santri
                             </th>
-                            {mataPelajaran
-                              .filter(m => ['Reguler', 'Muhafadzoh', 'Qiroah', 'Taftisy'].includes(m.jenis))
-                              .filter(m => {
-                                if (m.jenis === 'Reguler') {
-                                  const allowedIds = mapelTingkat
-                                    .filter(mt => mt.tingkat === selectedTingkat)
-                                    .map(mt => mt.mata_pelajaran_id);
-                                  return allowedIds.includes(m.id);
-                                }
-                                return !m.nama?.toLowerCase().includes('mini');
-                              })
-                              .map(m => (
-                                <th key={m.id} style={{ textAlign: 'center' }}>{m.nama}</th>
-                              ))}
+                            {rekapMapels.map(m => (
+                              <th key={m.id} style={{ textAlign: 'center' }}>{m.nama}</th>
+                            ))}
                             <th style={{ textAlign: 'center', width: '90px' }}>Total</th>
                             <th style={{ textAlign: 'center', width: '90px' }}>Rata-rata</th>
                             <th style={{ textAlign: 'center', width: '80px' }}>Peringkat</th>
@@ -1436,7 +1457,7 @@ export function ManajemenNilai({ mode = 'input' }: ManajemenNilaiProps) {
                           </tr>
                         </thead>
                         <tbody>
-                          {rekapData.map((row) => (
+                          {sortedRekapData.map((row) => (
                             <tr key={row.santri_id}>
                               <td 
                                 style={{ 
@@ -1448,9 +1469,26 @@ export function ManajemenNilai({ mode = 'input' }: ManajemenNilaiProps) {
                                 }}
                               >
                                 <div className="person-lens-cell">
-                                  <div className="lens-orb-avatar" style={{ width: '30px', height: '30px', fontSize: '11.5px' }}>
-                                    {row.nama.charAt(0).toUpperCase()}
-                                  </div>
+                                  {row.foto_url ? (
+                                    <img
+                                      src={row.foto_url}
+                                      alt={row.nama}
+                                      className="lens-orb-avatar"
+                                      style={{
+                                        width: '32px',
+                                        height: '32px',
+                                        borderRadius: '50%',
+                                        objectFit: 'cover'
+                                      }}
+                                      onError={(e) => {
+                                        (e.target as HTMLElement).style.display = 'none';
+                                      }}
+                                    />
+                                  ) : (
+                                    <div className="lens-orb-avatar" style={{ width: '32px', height: '32px', fontSize: '12px' }}>
+                                      {row.nama.charAt(0).toUpperCase()}
+                                    </div>
+                                  )}
                                   <div className="person-name-stack">
                                     <span className="person-name">{row.nama}</span>
                                     <span className="person-nis">NIS: {row.nis || '-'}</span>
@@ -1459,47 +1497,36 @@ export function ManajemenNilai({ mode = 'input' }: ManajemenNilaiProps) {
                               </td>
 
                               {/* Grades per subject */}
-                              {mataPelajaran
-                                .filter(m => ['Reguler', 'Muhafadzoh', 'Qiroah', 'Taftisy'].includes(m.jenis))
-                                .filter(m => {
-                                  if (m.jenis === 'Reguler') {
-                                    const allowedIds = mapelTingkat
-                                      .filter(mt => mt.tingkat === selectedTingkat)
-                                      .map(mt => mt.mata_pelajaran_id);
-                                    return allowedIds.includes(m.id);
-                                  }
-                                  return !m.nama?.toLowerCase().includes('mini');
-                                })
-                                .map(m => {
-                                  const val = row[`mapel_${m.id}`];
-                                  if (!val || val === '-') {
-                                    return <td key={m.id} style={{ textAlign: 'center', color: '#94a3b8' }}>-</td>;
-                                  }
-                                  if (m.jenis === 'Muhafadzoh') {
-                                    return (
-                                      <td key={m.id} style={{ textAlign: 'center' }}>
-                                        <span className={`predikat-chip ${val.toLowerCase().replace("'", "")}`}>
-                                          {val}
-                                        </span>
-                                      </td>
-                                    );
-                                  }
-                                  if (m.jenis === 'Taftisy') {
-                                    return (
-                                      <td 
-                                        key={m.id} 
-                                        style={{ 
-                                          textAlign: 'center', 
-                                          fontWeight: 800, 
-                                          color: val === 'Tam' ? '#059669' : '#dc2626' 
-                                        }}
-                                      >
+                              {rekapMapels.map(m => {
+                                const val = row[`mapel_${m.id}`];
+                                if (!val || val === '-') {
+                                  return <td key={m.id} style={{ textAlign: 'center', color: '#94a3b8' }}>-</td>;
+                                }
+                                if (m.jenis === 'Muhafadzoh') {
+                                  return (
+                                    <td key={m.id} style={{ textAlign: 'center' }}>
+                                      <span className={`predikat-chip ${val.toLowerCase().replace("'", "")}`}>
                                         {val}
-                                      </td>
-                                    );
-                                  }
-                                  return <td key={m.id} style={{ textAlign: 'center', fontWeight: 700 }}>{val}</td>;
-                                })}
+                                      </span>
+                                    </td>
+                                  );
+                                }
+                                if (m.jenis === 'Taftisy') {
+                                  return (
+                                    <td 
+                                      key={m.id} 
+                                      style={{ 
+                                        textAlign: 'center', 
+                                        fontWeight: 800, 
+                                        color: val === 'Tam' ? '#059669' : '#dc2626' 
+                                      }}
+                                    >
+                                      {val}
+                                    </td>
+                                  );
+                                }
+                                return <td key={m.id} style={{ textAlign: 'center', fontWeight: 700 }}>{val}</td>;
+                              })}
 
                               <td style={{ textAlign: 'center', fontWeight: 800, color: '#059669' }}>
                                 {row.total_nilai}

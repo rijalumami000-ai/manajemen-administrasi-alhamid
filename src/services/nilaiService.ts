@@ -391,7 +391,7 @@ export class NilaiService {
 
       let query = `
         SELECT 
-          s.id as santri_id, s.nama, s.nis, 
+          s.id as santri_id, s.nama, s.nis, s.foto_url,
           n.mata_pelajaran_id,
           m.nama as nama_mapel, m.jenis as jenis_mapel,
           n.nilai_angka, n.predikat, n.capaian,

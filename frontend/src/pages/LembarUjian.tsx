@@ -69,6 +69,7 @@ export function LembarUjian() {
   const [kopHariTanggal, setKopHariTanggal] = useState<string>('Senin, 12 Desember 2026');
   const [kopInstruksi, setKopInstruksi] = useState<string>('KERJAKAN URAIAN SOAL-SOAL DI BAWAH INI !');
   const [kopLogo, setKopLogo] = useState<string | null>(null);
+  const [showDeleteLogoConfirm, setShowDeleteLogoConfirm] = useState<boolean>(false);
 
   // Soal State for active subject/class
   const [soalList, setSoalList] = useState<SoalItem[]>([]);
@@ -842,9 +843,10 @@ export function LembarUjian() {
                 <button 
                   type="button" 
                   className="action-pill-btn danger-pill btn-sm"
-                  onClick={handleDeleteLogo}
+                  onClick={() => setShowDeleteLogoConfirm(true)}
                 >
-                  Hapus Logo
+                  <Trash2 size={13} />
+                  <span>Hapus Logo</span>
                 </button>
               </div>
             )}
@@ -864,6 +866,39 @@ export function LembarUjian() {
             </button>
           </div>
         </form>
+      </CustomModal>
+
+      {/* Confirmation Modal: Hapus Logo Kop */}
+      <CustomModal
+        isOpen={showDeleteLogoConfirm}
+        onClose={() => setShowDeleteLogoConfirm(false)}
+        title="Hapus Logo Madrasah?"
+        subtitle="Logo madrasah pada kop lembar ujian akan dihapus permanen"
+        width={440}
+      >
+        <div style={{ padding: '8px 0', fontSize: '13.5px', color: '#475569', lineHeight: 1.6 }}>
+          Apakah Anda yakin ingin menghapus logo kop lembar ujian? Logo ini tidak akan lagi ditampilkan pada lembar ujian yang dicetak.
+        </div>
+        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginTop: '20px' }}>
+          <button
+            type="button"
+            className="action-pill-btn secondary-pill"
+            onClick={() => setShowDeleteLogoConfirm(false)}
+          >
+            Batal
+          </button>
+          <button
+            type="button"
+            className="action-pill-btn danger-pill"
+            onClick={async () => {
+              setShowDeleteLogoConfirm(false);
+              await handleDeleteLogo();
+            }}
+          >
+            <Trash2 size={14} />
+            <span>Ya, Hapus Logo</span>
+          </button>
+        </div>
       </CustomModal>
 
       {/* CUSTOM PREVIEW MODAL */}

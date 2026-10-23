@@ -9,6 +9,7 @@ import {
 } from 'lucide-react';
 import { settingsService } from '../../services/settingsService';
 import { useToast } from '../common';
+import { CustomModal } from '../ui/CustomModal';
 import './RaporSettingsTab.scss';
 
 export function RaporSettingsTab() {
@@ -18,6 +19,13 @@ export function RaporSettingsTab() {
   const [ttdUrl, setTtdUrl] = useState<string | null>(null);
   const [isUploading, setIsUploading] = useState<boolean>(false);
   const [isSavingText, setIsSavingText] = useState<boolean>(false);
+
+  // Confirmation state for deleting Logo Kop or TTD
+  const [deleteTarget, setDeleteTarget] = useState<{
+    key: string;
+    label: string;
+    setter: (url: string | null) => void;
+  } | null>(null);
 
   // Text inputs form states
   const [baris1, setBaris1] = useState<string>('مؤسسة معهد الحامد الإسلامي');
@@ -140,7 +148,11 @@ export function RaporSettingsTab() {
                   <button 
                     type="button" 
                     className="btn-custom btn-secondary delete-file-btn" 
-                    onClick={() => handleDelete('rapor_kop_logo_url', setLogoUrl)}
+                    onClick={() => setDeleteTarget({
+                      key: 'rapor_kop_logo_url',
+                      label: 'Logo Kop Rapor',
+                      setter: setLogoUrl
+                    })}
                     disabled={isUploading}
                   >
                     <Trash2 size={14} />
@@ -185,7 +197,11 @@ export function RaporSettingsTab() {
                   <button 
                     type="button" 
                     className="btn-custom btn-secondary delete-file-btn" 
-                    onClick={() => handleDelete('rapor_kepala_madrasah_ttd_url', setTtdUrl)}
+                    onClick={() => setDeleteTarget({
+                      key: 'rapor_kepala_madrasah_ttd_url',
+                      label: 'Tanda Tangan Kepala Madrasah',
+                      setter: setTtdUrl
+                    })}
                     disabled={isUploading}
                   >
                     <Trash2 size={14} />
@@ -337,6 +353,42 @@ export function RaporSettingsTab() {
           </form>
         </div>
       </div>
+
+      {/* Confirmation Modal: Hapus Logo Kop / TTD */}
+      <CustomModal
+        isOpen={Boolean(deleteTarget)}
+        onClose={() => setDeleteTarget(null)}
+        title={`Hapus ${deleteTarget?.label || 'Berkas'}?`}
+        subtitle="Berkas gambar akan dihapus dari pengaturan rapor"
+        width={440}
+      >
+        <div style={{ padding: '8px 0', fontSize: '13.5px', color: '#475569', lineHeight: 1.6 }}>
+          Apakah Anda yakin ingin menghapus <strong>{deleteTarget?.label}</strong>? Berkas ini tidak akan lagi ditampilkan pada lembar rapor yang dicetak.
+        </div>
+        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginTop: '20px' }}>
+          <button
+            type="button"
+            className="action-pill-btn secondary-pill"
+            onClick={() => setDeleteTarget(null)}
+          >
+            Batal
+          </button>
+          <button
+            type="button"
+            className="action-pill-btn danger-pill"
+            onClick={async () => {
+              if (deleteTarget) {
+                const target = deleteTarget;
+                setDeleteTarget(null);
+                await handleDelete(target.key, target.setter);
+              }
+            }}
+          >
+            <Trash2 size={14} />
+            <span>Ya, Hapus</span>
+          </button>
+        </div>
+      </CustomModal>
     </div>
   );
 }
