@@ -182,7 +182,7 @@
 
     /* Hero Card */
     .download-hero-card {
-      background: linear-gradient(135deg, #064e3b 0%, #065f46 50%, #047857 100%);
+      background: linear-gradient(135deg, #0f172a 0%, #1e293b 45%, #1d4ed8 100%);
       border-radius: 20px;
       padding: 36px 40px;
       color: #ffffff;
@@ -190,7 +190,7 @@
       gap: 36px;
       align-items: center;
       justify-content: space-between;
-      box-shadow: 0 16px 40px rgba(6, 78, 59, 0.25), inset 0 1px 1px rgba(255, 255, 255, 0.2);
+      box-shadow: 0 16px 40px rgba(15, 23, 42, 0.25), inset 0 1px 1px rgba(255, 255, 255, 0.2);
       border-top: 1.5px solid rgba(255, 255, 255, 0.3);
       position: relative;
       overflow: hidden;
@@ -207,7 +207,7 @@
         right: -60px;
         width: 240px;
         height: 240px;
-        background: radial-gradient(circle, rgba(52, 211, 153, 0.25) 0%, transparent 70%);
+        background: radial-gradient(circle, rgba(59, 130, 246, 0.25) 0%, transparent 70%);
         border-radius: 50%;
         pointer-events: none;
       }
@@ -227,16 +227,16 @@
           border-radius: 999px;
           font-size: 12px;
           font-weight: 600;
-          color: #a7f3d0;
+          color: #bfdbfe;
           margin-bottom: 16px;
           border: 1px solid rgba(255, 255, 255, 0.2);
 
           .dot {
             width: 8px;
             height: 8px;
-            background: #34d399;
+            background: #38bdf8;
             border-radius: 50%;
-            box-shadow: 0 0 8px #34d399;
+            box-shadow: 0 0 8px #38bdf8;
           }
         }
 
@@ -251,7 +251,7 @@
         .hero-desc {
           font-size: 14.5px;
           line-height: 1.6;
-          color: #d1fae5;
+          color: #e2e8f0;
           margin: 0 0 24px 0;
 
           strong {
@@ -270,7 +270,7 @@
             justify-content: center;
             gap: 10px;
             background: #ffffff;
-            color: #065f46;
+            color: #1d4ed8;
             font-size: 15px;
             font-weight: 700;
             padding: 14px 28px;
@@ -281,7 +281,7 @@
             width: fit-content;
 
             &:hover {
-              background: #f0fdf4;
+              background: #eff6ff;
               transform: translateY(-2px);
               box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
             }
@@ -292,7 +292,7 @@
             align-items: center;
             gap: 6px;
             font-size: 12.5px;
-            color: #a7f3d0;
+            color: #bfdbfe;
           }
         }
       }
@@ -351,9 +351,9 @@
               gap: 6px;
               font-size: 11px;
               font-weight: 600;
-              color: #34d399;
-              background: rgba(16, 185, 129, 0.12);
-              border: 1px solid rgba(16, 185, 129, 0.25);
+              color: #60a5fa;
+              background: rgba(37, 99, 235, 0.12);
+              border: 1px solid rgba(37, 99, 235, 0.25);
               padding: 4px 10px;
               border-radius: 6px;
               margin-bottom: 12px;
@@ -413,7 +413,7 @@
                 .mock-score {
                   font-size: 8px;
                   font-weight: bold;
-                  color: #059669;
+                  color: #2563eb;
                 }
               }
             }
@@ -459,7 +459,7 @@
           margin-bottom: 16px;
 
           &.bg-indigo { background: rgba(99, 102, 241, 0.12); color: #6366f1; }
-          &.bg-emerald { background: rgba(16, 185, 129, 0.12); color: #10b981; }
+          &.bg-cyan { background: rgba(6, 182, 212, 0.12); color: #06b6d4; }
           &.bg-blue { background: rgba(59, 130, 246, 0.12); color: #3b82f6; }
         }
 

@@ -83,7 +83,9 @@ export function ScanNilai() {
               return k;
             })
           : [];
-        const validKats: KategoriItem[] = Array.isArray(katRes) ? katRes : [];
+        const validKats: KategoriItem[] = Array.isArray(katRes) 
+          ? katRes.filter((k: any) => !k.nama?.toLowerCase().includes('harian') && !k.nama?.toLowerCase().includes('tugas'))
+          : [];
 
         setTahunAjaranList(validTAs);
         setMapelList(validMapels);
@@ -279,7 +281,7 @@ export function ScanNilai() {
               value={selectedMapel}
               onChange={setSelectedMapel}
               placeholder={filteredMapelList.length === 0 ? "Tidak ada mapel ujian aktif" : "Pilih Mata Pelajaran"}
-              options={filteredMapelList.map(m => ({ label: `${m.nama} (${m.jenis || 'Reguler'})`, value: String(m.id) }))}
+              options={filteredMapelList.map(m => ({ label: m.nama, value: String(m.id) }))}
             />
             <CustomSelect
               label="Semester"
@@ -478,7 +480,7 @@ export function ScanNilai() {
             </div>
 
             <div className="feature-card">
-              <div className="feature-icon bg-emerald">
+              <div className="feature-icon bg-cyan">
                 <ShieldCheck size={22} />
               </div>
               <h3>Koneksi Otomatis ke Database VPS</h3>

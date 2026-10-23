@@ -39,6 +39,7 @@ export interface MiniNilaiItem {
   santri_id: number;
   nama: string;
   nis?: string;
+  foto_url?: string | null;
   nilai_angka?: number | string | null;
   nilai_huruf?: string | null;
   capaian?: string | null;

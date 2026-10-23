@@ -28,6 +28,8 @@ import type {
 } from '../types/rekapMuhafadzohMini';
 import './RekapMuhafadzohMini.scss';
 
+const API_BASE = import.meta.env.VITE_API_URL || '';
+
 export const RekapMuhafadzohMini: React.FC = () => {
   const [loading, setLoading] = useState<boolean>(false);
   const [kelas, setKelas] = useState<KelasItem[]>([]);
@@ -80,7 +82,10 @@ export const RekapMuhafadzohMini: React.FC = () => {
           : [];
         setKelas(diniyahKelas);
 
-        setKategori(Array.isArray(katData) ? katData : []);
+        const filteredKat = (Array.isArray(katData) ? katData : []).filter(
+          (k: any) => !k.nama?.toLowerCase().includes('harian') && !k.nama?.toLowerCase().includes('tugas')
+        );
+        setKategori(filteredKat);
 
         // Find Mini 1 - 4 mapels
         if (Array.isArray(mapelData)) {
@@ -97,10 +102,10 @@ export const RekapMuhafadzohMini: React.FC = () => {
         }
 
         // Active semester selection
-        if (Array.isArray(katData) && katData.length > 0) {
+        if (filteredKat.length > 0) {
           const activeSemester = systemSettings.active_semester || 'Ganjil';
-          const defKat = katData.find(k => k.nama?.toLowerCase().includes(activeSemester.toLowerCase()));
-          setSelectedKategori(defKat ? defKat.id : katData[0].id);
+          const defKat = filteredKat.find(k => k.nama?.toLowerCase().includes(activeSemester.toLowerCase()));
+          setSelectedKategori(defKat ? defKat.id : filteredKat[0].id);
         }
 
         // Select first class default
@@ -157,7 +162,9 @@ export const RekapMuhafadzohMini: React.FC = () => {
           if (Array.isArray(resArray)) {
             resArray.forEach(r => {
               if (!merged[r.santri_id]) {
-                merged[r.santri_id] = { santri_id: r.santri_id, nama: r.nama, nis: r.nis };
+                merged[r.santri_id] = { santri_id: r.santri_id, nama: r.nama, nis: r.nis, foto_url: r.foto_url };
+              } else if (!merged[r.santri_id].foto_url && r.foto_url) {
+                merged[r.santri_id].foto_url = r.foto_url;
               }
               merged[r.santri_id][miniKey] = r;
             });
@@ -682,9 +689,10 @@ export const RekapMuhafadzohMini: React.FC = () => {
                       ) : (
                         <tr>
                           <th style={{ width: '50px', textAlign: 'center' }}>No</th>
-                          <th>Identitas Santri</th>
-                          <th style={{ width: '160px', textAlign: 'center' }}>Nilai / Capaian</th>
-                          <th style={{ width: '160px', textAlign: 'center' }}>Predikat</th>
+                          <th style={{ width: '280px', textAlign: 'left' }}>Identitas Santri</th>
+                          <th style={{ width: '180px', textAlign: 'center' }}>Nilai / Capaian</th>
+                          <th style={{ width: '180px', textAlign: 'center' }}>Predikat</th>
+                          <th></th>
                         </tr>
                       )}
                     </thead>
@@ -708,7 +716,21 @@ export const RekapMuhafadzohMini: React.FC = () => {
                               <td className="student-name-cell">
                                 <div className="person-lens-cell">
                                   <div className="lens-orb-avatar">
-                                    {row.nama ? row.nama.charAt(0).toUpperCase() : 'S'}
+                                    {row.foto_url ? (
+                                      <img
+                                        src={`${API_BASE}${row.foto_url}`}
+                                        alt={row.nama}
+                                        onError={(e) => {
+                                          const target = e.currentTarget;
+                                          target.style.display = 'none';
+                                          const next = target.nextElementSibling as HTMLElement | null;
+                                          if (next) next.style.display = 'block';
+                                        }}
+                                      />
+                                    ) : null}
+                                    <span style={{ display: row.foto_url ? 'none' : 'block' }}>
+                                      {row.nama ? row.nama.charAt(0).toUpperCase() : 'S'}
+                                    </span>
                                   </div>
                                   <div className="person-name-stack">
                                     <span className="person-name">{row.nama}</span>
@@ -761,7 +783,21 @@ export const RekapMuhafadzohMini: React.FC = () => {
                             <td className="student-name-cell">
                               <div className="person-lens-cell">
                                 <div className="lens-orb-avatar">
-                                  {row.nama ? row.nama.charAt(0).toUpperCase() : 'S'}
+                                  {row.foto_url ? (
+                                    <img
+                                      src={`${API_BASE}${row.foto_url}`}
+                                      alt={row.nama}
+                                      onError={(e) => {
+                                        const target = e.currentTarget;
+                                        target.style.display = 'none';
+                                        const next = target.nextElementSibling as HTMLElement | null;
+                                        if (next) next.style.display = 'block';
+                                      }}
+                                    />
+                                  ) : null}
+                                  <span style={{ display: row.foto_url ? 'none' : 'block' }}>
+                                    {row.nama ? row.nama.charAt(0).toUpperCase() : 'S'}
+                                  </span>
                                 </div>
                                 <div className="person-name-stack">
                                   <span className="person-name">{row.nama}</span>
@@ -777,13 +813,14 @@ export const RekapMuhafadzohMini: React.FC = () => {
                                 {row.predikat || '-'}
                               </span>
                             </td>
+                            <td></td>
                           </tr>
                         );
                       })}
 
                       {filteredData.length === 0 && (
                         <tr>
-                          <td colSpan={activeTab === 'ringkasan' ? 7 : 4} style={{ textAlign: 'center', padding: '36px', color: '#64748b' }}>
+                          <td colSpan={activeTab === 'ringkasan' ? 7 : 5} style={{ textAlign: 'center', padding: '36px', color: '#64748b' }}>
                             Belum ada rekaman nilai muhafadzoh mini untuk kelas ini.
                           </td>
                         </tr>

@@ -13,6 +13,7 @@ import {
   Sparkles
 } from 'lucide-react';
 import { CustomSelect } from '../components/ui/CustomSelect';
+import { CustomModal } from '../components/ui/CustomModal';
 import { useToast } from '../components/common';
 import type { 
   SoalItem, 
@@ -49,14 +50,16 @@ export function LembarUjian() {
   const [selectedTahunAjaran, setSelectedTahunAjaran] = useState<number | null>(null);
   const [selectedSemester, setSelectedSemester] = useState<string>('Ganjil');
   const [selectedTingkat, setSelectedTingkat] = useState<number>(0); // Default ke Sifir (0)
-  const [activeTabKey, setActiveTabKey] = useState<string>('kop'); // Default tab 'kop' atau tingkatan
+  const [activeTabKey, setActiveTabKey] = useState<string>('0'); // Default tab tingkatan Sifir
   const [selectedMapelId, setSelectedMapelId] = useState<number | null>(null);
   const [filteredMapel, setFilteredMapel] = useState<MataPelajaranItem[]>([]);
   const [kategoriUjianId, setKategoriUjianId] = useState<number | null>(null);
   
   const [isPreviewVisible, setIsPreviewVisible] = useState<boolean>(false);
+  const [isKopModalOpen, setIsKopModalOpen] = useState<boolean>(false);
   const [isKunciMode, setIsKunciMode] = useState<boolean>(false);
   const [isHer, setIsHer] = useState<boolean>(false);
+  const lastLoadedKeyRef = useRef<string>('');
 
   // Kop State
   const [kopJudul, setKopJudul] = useState<string>('PENILAIAN AKHIR SEMESTER GANJIL');
@@ -227,7 +230,11 @@ export function LembarUjian() {
   // Load saved questions from DB or LocalStorage
   useEffect(() => {
     const loadSoal = async () => {
-      if (selectedTahunAjaran && activeTabKey !== 'kop' && selectedMapelId) {
+      if (selectedTahunAjaran && selectedMapelId) {
+        const currentKey = `${selectedTahunAjaran}_${activeTabKey}_${selectedMapelId}_${selectedSemester}_${isHer ? 'her' : 'utama'}`;
+        if (lastLoadedKeyRef.current === currentKey) return;
+        lastLoadedKeyRef.current = currentKey;
+
         try {
           const mapel = mapelList.find(m => m.id === selectedMapelId);
           const currentPelajaran = mapel ? mapel.nama : '';
@@ -238,7 +245,7 @@ export function LembarUjian() {
           
           const paper = data.find(p => p.pelajaran === currentPelajaran);
           
-          if (paper && Array.isArray(paper.soal)) {
+          if (paper && Array.isArray(paper.soal) && paper.soal.length > 0) {
             const normalizedSoal: SoalItem[] = paper.soal.map((s: any) => {
               if (typeof s === 'string') return { teks: s, jawaban: '' };
               if (s && typeof s === 'object') return { teks: s.teks || '', jawaban: s.jawaban || '' };
@@ -246,7 +253,6 @@ export function LembarUjian() {
             });
             setSoalList(normalizedSoal);
             setPelajaranNama(currentPelajaran);
-            toast.info('Data lembar ujian dimuat dari arsip database.');
             return;
           }
         } catch (error) {
@@ -277,7 +283,7 @@ export function LembarUjian() {
     };
 
     loadSoal();
-  }, [selectedTahunAjaran, activeTabKey, selectedMapelId, selectedSemester, isHer, mapelList, toast]);
+  }, [selectedTahunAjaran, activeTabKey, selectedMapelId, selectedSemester, isHer, mapelList]);
 
   // Handle Kop Save
   const handleSaveKop = async (e?: React.FormEvent) => {
@@ -351,7 +357,7 @@ export function LembarUjian() {
 
   // Handle Save Questions to Database
   const handleSaveToDb = async () => {
-    if (!selectedTahunAjaran || activeTabKey === 'kop' || !selectedMapelId) {
+    if (!selectedTahunAjaran || !selectedMapelId) {
       toast.warning('Pilih Tahun Ajaran, Tingkatan, dan Pelajaran terlebih dahulu.');
       return;
     }
@@ -388,6 +394,7 @@ export function LembarUjian() {
       // Save locally too as backup
       const key = `soal_${selectedTahunAjaran}_${activeTabKey}_${selectedMapelId}_${isHer ? 'her' : 'utama'}`;
       localStorage.setItem(key, JSON.stringify(soalList));
+      lastLoadedKeyRef.current = key;
 
       toast.success('Lembar ujian berhasil diarsipkan ke database!');
     } catch (error: any) {
@@ -505,16 +512,14 @@ export function LembarUjian() {
   // Tab switching
   const handleTabChange = (key: string) => {
     setActiveTabKey(key);
-    if (key !== 'kop') {
-      const currentTab = staticTingkatan.find(t => t.key === key);
-      if (currentTab) {
-        setSelectedTingkat(currentTab.tingkat);
-        setNamaKelasDiLembar(currentTab.label);
-      }
-      setSelectedMapelId(null);
-      setPelajaranNama('...................................');
-      setSoalList([]);
+    const currentTab = staticTingkatan.find(t => t.key === key);
+    if (currentTab) {
+      setSelectedTingkat(currentTab.tingkat);
+      setNamaKelasDiLembar(currentTab.label);
     }
+    setSelectedMapelId(null);
+    setPelajaranNama('...................................');
+    setSoalList([]);
   };
 
   // Add Question Row
@@ -544,6 +549,15 @@ export function LembarUjian() {
           <p className="page-subtitle">Ketik soal ujian pelajaran dan cetak lembar soal dengan tata letak profesional</p>
         </div>
         <div className="header-actions">
+          <button 
+            type="button" 
+            className="action-pill-btn secondary-pill"
+            onClick={() => setIsKopModalOpen(true)}
+          >
+            <SettingsIcon size={15} />
+            <span>Pengaturan Kop</span>
+          </button>
+
           <button 
             type="button" 
             className="action-pill-btn primary-pill"
@@ -622,15 +636,6 @@ export function LembarUjian() {
         
         {/* Navigation Tabs — Option A Segmented Control Dock */}
         <div className="segmented-tabs-dock" style={{ alignSelf: 'flex-start' }}>
-          <button
-            type="button"
-            className={`segmented-tab-btn ${activeTabKey === 'kop' ? 'active' : ''}`}
-            onClick={() => handleTabChange('kop')}
-          >
-            <SettingsIcon size={14} />
-            <span>Pengaturan Kop</span>
-          </button>
-          
           {staticTingkatan.map(t => (
             <button
               key={t.key}
@@ -644,105 +649,11 @@ export function LembarUjian() {
           ))}
         </div>
 
-        {/* Tab Children: Kop settings */}
-        {activeTabKey === 'kop' ? (
-          <form onSubmit={handleSaveKop} className="form-grid-layout">
+        {/* Tab Children: Soal List and configurations */}
+        <div className="form-grid-layout">
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '16px' }}>
             <div className="form-group-box">
-              <label>Judul Utama</label>
-              <input 
-                type="text" 
-                value={kopJudul} 
-                onChange={e => setKopJudul(e.target.value)} 
-                placeholder="PENILAIAN AKHIR SEMESTER GANJIL" 
-              />
-            </div>
-            
-            <div className="form-group-box">
-              <label>Nama Madrasah</label>
-              <input 
-                type="text" 
-                value={kopSubJudul} 
-                onChange={e => setKopSubJudul(e.target.value)} 
-                placeholder="MADRASAH DINIYYAH AL-HAMID" 
-              />
-            </div>
-
-            <div className="form-group-box">
-              <label>Alamat</label>
-              <input 
-                type="text" 
-                value={kopAlamat} 
-                onChange={e => setKopAlamat(e.target.value)} 
-                placeholder="Alamat lengkap" 
-              />
-            </div>
-
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '16px' }}>
-              <div className="form-group-box">
-                <label>Hari / Tanggal</label>
-                <input 
-                  type="text" 
-                  value={kopHariTanggal} 
-                  onChange={e => setKopHariTanggal(e.target.value)} 
-                  placeholder="Senin, 12 Desember 2026" 
-                />
-              </div>
-              <div className="form-group-box">
-                <label>Instruksi</label>
-                <input 
-                  type="text" 
-                  value={kopInstruksi} 
-                  onChange={e => setKopInstruksi(e.target.value)} 
-                  placeholder="KERJAKAN URAIAN SOAL-SOAL DI BAWAH INI !" 
-                />
-              </div>
-            </div>
-
-            {/* Logo Upload Form Box */}
-            <div className="form-group-box">
-              <label>Logo Madrasah</label>
-              <div 
-                className="custom-file-uploader-box"
-                onClick={() => fileInputRef.current?.click()}
-              >
-                <Upload size={18} style={{ color: '#64748b' }} />
-                <span className="uploader-text">Pilih File Logo Baru</span>
-                <input 
-                  type="file" 
-                  accept="image/*" 
-                  ref={fileInputRef} 
-                  style={{ display: 'none' }} 
-                  onChange={handleLogoUpload}
-                />
-              </div>
-              
-              {kopLogo && (
-                <div style={{ marginTop: '10px', display: 'flex', alignItems: 'center', gap: '12px' }}>
-                  <img src={kopLogo} alt="Logo Preview" style={{ maxHeight: '50px', border: '1px solid rgba(226,232,240,0.8)', borderRadius: '8px', padding: '2px', background: '#fff' }} />
-                  <button 
-                    type="button" 
-                    className="action-pill-btn danger-pill btn-sm"
-                    onClick={handleDeleteLogo}
-                  >
-                    Hapus Logo
-                  </button>
-                </div>
-              )}
-            </div>
-
-            <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '10px' }}>
-              <button type="submit" className="action-pill-btn primary-pill">
-                <Save size={15} />
-                <span>Simpan Kop</span>
-              </button>
-            </div>
-          </form>
-        ) : (
-          /* Tab Children: Soal List and configurations */
-          <div className="form-grid-layout">
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '16px' }}>
-              <div className="form-group-box">
-                <label>Pilih Pelajaran</label>
+              <label>Pilih Pelajaran</label>
                 <CustomSelect
                   value={selectedMapelId ? String(selectedMapelId) : ''}
                   onChange={(val) => {
@@ -843,8 +754,117 @@ export function LembarUjian() {
             </div>
 
           </div>
-        )}
       </div>
+
+      {/* MODAL PENGATURAN KOP */}
+      <CustomModal
+        isOpen={isKopModalOpen}
+        onClose={() => setIsKopModalOpen(false)}
+        title="Pengaturan Kop Lembar Ujian"
+        size="lg"
+      >
+        <form onSubmit={async (e) => {
+          await handleSaveKop(e);
+          setIsKopModalOpen(false);
+        }} className="form-grid-layout" style={{ padding: '8px 4px' }}>
+          <div className="form-group-box">
+            <label>Judul Utama</label>
+            <input 
+              type="text" 
+              value={kopJudul} 
+              onChange={e => setKopJudul(e.target.value)} 
+              placeholder="PENILAIAN AKHIR SEMESTER GANJIL" 
+            />
+          </div>
+          
+          <div className="form-group-box">
+            <label>Nama Madrasah</label>
+            <input 
+              type="text" 
+              value={kopSubJudul} 
+              onChange={e => setKopSubJudul(e.target.value)} 
+              placeholder="MADRASAH DINIYYAH AL-HAMID" 
+            />
+          </div>
+
+          <div className="form-group-box">
+            <label>Alamat</label>
+            <input 
+              type="text" 
+              value={kopAlamat} 
+              onChange={e => setKopAlamat(e.target.value)} 
+              placeholder="Alamat lengkap" 
+            />
+          </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '16px' }}>
+            <div className="form-group-box">
+              <label>Hari / Tanggal</label>
+              <input 
+                type="text" 
+                value={kopHariTanggal} 
+                onChange={e => setKopHariTanggal(e.target.value)} 
+                placeholder="Senin, 12 Desember 2026" 
+              />
+            </div>
+            <div className="form-group-box">
+              <label>Instruksi</label>
+              <input 
+                type="text" 
+                value={kopInstruksi} 
+                onChange={e => setKopInstruksi(e.target.value)} 
+                placeholder="KERJAKAN URAIAN SOAL-SOAL DI BAWAH INI !" 
+              />
+            </div>
+          </div>
+
+          {/* Logo Upload Form Box */}
+          <div className="form-group-box">
+            <label>Logo Madrasah</label>
+            <div 
+              className="custom-file-uploader-box"
+              onClick={() => fileInputRef.current?.click()}
+            >
+              <Upload size={18} style={{ color: '#64748b' }} />
+              <span className="uploader-text">Pilih File Logo Baru</span>
+              <input 
+                type="file" 
+                accept="image/*" 
+                ref={fileInputRef} 
+                style={{ display: 'none' }} 
+                onChange={handleLogoUpload}
+              />
+            </div>
+            
+            {kopLogo && (
+              <div style={{ marginTop: '10px', display: 'flex', alignItems: 'center', gap: '12px' }}>
+                <img src={kopLogo} alt="Logo Preview" style={{ maxHeight: '50px', border: '1px solid rgba(226,232,240,0.8)', borderRadius: '8px', padding: '2px', background: '#fff' }} />
+                <button 
+                  type="button" 
+                  className="action-pill-btn danger-pill btn-sm"
+                  onClick={handleDeleteLogo}
+                >
+                  Hapus Logo
+                </button>
+              </div>
+            )}
+          </div>
+
+          <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '16px', gap: '10px' }}>
+            <button 
+              type="button" 
+              className="action-pill-btn secondary-pill"
+              onClick={() => setIsKopModalOpen(false)}
+            >
+              Tutup
+            </button>
+            <button type="submit" className="action-pill-btn primary-pill">
+              <Save size={15} />
+              <span>Simpan Kop</span>
+            </button>
+          </div>
+        </form>
+      </CustomModal>
 
       {/* CUSTOM PREVIEW MODAL */}
       {isPreviewVisible && (

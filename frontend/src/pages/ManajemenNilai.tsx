@@ -55,6 +55,8 @@ import type {
 } from '../types/nilai';
 import './ManajemenNilai.scss';
 
+const API_BASE = import.meta.env.VITE_API_URL || '';
+
 export function ManajemenNilai({ mode = 'input' }: ManajemenNilaiProps) {
   const toast = useToast();
   const { isMobile } = useResponsive();
@@ -1073,12 +1075,15 @@ export function ManajemenNilai({ mode = 'input' }: ManajemenNilaiProps) {
                   <table className="glass-input-table">
                     <thead>
                       <tr>
-                        <th style={{ width: '60px', textAlign: 'center' }}>No</th>
-                        <th>Identitas Santri</th>
+                        <th style={{ width: '50px', textAlign: 'center' }}>No</th>
+                        <th style={{ width: '280px', textAlign: 'left' }}>Identitas Santri</th>
                         <th style={{ width: '220px', textAlign: 'center' }}>
                           Input Nilai ({activeMapelObj?.nama || 'Pelajaran'})
                         </th>
-                        <th style={{ width: '180px', textAlign: 'center' }}>Predikat / Capaian</th>
+                        {inputSection !== 'ujian_tulis' && (
+                          <th style={{ width: '180px', textAlign: 'center' }}>Predikat / Capaian</th>
+                        )}
+                        <th></th>
                       </tr>
                     </thead>
                     <tbody>
@@ -1160,7 +1165,21 @@ export function ManajemenNilai({ mode = 'input' }: ManajemenNilaiProps) {
                             <td>
                               <div className="person-lens-cell">
                                 <div className="lens-orb-avatar">
-                                  {record.nama ? record.nama.charAt(0).toUpperCase() : 'S'}
+                                  {record.foto_url ? (
+                                    <img
+                                      src={`${API_BASE}${record.foto_url}`}
+                                      alt={record.nama}
+                                      onError={(e) => {
+                                        const target = e.currentTarget;
+                                        target.style.display = 'none';
+                                        const next = target.nextElementSibling as HTMLElement | null;
+                                        if (next) next.style.display = 'block';
+                                      }}
+                                    />
+                                  ) : null}
+                                  <span style={{ display: record.foto_url ? 'none' : 'block' }}>
+                                    {record.nama ? record.nama.charAt(0).toUpperCase() : 'S'}
+                                  </span>
                                 </div>
                                 <div className="person-name-stack">
                                   <span className="person-name">{record.nama}</span>
@@ -1173,33 +1192,36 @@ export function ManajemenNilai({ mode = 'input' }: ManajemenNilaiProps) {
                                 {inputElement}
                               </div>
                             </td>
-                            <td>
-                              <div style={{ display: 'flex', justifyContent: 'center' }}>
-                                {isTaftisy ? (
-                                  <span 
-                                    style={{ 
-                                      fontWeight: 800, 
-                                      color: record.capaian === 'Tam' ? '#059669' : record.capaian === 'Naqish' ? '#dc2626' : '#94a3b8' 
-                                    }}
-                                  >
-                                    {record.capaian || '-'}
-                                  </span>
-                                ) : isMuhafadzoh ? (
-                                  <span className={`predikat-chip ${predikatClass}`}>
-                                    {predikatVal || 'Belum Diisi'}
-                                  </span>
-                                ) : (
-                                  <span style={{ color: '#94a3b8', fontSize: '13px' }}>-</span>
-                                )}
-                              </div>
-                            </td>
+                            {inputSection !== 'ujian_tulis' && (
+                              <td>
+                                <div style={{ display: 'flex', justifyContent: 'center' }}>
+                                  {isTaftisy ? (
+                                    <span 
+                                      style={{ 
+                                        fontWeight: 800, 
+                                        color: record.capaian === 'Tam' ? '#059669' : record.capaian === 'Naqish' ? '#dc2626' : '#94a3b8' 
+                                      }}
+                                    >
+                                      {record.capaian || '-'}
+                                    </span>
+                                  ) : isMuhafadzoh ? (
+                                    <span className={`predikat-chip ${predikatClass}`}>
+                                      {predikatVal || 'Belum Diisi'}
+                                    </span>
+                                  ) : (
+                                    <span style={{ color: '#94a3b8', fontSize: '13px' }}>-</span>
+                                  )}
+                                </div>
+                              </td>
+                            )}
+                            <td></td>
                           </tr>
                         );
                       })}
 
                       {santriList.length === 0 && (
                         <tr>
-                          <td colSpan={4} style={{ textAlign: 'center', padding: '40px 20px', color: '#64748b' }}>
+                          <td colSpan={inputSection === 'ujian_tulis' ? 4 : 5} style={{ textAlign: 'center', padding: '40px 20px', color: '#64748b' }}>
                             Belum ada data santri pada kelas ini.
                           </td>
                         </tr>

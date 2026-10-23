@@ -227,7 +227,7 @@ export class NilaiService {
   async getNilaiSantri(tahunAjaranId: number | string, kelasId: number | string, mapelId: number | string, kategoriId: number | string | null = null): Promise<any[]> {
     try {
       let query = `
-        SELECT s.id as santri_id, s.nama, s.nis, k.nama as nama_kelas,
+        SELECT s.id as santri_id, s.nama, s.nis, s.foto_url, k.nama as nama_kelas,
                n.id as nilai_id, n.nilai_angka, n.predikat, n.capaian
         FROM santri_tahun_ajaran sta
         JOIN santri s ON sta.santri_id = s.id
