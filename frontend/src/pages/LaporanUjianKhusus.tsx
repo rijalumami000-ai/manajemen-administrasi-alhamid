@@ -416,6 +416,42 @@ export const LaporanUjianKhusus = () => {
     return 'LAPORAN';
   };
 
+  const isArabicText = (str: string): boolean => {
+    if (!str) return false;
+    return /[\u0600-\u06FF\u0750-\u077F\u08A0-\u08FF\uFB50-\uFDFF\uFE70-\uFEFF]/.test(str);
+  };
+
+  const renderArabicToDataUrl = (text: string, fontSizePx = 36): string => {
+    try {
+      const canvas = document.createElement('canvas');
+      const ctx = canvas.getContext('2d');
+      if (!ctx) return '';
+
+      const fontStr = `bold ${fontSizePx}px "Amiri", "Traditional Arabic", "Scheherazade New", "Segoe UI", "Tahoma", sans-serif`;
+      ctx.font = fontStr;
+
+      const metrics = ctx.measureText(text);
+      const textWidth = Math.max(Math.ceil(metrics.width) + 24, 60);
+      const textHeight = Math.ceil(fontSizePx * 1.6);
+
+      canvas.width = textWidth;
+      canvas.height = textHeight;
+
+      ctx.font = fontStr;
+      ctx.direction = 'rtl';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillStyle = '#111827';
+      ctx.clearRect(0, 0, textWidth, textHeight);
+      ctx.fillText(text, textWidth / 2, textHeight / 2);
+
+      return canvas.toDataURL('image/png');
+    } catch (err) {
+      console.error('Failed to render Arabic to canvas:', err);
+      return '';
+    }
+  };
+
   const generatePDFContent = (doc: jsPDF, classObj: KelasItem | undefined, classData: SantriNilaiRow[]) => {
     const count = classData.length;
     let rowHeight = Math.floor(240 / count);
@@ -474,6 +510,18 @@ export const LaporanUjianKhusus = () => {
       ]);
     }
 
+    // Convert any Arabic cells to crisp canvas images to eliminate WinAnsi mojibake
+    const arabicCells: Record<string, string> = {};
+    for (let rIdx = 0; rIdx < body.length; rIdx++) {
+      for (let cIdx = 0; cIdx < body[rIdx].length; cIdx++) {
+        const strVal = String(body[rIdx][cIdx] ?? '');
+        if (isArabicText(strVal)) {
+          arabicCells[`${rIdx}_${cIdx}`] = renderArabicToDataUrl(strVal);
+          body[rIdx][cIdx] = ''; // blank text so helvetica won't print mojibake
+        }
+      }
+    }
+
     let columnStyles: any = {};
     if (activeTab === 'muhafadzoh') {
       columnStyles = {
@@ -500,10 +548,35 @@ export const LaporanUjianKhusus = () => {
       head: headers,
       body: body,
       startY: 34,
-      styles: { fontSize, cellPadding: 2, minCellHeight: rowHeight, overflow: 'ellipsize' },
+      styles: { fontSize, cellPadding: 2, minCellHeight: rowHeight, overflow: 'ellipsize', valign: 'middle' },
       columnStyles,
       headStyles: { fillColor: [41, 128, 185], textColor: 255 },
-      theme: 'grid'
+      theme: 'grid',
+      didDrawCell: (cellData) => {
+        if (cellData.section === 'body') {
+          const key = `${cellData.row.index}_${cellData.column.index}`;
+          const imgData = arabicCells[key];
+          if (imgData) {
+            try {
+              const imgProps = (doc as any).getImageProperties(imgData);
+              const imgRatio = imgProps.width / imgProps.height;
+              const maxH = Math.min(cellData.cell.height - 1.5, 6.5);
+              let drawW = maxH * imgRatio;
+              let drawH = maxH;
+              const maxW = cellData.cell.width - 2;
+              if (drawW > maxW) {
+                drawW = maxW;
+                drawH = drawW / imgRatio;
+              }
+              const posX = cellData.cell.x + (cellData.cell.width - drawW) / 2;
+              const posY = cellData.cell.y + (cellData.cell.height - drawH) / 2;
+              doc.addImage(imgData, 'PNG', posX, posY, drawW, drawH);
+            } catch (err) {
+              console.error('Error drawing Arabic text cell in PDF:', err);
+            }
+          }
+        }
+      }
     });
   };
 
@@ -675,17 +748,53 @@ export const LaporanUjianKhusus = () => {
       });
     }
 
+    const akumulasiArabicCells: Record<string, string> = {};
+    for (let rIdx = 0; rIdx < body.length; rIdx++) {
+      for (let cIdx = 0; cIdx < body[rIdx].length; cIdx++) {
+        const strVal = String(body[rIdx][cIdx] ?? '');
+        if (isArabicText(strVal)) {
+          akumulasiArabicCells[`${rIdx}_${cIdx}`] = renderArabicToDataUrl(strVal);
+          body[rIdx][cIdx] = '';
+        }
+      }
+    }
+
     autoTable(doc, {
       head: headers,
       body: body,
       startY: 28,
-      styles: { fontSize: 8.5, cellPadding: 2.5, halign: 'center' },
+      styles: { fontSize: 8.5, cellPadding: 2.5, halign: 'center', valign: 'middle' },
       headStyles: { fillColor: [41, 128, 185], textColor: 255 },
       columnStyles: {
         0: { cellWidth: 12, halign: 'center' },
         1: { cellWidth: 38, halign: 'left' }
       },
-      theme: 'grid'
+      theme: 'grid',
+      didDrawCell: (cellData) => {
+        if (cellData.section === 'body') {
+          const key = `${cellData.row.index}_${cellData.column.index}`;
+          const imgData = akumulasiArabicCells[key];
+          if (imgData) {
+            try {
+              const imgProps = (doc as any).getImageProperties(imgData);
+              const imgRatio = imgProps.width / imgProps.height;
+              const maxH = Math.min(cellData.cell.height - 1.5, 6.5);
+              let drawW = maxH * imgRatio;
+              let drawH = maxH;
+              const maxW = cellData.cell.width - 2;
+              if (drawW > maxW) {
+                drawW = maxW;
+                drawH = drawW / imgRatio;
+              }
+              const posX = cellData.cell.x + (cellData.cell.width - drawW) / 2;
+              const posY = cellData.cell.y + (cellData.cell.height - drawH) / 2;
+              doc.addImage(imgData, 'PNG', posX, posY, drawW, drawH);
+            } catch (err) {
+              console.error('Error drawing Arabic in Akumulasi PDF:', err);
+            }
+          }
+        }
+      }
     });
 
     doc.save(`Akumulasi_${activeTab}_${tahunAjaran?.kode || ''}.pdf`);

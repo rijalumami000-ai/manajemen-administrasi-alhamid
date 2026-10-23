@@ -97,17 +97,19 @@ export function Romadhon() {
   };
 
   const guruOptions = useMemo(() => {
+    if (!Array.isArray(guruList)) return [];
     return guruList.map((g: any) => ({
-      value: g.nama,
-      label: g.nama
-    }));
+      value: g?.nama || '',
+      label: g?.nama || ''
+    })).filter(o => Boolean(o.value));
   }, [guruList]);
 
   const santriOptions = useMemo(() => {
+    if (!Array.isArray(santriList)) return [];
     return santriList.map((s: any) => ({
-      value: s.nama,
-      label: `${s.nama}${s.nis ? ` (NIS: ${s.nis})` : ''}`
-    }));
+      value: s?.nama || '',
+      label: `${s?.nama || ''}${s?.nis ? ` (NIS: ${s.nis})` : ''}`
+    })).filter(o => Boolean(o.value));
   }, [santriList]);
 
   const selectedYearObj = tahunAjaranList.find(t => t.id === selectedTahunAjaran);
@@ -193,6 +195,58 @@ export function Romadhon() {
     }
   };
 
+  // ═══ IMAM TARAWIH HANDLERS ═══
+  const openAddTarawih = () => {
+    setEditingTarawih(null);
+    setTarawihForm({ malam: '', imam: '', bilal: '', tempat: "Masjid Jami' Al-Hamid" });
+    setTarawihModalOpen(true);
+  };
+
+  const openEditTarawih = (item: ImamTarawihItem) => {
+    setEditingTarawih(item);
+    setTarawihForm({
+      malam: String(item.malam),
+      imam: item.imam,
+      bilal: item.bilal || '',
+      tempat: item.tempat || "Masjid Jami' Al-Hamid"
+    });
+    // Check if imam or bilal is in guru or santri to initialize selector switch
+    if (guruOptions.some(g => g.value === item.imam)) {
+      setImamSource('guru');
+    } else if (santriOptions.some(s => s.value === item.imam)) {
+      setImamSource('santri');
+    }
+    if (guruOptions.some(g => g.value === item.bilal)) {
+      setBilalSource('guru');
+    } else if (santriOptions.some(s => s.value === item.bilal)) {
+      setBilalSource('santri');
+    }
+    setTarawihModalOpen(true);
+  };
+
+  const saveTarawih = async () => {
+    if (!tarawihForm.malam || !tarawihForm.imam) {
+      toast.error('Malam ke- dan imam wajib diisi.');
+      return;
+    }
+    setSaving(true);
+    try {
+      if (editingTarawih) {
+        await (romadhonService as any).updateImamTarawih(editingTarawih.id, tarawihForm);
+        toast.success('Data imam tarawih berhasil diperbarui.');
+      } else {
+        await (romadhonService as any).createImamTarawih({ ...tarawihForm, tahun_ajaran_id: selectedTahunAjaran });
+        toast.success('Data imam tarawih berhasil ditambahkan.');
+      }
+      setTarawihModalOpen(false);
+      loadData();
+    } catch (err: any) {
+      toast.error(err.message || 'Gagal menyimpan imam tarawih');
+    } finally {
+      setSaving(false);
+    }
+  };
+
   const confirmDelete = async () => {
     if (!deleteTarget) return;
     try {
@@ -239,7 +293,7 @@ export function Romadhon() {
             value={selectedTahunAjaran ? String(selectedTahunAjaran) : ''}
             onChange={(val) => setSelectedTahunAjaran(Number(val))}
             placeholder="Pilih Tahun Ajaran"
-            style={{ minWidth: 220 }}
+            minWidth={220}
           />
         </div>
       </header>
@@ -438,203 +492,209 @@ export function Romadhon() {
       )}
 
       {/* Modal Kajian Balagh */}
-      <CustomModal
-        isOpen={kajianModalOpen}
-        onClose={() => setKajianModalOpen(false)}
-        title={editingKajian ? 'Edit Jadwal Kajian Balagh' : 'Tambah Jadwal Kajian Balagh'}
-        onOk={saveKajian}
-        okText={saving ? 'Menyimpan...' : 'Simpan'}
-        okLoading={saving}
-        width={500}
-      >
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-          <FloatingInput label="Kelas *" value={kajianForm.kelas} onChange={e => setKajianForm(p => ({ ...p, kelas: e.target.value }))} placeholder="Contoh: Sifir, 1 & Sp Putra, 2 Putri" />
-          <FloatingInput label="Waktu *" value={kajianForm.waktu} onChange={e => setKajianForm(p => ({ ...p, waktu: e.target.value }))} placeholder="Contoh: 14:00 – 14:45" />
+      {kajianModalOpen && (
+        <CustomModal
+          isOpen={kajianModalOpen}
+          onClose={() => setKajianModalOpen(false)}
+          title={editingKajian ? 'Edit Jadwal Kajian Balagh' : 'Tambah Jadwal Kajian Balagh'}
+          onOk={saveKajian}
+          okText={saving ? 'Menyimpan...' : 'Simpan'}
+          okLoading={saving}
+          width={500}
+        >
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+            <FloatingInput label="Kelas *" value={kajianForm.kelas} onChange={e => setKajianForm(p => ({ ...p, kelas: e.target.value }))} placeholder="Contoh: Sifir, 1 & Sp Putra, 2 Putri" />
+            <FloatingInput label="Waktu *" value={kajianForm.waktu} onChange={e => setKajianForm(p => ({ ...p, waktu: e.target.value }))} placeholder="Contoh: 14:00 – 14:45" />
 
-          {/* Qori' / Pengampu: Pilih dari Guru */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-            <label style={{ fontSize: '12px', fontWeight: 600, color: '#475569' }}>
-              Qori' / Pengampu (Pilih dari Guru) *
-            </label>
-            <CustomSelect
-              options={guruOptions}
-              value={guruOptions.some(o => o.value === kajianForm.qori) ? kajianForm.qori : ''}
-              onChange={(val) => setKajianForm(p => ({ ...p, qori: val || '' }))}
-              placeholder="Pilih Guru Pengampu..."
-            />
-            <FloatingInput
-              label="Nama Qori' / Pengampu *"
-              value={kajianForm.qori}
-              onChange={e => setKajianForm(p => ({ ...p, qori: e.target.value }))}
-              placeholder="Atau sesuaikan nama pengampu..."
-            />
+            {/* Qori' / Pengampu: Pilih dari Guru */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+              <label style={{ fontSize: '12px', fontWeight: 600, color: '#475569' }}>
+                Qori' / Pengampu (Pilih dari Guru) *
+              </label>
+              <CustomSelect
+                options={guruOptions}
+                value={guruOptions.some(o => o.value === kajianForm.qori) ? kajianForm.qori : ''}
+                onChange={(val) => setKajianForm(p => ({ ...p, qori: val || '' }))}
+                placeholder="Pilih Guru Pengampu..."
+              />
+              <FloatingInput
+                label="Nama Qori' / Pengampu *"
+                value={kajianForm.qori}
+                onChange={e => setKajianForm(p => ({ ...p, qori: e.target.value }))}
+                placeholder="Atau sesuaikan nama pengampu..."
+              />
+            </div>
+
+            <FloatingInput label="Kitab *" value={kajianForm.kitab} onChange={e => setKajianForm(p => ({ ...p, kitab: e.target.value }))} placeholder="Contoh: Safinatus Sholah" />
+            <FloatingInput label="Tempat" value={kajianForm.tempat} onChange={e => setKajianForm(p => ({ ...p, tempat: e.target.value }))} placeholder="Contoh: 22 KELAS 5A" />
           </div>
-
-          <FloatingInput label="Kitab *" value={kajianForm.kitab} onChange={e => setKajianForm(p => ({ ...p, kitab: e.target.value }))} placeholder="Contoh: Safinatus Sholah" />
-          <FloatingInput label="Tempat" value={kajianForm.tempat} onChange={e => setKajianForm(p => ({ ...p, tempat: e.target.value }))} placeholder="Contoh: 22 KELAS 5A" />
-        </div>
-      </CustomModal>
+        </CustomModal>
+      )}
 
       {/* Modal Imam Tarawih */}
-      <CustomModal
-        isOpen={tarawihModalOpen}
-        onClose={() => setTarawihModalOpen(false)}
-        title={editingTarawih ? 'Edit Jadwal Imam Tarawih' : 'Tambah Jadwal Imam Tarawih'}
-        onOk={saveTarawih}
-        okText={saving ? 'Menyimpan...' : 'Simpan'}
-        okLoading={saving}
-        width={520}
-      >
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-          <FloatingInput label="Malam ke- *" type="number" value={String(tarawihForm.malam)} onChange={e => setTarawihForm(p => ({ ...p, malam: e.target.value }))} placeholder="1-30" />
+      {tarawihModalOpen && (
+        <CustomModal
+          isOpen={tarawihModalOpen}
+          onClose={() => setTarawihModalOpen(false)}
+          title={editingTarawih ? 'Edit Jadwal Imam Tarawih' : 'Tambah Jadwal Imam Tarawih'}
+          onOk={saveTarawih}
+          okText={saving ? 'Menyimpan...' : 'Simpan'}
+          okLoading={saving}
+          width={520}
+        >
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+            <FloatingInput label="Malam ke- *" type="number" value={String(tarawihForm.malam)} onChange={e => setTarawihForm(p => ({ ...p, malam: e.target.value }))} placeholder="1-30" />
 
-          {/* Imam Selection: Guru vs Santri */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <label style={{ fontSize: '12px', fontWeight: 600, color: '#475569' }}>
-                Imam Sholat *
-              </label>
-              <div style={{ display: 'inline-flex', background: 'rgba(0,0,0,0.06)', borderRadius: '8px', padding: '2px' }}>
-                <button
-                  type="button"
-                  onClick={() => setImamSource('guru')}
-                  style={{
-                    border: 'none',
-                    background: imamSource === 'guru' ? '#2563eb' : 'transparent',
-                    color: imamSource === 'guru' ? '#fff' : '#64748b',
-                    borderRadius: '6px',
-                    padding: '3px 8px',
-                    fontSize: '11px',
-                    fontWeight: 600,
-                    cursor: 'pointer'
-                  }}
-                >
-                  Dari Guru
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setImamSource('santri')}
-                  style={{
-                    border: 'none',
-                    background: imamSource === 'santri' ? '#2563eb' : 'transparent',
-                    color: imamSource === 'santri' ? '#fff' : '#64748b',
-                    borderRadius: '6px',
-                    padding: '3px 8px',
-                    fontSize: '11px',
-                    fontWeight: 600,
-                    cursor: 'pointer'
-                  }}
-                >
-                  Dari Santri
-                </button>
+            {/* Imam Selection: Guru vs Santri */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <label style={{ fontSize: '12px', fontWeight: 600, color: '#475569' }}>
+                  Imam Sholat *
+                </label>
+                <div style={{ display: 'inline-flex', background: 'rgba(0,0,0,0.06)', borderRadius: '8px', padding: '2px' }}>
+                  <button
+                    type="button"
+                    onClick={() => setImamSource('guru')}
+                    style={{
+                      border: 'none',
+                      background: imamSource === 'guru' ? '#2563eb' : 'transparent',
+                      color: imamSource === 'guru' ? '#fff' : '#64748b',
+                      borderRadius: '6px',
+                      padding: '3px 8px',
+                      fontSize: '11px',
+                      fontWeight: 600,
+                      cursor: 'pointer'
+                    }}
+                  >
+                    Dari Guru
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setImamSource('santri')}
+                    style={{
+                      border: 'none',
+                      background: imamSource === 'santri' ? '#2563eb' : 'transparent',
+                      color: imamSource === 'santri' ? '#fff' : '#64748b',
+                      borderRadius: '6px',
+                      padding: '3px 8px',
+                      fontSize: '11px',
+                      fontWeight: 600,
+                      cursor: 'pointer'
+                    }}
+                  >
+                    Dari Santri
+                  </button>
+                </div>
               </div>
+
+              <CustomSelect
+                options={imamSource === 'guru' ? guruOptions : santriOptions}
+                value={(imamSource === 'guru' ? guruOptions : santriOptions).some(o => o.value === tarawihForm.imam) ? tarawihForm.imam : ''}
+                onChange={(val) => setTarawihForm(p => ({ ...p, imam: val || '' }))}
+                placeholder={imamSource === 'guru' ? 'Pilih Guru sebagai Imam...' : 'Pilih Santri sebagai Imam...'}
+              />
+              <FloatingInput
+                label="Nama Imam *"
+                value={tarawihForm.imam}
+                onChange={e => setTarawihForm(p => ({ ...p, imam: e.target.value }))}
+                placeholder="Atau sesuaikan nama imam..."
+              />
             </div>
 
-            <CustomSelect
-              options={imamSource === 'guru' ? guruOptions : santriOptions}
-              value={(imamSource === 'guru' ? guruOptions : santriOptions).some(o => o.value === tarawihForm.imam) ? tarawihForm.imam : ''}
-              onChange={(val) => setTarawihForm(p => ({ ...p, imam: val || '' }))}
-              placeholder={imamSource === 'guru' ? 'Pilih Guru sebagai Imam...' : 'Pilih Santri sebagai Imam...'}
-            />
-            <FloatingInput
-              label="Nama Imam *"
-              value={tarawihForm.imam}
-              onChange={e => setTarawihForm(p => ({ ...p, imam: e.target.value }))}
-              placeholder="Atau sesuaikan nama imam..."
-            />
-          </div>
-
-          {/* Bilal Selection: Guru vs Santri */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <label style={{ fontSize: '12px', fontWeight: 600, color: '#475569' }}>
-                Bilal / Muroqqi
-              </label>
-              <div style={{ display: 'inline-flex', background: 'rgba(0,0,0,0.06)', borderRadius: '8px', padding: '2px' }}>
-                <button
-                  type="button"
-                  onClick={() => setBilalSource('guru')}
-                  style={{
-                    border: 'none',
-                    background: bilalSource === 'guru' ? '#2563eb' : 'transparent',
-                    color: bilalSource === 'guru' ? '#fff' : '#64748b',
-                    borderRadius: '6px',
-                    padding: '3px 8px',
-                    fontSize: '11px',
-                    fontWeight: 600,
-                    cursor: 'pointer'
-                  }}
-                >
-                  Dari Guru
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setBilalSource('santri')}
-                  style={{
-                    border: 'none',
-                    background: bilalSource === 'santri' ? '#2563eb' : 'transparent',
-                    color: bilalSource === 'santri' ? '#fff' : '#64748b',
-                    borderRadius: '6px',
-                    padding: '3px 8px',
-                    fontSize: '11px',
-                    fontWeight: 600,
-                    cursor: 'pointer'
-                  }}
-                >
-                  Dari Santri
-                </button>
+            {/* Bilal Selection: Guru vs Santri */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <label style={{ fontSize: '12px', fontWeight: 600, color: '#475569' }}>
+                  Bilal / Muroqqi
+                </label>
+                <div style={{ display: 'inline-flex', background: 'rgba(0,0,0,0.06)', borderRadius: '8px', padding: '2px' }}>
+                  <button
+                    type="button"
+                    onClick={() => setBilalSource('guru')}
+                    style={{
+                      border: 'none',
+                      background: bilalSource === 'guru' ? '#2563eb' : 'transparent',
+                      color: bilalSource === 'guru' ? '#fff' : '#64748b',
+                      borderRadius: '6px',
+                      padding: '3px 8px',
+                      fontSize: '11px',
+                      fontWeight: 600,
+                      cursor: 'pointer'
+                    }}
+                  >
+                    Dari Guru
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setBilalSource('santri')}
+                    style={{
+                      border: 'none',
+                      background: bilalSource === 'santri' ? '#2563eb' : 'transparent',
+                      color: bilalSource === 'santri' ? '#fff' : '#64748b',
+                      borderRadius: '6px',
+                      padding: '3px 8px',
+                      fontSize: '11px',
+                      fontWeight: 600,
+                      cursor: 'pointer'
+                    }}
+                  >
+                    Dari Santri
+                  </button>
+                </div>
               </div>
+
+              <CustomSelect
+                options={bilalSource === 'guru' ? guruOptions : santriOptions}
+                value={(bilalSource === 'guru' ? guruOptions : santriOptions).some(o => o.value === tarawihForm.bilal) ? tarawihForm.bilal : ''}
+                onChange={(val) => setTarawihForm(p => ({ ...p, bilal: val || '' }))}
+                placeholder={bilalSource === 'guru' ? 'Pilih Guru sebagai Bilal...' : 'Pilih Santri sebagai Bilal...'}
+              />
+              <FloatingInput
+                label="Nama Bilal / Muroqqi"
+                value={tarawihForm.bilal}
+                onChange={e => setTarawihForm(p => ({ ...p, bilal: e.target.value }))}
+                placeholder="Atau sesuaikan nama bilal..."
+              />
             </div>
 
-            <CustomSelect
-              options={bilalSource === 'guru' ? guruOptions : santriOptions}
-              value={(bilalSource === 'guru' ? guruOptions : santriOptions).some(o => o.value === tarawihForm.bilal) ? tarawihForm.bilal : ''}
-              onChange={(val) => setTarawihForm(p => ({ ...p, bilal: val || '' }))}
-              placeholder={bilalSource === 'guru' ? 'Pilih Guru sebagai Bilal...' : 'Pilih Santri sebagai Bilal...'}
-            />
-            <FloatingInput
-              label="Nama Bilal / Muroqqi"
-              value={tarawihForm.bilal}
-              onChange={e => setTarawihForm(p => ({ ...p, bilal: e.target.value }))}
-              placeholder="Atau sesuaikan nama bilal..."
-            />
+            <FloatingInput label="Tempat" value={tarawihForm.tempat} onChange={e => setTarawihForm(p => ({ ...p, tempat: e.target.value }))} placeholder="Contoh: Masjid Jami' Al-Hamid" />
           </div>
-
-          <FloatingInput label="Tempat" value={tarawihForm.tempat} onChange={e => setTarawihForm(p => ({ ...p, tempat: e.target.value }))} placeholder="Contoh: Masjid Jami' Al-Hamid" />
-        </div>
-      </CustomModal>
+        </CustomModal>
+      )}
 
       {/* Confirmation Modal Hapus Romadhon */}
-      <CustomModal
-        isOpen={Boolean(deleteTarget)}
-        onClose={() => setDeleteTarget(null)}
-        title={deleteTarget?.type === 'kajian' ? 'Hapus Jadwal Kajian?' : 'Hapus Petugas Tarawih?'}
-        subtitle={`Jadwal ${deleteTarget?.title || ''} akan dihapus permanen`}
-        width={440}
-      >
-        <div style={{ padding: '8px 0', fontSize: '13.5px', color: '#475569', lineHeight: 1.6 }}>
-          Apakah Anda yakin ingin menghapus jadwal <strong>{deleteTarget?.title}</strong>? Tindakan ini tidak dapat dibatalkan.
-        </div>
-        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginTop: '20px' }}>
-          <button
-            type="button"
-            className="action-pill-btn secondary-pill"
-            onClick={() => setDeleteTarget(null)}
-            disabled={isDeleting}
-          >
-            Batal
-          </button>
-          <button
-            type="button"
-            className="action-pill-btn danger-pill"
-            onClick={confirmDelete}
-            disabled={isDeleting}
-          >
-            <Trash2 size={14} />
-            <span>{isDeleting ? 'Menghapus...' : 'Ya, Hapus'}</span>
-          </button>
-        </div>
-      </CustomModal>
+      {Boolean(deleteTarget) && (
+        <CustomModal
+          isOpen={Boolean(deleteTarget)}
+          onClose={() => setDeleteTarget(null)}
+          title={deleteTarget?.type === 'kajian' ? 'Hapus Jadwal Kajian?' : 'Hapus Petugas Tarawih?'}
+          subtitle={`Jadwal ${deleteTarget?.title || ''} akan dihapus permanen`}
+          width={440}
+        >
+          <div style={{ padding: '8px 0', fontSize: '13.5px', color: '#475569', lineHeight: 1.6 }}>
+            Apakah Anda yakin ingin menghapus jadwal <strong>{deleteTarget?.title}</strong>? Tindakan ini tidak dapat dibatalkan.
+          </div>
+          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginTop: '20px' }}>
+            <button
+              type="button"
+              className="action-pill-btn secondary-pill"
+              onClick={() => setDeleteTarget(null)}
+              disabled={isDeleting}
+            >
+              Batal
+            </button>
+            <button
+              type="button"
+              className="action-pill-btn danger-pill"
+              onClick={confirmDelete}
+              disabled={isDeleting}
+            >
+              <Trash2 size={14} />
+              <span>{isDeleting ? 'Menghapus...' : 'Ya, Hapus'}</span>
+            </button>
+          </div>
+        </CustomModal>
+      )}
     </div>
   );
 }

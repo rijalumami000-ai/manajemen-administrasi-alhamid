@@ -585,6 +585,19 @@
     }
   }
 
+  // ─── Single-Line Arabic Cell ────────────────────────────────────────────────
+  .one-line-arab-cell {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 240px;
+    margin: 0 auto;
+    font-family: 'Amiri', 'Traditional Arabic', 'Scheherazade New', 'Segoe UI', system-ui, sans-serif;
+    font-size: 13.5px;
+    direction: rtl;
+    line-height: 1.4;
+  }
+
   // ─── Floating Action Button Overlay for Mobile ──────────────────────────────
   .mobile-fab-column {
     position: fixed;

@@ -59,21 +59,22 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
             <p style={{ color: '#666', marginBottom: '2rem' }}>
               Maaf, terjadi kesalahan yang tidak terduga. Silakan refresh halaman atau kembali ke dashboard.
             </p>
-            {process.env.NODE_ENV === 'development' && this.state.error && (
+            {this.state.error && (
               <details style={{
                 textAlign: 'left',
                 backgroundColor: '#f8f9fa',
                 padding: '1rem',
                 borderRadius: '8px',
                 marginBottom: '1rem',
-                fontSize: '14px'
+                fontSize: '14px',
+                border: '1px solid #e9ecef'
               }}>
-                <summary style={{ cursor: 'pointer', fontWeight: 'bold', marginBottom: '0.5rem' }}>
-                  Error Details (Development Only)
+                <summary style={{ cursor: 'pointer', fontWeight: 600, color: '#495057', marginBottom: '0.5rem' }}>
+                  Detail Teknis (Klik untuk melihat info error)
                 </summary>
-                <pre style={{ overflow: 'auto', fontSize: '12px' }}>
+                <pre style={{ overflow: 'auto', fontSize: '12px', color: '#c92a2a', maxHeight: '200px', whiteSpace: 'pre-wrap' }}>
                   {this.state.error.toString()}
-                  {this.state.errorInfo && this.state.errorInfo.componentStack}
+                  {this.state.errorInfo && `\n\nStack:\n${this.state.errorInfo.componentStack}`}
                 </pre>
               </details>
             )}
