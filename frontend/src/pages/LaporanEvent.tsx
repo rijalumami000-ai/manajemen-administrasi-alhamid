@@ -1,19 +1,24 @@
-import { useState, useEffect, useCallback } from 'react';
-import { CalendarRange, TrendingUp, TrendingDown, RefreshCw, Search, Award } from 'lucide-react';
+import React, { useState, useEffect, useCallback } from 'react';
+import {
+  RefreshCw, Search, X, CheckCircle2, Clock, XCircle, Minus,
+  Layers, Users, Banknote, AlertCircle, Calendar, Sparkles
+} from 'lucide-react';
+import { CustomSelect } from '../components/ui/CustomSelect';
+import {
+  StatusTagihan,
+  TahunAjaran,
+  LaporanEventResponse,
+  LaporanEventItem,
+  LaporanEventSantri
+} from '../types/keuangan';
 import './LaporanEvent.scss';
-
-type StatusTagihan = 'belum_lunas' | 'sebagian' | 'lunas' | 'dibebaskan';
-
-interface TahunAjaran {
-  id: number;
-  kode: string;
-  is_active: boolean;
-}
 
 function rp(n: number): string {
   return new Intl.NumberFormat('id-ID', {
-    style: 'currency', currency: 'IDR',
-    minimumFractionDigits: 0, maximumFractionDigits: 0,
+    style: 'currency',
+    currency: 'IDR',
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 0,
   }).format(n ?? 0);
 }
 
@@ -25,25 +30,33 @@ function getPctClass(pct: number): string {
 }
 
 function StatusBadge({ status }: { status: StatusTagihan }) {
-  if (!status) return <span className="k-badge k-badge--belum_lunas">—</span>;
-  const map: Record<StatusTagihan, string> = {
-    lunas: 'k-badge--lunas', sebagian: 'k-badge--sebagian',
-    belum_lunas: 'k-badge--belum_lunas', dibebaskan: 'k-badge--dibebaskan',
+  if (!status) return <span className="tagihan-status-badge badge-belum-lunas">—</span>;
+  const map: Record<StatusTagihan, { label: string; className: string; Icon: React.ElementType }> = {
+    lunas:       { label: 'Lunas',      className: 'badge-lunas',       Icon: CheckCircle2 },
+    sebagian:    { label: 'Sebagian',   className: 'badge-sebagian',    Icon: Clock },
+    belum_lunas: { label: 'Belum',      className: 'badge-belum-lunas', Icon: XCircle },
+    dibebaskan:  { label: 'Bebas',      className: 'badge-dibebaskan',  Icon: Minus },
   };
-  const labels: Record<StatusTagihan, string> = {
-    lunas: 'Lunas', sebagian: 'Sebagian', belum_lunas: 'Belum', dibebaskan: 'Bebas',
-  };
-  return <span className={`k-badge ${map[status]}`}>{labels[status]}</span>;
+  const { label, className, Icon } = map[status] ?? map.belum_lunas;
+  return (
+    <span className={`tagihan-status-badge ${className}`}>
+      <Icon size={10} />
+      <span>{label}</span>
+    </span>
+  );
 }
 
+// ════════════════════════════════════════════════════════════════════════════
+// MAIN COMPONENT
+// ════════════════════════════════════════════════════════════════════════════
 export default function LaporanEvent() {
   const [tahunList, setTahunList] = useState<TahunAjaran[]>([]);
   const [tahunId, setTahunId] = useState<number | null>(null);
-  const [data, setData] = useState<any>(null);
+  const [data, setData] = useState<LaporanEventResponse | null>(null);
   const [loading, setLoading] = useState(false);
   const [selectedEventCode, setSelectedEventCode] = useState<string>('');
   const [searchQuery, setSearchQuery] = useState('');
-  
+
   const token = localStorage.getItem('token') ?? '';
 
   useEffect(() => {
@@ -53,7 +66,8 @@ export default function LaporanEvent() {
         setTahunList(list);
         const aktif = list.find(t => t.is_active);
         if (aktif) setTahunId(aktif.id);
-      });
+      })
+      .catch(() => {});
   }, [token]);
 
   const fetchData = useCallback(async () => {
@@ -65,18 +79,17 @@ export default function LaporanEvent() {
         { headers: { Authorization: `Bearer ${token}` } }
       );
       if (res.ok) {
-        const json = await res.json();
+        const json: LaporanEventResponse = await res.json();
         setData(json);
         if (json.per_event?.length > 0) {
-          // Keep selection or default to first
-          const exists = json.per_event.some((e: any) => e.kode === selectedEventCode);
+          const exists = json.per_event.some(e => e.kode === selectedEventCode);
           if (!exists) setSelectedEventCode(json.per_event[0].kode);
         } else {
           setSelectedEventCode('');
         }
       }
-    } catch (err) {
-      console.error('Fetch Laporan Event error:', err);
+    } catch {
+      // silent
     } finally {
       setLoading(false);
     }
@@ -86,189 +99,269 @@ export default function LaporanEvent() {
     fetchData();
   }, [fetchData]);
 
-  const events = data?.per_event ?? [];
-  const activeEvent = events.find((e: any) => e.kode === selectedEventCode);
-  
-  const detailSantri = activeEvent?.detail_santri ?? [];
-  const filteredSantri = detailSantri.filter((s: any) =>
+  const events: LaporanEventItem[] = data?.per_event ?? [];
+  const activeEvent = events.find(e => e.kode === selectedEventCode);
+
+  const detailSantri: LaporanEventSantri[] = activeEvent?.detail_santri ?? [];
+  const filteredSantri = detailSantri.filter(s =>
     s.nama?.toLowerCase().includes(searchQuery.toLowerCase()) ||
     s.nis?.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
+  const tahunOptions = tahunList.map(t => ({
+    value: t.id,
+    label: `${t.kode}${t.is_active ? ' (Aktif)' : ''}`,
+  }));
+
   return (
-    <div className="k-page laporan-event-page">
-      <div className="k-page__header">
-        <div>
-          <h1>
-            <CalendarRange size={22} style={{ marginRight: 8, color: '#3B6FE8', verticalAlign: 'middle' }} />
-            Laporan Keuangan Event
-          </h1>
-          <p>Realisasi pembayaran iuran temporer / event (Haflah, Kitab Ramadhan, dll)</p>
+    <div className="laporan-event-container">
+      {/* 🍏 1. APPLE FLOATING DOCK HEADER (Option A Standard - NO HEADER ICON) */}
+      <header className="tactile-page-header">
+        <div className="header-text-block">
+          <h2 className="page-title">Laporan Keuangan Event</h2>
+          <p className="page-subtitle">
+            Realisasi pembayaran iuran temporer / event insidental santri (Haflah, Kitab Romadhon, dll.)
+          </p>
         </div>
-        <div className="k-page__header-actions">
-          <select className="k-select" value={tahunId ?? ''} onChange={e => setTahunId(Number(e.target.value))}>
-            {tahunList.map(t => <option key={t.id} value={t.id}>{t.kode}{t.is_active ? ' (Aktif)' : ''}</option>)}
-          </select>
-          <button className="k-btn-secondary" onClick={fetchData} title="Refresh data">
-            <RefreshCw size={15} className={loading ? 'spin' : ''} />
+
+        <div className="header-action-dock">
+          <div style={{ width: 170 }}>
+            <CustomSelect
+              value={tahunId}
+              onChange={val => setTahunId(Number(val))}
+              options={tahunOptions}
+              placeholder="Pilih Tahun Ajaran"
+              size="md"
+            />
+          </div>
+
+          <button
+            type="button"
+            className="action-pill-btn secondary-pill"
+            onClick={fetchData}
+            disabled={loading}
+            title="Segarkan Data"
+          >
+            <RefreshCw size={14} className={loading ? 'spinning-icon' : ''} />
+            <span>Segarkan</span>
           </button>
         </div>
-      </div>
+      </header>
 
       {loading ? (
-        <div className="laporan-skeleton">
-          {[1, 2, 3].map(i => <div key={i} className="k-skeleton" style={{ height: 80, marginBottom: 12 }} />)}
+        <div className="laporan-skeleton-grid">
+          {[1, 2, 3].map(i => (
+            <div key={i} className="laporan-skeleton-card" />
+          ))}
         </div>
       ) : data ? (
         <>
-          {/* Summary Cards */}
-          <div className="laporan-summary-grid">
-            <div className="laporan-summary-card laporan-summary-card--makan">
-              <h4>Target Seluruh Event</h4>
-              <div className="laporan-summary-card__big">{rp(Number(data.grand_target))}</div>
-              <p className="muted" style={{ fontSize: 12, marginTop: 4 }}>
-                Total target untuk {events.length} event
-              </p>
-            </div>
-            <div className="laporan-summary-card laporan-summary-card--total">
-              <h4>Total Terkumpul</h4>
-              <div className="laporan-summary-card__big" style={{ color: '#10A05B' }}>{rp(Number(data.grand_terkumpul))}</div>
-              <div className="k-progress__bar-wrap" style={{ marginTop: 8 }}>
-                <div className={`k-progress__bar ${getPctClass(Number(data.realisasi_pct))}`}
-                  style={{ width: `${data.realisasi_pct}%` }} />
+          {/* 📊 2. KPI SUMMARY GRID */}
+          <div className="laporan-kpi-grid">
+            {/* Target Seluruh Event */}
+            <div className="laporan-glass-kpi card-sapphire">
+              <div className="kpi-top-row">
+                <span className="kpi-label">Target Seluruh Event</span>
+                <div className="kpi-icon-orb orb-sapphire">
+                  <Banknote size={18} />
+                </div>
               </div>
-              <div className="laporan-summary-card__pct">{data.realisasi_pct}% Realisasi Global</div>
+              <div className="kpi-main-val text-sapphire">{rp(Number(data.grand_target))}</div>
+              <p className="kpi-sub-text">Total estimasi dari {events.length} event terdaftar</p>
             </div>
-            <div className="laporan-summary-card laporan-summary-card--madin">
-              <h4>Total Piutang Event</h4>
-              <div className="laporan-summary-card__big" style={{ color: '#DC3545' }}>{rp(Number(data.grand_tunggakan))}</div>
-              <p className="muted" style={{ fontSize: 12, marginTop: 4 }}>
-                Belum dilunasi oleh santri
-              </p>
+
+            {/* Total Terkumpul */}
+            <div className="laporan-glass-kpi card-emerald">
+              <div className="kpi-top-row">
+                <span className="kpi-label">Total Terkumpul</span>
+                <div className="kpi-icon-orb orb-emerald">
+                  <CheckCircle2 size={18} />
+                </div>
+              </div>
+              <div className="kpi-main-val text-emerald">{rp(Number(data.grand_terkumpul))}</div>
+              <div className="kpi-progress-track">
+                <div
+                  className="kpi-progress-fill fill-emerald"
+                  style={{ width: `${data.realisasi_pct}%` }}
+                />
+              </div>
+              <div className="kpi-meta-footer">
+                <span>{data.realisasi_pct}% Realisasi Global</span>
+                <span className="meta-sub">Penerimaan masuk</span>
+              </div>
+            </div>
+
+            {/* Total Piutang Event */}
+            <div className="laporan-glass-kpi card-rose">
+              <div className="kpi-top-row">
+                <span className="kpi-label">Total Piutang Event</span>
+                <div className="kpi-icon-orb orb-rose">
+                  <AlertCircle size={18} />
+                </div>
+              </div>
+              <div className="kpi-main-val text-rose">{rp(Number(data.grand_tunggakan))}</div>
+              <p className="kpi-sub-text">Belum dilunasi oleh santri</p>
             </div>
           </div>
 
           {events.length === 0 ? (
-            <div className="k-card-bg center muted" style={{ padding: 48, marginTop: 24, borderRadius: 8 }}>
-              Tidak ada event keuangan aktif yang terdaftar di tahun ajaran ini.
+            <div className="event-empty-box">
+              <Sparkles size={36} className="empty-icon" />
+              <h3>Belum Ada Event Aktif</h3>
+              <p>Tidak ada tagihan event keuangan yang terdaftar pada tahun ajaran ini.</p>
             </div>
           ) : (
-            <div className="event-layout" style={{ marginTop: 24 }}>
-              {/* Event Selector List Sidebar */}
-              <div className="event-sidebar">
-                <h4 style={{ fontWeight: 600, marginBottom: 12, paddingLeft: 8 }}>Daftar Event</h4>
-                <div className="event-list">
-                  {events.map((ev: any) => (
-                    <button
-                      key={ev.kode}
-                      className={`event-item ${selectedEventCode === ev.kode ? 'event-item--active' : ''}`}
-                      onClick={() => {
-                        setSelectedEventCode(ev.kode);
-                        setSearchQuery('');
-                      }}
-                    >
-                      <div className="event-item__title">{ev.nama}</div>
-                      <div className="event-item__sub">
-                        <span>Realisasi: {rp(ev.terkumpul)}</span>
-                        <span className={`badge-pct ${getPctClass(ev.realisasi_pct)}`}>
-                          {ev.realisasi_pct}%
-                        </span>
-                      </div>
-                    </button>
-                  ))}
+            /* ── 3. DUA KOLOM: Event Sidebar + Event Detail Panel ──────── */
+            <div className="event-master-detail-layout">
+              {/* KOLOM KIRI: Daftar Event Selector */}
+              <div className="event-sidebar-card">
+                <div className="sidebar-header">
+                  <h4 className="sidebar-title">Daftar Event ({events.length})</h4>
+                </div>
+                <div className="event-pills-list">
+                  {events.map(ev => {
+                    const isActive = selectedEventCode === ev.kode;
+                    return (
+                      <button
+                        key={ev.kode}
+                        type="button"
+                        className={`event-selector-pill ${isActive ? 'active' : ''}`}
+                        onClick={() => {
+                          setSelectedEventCode(ev.kode);
+                          setSearchQuery('');
+                        }}
+                      >
+                        <div className="pill-top-row">
+                          <span className="event-name">{ev.nama}</span>
+                          <span className={`pill-pct-badge ${getPctClass(ev.realisasi_pct)}`}>
+                            {ev.realisasi_pct}%
+                          </span>
+                        </div>
+                        <div className="pill-sub-row">
+                          <span className="nominal-txt">Terkumpul: {rp(ev.terkumpul)}</span>
+                          <span className="code-txt">{ev.kode}</span>
+                        </div>
+                      </button>
+                    );
+                  })}
                 </div>
               </div>
 
-              {/* Event Detail Panel */}
+              {/* KOLOM KANAN: Detail Panel Event Terpilih */}
               {activeEvent && (
-                <div className="event-detail-panel">
+                <div className="event-detail-card">
+                  {/* Panel Header */}
                   <div className="event-panel-header">
-                    <div>
-                      <h2>{activeEvent.nama}</h2>
-                      <span className="muted">Kode Event: {activeEvent.kode}</span>
+                    <div className="header-text-group">
+                      <h3 className="event-main-title">{activeEvent.nama}</h3>
+                      <span className="event-code-tag">Kode Iuran: {activeEvent.kode}</span>
                     </div>
-                    <div className="panel-realisasi-mini">
-                      <span className="pct">{activeEvent.realisasi_pct}%</span>
-                      <span className="label">terkumpul</span>
+
+                    <div className="event-realisasi-badge-wrap">
+                      <span className="pct-num text-sapphire">{activeEvent.realisasi_pct}%</span>
+                      <span className="lbl-txt">Realisasi</span>
                     </div>
                   </div>
 
-                  {/* Micro stats grid */}
-                  <div className="panel-stats-grid">
-                    <div className="p-stat">
-                      <span className="p-stat__label">Target Event</span>
-                      <span className="p-stat__val">{rp(activeEvent.target)}</span>
+                  {/* 4 Micro Stat Cards */}
+                  <div className="panel-micro-stats-grid">
+                    <div className="micro-stat-card">
+                      <span className="lbl">Target Event</span>
+                      <span className="val">{rp(activeEvent.target)}</span>
                     </div>
-                    <div className="p-stat">
-                      <span className="p-stat__label">Terkumpul</span>
-                      <span className="p-stat__val" style={{ color: '#10A05B' }}>{rp(activeEvent.terkumpul)}</span>
+                    <div className="micro-stat-card">
+                      <span className="lbl">Terkumpul</span>
+                      <span className="val text-emerald">{rp(activeEvent.terkumpul)}</span>
                     </div>
-                    <div className="p-stat">
-                      <span className="p-stat__label">Kekurangan</span>
-                      <span className="p-stat__val" style={{ color: '#DC3545' }}>{rp(activeEvent.target - activeEvent.terkumpul)}</span>
+                    <div className="micro-stat-card">
+                      <span className="lbl">Kekurangan</span>
+                      <span className="val text-rose">{rp(activeEvent.target - activeEvent.terkumpul)}</span>
                     </div>
-                    <div className="p-stat">
-                      <span className="p-stat__label">Status Santri</span>
-                      <span className="p-stat__val" style={{ fontSize: 13, fontWeight: 500 }}>
-                        {activeEvent.jumlah_lunas} lunas · {activeEvent.jumlah_sebagian} sebagian
+                    <div className="micro-stat-card">
+                      <span className="lbl">Partisipasi Santri</span>
+                      <span className="val-text">
+                        <strong>{activeEvent.jumlah_lunas}</strong> lunas · <strong>{activeEvent.jumlah_sebagian}</strong> sebagian
                       </span>
                     </div>
                   </div>
 
-                  {/* Student list */}
-                  <div className="event-students-list" style={{ marginTop: 24 }}>
-                    <div className="list-search-row">
-                      <h4 style={{ fontWeight: 600 }}>Daftar Santri Terdaftar</h4>
-                      <div className="search-box">
-                        <Search size={15} />
+                  {/* Table Section */}
+                  <div className="event-table-section">
+                    <div className="section-toolbar">
+                      <h4 className="section-title">Daftar Santri Terdaftar</h4>
+
+                      {/* Inset Search Pill */}
+                      <div className="search-pill-wrapper">
+                        <Search size={14} className="search-icon" />
                         <input
                           type="text"
-                          placeholder="Cari santri..."
+                          placeholder="Cari santri / NIS..."
                           value={searchQuery}
                           onChange={e => setSearchQuery(e.target.value)}
+                          className="search-input"
                         />
+                        {searchQuery && (
+                          <button
+                            type="button"
+                            className="search-clear-btn"
+                            onClick={() => setSearchQuery('')}
+                            title="Hapus pencarian"
+                          >
+                            <X size={13} />
+                          </button>
+                        )}
                       </div>
                     </div>
 
-                    <div className="k-table-wrap" style={{ marginTop: 12 }}>
-                      <table>
-                        <thead>
-                          <tr>
-                            <th>#</th>
-                            <th>Santri</th>
-                            <th className="right">Tagihan</th>
-                            <th className="right">Telah Dibayar</th>
-                            <th className="right">Sisa Tagihan</th>
-                            <th className="center">Status</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {filteredSantri.map((s: any, idx: number) => (
-                            <tr key={s.santri_id}>
-                              <td className="muted">{idx + 1}</td>
-                              <td>
-                                <div style={{ fontWeight: 600, fontSize: 13.5 }}>{s.nama}</div>
-                                <div style={{ fontSize: 11, color: '#94A3B8' }}>{s.nis}</div>
-                              </td>
-                              <td className="right">{rp(s.tagihan)}</td>
-                              <td className="right" style={{ color: '#10A05B' }}>{rp(s.dibayar)}</td>
-                              <td className="right" style={{ color: s.sisa > 0 ? '#DC3545' : '#10A05B', fontWeight: 600 }}>
-                                {rp(s.sisa)}
-                              </td>
-                              <td className="center">
-                                <StatusBadge status={s.status} />
-                              </td>
-                            </tr>
-                          ))}
-                          {filteredSantri.length === 0 && (
+                    <div className="laporan-table-card">
+                      <div className="table-responsive-wrapper">
+                        <table className="laporan-glass-table">
+                          <thead>
                             <tr>
-                              <td colSpan={6} className="center muted" style={{ padding: 24 }}>
-                                Tidak ada santri yang cocok dengan kriteria pencarian
-                              </td>
+                              <th style={{ width: 45 }}>#</th>
+                              <th>Santri</th>
+                              <th className="cell-right">Tagihan</th>
+                              <th className="cell-right">Telah Dibayar</th>
+                              <th className="cell-right">Sisa Tagihan</th>
+                              <th className="cell-center">Status</th>
                             </tr>
-                          )}
-                        </tbody>
-                      </table>
+                          </thead>
+                          <tbody>
+                            {filteredSantri.map((s, idx) => {
+                              const initial = s.nama ? s.nama.charAt(0).toUpperCase() : '?';
+                              return (
+                                <tr key={s.santri_id}>
+                                  <td className="cell-muted">{idx + 1}</td>
+                                  <td>
+                                    <div className="santri-cell-group">
+                                      <div className="santri-avatar-orb">{initial}</div>
+                                      <div className="santri-name-column">
+                                        <span className="santri-name">{s.nama}</span>
+                                        <span className="santri-nis-pill">NIS: {s.nis}</span>
+                                      </div>
+                                    </div>
+                                  </td>
+                                  <td className="cell-right font-numeric">{rp(s.tagihan)}</td>
+                                  <td className="cell-right font-numeric text-emerald font-bold">{rp(s.dibayar)}</td>
+                                  <td className={`cell-right font-numeric font-bold ${s.sisa > 0 ? 'text-rose' : 'text-emerald'}`}>
+                                    {rp(s.sisa)}
+                                  </td>
+                                  <td className="cell-center">
+                                    <StatusBadge status={s.status} />
+                                  </td>
+                                </tr>
+                              );
+                            })}
+                            {filteredSantri.length === 0 && (
+                              <tr>
+                                <td colSpan={6} className="table-empty-cell">
+                                  Tidak ada santri yang cocok dengan pencarian "{searchQuery}"
+                                </td>
+                              </tr>
+                            )}
+                          </tbody>
+                        </table>
+                      </div>
                     </div>
                   </div>
                 </div>

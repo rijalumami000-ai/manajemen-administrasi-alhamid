@@ -362,9 +362,14 @@ Fase 4: Verifikasi Build & HMR      <───  Fase 3: Refactor ke .tsx & Styli
 | **Ujian** | Lembar Ujian (`/lembar-ujian`) | ⏳ Antrean | Generator Lembar Soal & Jawaban |
 | **Ujian** | Kartu Ujian (`/kartu-ujian`) | ⏳ Antrean | Cetak Kartu Ujian Berfoto & Barcode |
 | **Ujian** | Scan Nilai (`/scan-nilai`) | ⏳ Antrean | OCR / Barcode Scanner Lembar Nilai |
-| **Keuangan** | Dashboard Keuangan | ⏳ Antrean | Ringkasan Arus Kas, Statistik Penerimaan |
-| **Keuangan** | Tagihan Santri (`/tagihan-santri`) | ⏳ Antrean | Invoice SPP, Daftar Tagihan, Status Lunas |
-| **Keuangan** | Buku Kas (`/buku-kas`) | ⏳ Antrean | Arus Kas Masuk & Keluar, Jurnal Umum |
+| **Keuangan** | Dashboard Keuangan (`/keuangan/dashboard`) | ✅ Selesai (TSX) | Option A Liquid Glass, 4 Metric Glass Orbs, Inset Breakdowns, Quick Actions, Nav Menu, Top Tunggakan |
+| **Keuangan** | Tagihan Santri (`/keuangan/tagihan`) | ✅ Selesai (TSX) | Option A Liquid Glass, Tabs SPP Makan/Madin/DU/Event, Scrolling Kelas Chips, Inset Filter Dock, VisionOS Confirm Dialog, Glass Table & Payment Modal |
+| **Keuangan** | Laporan SPP (`/keuangan/laporan/spp`) | ✅ Selesai (TSX) | Option A Liquid Glass, Sub-Tabs Bulanan/Semester/Tahunan, 3 Glass KPI Orbs, CustomSelect Filter Dock, Matrix & Glass Table |
+| **Keuangan** | Laporan Daftar Ulang (`/keuangan/laporan/daftar-ulang`) | ✅ Selesai (TSX) | Option A Liquid Glass, Tabs Santri Baru & Lama, 3 KPI Stat Orbs, Rincian Komponen Glass Cards, Search & Student Matrix Glass Table |
+| **Keuangan** | Laporan Event (`/keuangan/laporan/event`) | ✅ Selesai (TSX) | Option A Liquid Glass, Master-Detail Layout, 3 KPI Stat Orbs, Event Selector Pills, Micro Stats Grid, Search & Glass Table |
+| **Keuangan** | Buku Kas Keluar (`/buku-kas`) | ✅ Selesai (TSX) | Option A Liquid Glass, 4 Interactive Kas Glass Orbs, Inset Search, VisionOS Modals (Catat & Void tanpa browser prompt), Glass Table & Total Footer |
+| **Keuangan** | Setup Keuangan (`/keuangan/setup`) | ✅ Selesai (TSX) | Option A Liquid Glass, 3 KPI Stat Orbs, Apple Segmented Tabs (Tarif Default, Override Bulanan, Pengecualian), VisionOS Modals & Delete Halo |
+| **Keuangan** | Log Audit Keuangan (`/keuangan/audit`) | ✅ Selesai (TSX) | Option A Liquid Glass, 4 KPI Stat Orbs, CustomSelect Filter Dock, Frosted Activity Badges, Expandable Side-by-Side JSON Diff Panels |
 | **Keuangan** | Cetak Kwitansi (`/cetak-kwitansi`) | ⏳ Antrean | Template Cetak Pembayaran Resmi |
 | **Kepesantrenan** | Data Kamar (`/kamar`) | ✅ Selesai (TSX) | Option A Liquid Glass, Frosted KPI Dock, Putra & Putri Segmented Tabs, 3D Lens Orbs, KamarAnggotaModal |
 | **Kepesantrenan** | Inventaris Pesantren (`/inventaris`) | ✅ Selesai (TSX) | Option A Liquid Glass, Tabs Pondok/Madin/PMQ, KPI Orbs, CustomSelect Filters, VisionOS Table & Delete Halo |

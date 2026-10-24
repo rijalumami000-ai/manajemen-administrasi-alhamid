@@ -3,31 +3,39 @@
 
 .app-layout {
   display: flex;
-  min-height: 100vh;
-  overflow: hidden;
+  height: 100vh;
+  max-height: 100vh;
   position: relative;
+  overflow: hidden;
+  background: transparent;
 
   // ---------------------------------------------------------------------------
-  // 1. LIGHT MODE (DEFAULT - Apple macOS Sequoia Multi-Point Aurora Mesh)
+  // 1. HARDWARE-ACCELERATED FIXED BACKGROUND LAYER (Apple Sequoia Mesh)
+  // Replaces background-attachment: fixed to eliminate scroll repainting jank
   // ---------------------------------------------------------------------------
-  background: 
-    radial-gradient(circle at 10% 12%, rgba(56, 189, 248, 0.22) 0%, transparent 45%),
-    radial-gradient(circle at 90% 15%, rgba(129, 140, 248, 0.20) 0%, transparent 42%),
-    radial-gradient(circle at 45% 45%, rgba(244, 114, 182, 0.12) 0%, transparent 40%),
-    radial-gradient(circle at 85% 80%, rgba(168, 85, 247, 0.18) 0%, transparent 48%),
-    radial-gradient(circle at 15% 85%, rgba(45, 212, 191, 0.15) 0%, transparent 42%),
-    linear-gradient(180deg, #f8fafc 0%, #f1f5f9 55%, #edf2f7 100%);
-  background-attachment: fixed;
+  &::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    z-index: 0;
+    pointer-events: none;
+    transform: translate3d(0, 0, 0);
+    will-change: transform;
 
-  // ---------------------------------------------------------------------------
-  // 2. DARK MODE OVERRIDES (VisionOS Deep Obsidian Acrylic Space)
-  // ---------------------------------------------------------------------------
-  html[data-theme="dark"] & {
     background: 
-      radial-gradient(circle at 15% 15%, rgba(30, 58, 138, 0.25) 0%, transparent 45%),
-      radial-gradient(circle at 85% 20%, rgba(88, 28, 135, 0.22) 0%, transparent 45%),
-      linear-gradient(135deg, #090d16 0%, #0d121f 50%, #080c14 100%);
-    background-attachment: fixed;
+      radial-gradient(circle at 10% 12%, rgba(56, 189, 248, 0.20) 0%, transparent 45%),
+      radial-gradient(circle at 90% 15%, rgba(129, 140, 248, 0.18) 0%, transparent 42%),
+      radial-gradient(circle at 45% 45%, rgba(244, 114, 182, 0.10) 0%, transparent 40%),
+      radial-gradient(circle at 85% 80%, rgba(168, 85, 247, 0.16) 0%, transparent 48%),
+      radial-gradient(circle at 15% 85%, rgba(45, 212, 191, 0.14) 0%, transparent 42%),
+      linear-gradient(180deg, #f8fafc 0%, #f1f5f9 55%, #edf2f7 100%);
+
+    html[data-theme="dark"] & {
+      background: 
+        radial-gradient(circle at 15% 15%, rgba(30, 58, 138, 0.22) 0%, transparent 45%),
+        radial-gradient(circle at 85% 20%, rgba(88, 28, 135, 0.20) 0%, transparent 45%),
+        linear-gradient(135deg, #090d16 0%, #0d121f 50%, #080c14 100%);
+    }
   }
 }
 
@@ -36,15 +44,28 @@
   display: flex;
   flex-direction: column;
   min-width: 0; // Fixes flexbox overflow issues
+  height: 100vh;
+  max-height: 100vh;
+  overflow: hidden;
   background: transparent;
+  position: relative;
+  z-index: 1;
 }
 
 .app-content {
   flex: 1;
+  min-height: 0; // Critical for flex child overflow scrolling
   margin: 0;
   padding: 0;
   background: transparent;
-  overflow: auto;
+  overflow-y: auto;
+  overflow-x: hidden;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior-y: contain;
+  contain: paint layout;
+  transform: translate3d(0, 0, 0);
+  position: relative;
+  z-index: 1;
   @include custom-scrollbar;
 }
 

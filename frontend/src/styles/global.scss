@@ -586,3 +586,23 @@ pre {
   @include apple-tactile-header;
 }
 
+// =============================================================================
+// GLOBAL PERFORMANCE OPTIMIZATIONS (HIGH FPS SCROLLING)
+// =============================================================================
+.table-responsive-wrapper table tbody tr,
+.tagihan-glass-table tbody tr,
+.inventaris-tactile-table tbody tr {
+  content-visibility: auto;
+  contain-intrinsic-size: 0 46px;
+}
+
+.apple-glass-card,
+.summary-glass-card,
+.stat-card-tactile,
+.tactile-page-header,
+.tactile-segmented-control {
+  transform: translate3d(0, 0, 0);
+  backface-visibility: hidden;
+}
+
+

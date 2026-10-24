@@ -1,25 +1,33 @@
-import { useState, useEffect, useCallback } from 'react';
-import { BarChart3, TrendingUp, TrendingDown, ChevronDown, ChevronRight, Download } from 'lucide-react';
+import React, { useState, useEffect, useCallback } from 'react';
+import {
+  TrendingUp, TrendingDown, RefreshCw, Download,
+  Layers, CheckCircle2, Clock, XCircle, Minus,
+  Calendar, Users, Banknote, AlertCircle
+} from 'lucide-react';
+import { CustomSelect } from '../components/ui/CustomSelect';
+import {
+  SubTabLaporanSPP,
+  StatusTagihan,
+  TahunAjaran,
+  KelasItem,
+  LaporanSPPBulananResponse,
+  LaporanSPPSemesterResponse,
+  LaporanSPPTahunanResponse
+} from '../types/keuangan';
 import './LaporanSPP.scss';
 
-type SubTab = 'bulanan' | 'semester' | 'tahunan';
-type StatusTagihan = 'belum_lunas' | 'sebagian' | 'lunas' | 'dibebaskan';
-
 const NAMA_BULAN: Record<number, string> = {
-  1:'Januari',2:'Februari',3:'Maret',4:'April',5:'Mei',6:'Juni',
-  7:'Juli',8:'Agustus',9:'September',10:'Oktober',11:'November',12:'Desember'
+  1: 'Januari', 2: 'Februari', 3: 'Maret', 4: 'April', 5: 'Mei', 6: 'Juni',
+  7: 'Juli', 8: 'Agustus', 9: 'September', 10: 'Oktober', 11: 'November', 12: 'Desember'
 };
 
 function rp(n: number): string {
   return new Intl.NumberFormat('id-ID', {
-    style: 'currency', currency: 'IDR',
-    minimumFractionDigits: 0, maximumFractionDigits: 0,
+    style: 'currency',
+    currency: 'IDR',
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 0,
   }).format(n ?? 0);
-}
-
-function pctBar(terkumpul: number, target: number): string {
-  if (!target) return '0';
-  return String(Math.min(100, Math.round((terkumpul / target) * 100)));
 }
 
 function getPctClass(pct: number): string {
@@ -29,46 +37,41 @@ function getPctClass(pct: number): string {
   return 'pct-danger';
 }
 
-interface TahunAjaran { id: number; kode: string; is_active: boolean; tahun_mulai: number; }
-
-// ─── Komponen Realisasi Progress ─────────────────────────────────────────
-function RealisasiBar({ terkumpul, target }: { terkumpul: number; target: number }) {
-  const pct = Number(pctBar(terkumpul, target));
+// ─── Status Badge ──────────────────────────────────────────────────────────
+function StatusBadgeSimple({ status }: { status: StatusTagihan }) {
+  if (!status) return <span className="tagihan-status-badge badge-belum-lunas">—</span>;
+  const map: Record<StatusTagihan, { label: string; className: string; Icon: React.ElementType }> = {
+    lunas:       { label: 'Lunas',      className: 'badge-lunas',       Icon: CheckCircle2 },
+    sebagian:    { label: 'Sebagian',   className: 'badge-sebagian',    Icon: Clock },
+    belum_lunas: { label: 'Belum',      className: 'badge-belum-lunas', Icon: XCircle },
+    dibebaskan:  { label: 'Bebas',      className: 'badge-dibebaskan',  Icon: Minus },
+  };
+  const { label, className, Icon } = map[status] ?? map.belum_lunas;
   return (
-    <div className="k-realisasi">
-      <div className="k-realisasi__numbers">
-        <span style={{ color: '#10A05B', fontWeight: 700 }}>{rp(terkumpul)}</span>
-        <span style={{ color: '#94A3B8' }}> / {rp(target)}</span>
-      </div>
-      <div className="k-progress__bar-wrap">
-        <div
-          className={`k-progress__bar ${getPctClass(pct)}`}
-          style={{ width: `${pct}%` }}
-        />
-      </div>
-      <span className="k-realisasi__pct">{pct}%</span>
-    </div>
+    <span className={`tagihan-status-badge ${className}`}>
+      <Icon size={10} />
+      <span>{label}</span>
+    </span>
   );
 }
 
-// ────────────────────────────────────────────────────────────────────────────
-// LAPORAN BULANAN
-// ────────────────────────────────────────────────────────────────────────────
+// ════════════════════════════════════════════════════════════════════════════
+// 1. LAPORAN BULANAN
+// ════════════════════════════════════════════════════════════════════════════
 function LaporanBulanan({ tahunId, token }: { tahunId: number; token: string }) {
   const [bulan, setBulan] = useState(new Date().getMonth() + 1);
   const [tahun, setTahun] = useState(new Date().getFullYear());
-  const [kelasList, setKelasList] = useState<{ id: number; nama: string }[]>([]);
+  const [kelasList, setKelasList] = useState<KelasItem[]>([]);
   const [selectedKelasId, setSelectedKelasId] = useState<string>('');
-  const [data, setData] = useState<Record<string, unknown> | null>(null);
+  const [data, setData] = useState<LaporanSPPBulananResponse | null>(null);
   const [loading, setLoading] = useState(false);
-  const [expanded, setExpanded] = useState<Set<number>>(new Set());
 
   useEffect(() => {
     fetch('/api/kelas', { headers: { Authorization: `Bearer ${token}` } })
       .then(r => r.json())
       .then(d => {
         if (Array.isArray(d)) {
-          setKelasList(d.filter((k: { jenis: string }) => k.jenis === 'Diniyah'));
+          setKelasList(d.filter((k: KelasItem) => k.jenis === 'Diniyah'));
         }
       })
       .catch(() => {});
@@ -82,149 +85,253 @@ function LaporanBulanan({ tahunId, token }: { tahunId: number; token: string }) 
         `/api/keuangan/laporan/spp/bulanan?tahun_ajaran_id=${tahunId}&bulan=${bulan}&tahun=${tahun}${kelasQuery}`,
         { headers: { Authorization: `Bearer ${token}` } }
       );
-      setData(await res.json());
+      if (res.ok) {
+        setData(await res.json());
+      }
     } catch { /* silent */ }
     setLoading(false);
   }, [tahunId, bulan, tahun, selectedKelasId, token]);
 
-  useEffect(() => { fetch_(); }, [fetch_]);
+  useEffect(() => {
+    fetch_();
+  }, [fetch_]);
 
-  const summary = data?.summary as Record<string, unknown> | undefined;
-  const perSantri = (data?.per_santri as unknown[]) ?? [];
+  const summary = data?.summary;
+  const perSantri = data?.per_santri ?? [];
 
-  const toggleExpand = (id: number) => {
-    setExpanded(prev => {
-      const next = new Set(prev);
-      next.has(id) ? next.delete(id) : next.add(id);
-      return next;
-    });
-  };
+  const bulanOptions = Object.entries(NAMA_BULAN).map(([n, nama]) => ({
+    value: Number(n),
+    label: nama,
+  }));
+
+  const tahunOptions = [2024, 2025, 2026, 2027].map(y => ({
+    value: y,
+    label: String(y),
+  }));
+
+  const kelasOptions = [
+    { value: '', label: 'Semua Kelas' },
+    ...kelasList.map(k => ({ value: String(k.id), label: `Kelas ${k.nama}` })),
+  ];
 
   return (
-    <div className="laporan-content">
-      {/* Filter bar */}
-      <div className="laporan-filter">
-        <select className="k-select" value={bulan} onChange={e => setBulan(Number(e.target.value))}>
-          {Object.entries(NAMA_BULAN).map(([n, nama]) => (
-            <option key={n} value={n}>{nama}</option>
-          ))}
-        </select>
-        <select className="k-select" value={tahun} onChange={e => setTahun(Number(e.target.value))}>
-          {[2024, 2025, 2026, 2027].map(y => <option key={y} value={y}>{y}</option>)}
-        </select>
-        <select className="k-select" value={selectedKelasId} onChange={e => setSelectedKelasId(e.target.value)}>
-          <option value="">Semua Kelas</option>
-          {kelasList.map(k => (
-            <option key={k.id} value={k.id}>Kelas {k.nama}</option>
-          ))}
-        </select>
-        <button className="k-btn-primary" onClick={fetch_}>Tampilkan</button>
+    <div className="laporan-content-flow">
+      {/* 🔍 Inset Frosted Filter Bar */}
+      <div className="laporan-filter-dock">
+        <div style={{ width: 140 }}>
+          <CustomSelect
+            value={bulan}
+            onChange={val => setBulan(Number(val))}
+            options={bulanOptions}
+            placeholder="Pilih Bulan"
+            size="md"
+          />
+        </div>
+
+        <div style={{ width: 110 }}>
+          <CustomSelect
+            value={tahun}
+            onChange={val => setTahun(Number(val))}
+            options={tahunOptions}
+            placeholder="Tahun"
+            size="md"
+          />
+        </div>
+
+        <div style={{ width: 180 }}>
+          <CustomSelect
+            value={selectedKelasId}
+            onChange={val => setSelectedKelasId(String(val))}
+            options={kelasOptions}
+            placeholder="Pilih Kelas"
+            size="md"
+          />
+        </div>
+
+        <button
+          type="button"
+          className="action-pill-btn primary-pill"
+          onClick={fetch_}
+          disabled={loading}
+        >
+          <RefreshCw size={14} className={loading ? 'spinning-icon' : ''} />
+          <span>Tampilkan</span>
+        </button>
       </div>
 
       {loading ? (
-        <div className="laporan-skeleton">
-          {[1,2,3].map(i => <div key={i} className="k-skeleton" style={{ height: 72, marginBottom: 8 }} />)}
+        <div className="laporan-skeleton-grid">
+          {[1, 2, 3].map(i => (
+            <div key={i} className="laporan-skeleton-card" />
+          ))}
         </div>
       ) : summary ? (
         <>
-          {/* Summary Cards */}
-          <div className="laporan-summary-grid">
-            <div className="laporan-summary-card laporan-summary-card--makan">
-              <h4>SPP Makan</h4>
-              <div className="laporan-summary-card__big">{rp(Number(summary.terkumpul_makan))}</div>
-              <div className="laporan-summary-card__target">Target: {rp(Number(summary.target_makan))}</div>
-              <div className="laporan-summary-card__sisa" style={{ color: '#DC3545' }}>
-                Sisa: {rp(Number(summary.target_makan) - Number(summary.terkumpul_makan))}
+          {/* 📊 3 VisionOS Liquid Glass KPI Summary Cards */}
+          <div className="laporan-kpi-grid">
+            {/* SPP Makan */}
+            <div className="laporan-glass-kpi card-emerald">
+              <div className="kpi-top-row">
+                <span className="kpi-label">SPP Makan</span>
+                <div className="kpi-icon-orb orb-emerald">
+                  <Banknote size={18} />
+                </div>
               </div>
-              <div className="k-progress__bar-wrap" style={{ marginTop: 8 }}>
-                <div className={`k-progress__bar ${getPctClass(Number(summary.realisasi_makan_pct))}`}
-                  style={{ width: `${summary.realisasi_makan_pct}%` }} />
+              <div className="kpi-main-val">{rp(Number(summary.terkumpul_makan))}</div>
+              <div className="kpi-target-row">
+                <span>Target: <strong>{rp(Number(summary.target_makan))}</strong></span>
+                <span className="text-rose">Sisa: {rp(Number(summary.target_makan) - Number(summary.terkumpul_makan))}</span>
               </div>
-              <div className="laporan-summary-card__pct">{String(summary.realisasi_makan_pct)}% · {Number(summary.santri_lunas_makan)} lunas · {Number(summary.santri_bebas_makan)} dibebaskan</div>
+              <div className="kpi-progress-track">
+                <div
+                  className="kpi-progress-fill fill-emerald"
+                  style={{ width: `${summary.realisasi_makan_pct}%` }}
+                />
+              </div>
+              <div className="kpi-meta-footer">
+                <span>{summary.realisasi_makan_pct}% Realisasi</span>
+                <span className="meta-sub">
+                  {summary.santri_lunas_makan} lunas · {summary.santri_bebas_makan} dibebaskan
+                </span>
+              </div>
             </div>
 
-            <div className="laporan-summary-card laporan-summary-card--madin">
-              <h4>SPP Madin</h4>
-              <div className="laporan-summary-card__big">{rp(Number(summary.terkumpul_madin))}</div>
-              <div className="laporan-summary-card__target">Target: {rp(Number(summary.target_madin))}</div>
-              <div className="laporan-summary-card__sisa" style={{ color: '#DC3545' }}>
-                Sisa: {rp(Number(summary.target_madin) - Number(summary.terkumpul_madin))}
+            {/* SPP Madin */}
+            <div className="laporan-glass-kpi card-sapphire">
+              <div className="kpi-top-row">
+                <span className="kpi-label">SPP Madin</span>
+                <div className="kpi-icon-orb orb-sapphire">
+                  <Users size={18} />
+                </div>
               </div>
-              <div className="k-progress__bar-wrap" style={{ marginTop: 8 }}>
-                <div className={`k-progress__bar ${getPctClass(Number(summary.realisasi_madin_pct))}`}
-                  style={{ width: `${summary.realisasi_madin_pct}%` }} />
+              <div className="kpi-main-val text-sapphire">{rp(Number(summary.terkumpul_madin))}</div>
+              <div className="kpi-target-row">
+                <span>Target: <strong>{rp(Number(summary.target_madin))}</strong></span>
+                <span className="text-rose">Sisa: {rp(Number(summary.target_madin) - Number(summary.terkumpul_madin))}</span>
               </div>
-              <div className="laporan-summary-card__pct">{String(summary.realisasi_madin_pct)}% · {Number(summary.santri_lunas_madin)} lunas · {Number(summary.santri_bebas_madin)} dibebaskan</div>
+              <div className="kpi-progress-track">
+                <div
+                  className="kpi-progress-fill fill-sapphire"
+                  style={{ width: `${summary.realisasi_madin_pct}%` }}
+                />
+              </div>
+              <div className="kpi-meta-footer">
+                <span>{summary.realisasi_madin_pct}% Realisasi</span>
+                <span className="meta-sub">
+                  {summary.santri_lunas_madin} lunas · {summary.santri_bebas_madin} dibebaskan
+                </span>
+              </div>
             </div>
 
-            <div className="laporan-summary-card laporan-summary-card--total">
-              <h4>Total SPP</h4>
-              <div className="laporan-summary-card__big">{rp(Number(summary.total_terkumpul))}</div>
-              <div className="laporan-summary-card__target">Target: {rp(Number(summary.total_target))}</div>
-              <div className="laporan-summary-card__sisa" style={{ color: '#DC3545' }}>
-                Tunggakan: {rp(Number(summary.total_tunggakan))}
+            {/* Total SPP */}
+            <div className="laporan-glass-kpi card-amber">
+              <div className="kpi-top-row">
+                <span className="kpi-label">Total SPP Periode</span>
+                <div className="kpi-icon-orb orb-amber">
+                  <Calendar size={18} />
+                </div>
               </div>
-              <div className="k-progress__bar-wrap" style={{ marginTop: 8 }}>
-                <div className={`k-progress__bar ${getPctClass(Number(summary.realisasi_pct))}`}
-                  style={{ width: `${summary.realisasi_pct}%` }} />
+              <div className="kpi-main-val text-amber">{rp(Number(summary.total_terkumpul))}</div>
+              <div className="kpi-target-row">
+                <span>Target: <strong>{rp(Number(summary.total_target))}</strong></span>
+                <span className="text-rose">Tunggakan: {rp(Number(summary.total_tunggakan))}</span>
               </div>
-              <div className="laporan-summary-card__pct">{String(summary.realisasi_pct)}% realisasi · {Number(summary.total_santri)} santri</div>
+              <div className="kpi-progress-track">
+                <div
+                  className="kpi-progress-fill fill-amber"
+                  style={{ width: `${summary.realisasi_pct}%` }}
+                />
+              </div>
+              <div className="kpi-meta-footer">
+                <span>{summary.realisasi_pct}% Realisasi</span>
+                <span className="meta-sub">{summary.total_santri} total santri</span>
+              </div>
             </div>
           </div>
 
-          {/* Tabel detail per santri */}
-          <div className="k-table-wrap" style={{ marginTop: 16 }}>
-            <table>
-              <thead>
-                <tr>
-                  <th>#</th>
-                  <th>Santri</th>
-                  <th className="right">SPP Makan</th>
-                  <th className="center">Status Makan</th>
-                  <th className="right">SPP Madin</th>
-                  <th className="center">Status Madin</th>
-                  <th className="right">Total Dibayar</th>
-                  <th className="right">Total Sisa</th>
-                </tr>
-              </thead>
-              <tbody>
-                {(perSantri as Record<string, unknown>[]).map((s, i) => {
-                  const makanDibayar = Number(s.nominal_dibayar_makan);
-                  const madinDibayar = Number(s.nominal_dibayar_madin);
-                  const makanTagihan = Number(s.nominal_tagihan_makan);
-                  const madinTagihan = Number(s.nominal_tagihan_madin);
-                  const totalDibayar = makanDibayar + madinDibayar;
-                  const totalSisa = (makanTagihan - makanDibayar) + (madinTagihan - madinDibayar);
-
-                  return (
-                    <tr key={String(s.santri_id)}>
-                      <td className="muted">{i + 1}</td>
-                      <td>
-                        <div style={{ fontWeight: 600, fontSize: 13.5 }}>{String(s.nama)}</div>
-                        <div style={{ fontSize: 11, color: '#94A3B8' }}>{String(s.nis)}</div>
+          {/* 💎 VisionOS Liquid Glass Table Container */}
+          <div className="laporan-table-card">
+            <div className="table-responsive-wrapper">
+              <table className="laporan-glass-table">
+                <thead>
+                  <tr>
+                    <th style={{ width: 50 }}>#</th>
+                    <th>Santri</th>
+                    <th className="cell-right">SPP Makan</th>
+                    <th className="cell-center">Status Makan</th>
+                    <th className="cell-right">SPP Madin</th>
+                    <th className="cell-center">Status Madin</th>
+                    <th className="cell-right">Total Dibayar</th>
+                    <th className="cell-right">Total Sisa</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {perSantri.length === 0 ? (
+                    <tr>
+                      <td colSpan={8} className="table-empty-cell">
+                        Tidak ada data pembayaran SPP untuk filter terpilih.
                       </td>
-                      <td className="right">{rp(makanDibayar)} <span style={{ color: '#94A3B8', fontSize: 11 }}>/ {rp(makanTagihan)}</span></td>
-                      <td className="center"><StatusBadgeSimple status={s.status_makan as StatusTagihan} /></td>
-                      <td className="right">{rp(madinDibayar)} <span style={{ color: '#94A3B8', fontSize: 11 }}>/ {rp(madinTagihan)}</span></td>
-                      <td className="center"><StatusBadgeSimple status={s.status_madin as StatusTagihan} /></td>
-                      <td className="right" style={{ color: '#10A05B', fontWeight: 700 }}>{rp(totalDibayar)}</td>
-                      <td className="right" style={{ color: totalSisa > 0 ? '#DC3545' : '#10A05B', fontWeight: 700 }}>{rp(Math.max(0, totalSisa))}</td>
                     </tr>
-                  );
-                })}
-              </tbody>
-              <tfoot>
-                <tr>
-                  <td colSpan={2}><strong>TOTAL ({perSantri.length} santri)</strong></td>
-                  <td className="right"><strong>{rp(Number(summary.terkumpul_makan))}</strong></td>
-                  <td />
-                  <td className="right"><strong>{rp(Number(summary.terkumpul_madin))}</strong></td>
-                  <td />
-                  <td className="right" style={{ color: '#10A05B' }}><strong>{rp(Number(summary.total_terkumpul))}</strong></td>
-                  <td className="right" style={{ color: '#DC3545' }}><strong>{rp(Number(summary.total_tunggakan))}</strong></td>
-                </tr>
-              </tfoot>
-            </table>
+                  ) : (
+                    perSantri.map((s, i) => {
+                      const makanDibayar = Number(s.nominal_dibayar_makan);
+                      const madinDibayar = Number(s.nominal_dibayar_madin);
+                      const makanTagihan = Number(s.nominal_tagihan_makan);
+                      const madinTagihan = Number(s.nominal_tagihan_madin);
+                      const totalDibayar = makanDibayar + madinDibayar;
+                      const totalSisa = (makanTagihan - makanDibayar) + (madinTagihan - madinDibayar);
+                      const initial = s.nama ? s.nama.charAt(0).toUpperCase() : '?';
+
+                      return (
+                        <tr key={String(s.santri_id)}>
+                          <td className="cell-muted">{i + 1}</td>
+                          <td>
+                            <div className="santri-cell-group">
+                              <div className="santri-avatar-orb">{initial}</div>
+                              <div className="santri-name-column">
+                                <span className="santri-name">{s.nama}</span>
+                                <span className="santri-nis-pill">NIS: {s.nis}</span>
+                              </div>
+                            </div>
+                          </td>
+                          <td className="cell-right font-numeric">
+                            <span className="text-emerald">{rp(makanDibayar)}</span>
+                            <span className="meta-target"> / {rp(makanTagihan)}</span>
+                          </td>
+                          <td className="cell-center">
+                            <StatusBadgeSimple status={s.status_makan} />
+                          </td>
+                          <td className="cell-right font-numeric">
+                            <span className="text-sapphire">{rp(madinDibayar)}</span>
+                            <span className="meta-target"> / {rp(madinTagihan)}</span>
+                          </td>
+                          <td className="cell-center">
+                            <StatusBadgeSimple status={s.status_madin} />
+                          </td>
+                          <td className="cell-right font-numeric text-emerald font-bold">
+                            {rp(totalDibayar)}
+                          </td>
+                          <td className={`cell-right font-numeric font-bold ${totalSisa > 0 ? 'text-rose' : 'text-emerald'}`}>
+                            {rp(Math.max(0, totalSisa))}
+                          </td>
+                        </tr>
+                      );
+                    })
+                  )}
+                </tbody>
+                <tfoot>
+                  <tr>
+                    <td colSpan={2} className="footer-title">TOTAL ({perSantri.length} santri)</td>
+                    <td className="cell-right font-numeric text-emerald"><strong>{rp(Number(summary.terkumpul_makan))}</strong></td>
+                    <td />
+                    <td className="cell-right font-numeric text-sapphire"><strong>{rp(Number(summary.terkumpul_madin))}</strong></td>
+                    <td />
+                    <td className="cell-right font-numeric text-emerald"><strong>{rp(Number(summary.total_terkumpul))}</strong></td>
+                    <td className="cell-right font-numeric text-rose"><strong>{rp(Number(summary.total_tunggakan))}</strong></td>
+                  </tr>
+                </tfoot>
+              </table>
+            </div>
           </div>
         </>
       ) : null}
@@ -232,25 +339,12 @@ function LaporanBulanan({ tahunId, token }: { tahunId: number; token: string }) 
   );
 }
 
-// ─── Simpel status badge ─────────────────────────────────────────────────
-function StatusBadgeSimple({ status }: { status: StatusTagihan }) {
-  if (!status) return <span className="k-badge k-badge--belum_lunas">—</span>;
-  const map: Record<StatusTagihan, string> = {
-    lunas: 'k-badge--lunas', sebagian: 'k-badge--sebagian',
-    belum_lunas: 'k-badge--belum_lunas', dibebaskan: 'k-badge--dibebaskan',
-  };
-  const labels: Record<StatusTagihan, string> = {
-    lunas: 'Lunas', sebagian: 'Sebagian', belum_lunas: 'Belum', dibebaskan: 'Bebas',
-  };
-  return <span className={`k-badge ${map[status]}`}>{labels[status]}</span>;
-}
-
-// ────────────────────────────────────────────────────────────────────────────
-// LAPORAN SEMESTER
-// ────────────────────────────────────────────────────────────────────────────
+// ════════════════════════════════════════════════════════════════════════════
+// 2. LAPORAN SEMESTER
+// ════════════════════════════════════════════════════════════════════════════
 function LaporanSemester({ tahunId, token }: { tahunId: number; token: string }) {
   const [semester, setSemester] = useState<'ganjil' | 'genap'>('ganjil');
-  const [data, setData] = useState<Record<string, unknown> | null>(null);
+  const [data, setData] = useState<LaporanSPPSemesterResponse | null>(null);
   const [loading, setLoading] = useState(false);
 
   const fetch_ = useCallback(async () => {
@@ -260,122 +354,177 @@ function LaporanSemester({ tahunId, token }: { tahunId: number; token: string })
         `/api/keuangan/laporan/spp/semester?tahun_ajaran_id=${tahunId}&semester=${semester}`,
         { headers: { Authorization: `Bearer ${token}` } }
       );
-      setData(await res.json());
+      if (res.ok) {
+        setData(await res.json());
+      }
     } catch { /* silent */ }
     setLoading(false);
   }, [tahunId, semester, token]);
 
-  useEffect(() => { fetch_(); }, [fetch_]);
+  useEffect(() => {
+    fetch_();
+  }, [fetch_]);
 
-  const grand = data?.grand_total as Record<string, unknown> | undefined;
-  const bulanList = (data?.bulan_list as number[]) ?? [];
-  const perSantri = (data?.per_santri as Record<string, unknown>[]) ?? [];
+  const grand = data?.grand_total;
+  const bulanList = data?.bulan_list ?? [];
+  const perSantri = data?.per_santri ?? [];
 
   return (
-    <div className="laporan-content">
-      <div className="laporan-filter">
-        <div className="k-pill-group">
+    <div className="laporan-content-flow">
+      {/* Semester Segmented Pills */}
+      <div className="laporan-filter-dock">
+        <div className="tactile-segmented-control" role="tablist">
           {(['ganjil', 'genap'] as const).map(s => (
             <button
               key={s}
-              className={`k-pill ${semester === s ? 'k-pill--active' : ''}`}
+              type="button"
+              role="tab"
+              aria-selected={semester === s}
+              className={`segment-btn ${semester === s ? 'active' : ''}`}
               onClick={() => setSemester(s)}
             >
-              Semester {s.charAt(0).toUpperCase() + s.slice(1)}
+              <Calendar size={14} />
+              <span>Semester {s.charAt(0).toUpperCase() + s.slice(1)}</span>
             </button>
           ))}
         </div>
-        <button className="k-btn-primary" onClick={fetch_}>Tampilkan</button>
+
+        <button
+          type="button"
+          className="action-pill-btn primary-pill"
+          onClick={fetch_}
+          disabled={loading}
+        >
+          <RefreshCw size={14} className={loading ? 'spinning-icon' : ''} />
+          <span>Segarkan</span>
+        </button>
       </div>
 
       {loading ? (
-        <div className="laporan-skeleton">
-          {[1,2,3].map(i => <div key={i} className="k-skeleton" style={{ height: 60, marginBottom: 8 }} />)}
+        <div className="laporan-skeleton-grid">
+          {[1, 2, 3].map(i => (
+            <div key={i} className="laporan-skeleton-card" />
+          ))}
         </div>
       ) : grand ? (
         <>
-          <div className="laporan-summary-grid">
-            <div className="laporan-summary-card laporan-summary-card--makan">
-              <h4>SPP Makan (6 Bulan)</h4>
-              <div className="laporan-summary-card__big">{rp(Number(grand.terkumpul_makan))}</div>
-              <div className="laporan-summary-card__target">Target: {rp(Number(grand.target_makan))}</div>
-              <div className="laporan-summary-card__sisa" style={{ color: '#DC3545' }}>Sisa: {rp(Number(grand.target_makan) - Number(grand.terkumpul_makan))}</div>
-            </div>
-            <div className="laporan-summary-card laporan-summary-card--madin">
-              <h4>SPP Madin (6 Bulan)</h4>
-              <div className="laporan-summary-card__big">{rp(Number(grand.terkumpul_madin))}</div>
-              <div className="laporan-summary-card__target">Target: {rp(Number(grand.target_madin))}</div>
-              <div className="laporan-summary-card__sisa" style={{ color: '#DC3545' }}>Sisa: {rp(Number(grand.target_madin) - Number(grand.terkumpul_madin))}</div>
-            </div>
-            <div className="laporan-summary-card laporan-summary-card--total">
-              <h4>Total Semester {semester === 'ganjil' ? 'Ganjil' : 'Genap'}</h4>
-              <div className="laporan-summary-card__big">{rp(Number(grand.total_terkumpul))}</div>
-              <div className="laporan-summary-card__target">Target: {rp(Number(grand.total_target))}</div>
-              <div className="laporan-summary-card__sisa" style={{ color: '#DC3545' }}>Tunggakan: {rp(Number(grand.total_tunggakan))}</div>
-              <div className="k-progress__bar-wrap" style={{ marginTop: 8 }}>
-                <div className={`k-progress__bar ${getPctClass(Number(grand.realisasi_pct))}`}
-                  style={{ width: `${grand.realisasi_pct}%` }} />
+          {/* Summary Cards */}
+          <div className="laporan-kpi-grid">
+            <div className="laporan-glass-kpi card-emerald">
+              <div className="kpi-top-row">
+                <span className="kpi-label">SPP Makan (6 Bulan)</span>
+                <div className="kpi-icon-orb orb-emerald"><Banknote size={18} /></div>
               </div>
-              <div className="laporan-summary-card__pct">{String(grand.realisasi_pct)}% realisasi</div>
+              <div className="kpi-main-val">{rp(Number(grand.terkumpul_makan))}</div>
+              <div className="kpi-target-row">
+                <span>Target: <strong>{rp(Number(grand.target_makan))}</strong></span>
+                <span className="text-rose">Sisa: {rp(Number(grand.target_makan) - Number(grand.terkumpul_makan))}</span>
+              </div>
+            </div>
+
+            <div className="laporan-glass-kpi card-sapphire">
+              <div className="kpi-top-row">
+                <span className="kpi-label">SPP Madin (6 Bulan)</span>
+                <div className="kpi-icon-orb orb-sapphire"><Users size={18} /></div>
+              </div>
+              <div className="kpi-main-val text-sapphire">{rp(Number(grand.terkumpul_madin))}</div>
+              <div className="kpi-target-row">
+                <span>Target: <strong>{rp(Number(grand.target_madin))}</strong></span>
+                <span className="text-rose">Sisa: {rp(Number(grand.target_madin) - Number(grand.terkumpul_madin))}</span>
+              </div>
+            </div>
+
+            <div className="laporan-glass-kpi card-amber">
+              <div className="kpi-top-row">
+                <span className="kpi-label">Total Semester {semester === 'ganjil' ? 'Ganjil' : 'Genap'}</span>
+                <div className="kpi-icon-orb orb-amber"><Calendar size={18} /></div>
+              </div>
+              <div className="kpi-main-val text-amber">{rp(Number(grand.total_terkumpul))}</div>
+              <div className="kpi-target-row">
+                <span>Target: <strong>{rp(Number(grand.total_target))}</strong></span>
+                <span className="text-rose">Tunggakan: {rp(Number(grand.total_tunggakan))}</span>
+              </div>
+              <div className="kpi-progress-track">
+                <div
+                  className="kpi-progress-fill fill-amber"
+                  style={{ width: `${grand.realisasi_pct}%` }}
+                />
+              </div>
+              <div className="kpi-meta-footer">
+                <span>{grand.realisasi_pct}% Realisasi</span>
+              </div>
             </div>
           </div>
 
-          {/* Tabel per santri x per bulan */}
-          <div className="k-table-wrap" style={{ marginTop: 16 }}>
-            <table>
-              <thead>
-                <tr>
-                  <th>#</th>
-                  <th>Santri</th>
-                  {bulanList.map(b => (
-                    <th key={b} className="center" colSpan={2}>{NAMA_BULAN[b]?.substring(0,3)}</th>
-                  ))}
-                  <th className="right">Total Dibayar</th>
-                  <th className="right">Tunggakan</th>
-                </tr>
-                <tr className="thead-sub">
-                  <th /><th />
-                  {bulanList.map(b => (
-                    <>
-                      <th key={`m-${b}`} className="center" style={{ fontSize: 10 }}>Makan</th>
-                      <th key={`d-${b}`} className="center" style={{ fontSize: 10 }}>Madin</th>
-                    </>
-                  ))}
-                  <th /><th />
-                </tr>
-              </thead>
-              <tbody>
-                {perSantri.map((s, i) => {
-                  const makanPB = s.makan_per_bulan as Record<number, Record<string, unknown>>;
-                  const madinPB = s.madin_per_bulan as Record<number, Record<string, unknown>>;
-                  return (
-                    <tr key={String(s.santri_id)}>
-                      <td className="muted">{i + 1}</td>
-                      <td>
-                        <div style={{ fontWeight: 600, fontSize: 13 }}>{String(s.nama)}</div>
-                        <div style={{ fontSize: 11, color: '#94A3B8' }}>{String(s.nis)}</div>
-                      </td>
-                      {bulanList.map(b => (
-                        <>
-                          <td key={`m-${b}`} className="center">
-                            <StatusBadgeSimple status={(makanPB?.[b]?.status as StatusTagihan) ?? 'belum_lunas'} />
-                          </td>
-                          <td key={`d-${b}`} className="center">
-                            <StatusBadgeSimple status={(madinPB?.[b]?.status as StatusTagihan) ?? 'belum_lunas'} />
-                          </td>
-                        </>
-                      ))}
-                      <td className="right" style={{ color: '#10A05B', fontWeight: 700 }}>
-                        {rp(Number(s.total_dibayar_makan) + Number(s.total_dibayar_madin))}
-                      </td>
-                      <td className="right" style={{ color: Number(s.total_tunggakan) > 0 ? '#DC3545' : '#10A05B', fontWeight: 700 }}>
-                        {rp(Number(s.total_tunggakan))}
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
+          {/* Matrix Table */}
+          <div className="laporan-table-card">
+            <div className="table-responsive-wrapper">
+              <table className="laporan-glass-table table-matrix">
+                <thead>
+                  <tr>
+                    <th style={{ width: 45 }}>#</th>
+                    <th>Santri</th>
+                    {bulanList.map(b => (
+                      <th key={b} className="cell-center" colSpan={2}>
+                        {NAMA_BULAN[b]?.substring(0, 3)}
+                      </th>
+                    ))}
+                    <th className="cell-right">Total Dibayar</th>
+                    <th className="cell-right">Tunggakan</th>
+                  </tr>
+                  <tr className="thead-sub-row">
+                    <th /><th />
+                    {bulanList.map(b => (
+                      <React.Fragment key={b}>
+                        <th className="cell-center sub-th">Mkn</th>
+                        <th className="cell-center sub-th">Mdn</th>
+                      </React.Fragment>
+                    ))}
+                    <th /><th />
+                  </tr>
+                </thead>
+                <tbody>
+                  {perSantri.map((s, i) => {
+                    const makanPB = s.makan_per_bulan;
+                    const madinPB = s.madin_per_bulan;
+                    const totalDibayar = Number(s.total_dibayar_makan) + Number(s.total_dibayar_madin);
+                    const tunggakan = Number(s.total_tunggakan);
+                    const initial = s.nama ? s.nama.charAt(0).toUpperCase() : '?';
+
+                    return (
+                      <tr key={String(s.santri_id)}>
+                        <td className="cell-muted">{i + 1}</td>
+                        <td>
+                          <div className="santri-cell-group">
+                            <div className="santri-avatar-orb">{initial}</div>
+                            <div className="santri-name-column">
+                              <span className="santri-name">{s.nama}</span>
+                              <span className="santri-nis-pill">NIS: {s.nis}</span>
+                            </div>
+                          </div>
+                        </td>
+                        {bulanList.map(b => (
+                          <React.Fragment key={b}>
+                            <td className="cell-center">
+                              <StatusBadgeSimple status={makanPB?.[b]?.status ?? 'belum_lunas'} />
+                            </td>
+                            <td className="cell-center">
+                              <StatusBadgeSimple status={madinPB?.[b]?.status ?? 'belum_lunas'} />
+                            </td>
+                          </React.Fragment>
+                        ))}
+                        <td className="cell-right font-numeric text-emerald font-bold">
+                          {rp(totalDibayar)}
+                        </td>
+                        <td className={`cell-right font-numeric font-bold ${tunggakan > 0 ? 'text-rose' : 'text-emerald'}`}>
+                          {rp(tunggakan)}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
           </div>
         </>
       ) : null}
@@ -383,105 +532,153 @@ function LaporanSemester({ tahunId, token }: { tahunId: number; token: string })
   );
 }
 
-// ────────────────────────────────────────────────────────────────────────────
-// LAPORAN TAHUNAN
-// ────────────────────────────────────────────────────────────────────────────
+// ════════════════════════════════════════════════════════════════════════════
+// 3. LAPORAN TAHUNAN
+// ════════════════════════════════════════════════════════════════════════════
 function LaporanTahunan({ tahunId, token }: { tahunId: number; token: string }) {
-  const [data, setData] = useState<Record<string, unknown> | null>(null);
+  const [data, setData] = useState<LaporanSPPTahunanResponse | null>(null);
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     setLoading(true);
     fetch(`/api/keuangan/laporan/spp/tahunan?tahun_ajaran_id=${tahunId}`, {
       headers: { Authorization: `Bearer ${token}` }
-    }).then(r => r.json()).then(setData).catch(() => {}).finally(() => setLoading(false));
+    })
+      .then(r => r.json())
+      .then(setData)
+      .catch(() => {})
+      .finally(() => setLoading(false));
   }, [tahunId, token]);
 
-  const summary = data?.summary as Record<string, unknown> | undefined;
-  const perSantri = (data?.per_santri as Record<string, unknown>[]) ?? [];
+  const summary = data?.summary;
+  const perSantri = data?.per_santri ?? [];
 
   return (
-    <div className="laporan-content">
+    <div className="laporan-content-flow">
       {loading ? (
-        <div className="laporan-skeleton">
-          {[1,2,3].map(i => <div key={i} className="k-skeleton" style={{ height: 72, marginBottom: 8 }} />)}
+        <div className="laporan-skeleton-grid">
+          {[1, 2, 3].map(i => (
+            <div key={i} className="laporan-skeleton-card" />
+          ))}
         </div>
       ) : summary ? (
         <>
-          <div className="laporan-summary-grid">
-            <div className="laporan-summary-card laporan-summary-card--makan">
-              <h4>SPP Makan (Setahun)</h4>
-              <div className="laporan-summary-card__big">{rp(Number(summary.grand_terkumpul_makan))}</div>
-              <div className="laporan-summary-card__target">Target: {rp(Number(summary.grand_target_makan))}</div>
-            </div>
-            <div className="laporan-summary-card laporan-summary-card--madin">
-              <h4>SPP Madin (Setahun)</h4>
-              <div className="laporan-summary-card__big">{rp(Number(summary.grand_terkumpul_madin))}</div>
-              <div className="laporan-summary-card__target">Target: {rp(Number(summary.grand_target_madin))}</div>
-            </div>
-            <div className="laporan-summary-card laporan-summary-card--total">
-              <h4>Total Setahun</h4>
-              <div className="laporan-summary-card__big">{rp(Number(summary.grand_terkumpul))}</div>
-              <div className="laporan-summary-card__target">Target: {rp(Number(summary.grand_target))}</div>
-              <div className="laporan-summary-card__sisa" style={{ color: '#DC3545' }}>Tunggakan: {rp(Number(summary.grand_tunggakan))}</div>
-              <div className="k-progress__bar-wrap" style={{ marginTop: 8 }}>
-                <div className={`k-progress__bar ${getPctClass(Number(summary.realisasi_pct))}`}
-                  style={{ width: `${summary.realisasi_pct}%` }} />
+          {/* Summary Cards */}
+          <div className="laporan-kpi-grid">
+            <div className="laporan-glass-kpi card-emerald">
+              <div className="kpi-top-row">
+                <span className="kpi-label">SPP Makan (Setahun)</span>
+                <div className="kpi-icon-orb orb-emerald"><Banknote size={18} /></div>
               </div>
-              <div className="laporan-summary-card__pct">{String(summary.realisasi_pct)}% · {Number(summary.santri_lunas_penuh)} lunas penuh · {Number(summary.santri_menunggak)} menunggak</div>
+              <div className="kpi-main-val">{rp(Number(summary.grand_terkumpul_makan))}</div>
+              <div className="kpi-target-row">
+                <span>Target: <strong>{rp(Number(summary.grand_target_makan))}</strong></span>
+              </div>
+            </div>
+
+            <div className="laporan-glass-kpi card-sapphire">
+              <div className="kpi-top-row">
+                <span className="kpi-label">SPP Madin (Setahun)</span>
+                <div className="kpi-icon-orb orb-sapphire"><Users size={18} /></div>
+              </div>
+              <div className="kpi-main-val text-sapphire">{rp(Number(summary.grand_terkumpul_madin))}</div>
+              <div className="kpi-target-row">
+                <span>Target: <strong>{rp(Number(summary.grand_target_madin))}</strong></span>
+              </div>
+            </div>
+
+            <div className="laporan-glass-kpi card-amber">
+              <div className="kpi-top-row">
+                <span className="kpi-label">Total Setahun</span>
+                <div className="kpi-icon-orb orb-amber"><Calendar size={18} /></div>
+              </div>
+              <div className="kpi-main-val text-amber">{rp(Number(summary.grand_terkumpul))}</div>
+              <div className="kpi-target-row">
+                <span>Target: <strong>{rp(Number(summary.grand_target))}</strong></span>
+                <span className="text-rose">Tunggakan: {rp(Number(summary.grand_tunggakan))}</span>
+              </div>
+              <div className="kpi-progress-track">
+                <div
+                  className="kpi-progress-fill fill-amber"
+                  style={{ width: `${summary.realisasi_pct}%` }}
+                />
+              </div>
+              <div className="kpi-meta-footer">
+                <span>{summary.realisasi_pct}% Realisasi</span>
+                <span className="meta-sub">
+                  {summary.santri_lunas_penuh} lunas · {summary.santri_menunggak} menunggak
+                </span>
+              </div>
             </div>
           </div>
 
-          <div className="k-table-wrap" style={{ marginTop: 16 }}>
-            <table>
-              <thead>
-                <tr>
-                  <th>#</th>
-                  <th>Santri</th>
-                  <th className="right">Target Makan</th>
-                  <th className="right">Bayar Makan</th>
-                  <th className="right">Target Madin</th>
-                  <th className="right">Bayar Madin</th>
-                  <th className="right">Total Dibayar</th>
-                  <th className="right">Tunggakan</th>
-                  <th className="center">Status</th>
-                </tr>
-              </thead>
-              <tbody>
-                {perSantri.map((s, i) => (
-                  <tr key={String(s.santri_id)}>
-                    <td className="muted">{i + 1}</td>
-                    <td>
-                      <div style={{ fontWeight: 600, fontSize: 13 }}>{String(s.nama)}</div>
-                      <div style={{ fontSize: 11, color: '#94A3B8' }}>{String(s.nis)}</div>
-                    </td>
-                    <td className="right">{rp(Number(s.target_makan))}</td>
-                    <td className="right" style={{ color: '#10A05B' }}>{rp(Number(s.dibayar_makan))}</td>
-                    <td className="right">{rp(Number(s.target_madin))}</td>
-                    <td className="right" style={{ color: '#10A05B' }}>{rp(Number(s.dibayar_madin))}</td>
-                    <td className="right" style={{ color: '#10A05B', fontWeight: 700 }}>{rp(Number(s.total_dibayar))}</td>
-                    <td className="right" style={{ color: Number(s.total_tunggakan) > 0 ? '#DC3545' : '#10A05B', fontWeight: 700 }}>{rp(Number(s.total_tunggakan))}</td>
-                    <td className="center">
-                      <span className={`k-badge ${s.status_keseluruhan === 'lunas_penuh' ? 'k-badge--lunas' : 'k-badge--belum_lunas'}`}>
-                        {s.status_keseluruhan === 'lunas_penuh' ? 'Lunas Penuh' : 'Menunggak'}
-                      </span>
-                    </td>
+          {/* Table */}
+          <div className="laporan-table-card">
+            <div className="table-responsive-wrapper">
+              <table className="laporan-glass-table">
+                <thead>
+                  <tr>
+                    <th style={{ width: 50 }}>#</th>
+                    <th>Santri</th>
+                    <th className="cell-right">Target Makan</th>
+                    <th className="cell-right">Bayar Makan</th>
+                    <th className="cell-right">Target Madin</th>
+                    <th className="cell-right">Bayar Madin</th>
+                    <th className="cell-right">Total Dibayar</th>
+                    <th className="cell-right">Tunggakan</th>
+                    <th className="cell-center">Status</th>
                   </tr>
-                ))}
-              </tbody>
-              <tfoot>
-                <tr>
-                  <td colSpan={2}><strong>TOTAL</strong></td>
-                  <td className="right"><strong>{rp(Number(summary.grand_target_makan))}</strong></td>
-                  <td className="right" style={{ color: '#10A05B' }}><strong>{rp(Number(summary.grand_terkumpul_makan))}</strong></td>
-                  <td className="right"><strong>{rp(Number(summary.grand_target_madin))}</strong></td>
-                  <td className="right" style={{ color: '#10A05B' }}><strong>{rp(Number(summary.grand_terkumpul_madin))}</strong></td>
-                  <td className="right" style={{ color: '#10A05B' }}><strong>{rp(Number(summary.grand_terkumpul))}</strong></td>
-                  <td className="right" style={{ color: '#DC3545' }}><strong>{rp(Number(summary.grand_tunggakan))}</strong></td>
-                  <td />
-                </tr>
-              </tfoot>
-            </table>
+                </thead>
+                <tbody>
+                  {perSantri.map((s, i) => {
+                    const initial = s.nama ? s.nama.charAt(0).toUpperCase() : '?';
+                    return (
+                      <tr key={String(s.santri_id)}>
+                        <td className="cell-muted">{i + 1}</td>
+                        <td>
+                          <div className="santri-cell-group">
+                            <div className="santri-avatar-orb">{initial}</div>
+                            <div className="santri-name-column">
+                              <span className="santri-name">{s.nama}</span>
+                              <span className="santri-nis-pill">NIS: {s.nis}</span>
+                            </div>
+                          </div>
+                        </td>
+                        <td className="cell-right font-numeric">{rp(Number(s.target_makan))}</td>
+                        <td className="cell-right font-numeric text-emerald">{rp(Number(s.dibayar_makan))}</td>
+                        <td className="cell-right font-numeric">{rp(Number(s.target_madin))}</td>
+                        <td className="cell-right font-numeric text-sapphire">{rp(Number(s.dibayar_madin))}</td>
+                        <td className="cell-right font-numeric text-emerald font-bold">{rp(Number(s.total_dibayar))}</td>
+                        <td className={`cell-right font-numeric font-bold ${Number(s.total_tunggakan) > 0 ? 'text-rose' : 'text-emerald'}`}>
+                          {rp(Number(s.total_tunggakan))}
+                        </td>
+                        <td className="cell-center">
+                          <span className={`tagihan-status-badge ${s.status_keseluruhan === 'lunas_penuh' ? 'badge-lunas' : 'badge-belum-lunas'}`}>
+                            {s.status_keseluruhan === 'lunas_penuh' ? (
+                              <><CheckCircle2 size={10} /><span>Lunas Penuh</span></>
+                            ) : (
+                              <><XCircle size={10} /><span>Menunggak</span></>
+                            )}
+                          </span>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+                <tfoot>
+                  <tr>
+                    <td colSpan={2} className="footer-title">TOTAL</td>
+                    <td className="cell-right font-numeric"><strong>{rp(Number(summary.grand_target_makan))}</strong></td>
+                    <td className="cell-right font-numeric text-emerald"><strong>{rp(Number(summary.grand_terkumpul_makan))}</strong></td>
+                    <td className="cell-right font-numeric"><strong>{rp(Number(summary.grand_target_madin))}</strong></td>
+                    <td className="cell-right font-numeric text-sapphire"><strong>{rp(Number(summary.grand_terkumpul_madin))}</strong></td>
+                    <td className="cell-right font-numeric text-emerald"><strong>{rp(Number(summary.grand_terkumpul))}</strong></td>
+                    <td className="cell-right font-numeric text-rose"><strong>{rp(Number(summary.grand_tunggakan))}</strong></td>
+                    <td />
+                  </tr>
+                </tfoot>
+              </table>
+            </div>
           </div>
         </>
       ) : null}
@@ -490,10 +687,10 @@ function LaporanTahunan({ tahunId, token }: { tahunId: number; token: string }) 
 }
 
 // ════════════════════════════════════════════════════════════════════════════
-// MAIN PAGE
+// MAIN PAGE COMPONENT
 // ════════════════════════════════════════════════════════════════════════════
 export default function LaporanSPP() {
-  const [subTab, setSubTab] = useState<SubTab>('bulanan');
+  const [subTab, setSubTab] = useState<SubTabLaporanSPP>('bulanan');
   const [tahunList, setTahunList] = useState<TahunAjaran[]>([]);
   const [tahunId, setTahunId] = useState<number | null>(null);
   const token = localStorage.getItem('token') ?? '';
@@ -505,34 +702,61 @@ export default function LaporanSPP() {
         setTahunList(list);
         const aktif = list.find(t => t.is_active);
         if (aktif) setTahunId(aktif.id);
-      });
+      })
+      .catch(() => {});
   }, [token]);
 
-  return (
-    <div className="k-page laporan-spp-page">
-      <div className="k-page__header">
-        <div>
-          <h1><BarChart3 size={21} style={{ marginRight: 8, color: '#3B6FE8', verticalAlign: 'middle' }} />
-            Laporan SPP
-          </h1>
-          <p>Rekapitulasi SPP Makan & Madin — target, terkumpul, sisa, dan realisasi</p>
-        </div>
-        <div className="k-page__header-actions">
-          <select className="k-select" value={tahunId ?? ''} onChange={e => setTahunId(Number(e.target.value))}>
-            {tahunList.map(t => <option key={t.id} value={t.id}>{t.kode}{t.is_active ? ' (Aktif)' : ''}</option>)}
-          </select>
-          <button className="k-btn-icon" title="Export Excel (coming soon)"><Download size={15} /></button>
-        </div>
-      </div>
+  const tahunOptions = tahunList.map(t => ({
+    value: t.id,
+    label: `${t.kode}${t.is_active ? ' (Aktif)' : ''}`,
+  }));
 
-      {/* Sub-tabs */}
-      <div className="k-tabs" style={{ marginBottom: 20 }}>
-        {([['bulanan', 'Per Bulan'], ['semester', 'Per Semester'], ['tahunan', 'Per Tahun']] as const).map(([id, label]) => (
-          <button key={id} className={`k-tab ${subTab === id ? 'k-tab--active' : ''}`}
-            onClick={() => setSubTab(id)}>{label}</button>
+  return (
+    <div className="laporan-spp-container">
+      {/* 🍏 1. APPLE FLOATING DOCK HEADER (Option A Standard - NO HEADER ICON) */}
+      <header className="tactile-page-header">
+        <div className="header-text-block">
+          <h2 className="page-title">Laporan SPP</h2>
+          <p className="page-subtitle">
+            Rekapitulasi tagihan, realisasi pembayaran, dan monitoring tunggakan SPP Makan & Madin
+          </p>
+        </div>
+
+        <div className="header-action-dock">
+          <div style={{ width: 170 }}>
+            <CustomSelect
+              value={tahunId}
+              onChange={val => setTahunId(Number(val))}
+              options={tahunOptions}
+              placeholder="Pilih Tahun Ajaran"
+              size="md"
+            />
+          </div>
+        </div>
+      </header>
+
+      {/* 🍏 2. APPLE SEGMENTED CONTROL TABS */}
+      <div className="tactile-segmented-control" role="tablist">
+        {([
+          ['bulanan', 'Per Bulan'],
+          ['semester', 'Per Semester'],
+          ['tahunan', 'Per Tahun'],
+        ] as const).map(([id, label]) => (
+          <button
+            key={id}
+            type="button"
+            role="tab"
+            aria-selected={subTab === id}
+            className={`segment-btn ${subTab === id ? 'active' : ''}`}
+            onClick={() => setSubTab(id)}
+          >
+            <Layers size={14} />
+            <span>{label}</span>
+          </button>
         ))}
       </div>
 
+      {/* ── SubTab Contents ────────────────────────────────────────── */}
       {tahunId && (
         <>
           {subTab === 'bulanan'   && <LaporanBulanan tahunId={tahunId} token={token} />}

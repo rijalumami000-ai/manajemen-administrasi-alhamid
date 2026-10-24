@@ -1,20 +1,25 @@
-import { useState, useEffect, useCallback } from 'react';
-import { ClipboardList, TrendingUp, TrendingDown, RefreshCw, Search, ChevronRight, User } from 'lucide-react';
+import React, { useState, useEffect, useCallback } from 'react';
+import {
+  RefreshCw, Search, X, CheckCircle2, Clock, XCircle, Minus,
+  Layers, Users, Banknote, AlertCircle
+} from 'lucide-react';
+import { CustomSelect } from '../components/ui/CustomSelect';
+import {
+  TipeDaftarUlang,
+  StatusTagihan,
+  TahunAjaran,
+  LaporanDUResponse,
+  LaporanDUSummaryItem,
+  LaporanDUSantriItem
+} from '../types/keuangan';
 import './LaporanDaftarUlang.scss';
-
-type TipeDaftarUlang = 'baru' | 'lama';
-type StatusTagihan = 'belum_lunas' | 'sebagian' | 'lunas' | 'dibebaskan';
-
-interface TahunAjaran {
-  id: number;
-  kode: string;
-  is_active: boolean;
-}
 
 function rp(n: number): string {
   return new Intl.NumberFormat('id-ID', {
-    style: 'currency', currency: 'IDR',
-    minimumFractionDigits: 0, maximumFractionDigits: 0,
+    style: 'currency',
+    currency: 'IDR',
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 0,
   }).format(n ?? 0);
 }
 
@@ -23,33 +28,34 @@ function pctBar(terkumpul: number, target: number): number {
   return Math.min(100, Math.round((terkumpul / target) * 100));
 }
 
-function getPctClass(pct: number): string {
-  if (pct >= 100) return 'pct-done';
-  if (pct >= 80) return 'pct-good';
-  if (pct >= 50) return 'pct-warning';
-  return 'pct-danger';
-}
-
 function StatusBadge({ status }: { status: StatusTagihan }) {
-  if (!status) return <span className="k-badge k-badge--belum_lunas">—</span>;
-  const map: Record<StatusTagihan, string> = {
-    lunas: 'k-badge--lunas', sebagian: 'k-badge--sebagian',
-    belum_lunas: 'k-badge--belum_lunas', dibebaskan: 'k-badge--dibebaskan',
+  if (!status) return <span className="tagihan-status-badge badge-belum-lunas">—</span>;
+  const map: Record<StatusTagihan, { label: string; className: string; Icon: React.ElementType }> = {
+    lunas:       { label: 'Lunas',      className: 'badge-lunas',       Icon: CheckCircle2 },
+    sebagian:    { label: 'Sebagian',   className: 'badge-sebagian',    Icon: Clock },
+    belum_lunas: { label: 'Belum',      className: 'badge-belum-lunas', Icon: XCircle },
+    dibebaskan:  { label: 'Bebas',      className: 'badge-dibebaskan',  Icon: Minus },
   };
-  const labels: Record<StatusTagihan, string> = {
-    lunas: 'Lunas', sebagian: 'Sebagian', belum_lunas: 'Belum', dibebaskan: 'Bebas',
-  };
-  return <span className={`k-badge ${map[status]}`}>{labels[status]}</span>;
+  const { label, className, Icon } = map[status] ?? map.belum_lunas;
+  return (
+    <span className={`tagihan-status-badge ${className}`}>
+      <Icon size={10} />
+      <span>{label}</span>
+    </span>
+  );
 }
 
+// ════════════════════════════════════════════════════════════════════════════
+// MAIN COMPONENT
+// ════════════════════════════════════════════════════════════════════════════
 export default function LaporanDaftarUlang() {
   const [tipe, setTipe] = useState<TipeDaftarUlang>('baru');
   const [tahunList, setTahunList] = useState<TahunAjaran[]>([]);
   const [tahunId, setTahunId] = useState<number | null>(null);
-  const [data, setData] = useState<any>(null);
+  const [data, setData] = useState<LaporanDUResponse | null>(null);
   const [loading, setLoading] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
-  
+
   const token = localStorage.getItem('token') ?? '';
 
   useEffect(() => {
@@ -59,7 +65,8 @@ export default function LaporanDaftarUlang() {
         setTahunList(list);
         const aktif = list.find(t => t.is_active);
         if (aktif) setTahunId(aktif.id);
-      });
+      })
+      .catch(() => {});
   }, [token]);
 
   const fetchData = useCallback(async () => {
@@ -73,8 +80,8 @@ export default function LaporanDaftarUlang() {
       if (res.ok) {
         setData(await res.json());
       }
-    } catch (err) {
-      console.error('Fetch Laporan Daftar Ulang error:', err);
+    } catch {
+      // silent
     } finally {
       setLoading(false);
     }
@@ -84,181 +91,267 @@ export default function LaporanDaftarUlang() {
     fetchData();
   }, [fetchData]);
 
-  const summaryItems = data?.summary_per_item ?? [];
-  const perSantri = data?.per_santri ?? [];
-  const filteredSantri = perSantri.filter((s: any) =>
+  const summaryItems: LaporanDUSummaryItem[] = data?.summary_per_item ?? [];
+  const perSantri: LaporanDUSantriItem[] = data?.per_santri ?? [];
+  const filteredSantri = perSantri.filter(s =>
     s.nama?.toLowerCase().includes(searchQuery.toLowerCase()) ||
     s.nis?.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
+  const tahunOptions = tahunList.map(t => ({
+    value: t.id,
+    label: `${t.kode}${t.is_active ? ' (Aktif)' : ''}`,
+  }));
+
   return (
-    <div className="k-page laporan-du-page">
-      <div className="k-page__header">
-        <div>
-          <h1>
-            <ClipboardList size={22} style={{ marginRight: 8, color: '#3B6FE8', verticalAlign: 'middle' }} />
-            Laporan Daftar Ulang
-          </h1>
-          <p>Status pembayaran administrasi Daftar Ulang santri baru & lama</p>
+    <div className="laporan-du-container">
+      {/* 🍏 1. APPLE FLOATING DOCK HEADER (Option A Standard - NO HEADER ICON) */}
+      <header className="tactile-page-header">
+        <div className="header-text-block">
+          <h2 className="page-title">Laporan Daftar Ulang</h2>
+          <p className="page-subtitle">
+            Status pembayaran administrasi Daftar Ulang santri baru & santri lama
+          </p>
         </div>
-        <div className="k-page__header-actions">
-          <select className="k-select" value={tahunId ?? ''} onChange={e => setTahunId(Number(e.target.value))}>
-            {tahunList.map(t => <option key={t.id} value={t.id}>{t.kode}{t.is_active ? ' (Aktif)' : ''}</option>)}
-          </select>
-          <button className="k-btn-secondary" onClick={fetchData} title="Refresh data">
-            <RefreshCw size={15} className={loading ? 'spin' : ''} />
+
+        <div className="header-action-dock">
+          <div style={{ width: 170 }}>
+            <CustomSelect
+              value={tahunId}
+              onChange={val => setTahunId(Number(val))}
+              options={tahunOptions}
+              placeholder="Pilih Tahun Ajaran"
+              size="md"
+            />
+          </div>
+
+          <button
+            type="button"
+            className="action-pill-btn secondary-pill"
+            onClick={fetchData}
+            disabled={loading}
+            title="Segarkan Data"
+          >
+            <RefreshCw size={14} className={loading ? 'spinning-icon' : ''} />
+            <span>Segarkan</span>
           </button>
         </div>
-      </div>
+      </header>
 
-      {/* Tabs */}
-      <div className="k-tabs" style={{ marginBottom: 20 }}>
-        {([['baru', 'Santri Baru'], ['lama', 'Santri Lama']] as const).map(([id, label]) => (
-          <button key={id} className={`k-tab ${tipe === id ? 'k-tab--active' : ''}`}
-            onClick={() => setTipe(id)}>{label}</button>
+      {/* 🍏 2. APPLE SEGMENTED CONTROL TABS */}
+      <div className="tactile-segmented-control" role="tablist">
+        {([
+          ['baru', 'Santri Baru'],
+          ['lama', 'Santri Lama']
+        ] as const).map(([id, label]) => (
+          <button
+            key={id}
+            type="button"
+            role="tab"
+            aria-selected={tipe === id}
+            className={`segment-btn ${tipe === id ? 'active' : ''}`}
+            onClick={() => setTipe(id)}
+          >
+            <Users size={14} />
+            <span>{label}</span>
+          </button>
         ))}
       </div>
 
       {loading ? (
-        <div className="laporan-skeleton">
-          {[1, 2, 3].map(i => <div key={i} className="k-skeleton" style={{ height: 80, marginBottom: 12 }} />)}
+        <div className="laporan-skeleton-grid">
+          {[1, 2, 3].map(i => (
+            <div key={i} className="laporan-skeleton-card" />
+          ))}
         </div>
       ) : data ? (
         <>
-          {/* Summary Cards */}
-          <div className="laporan-summary-grid">
-            <div className="laporan-summary-card laporan-summary-card--makan">
-              <h4>Total Target</h4>
-              <div className="laporan-summary-card__big">{rp(Number(data.grand_target))}</div>
-              <p className="muted" style={{ fontSize: 12, marginTop: 4 }}>
-                Estimasi dari seluruh santri terdaftar
-              </p>
-            </div>
-            <div className="laporan-summary-card laporan-summary-card--total">
-              <h4>Total Terkumpul</h4>
-              <div className="laporan-summary-card__big" style={{ color: '#10A05B' }}>{rp(Number(data.grand_terkumpul))}</div>
-              <div className="k-progress__bar-wrap" style={{ marginTop: 8 }}>
-                <div className={`k-progress__bar ${getPctClass(Number(data.realisasi_pct))}`}
-                  style={{ width: `${data.realisasi_pct}%` }} />
+          {/* 📊 3. KPI SUMMARY GRID */}
+          <div className="laporan-kpi-grid">
+            {/* Total Target */}
+            <div className="laporan-glass-kpi card-sapphire">
+              <div className="kpi-top-row">
+                <span className="kpi-label">Total Target</span>
+                <div className="kpi-icon-orb orb-sapphire">
+                  <Banknote size={18} />
+                </div>
               </div>
-              <div className="laporan-summary-card__pct">{data.realisasi_pct}% Realisasi</div>
+              <div className="kpi-main-val text-sapphire">{rp(Number(data.grand_target))}</div>
+              <p className="kpi-sub-text">Estimasi dari seluruh santri terdaftar</p>
             </div>
-            <div className="laporan-summary-card laporan-summary-card--madin">
-              <h4>Total Piutang/Sisa</h4>
-              <div className="laporan-summary-card__big" style={{ color: '#DC3545' }}>{rp(Number(data.grand_tunggakan))}</div>
-              <p className="muted" style={{ fontSize: 12, marginTop: 4 }}>
-                Sisa administrasi yang belum dilunasi
-              </p>
+
+            {/* Total Terkumpul */}
+            <div className="laporan-glass-kpi card-emerald">
+              <div className="kpi-top-row">
+                <span className="kpi-label">Total Terkumpul</span>
+                <div className="kpi-icon-orb orb-emerald">
+                  <CheckCircle2 size={18} />
+                </div>
+              </div>
+              <div className="kpi-main-val text-emerald">{rp(Number(data.grand_terkumpul))}</div>
+              <div className="kpi-progress-track">
+                <div
+                  className="kpi-progress-fill fill-emerald"
+                  style={{ width: `${data.realisasi_pct}%` }}
+                />
+              </div>
+              <div className="kpi-meta-footer">
+                <span>{data.realisasi_pct}% Realisasi</span>
+                <span className="meta-sub">Penerimaan masuk</span>
+              </div>
+            </div>
+
+            {/* Total Piutang/Sisa */}
+            <div className="laporan-glass-kpi card-rose">
+              <div className="kpi-top-row">
+                <span className="kpi-label">Total Piutang / Sisa</span>
+                <div className="kpi-icon-orb orb-rose">
+                  <AlertCircle size={18} />
+                </div>
+              </div>
+              <div className="kpi-main-val text-rose">{rp(Number(data.grand_tunggakan))}</div>
+              <p className="kpi-sub-text">Sisa administrasi yang belum dilunasi</p>
             </div>
           </div>
 
-          {/* Itemized breakdown cards */}
-          <h3 style={{ marginTop: 24, marginBottom: 12, fontWeight: 600 }}>Rincian per Administrasi</h3>
-          <div className="du-breakdown-grid">
-            {summaryItems.map((item: any) => {
-              const pct = pctBar(item.terkumpul, item.target);
-              return (
-                <div key={item.kode} className="du-item-card">
-                  <div className="du-item-card__header">
-                    <h5>{item.nama}</h5>
-                    <span className="muted" style={{ fontSize: 11 }}>{item.kode}</span>
-                  </div>
-                  <div className="du-item-card__body">
-                    <div className="du-item-val-row">
-                      <span className="label">Realisasi</span>
-                      <span className="val" style={{ color: '#10A05B', fontWeight: 600 }}>{rp(item.terkumpul)}</span>
+          {/* 📋 4. ITEM CARDS GRID (Rincian per Administrasi) */}
+          <div className="du-breakdown-section">
+            <h3 className="section-title">Rincian per Komponen Administrasi</h3>
+            <div className="du-breakdown-grid">
+              {summaryItems.map(item => {
+                const pct = pctBar(item.terkumpul, item.target);
+                return (
+                  <div key={item.kode} className="du-item-glass-card">
+                    <div className="card-top-header">
+                      <h4 className="item-title">{item.nama}</h4>
+                      <span className="item-code-chip">{item.kode}</span>
                     </div>
-                    <div className="du-item-val-row">
-                      <span className="label">Target</span>
-                      <span className="val">{rp(item.target)}</span>
+
+                    <div className="card-metric-rows">
+                      <div className="metric-row">
+                        <span className="lbl">Realisasi</span>
+                        <span className="val text-emerald">{rp(item.terkumpul)}</span>
+                      </div>
+                      <div className="metric-row">
+                        <span className="lbl">Target</span>
+                        <span className="val">{rp(item.target)}</span>
+                      </div>
+                      <div className="metric-row">
+                        <span className="lbl">Sisa</span>
+                        <span className="val text-rose">{rp(item.target - item.terkumpul)}</span>
+                      </div>
                     </div>
-                    <div className="du-item-val-row">
-                      <span className="label">Sisa</span>
-                      <span className="val" style={{ color: '#DC3545' }}>{rp(item.target - item.terkumpul)}</span>
+
+                    <div className="kpi-progress-track">
+                      <div
+                        className="kpi-progress-fill fill-emerald"
+                        style={{ width: `${pct}%` }}
+                      />
                     </div>
-                    <div className="k-progress__bar-wrap" style={{ marginTop: 10 }}>
-                      <div className={`k-progress__bar ${getPctClass(pct)}`} style={{ width: `${pct}%` }} />
-                    </div>
-                    <div className="du-item-card__footer">
-                      <span>{pct}% terkumpul</span>
-                      <span className="muted">
-                        {item.jumlah_lunas} Lunas · {item.jumlah_sebagian} Sebagian
+
+                    <div className="card-footer-meta">
+                      <span className="pct-badge">{pct}% terkumpul</span>
+                      <span className="counts-text">
+                        <strong>{item.jumlah_lunas}</strong> lunas · <strong>{item.jumlah_sebagian}</strong> sebagian
                       </span>
                     </div>
                   </div>
-                </div>
-              );
-            })}
+                );
+              })}
+            </div>
           </div>
 
-          {/* Student Matrix */}
-          <div className="du-students-section" style={{ marginTop: 32 }}>
-            <div className="du-section-header">
-              <h3 style={{ fontWeight: 600 }}>Detail Pembayaran Santri</h3>
-              <div className="search-box">
-                <Search size={15} />
+          {/* 💎 5. DETAIL PEMBAYARAN SANTRI TABLE */}
+          <div className="du-table-section">
+            <div className="table-header-bar">
+              <h3 className="section-title">Detail Pembayaran Santri</h3>
+
+              {/* Inset Search Pill */}
+              <div className="search-pill-wrapper">
+                <Search size={14} className="search-icon" />
                 <input
                   type="text"
-                  placeholder="Cari santri..."
+                  placeholder="Cari santri / NIS..."
                   value={searchQuery}
                   onChange={e => setSearchQuery(e.target.value)}
+                  className="search-input"
                 />
+                {searchQuery && (
+                  <button
+                    type="button"
+                    className="search-clear-btn"
+                    onClick={() => setSearchQuery('')}
+                    title="Hapus pencarian"
+                  >
+                    <X size={13} />
+                  </button>
+                )}
               </div>
             </div>
 
-            <div className="k-table-wrap" style={{ marginTop: 12 }}>
-              <table>
-                <thead>
-                  <tr>
-                    <th>#</th>
-                    <th>Santri</th>
-                    {summaryItems.map((item: any) => (
-                      <th key={item.kode} className="center">{item.nama}</th>
-                    ))}
-                    <th className="right">Total Tagihan</th>
-                    <th className="right">Total Dibayar</th>
-                    <th className="right">Sisa Tagihan</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {filteredSantri.map((s: any, idx: number) => (
-                    <tr key={s.santri_id}>
-                      <td className="muted">{idx + 1}</td>
-                      <td>
-                        <div style={{ fontWeight: 600, fontSize: 13.5 }}>{s.nama}</div>
-                        <div style={{ fontSize: 11, color: '#94A3B8' }}>{s.nis}</div>
-                      </td>
-                      {summaryItems.map((item: any) => {
-                        const detail = s.status_per_item[item.kode];
-                        return (
-                          <td key={item.kode} className="center">
-                            {detail ? (
-                              <div className="du-cell-status">
-                                <StatusBadge status={detail.status} />
-                                <span className="cell-num">{rp(detail.dibayar)}</span>
-                              </div>
-                            ) : (
-                              <span className="muted">—</span>
-                            )}
-                          </td>
-                        );
-                      })}
-                      <td className="right">{rp(s.total_tagihan)}</td>
-                      <td className="right" style={{ color: '#10A05B', fontWeight: 600 }}>{rp(s.total_dibayar)}</td>
-                      <td className="right" style={{ color: s.total_sisa > 0 ? '#DC3545' : '#10A05B', fontWeight: 700 }}>
-                        {rp(s.total_sisa)}
-                      </td>
-                    </tr>
-                  ))}
-                  {filteredSantri.length === 0 && (
+            <div className="laporan-table-card">
+              <div className="table-responsive-wrapper">
+                <table className="laporan-glass-table">
+                  <thead>
                     <tr>
-                      <td colSpan={summaryItems.length + 5} className="center muted" style={{ padding: 24 }}>
-                        Tidak ada data santri yang cocok dengan pencarian
-                      </td>
+                      <th style={{ width: 45 }}>#</th>
+                      <th>Santri</th>
+                      {summaryItems.map(item => (
+                        <th key={item.kode} className="cell-center">{item.nama}</th>
+                      ))}
+                      <th className="cell-right">Total Tagihan</th>
+                      <th className="cell-right">Total Dibayar</th>
+                      <th className="cell-right">Sisa Tagihan</th>
                     </tr>
-                  )}
-                </tbody>
-              </table>
+                  </thead>
+                  <tbody>
+                    {filteredSantri.map((s, idx) => {
+                      const initial = s.nama ? s.nama.charAt(0).toUpperCase() : '?';
+                      return (
+                        <tr key={s.santri_id}>
+                          <td className="cell-muted">{idx + 1}</td>
+                          <td>
+                            <div className="santri-cell-group">
+                              <div className="santri-avatar-orb">{initial}</div>
+                              <div className="santri-name-column">
+                                <span className="santri-name">{s.nama}</span>
+                                <span className="santri-nis-pill">NIS: {s.nis}</span>
+                              </div>
+                            </div>
+                          </td>
+                          {summaryItems.map(item => {
+                            const detail = s.status_per_item[item.kode];
+                            return (
+                              <td key={item.kode} className="cell-center">
+                                {detail ? (
+                                  <div className="du-cell-status">
+                                    <StatusBadge status={detail.status} />
+                                    <span className="cell-num">{rp(detail.dibayar)}</span>
+                                  </div>
+                                ) : (
+                                  <span className="cell-muted">—</span>
+                                )}
+                              </td>
+                            );
+                          })}
+                          <td className="cell-right font-numeric">{rp(s.total_tagihan)}</td>
+                          <td className="cell-right font-numeric text-emerald font-bold">{rp(s.total_dibayar)}</td>
+                          <td className={`cell-right font-numeric font-bold ${s.total_sisa > 0 ? 'text-rose' : 'text-emerald'}`}>
+                            {rp(s.total_sisa)}
+                          </td>
+                        </tr>
+                      );
+                    })}
+                    {filteredSantri.length === 0 && (
+                      <tr>
+                        <td colSpan={summaryItems.length + 5} className="table-empty-cell">
+                          Tidak ada data santri yang cocok dengan pencarian "{searchQuery}"
+                        </td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
             </div>
           </div>
         </>
