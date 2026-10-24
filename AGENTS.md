@@ -2,14 +2,14 @@
 
 Selamat datang di repositori **Sekolah-Info / Pondok Pesantren Al-Hamid**.
 
-Repositori ini memuat sistem informasi akademik, keuangan, dan kesiswaan pesantren yang **aktif digunakan di lingkungan production**, serta terintegrasi langsung dengan aplikasi mobile Flutter (`mobile_absensi/`) dan desktop scanner.
+Repositori ini memuat sistem informasi akademik, keuangan, dan kesiswaan pesantren yang **aktif digunakan di lingkungan production**, serta terintegrasi langsung dengan aplikasi mobile Flutter (`ngabsenin/` dan `alhamid_one/`) dan desktop scanner.
 
 ---
 
 ## ⚠️ 1. ATURAN EMAS (THE GOLDEN RULES)
 
 1. **JANGAN MERUSAK SISTEM PRODUKSI & MOBILE APP**:
-   - Backend API (`server.js`, `src/routes/apiRoutes.js`), skema database (`sql/`, `src/database/`), dan struktur response JSON adalah **CONTRACT PUBLIK**. Pastikan perubahan backend tetap mempertahankan kompatibilitas dengan aplikasi mobile Flutter (`mobile_absensi/`) dan desktop scanner.
+   - Backend API (`server.js`, `src/routes/apiRoutes.js`), skema database (`sql/`, `src/database/`), dan struktur response JSON adalah **CONTRACT PUBLIK**. Pastikan perubahan backend tetap mempertahankan kompatibilitas dengan aplikasi mobile Flutter (`ngabsenin/` dan `alhamid_one/`) dan desktop scanner.
    - Dilarang memutus atau mengubah format field response JSON yang aktif dikonsumsi oleh mobile app.
    - **Akses & Sinkronisasi VPS Diperbolehkan**: Agent kini diizinkan untuk mengakses, mengeksekusi, dan menyinkronkan server VPS production (seperti `git pull`, build frontend, restart service PM2, migrasi DB, atau deployment) sesuai instruksi pengguna dengan tetap mengutamakan kehati-hatian dan kestabilan sistem.
 2. **LINGKUP PENGEMBANGAN SISTEM**:

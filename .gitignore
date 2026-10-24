@@ -48,8 +48,3 @@ frontend/dist/downloads/*.exe
 public/downloads/*.apk
 frontend/public/downloads/*.apk
 frontend/dist/downloads/*.apk
-
-# Local mobile workspace copies
-alhamid_one/
-ngabsenin/
-
